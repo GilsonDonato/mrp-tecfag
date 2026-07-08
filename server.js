@@ -23,12 +23,49 @@ if (!fs.existsSync(DB_DIR)) {
     fs.mkdirSync(DB_DIR);
 }
 const dbPath = process.env.DATABASE_PATH || path.join(DB_DIR, 'tecfag_mrp.db');
+const BACKUPS_DIR = path.join(DB_DIR, 'backups');
+
+function runDailyBackup() {
+    try {
+        if (!fs.existsSync(BACKUPS_DIR)) {
+            fs.mkdirSync(BACKUPS_DIR);
+        }
+
+        const dateStr = new Date().toISOString().split('T')[0];
+        const backupPath = path.join(BACKUPS_DIR, `tecfag_mrp_backup_${dateStr}.db`);
+
+        if (fs.existsSync(dbPath)) {
+            fs.copyFileSync(dbPath, backupPath);
+            console.log(`[BACKUP] Cópia de segurança gerada com sucesso em: ${backupPath}`);
+        }
+
+        const files = fs.readdirSync(BACKUPS_DIR);
+        const backupFiles = files
+            .filter(f => f.startsWith('tecfag_mrp_backup_') && f.endsWith('.db'))
+            .map(f => ({ name: f, path: path.join(BACKUPS_DIR, f), time: fs.statSync(path.join(BACKUPS_DIR, f)).mtime }));
+
+        backupFiles.sort((a, b) => a.time - b.time);
+
+        if (backupFiles.length > 7) {
+            const filesToDelete = backupFiles.slice(0, backupFiles.length - 7);
+            filesToDelete.forEach(f => {
+                fs.unlinkSync(f.path);
+                console.log(`[BACKUP] Backup rotacionado e removido: ${f.name}`);
+            });
+        }
+    } catch (err) {
+        console.error('[BACKUP] Erro na rotina de backup:', err.message);
+    }
+}
+
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Erro ao conectar ao banco SQLite:', err.message);
     } else {
         console.log('Conectado com sucesso ao banco SQLite em:', dbPath);
         initializeDatabase();
+        runDailyBackup();
+        setInterval(runDailyBackup, 24 * 60 * 60 * 1000);
     }
 });
 
@@ -496,6 +533,126 @@ app.get('/api/projects/:code', async (req, res) => {
     }
 });
 
+// Função auxiliar para enviar notificações por Webhook
+async function sendWebhookNotification(event, details) {
+    const webhookUrl = process.env.WEBHOOK_URL;
+    if (!webhookUrl) return;
+
+    try {
+        let message = "";
+        const timestamp = new Date().toLocaleTimeString() + ' ' + new Date().toLocaleDateString();
+
+        if (event === 'CREATE') {
+            message = `🆕 **[NOVO PROJETO CADASTRADO]**\n**Código**: \`${details.code}\`\n**Cliente**: \`${details.client}\`\n**PM/Responsável**: \`${details.pm}\`\n**SKU Original**: \`${details.sku}\`\n**Data**: \`${timestamp}\``;
+        } else if (event === 'PHASE_CHANGE') {
+            const phaseLabels = {
+                1: 'Fase 1: Vendas / Escopo',
+                2: 'Fase 2: Importação / Compras',
+                3: 'Fase 3: Recebimento / Almoxarifado',
+                4: 'Fase 4: Instalação / Técnico',
+                5: 'Concluído (SAT)',
+                6: 'Cancelado / Perdido'
+            };
+            const oldPhaseLabel = phaseLabels[details.oldFase] || `Fase ${details.oldFase}`;
+            const newPhaseLabel = phaseLabels[details.newFase] || `Fase ${details.newFase}`;
+            
+            message = `🔔 **[MOVIMENTAÇÃO DE FASE]**\n**Projeto**: \`${details.code}\` (Cliente: *${details.client}*)\n➡️ **De**: *${oldPhaseLabel}*\n➡️ **Para**: *${newPhaseLabel}*\n👤 **Operador**: \`${details.user}\`\n**Data**: \`${timestamp}\``;
+        } else if (event === 'DELETE') {
+            message = `🗑️ **[PROJETO EXCLUÍDO]**\n**Projeto**: \`${details.code}\` foi deletado permanentemente da base.\n**Data**: \`${timestamp}\``;
+        }
+
+        if (!message) return;
+
+        await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: message,
+                content: message
+            })
+        });
+        console.log(`[WEBHOOK] Notificação enviada com sucesso para: ${webhookUrl}`);
+    } catch (err) {
+        console.error('[WEBHOOK] Erro ao enviar notificação:', err.message);
+    }
+}
+
+// GET /api/metrics - Retorna métricas gerenciais sobre os projetos (exclusivo gerência/diretoria)
+app.get('/api/metrics', async (req, res) => {
+    if (req.user.role !== 'ALL' && req.user.role !== 'GERENTE' && req.user.role !== 'DIRETOR') {
+        return res.status(403).json({ error: 'Acesso negado: Apenas a gerência ou diretoria podem visualizar métricas.' });
+    }
+
+    try {
+        const projects = await dbAll('SELECT code, client, pm, sku, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate FROM projects');
+        
+        let totalActive = 0;
+        let totalFinished = 0;
+        let totalLost = 0;
+        let delayedCount = 0;
+        
+        const faseDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+        const delayedProjects = [];
+
+        projects.forEach(p => {
+            const fase = parseInt(p.fase) || 1;
+            faseDistribution[fase] = (faseDistribution[fase] || 0) + 1;
+
+            if (fase === 5) {
+                totalFinished++;
+            } else if (fase === 6) {
+                totalLost++;
+            } else {
+                totalActive++;
+
+                let prazosObj = {};
+                try {
+                    prazosObj = p.prazos ? JSON.parse(p.prazos) : {};
+                } catch(e) {}
+
+                const defaults = { 1: 7, 2: 51, 3: 59, 4: 15 };
+                const deadlineDays = prazosObj[`fase${fase}`] !== undefined ? parseInt(prazosObj[`fase${fase}`]) : defaults[fase];
+                
+                const entryDateStr = p.faseEntryDate || p.lastUpdate || new Date().toISOString();
+                const daysInPhase = Math.floor((new Date() - new Date(entryDateStr)) / (24 * 60 * 60 * 1000));
+
+                if (daysInPhase > deadlineDays) {
+                    delayedCount++;
+                    
+                    const phaseResponsible = {
+                        1: 'Vendas / Engenharia',
+                        2: 'Compras',
+                        3: 'Estoque',
+                        4: 'Técnico'
+                    };
+
+                    delayedProjects.push({
+                        code: p.code,
+                        client: p.client,
+                        pm: p.pm,
+                        fase: fase,
+                        daysInPhase: daysInPhase,
+                        deadline: deadlineDays,
+                        delayDays: daysInPhase - deadlineDays,
+                        responsible: phaseResponsible[fase] || 'Desconhecido'
+                    });
+                }
+            }
+        });
+
+        res.json({
+            totalActive,
+            totalFinished,
+            totalLost,
+            delayedCount,
+            faseDistribution,
+            delayedProjects
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao compilar métricas: ' + err.message });
+    }
+});
+
 // POST /api/projects - Cria um novo projeto
 app.post('/api/projects', async (req, res) => {
     const { code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, machines } = req.body;
@@ -534,6 +691,7 @@ app.post('/api/projects', async (req, res) => {
             JSON.stringify(machines || [])
         ]);
 
+        sendWebhookNotification('CREATE', { code, client, pm, sku });
         res.status(201).json({ success: true, message: 'Projeto inserido com sucesso!' });
     } catch (err) {
         res.status(500).json({ error: 'Erro ao cadastrar projeto: ' + err.message });
@@ -590,6 +748,15 @@ app.put('/api/projects/:code', async (req, res) => {
         if (fase !== undefined && parseInt(fase) !== parseInt(oldFase)) {
             // Disparar e-mail de notificação de forma assíncrona (sem travar a resposta HTTP)
             sendPhaseChangeEmail(updatedProject, oldFase, fase);
+
+            // Disparar webhook
+            sendWebhookNotification('PHASE_CHANGE', {
+                code,
+                client: updatedProject.client,
+                oldFase,
+                newFase: fase,
+                user: req.user ? req.user.username : 'Desconhecido'
+            });
         }
 
         res.json({ success: true, message: 'Projeto atualizado com sucesso!' });
@@ -615,6 +782,7 @@ app.delete('/api/projects/:code', async (req, res) => {
         // Deletar do banco (CASCATA remove os registros da tabela attachments também)
         await dbRun('DELETE FROM projects WHERE code = ?', [code]);
         await dbRun('DELETE FROM attachments WHERE projectCode = ?', [code]);
+        sendWebhookNotification('DELETE', { code });
         res.json({ success: true, message: 'Projeto e anexos excluídos com sucesso!' });
     } catch (err) {
         res.status(500).json({ error: 'Erro ao excluir projeto: ' + err.message });

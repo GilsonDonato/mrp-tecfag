@@ -1244,6 +1244,12 @@
                     Gerar Etiquetas
                 </button>
             </li>
+            <li class="nav-item" id="menu-metrics" onclick="switchTab('metrics')" style="display: none;">
+                <button>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    Métricas e Gargalos
+                </button>
+            </li>
             <li class="nav-item" id="menu-log" onclick="switchTab('log')">
                 <button>
                     <svg viewBox="0 0 24 24"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg>
@@ -1617,6 +1623,89 @@
             </div>
         </div>
 
+        <!-- TAB: METRICAS E GARGALOS -->
+        <div id="tab-metrics" class="tab-content">
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <!-- Indicadores Rápidos -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+                    <div style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; display: flex; align-items: center; gap: 15px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                        <div style="width: 46px; height: 46px; border-radius: 10px; background: rgba(14, 165, 233, 0.1); display: flex; align-items: center; justify-content: center; color: #0ea5e9;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                        </div>
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Projetos Ativos</span>
+                            <span style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary);" id="metrics-active">0</span>
+                        </div>
+                    </div>
+                    <div style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; display: flex; align-items: center; gap: 15px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                        <div style="width: 46px; height: 46px; border-radius: 10px; background: rgba(34, 197, 94, 0.1); display: flex; align-items: center; justify-content: center; color: #22c55e;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </div>
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Concluídos (SAT)</span>
+                            <span style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary);" id="metrics-finished">0</span>
+                        </div>
+                    </div>
+                    <div style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; display: flex; align-items: center; gap: 15px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                        <div style="width: 46px; height: 46px; border-radius: 10px; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center; color: #ef4444;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        </div>
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Projetos em Atraso</span>
+                            <span style="font-size: 1.8rem; font-weight: 800; color: #ef4444;" id="metrics-delayed-count">0</span>
+                        </div>
+                    </div>
+                    <div style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; display: flex; align-items: center; gap: 15px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                        <div style="width: 46px; height: 46px; border-radius: 10px; background: rgba(249, 115, 22, 0.1); display: flex; align-items: center; justify-content: center; color: #f97316;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+                        </div>
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Cancelados / Perdas</span>
+                            <span style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary);" id="metrics-lost">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Distribuição Gráfica (Charts) & Detalhes -->
+                <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+                    <!-- Gráfico de Distribuição por Fase -->
+                    <div style="flex: 1; min-width: 320px; background: var(--card-bg); border: 1px solid var(--border-color); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                        <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--text-primary); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.5px;">Projetos por Fase Operacional</h4>
+                        <div style="display: flex; flex-direction: column; gap: 15px;" id="metrics-fase-chart">
+                            <!-- Barras de progresso dinâmicas -->
+                        </div>
+                    </div>
+
+                    <!-- Informação de Alerta de Gargalo -->
+                    <div style="flex: 2; min-width: 480px; background: var(--card-bg); border: 1px solid var(--border-color); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                            <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+                                ⚠️ Gargalos Operacionais Identificados
+                            </h4>
+                            <span style="font-size: 0.7rem; background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 4px 8px; border-radius: 12px; font-weight: 700;" id="metrics-gargalo-badge">Nenhum</span>
+                        </div>
+                        <div style="max-height: 280px; overflow-y: auto;" id="metrics-gargalo-area">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary); text-align: left;">
+                                        <th style="padding: 10px 5px; font-weight: 700;">Projeto</th>
+                                        <th style="padding: 10px 5px; font-weight: 700;">Cliente</th>
+                                        <th style="padding: 10px 5px; font-weight: 700;">Fase Atual</th>
+                                        <th style="padding: 10px 5px; font-weight: 700; text-align: center;">Tempo (Dias)</th>
+                                        <th style="padding: 10px 5px; font-weight: 700; text-align: center;">Atraso</th>
+                                        <th style="padding: 10px 5px; font-weight: 700;">Setor Resp.</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="metrics-gargalo-table-body">
+                                    <!-- Projetos com atraso dinâmicos -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- TAB 5: AUDITORIA -->
         <div id="tab-log" class="tab-content">
             <div class="project-table-card">
@@ -1832,6 +1921,10 @@
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <button id="btn-mark-lost" class="btn" style="background-color: #f97316;" onclick="showLostReasonPrompt()">Marcar como Perdido</button>
+                    <button class="btn btn-secondary" onclick="exportProjectToPDF()" style="background: rgba(14, 165, 233, 0.1); border-color: rgba(14, 165, 233, 0.3); color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                        Exportar PDF
+                    </button>
                     <button class="btn btn-secondary" onclick="closeProjectModal()">Fechar sem Salvar</button>
                     <button class="btn" onclick="saveProjectModal()">Salvar Alterações</button>
                 </div>
@@ -2061,6 +2154,74 @@
                         isErrorResponse = true;
                         errorStatus = 400;
                         responseData = { error: 'Senha atual incorreta.' };
+                    }
+                } else if (url.startsWith('/api/metrics')) {
+                    if (authenticatedUser.role !== 'ALL' && authenticatedUser.role !== 'GERENTE' && authenticatedUser.role !== 'DIRETOR') {
+                        isErrorResponse = true;
+                        errorStatus = 403;
+                        responseData = { error: 'Acesso negado.' };
+                    } else {
+                        const projects = getLocalProjects();
+                        let totalActive = 0;
+                        let totalFinished = 0;
+                        let totalLost = 0;
+                        let delayedCount = 0;
+                        const faseDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+                        const delayedProjects = [];
+
+                        projects.forEach(p => {
+                            const fase = parseInt(p.fase) || 1;
+                            faseDistribution[fase] = (faseDistribution[fase] || 0) + 1;
+
+                            if (fase === 5) {
+                                totalFinished++;
+                            } else if (fase === 6) {
+                                totalLost++;
+                            } else {
+                                totalActive++;
+
+                                const defaults = { 1: 7, 2: 51, 3: 59, 4: 15 };
+                                let deadlineDays = defaults[fase];
+                                if (p.prazos) {
+                                    const parsedPrazos = typeof p.prazos === 'string' ? JSON.parse(p.prazos) : p.prazos;
+                                    if (parsedPrazos && parsedPrazos[`fase${fase}`] !== undefined) {
+                                        deadlineDays = parseInt(parsedPrazos[`fase${fase}`]);
+                                    }
+                                }
+                                
+                                const entryDateStr = p.faseEntryDate || p.lastUpdate || new Date().toISOString();
+                                const daysInPhase = Math.floor((new Date() - new Date(entryDateStr)) / (24 * 60 * 60 * 1000));
+
+                                if (daysInPhase > deadlineDays) {
+                                    delayedCount++;
+                                    const phaseResponsible = {
+                                        1: 'Vendas / Engenharia',
+                                        2: 'Compras',
+                                        3: 'Estoque',
+                                        4: 'Técnico'
+                                    };
+                                    delayedProjects.push({
+                                        code: p.code,
+                                        client: p.client,
+                                        pm: p.pm,
+                                        fase: fase,
+                                        daysInPhase: daysInPhase,
+                                        deadline: deadlineDays,
+                                        delayDays: daysInPhase - deadlineDays,
+                                        responsible: phaseResponsible[fase] || 'Desconhecido'
+                                    });
+                                }
+                            }
+                        });
+
+                        responseData = {
+                            totalActive,
+                            totalFinished,
+                            totalLost,
+                            delayedCount,
+                            faseDistribution,
+                            delayedProjects
+                        };
                     }
                 } else if (url.startsWith('/api/projects')) {
                     let projects = getLocalProjects();
@@ -2303,6 +2464,7 @@
             const menuNew = document.getElementById('menu-cadprj');
             const menuTag = document.getElementById('menu-tag');
             const menuLog = document.getElementById('menu-log');
+            const menuMetrics = document.getElementById('menu-metrics');
             
             if (menuNew) {
                 menuNew.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'VENDAS' || role === 'GERENTE_COMERCIAL') ? 'block' : 'none';
@@ -2312,6 +2474,9 @@
             }
             if (menuLog) {
                 menuLog.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'DIRETOR') ? 'block' : 'none';
+            }
+            if (menuMetrics) {
+                menuMetrics.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'DIRETOR') ? 'block' : 'none';
             }
             
             // If active tab gets hidden, switch to dashboard
@@ -2475,6 +2640,122 @@
                 .catch(err => console.error('Erro ao carregar projetos do servidor:', err));
 
             loadLogsFromAPI();
+        }
+
+        function loadMetrics() {
+            const token = localStorage.getItem('tecfag_session_token');
+            fetch('/api/metrics', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Erro ao buscar métricas:', data.error);
+                    return;
+                }
+
+                // Preencher Indicadores
+                document.getElementById('metrics-active').innerText = data.totalActive;
+                document.getElementById('metrics-finished').innerText = data.totalFinished;
+                document.getElementById('metrics-delayed-count').innerText = data.delayedCount;
+                document.getElementById('metrics-lost').innerText = data.totalLost;
+
+                // Gráfico de Distribuição por Fase
+                const chartArea = document.getElementById('metrics-fase-chart');
+                chartArea.innerHTML = "";
+
+                const phaseLabels = {
+                    1: 'Fase 1: Vendas',
+                    2: 'Fase 2: Importação',
+                    3: 'Fase 3: Recebimento',
+                    4: 'Fase 4: Instalação',
+                    5: 'Concluído (SAT)',
+                    6: 'Cancelados / Perdas'
+                };
+
+                const phaseColors = {
+                    1: '#0ea5e9',
+                    2: '#a855f7',
+                    3: '#f59e0b',
+                    4: '#3b82f6',
+                    5: '#10b981',
+                    6: '#64748b'
+                };
+
+                // Calcular o valor máximo para percentual das barras
+                let maxVal = 0;
+                for (let f = 1; f <= 6; f++) {
+                    const count = data.faseDistribution[f] || 0;
+                    if (count > maxVal) maxVal = count;
+                }
+
+                for (let f = 1; f <= 6; f++) {
+                    const count = data.faseDistribution[f] || 0;
+                    const percent = maxVal > 0 ? (count / maxVal) * 100 : 0;
+                    
+                    const barHtml = `
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.72rem; font-weight: 600; color: var(--text-secondary);">
+                                <span>${phaseLabels[f]}</span>
+                                <span style="color: var(--text-primary); font-weight: 700;">${count}</span>
+                            </div>
+                            <div style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; overflow: hidden;">
+                                <div style="width: ${percent}%; height: 100%; background: ${phaseColors[f]}; border-radius: 4px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                            </div>
+                        </div>
+                    `;
+                    chartArea.insertAdjacentHTML('beforeend', barHtml);
+                }
+
+                // Preencher Tabela de Gargalos
+                const gargaloBadge = document.getElementById('metrics-gargalo-badge');
+                const tableBody = document.getElementById('metrics-gargalo-table-body');
+                tableBody.innerHTML = "";
+
+                if (data.delayedProjects.length === 0) {
+                    gargaloBadge.innerText = "Nenhum";
+                    gargaloBadge.style.background = "rgba(34, 197, 94, 0.1)";
+                    gargaloBadge.style.color = "#22c55e";
+                    
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 40px 10px;">
+                                🎉 Excelente! Nenhum projeto está com prazo estourado nas fases ativas.
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    gargaloBadge.innerText = `${data.delayedProjects.length} Projetos`;
+                    gargaloBadge.style.background = "rgba(239, 68, 68, 0.1)";
+                    gargaloBadge.style.color = "#ef4444";
+
+                    // Sort by delayDays descending (worst delay first)
+                    const sortedGargalos = [...data.delayedProjects].sort((a, b) => b.delayDays - a.delayDays);
+
+                    sortedGargalos.forEach(g => {
+                        const phaseLabelsBrief = {
+                            1: 'Vendas',
+                            2: 'Importação',
+                            3: 'Recebimento',
+                            4: 'Instalação'
+                        };
+                        const rowHtml = `
+                            <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-primary);">
+                                <td style="padding: 12px 5px; font-weight: 700;"><code>${g.code}</code></td>
+                                <td style="padding: 12px 5px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${g.client}</td>
+                                <td style="padding: 12px 5px;"><span style="font-size: 0.7rem; background: rgba(255, 255, 255, 0.05); padding: 3px 6px; border-radius: 4px;">Fase ${g.fase} (${phaseLabelsBrief[g.fase]})</span></td>
+                                <td style="padding: 12px 5px; text-align: center; font-weight: 600;">${g.daysInPhase}d</td>
+                                <td style="padding: 12px 5px; text-align: center;"><span style="color: #ef4444; font-weight: 700; background: rgba(239, 68, 68, 0.08); padding: 2px 6px; border-radius: 4px;">+${g.delayDays}d</span></td>
+                                <td style="padding: 12px 5px;"><span style="font-weight: 600; color: #f97316;">${g.responsible}</span></td>
+                            </tr>
+                        `;
+                        tableBody.insertAdjacentHTML('beforeend', rowHtml);
+                    });
+                }
+            })
+            .catch(err => console.error('Erro ao buscar métricas:', err));
         }
 
         function loadLogsFromAPI() {
@@ -2765,6 +3046,7 @@
                 list: "Banco de Projetos Industriais",
                 cadprj: "Inserir Novo Projeto no Funil",
                 tag: "Gerador e Impressor de Etiquetas",
+                metrics: "Painel de Métricas e Gargalos",
                 log: "Histórico de Auditoria & Alertas"
             };
 
@@ -2773,6 +3055,7 @@
                 list: "Filtre e consulte o status atual das máquinas e responsabilidades.",
                 cadprj: "Cadastre uma oportunidade, faça o diagnóstico de automação e inicie o fluxo do pedido.",
                 tag: "Imprima a etiqueta de caixa física de projeto e trave o ERP de vendas indébitas.",
+                metrics: "Visão analítica dos prazos das fases e gargalos de produtividade por setor.",
                 log: "Logs de comunicação automáticos simulando e-mails para cada etapa do processo."
             };
 
@@ -2781,6 +3064,8 @@
 
             if (tabId === 'cadprj') {
                 generateProjectCode();
+            } else if (tabId === 'metrics') {
+                loadMetrics();
             }
         }
 
@@ -4056,6 +4341,300 @@
                 console.error(err);
                 alert('Erro ao conectar ao servidor para marcar perda.');
             });
+        }
+
+        function exportProjectToPDF() {
+            if (!activeProjectCode) return;
+            const project = state.projects.find(p => p.code === activeProjectCode);
+            if (!project) return;
+
+            // Fases definitions
+            const phaseLabels = {
+                1: 'Fase 1: Vendas & Escopo',
+                2: 'Fase 2: Compras / Acompanhamento Importação',
+                3: 'Fase 3: Recebimento / Almoxarifado',
+                4: 'Fase 4: Entrega & Instalação Técnica',
+                5: 'Concluído (SAT)',
+                6: 'Cancelado / Venda Perdida'
+            };
+
+            // Checklist label descriptions mapping
+            const checklistLabels = {
+                'diagnostico': '1. Diagnóstico de Automação Comercial Concluído',
+                'customizacao': '2. Customização Técnica e Definição de Escopo de Máquina',
+                'aprovacao': '3. Proposta Aprovada Comercialmente pelo Cliente',
+                'cotacao': '4. Cotação de Escopo Elaborada e Validada',
+                'contrato': '5. Contrato Assinado / Upload de Documento Realizado',
+                'pagamento': '6. Adiantamento / Condições de Pagamento Confirmadas',
+                'producao': '7. Acompanhamento e Atualização de Status da Produção',
+                'embarque': '8. Autorização e Confirmação de Embarque Internacional',
+                'originais': '9. Originais Recebidos e Enviados via DHL/FedEx',
+                'desembaraco': '10. Desembaraço Aduaneiro Concluído no Porto/Aeroporto',
+                'vistoria': '11. Vistoria Interna de Máquinas na TECFAG Concluída',
+                'travas': '12. Registro ERP (SKU-PRJ) & Etiquetagem Vermelha',
+                'direcionamento': '13. Roteamento Físico de Direcionamento Definido',
+                'logistica_saida': '14. Validação Tecnica, Item Aprovado',
+                'startup': '15. Montagem e Start-up Técnico Concluídos no Cliente',
+                'sat': '16. Teste SAT e Assinatura do Termo ("Joinha" final)'
+            };
+
+            // Build print content
+            let printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                alert('Por favor, libere os pop-ups para que o PDF seja gerado.');
+                return;
+            }
+
+            // Checklist table HTML
+            let checklistHtml = '';
+            const phases = [
+                { title: 'Fase 1: Vendas & Escopo', items: ['diagnostico', 'customizacao', 'aprovacao', 'cotacao', 'contrato'] },
+                { title: 'Fase 2: Compras / Importação', items: ['pagamento', 'producao', 'embarque', 'originais'] },
+                { title: 'Fase 3: Recebimento / Almoxarifado', items: ['desembaraco', 'vistoria', 'travas', 'direcionamento'] },
+                { title: 'Fase 4: Entrega & Instalação Técnica', items: ['logistica_saida', 'startup', 'sat'] }
+            ];
+
+            phases.forEach(ph => {
+                checklistHtml += `
+                    <div class="phase-section">
+                        <h3>\${ph.title}</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 50%;">Etapa</th>
+                                    <th style="width: 15%; text-align: center;">Status</th>
+                                    <th style="width: 20%;">Quem marcou</th>
+                                    <th style="width: 15%; text-align: center;">Data</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                ph.items.forEach(item => {
+                    const isChecked = project.checklist && project.checklist[item];
+                    const checker = project.checklist && project.checklist[\`\${item}_user\`] || '-';
+                    const date = project.checklist && project.checklist[\`\${item}_date\`] ? new Date(project.checklist[\`\${item}_date\`]).toLocaleDateString() : '-';
+
+                    checklistHtml += `
+                        <tr>
+                            <td>\${checklistLabels[item] || item}</td>
+                            <td class="status-cell \${isChecked ? 'status-done' : 'status-pending'}">
+                                \${isChecked ? '✓ Concluído' : '○ Pendente'}
+                            </td>
+                            <td>\${checker}</td>
+                            <td style="text-align: center;">\${date}</td>
+                        </tr>
+                    `;
+                });
+
+                checklistHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            });
+
+            // Machines table HTML
+            let machinesHtml = '';
+            if (project.machines && project.machines.length > 0) {
+                machinesHtml = `
+                    <div class="phase-section">
+                        <h3>Vínculos de Rastreabilidade das Máquinas</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Máquina (SKU Original)</th>
+                                    <th>Número de Série Físico</th>
+                                    <th>Rota de Direcionamento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                project.machines.forEach(m => {
+                    machinesHtml += `
+                        <tr>
+                            <td><strong>\${m.sku || '-'}</strong></td>
+                            <td><code>\${m.serial || '-'}</code></td>
+                            <td>\${m.route || '-'}</td>
+                        </tr>
+                    `;
+                });
+                machinesHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            const pageHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Relatório do Projeto \${project.code}</title>
+                    <meta charset="utf-8">
+                    <style>
+                        body {
+                            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                            color: #333333;
+                            line-height: 1.4;
+                            padding: 20px;
+                            font-size: 12px;
+                        }
+                        .header {
+                            border-bottom: 2px solid #0056b3;
+                            padding-bottom: 15px;
+                            margin-bottom: 25px;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        }
+                        .logo-text {
+                            font-size: 24px;
+                            font-weight: 800;
+                            color: #0056b3;
+                            letter-spacing: 1px;
+                        }
+                        .report-title {
+                            font-size: 16px;
+                            font-weight: 700;
+                            color: #555555;
+                            text-transform: uppercase;
+                        }
+                        .meta-grid {
+                            display: grid;
+                            grid-template-columns: repeat(3, 1fr);
+                            gap: 15px;
+                            background-color: #f8f9fa;
+                            border: 1px solid #e9ecef;
+                            padding: 15px;
+                            border-radius: 6px;
+                            margin-bottom: 25px;
+                        }
+                        .meta-item {
+                            display: flex;
+                            flex-direction: column;
+                        }
+                        .meta-label {
+                            font-size: 10px;
+                            text-transform: uppercase;
+                            color: #6c757d;
+                            font-weight: 700;
+                            margin-bottom: 3px;
+                        }
+                        .meta-value {
+                            font-size: 13px;
+                            font-weight: 700;
+                            color: #212529;
+                        }
+                        .phase-section {
+                            margin-bottom: 25px;
+                            page-break-inside: avoid;
+                        }
+                        .phase-section h3 {
+                            font-size: 13px;
+                            color: #0056b3;
+                            margin-bottom: 10px;
+                            border-bottom: 1px solid #dee2e6;
+                            padding-bottom: 5px;
+                            font-weight: 700;
+                            text-transform: uppercase;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 10px;
+                        }
+                        th, td {
+                            padding: 8px 10px;
+                            border: 1px solid #dee2e6;
+                            text-align: left;
+                        }
+                        th {
+                            background-color: #f1f3f5;
+                            font-weight: 700;
+                            color: #495057;
+                            font-size: 11px;
+                        }
+                        .status-cell {
+                            font-weight: 700;
+                            text-align: center;
+                        }
+                        .status-done {
+                            color: #2b8a3e;
+                        }
+                        .status-pending {
+                            color: #c92a2a;
+                        }
+                        .footer {
+                            margin-top: 50px;
+                            border-top: 1px solid #dee2e6;
+                            padding-top: 15px;
+                            text-align: center;
+                            font-size: 10px;
+                            color: #868e96;
+                        }
+                        @media print {
+                            body {
+                                padding: 0;
+                            }
+                            .no-print {
+                                display: none;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="logo-text">TECFAG</div>
+                        <div class="report-title">Relatório de Acompanhamento MRP</div>
+                    </div>
+
+                    <div class="meta-grid">
+                        <div class="meta-item">
+                            <span class="meta-label">Código do Projeto</span>
+                            <span class="meta-value">\${project.code}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Cliente / Razão Social</span>
+                            <span class="meta-value">\${project.client}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Gerente Responsável</span>
+                            <span class="meta-value">\${project.pm}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Fase Atual</span>
+                            <span class="meta-value">\${phaseLabels[project.fase] || 'Fase ' + project.fase}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Última Atualização</span>
+                            <span class="meta-value">\${new Date(project.lastUpdate).toLocaleString()}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Contato Direto</span>
+                            <span class="meta-value">\${project.contact || '-'}</span>
+                        </div>
+                    </div>
+
+                    \${machinesHtml}
+                    \${checklistHtml}
+
+                    <div class="footer">
+                        Este documento detalha o checklist de rastreabilidade de máquinas e processos do TECFAG MRP II.<br>
+                        Documento gerado em \${new Date().toLocaleString()} por \${localStorage.getItem('tecfag_user') || 'sistema'}.
+                    </div>
+
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `;
+
+            printWindow.document.write(pageHtml);
+            printWindow.document.close();
         }
 
         // Change password management
