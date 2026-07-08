@@ -1254,14 +1254,17 @@
 
         <!-- User Profile Card & Logout -->
         <div class="user-profile-sidebar" style="margin-top: auto; padding-top: 15px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
                 <div style="width: 36px; height: 36px; border-radius: 50%; background-color: var(--primary-glow); display: flex; align-items: center; justify-content: center; color: var(--primary); font-weight: 700; font-size: 0.9rem;" id="user-avatar-initials">
                     US
                 </div>
-                <div style="display: flex; flex-direction: column; overflow: hidden;">
+                <div style="display: flex; flex-direction: column; overflow: hidden; flex: 1;">
                     <span style="font-weight: 600; font-size: 0.8rem; color: var(--text-primary); text-overflow: ellipsis; white-space: nowrap; overflow: hidden;" id="user-display-name">Carregando...</span>
                     <span style="font-size: 0.68rem; color: var(--text-secondary);" id="user-display-role">Cargo</span>
                 </div>
+                <button onclick="openChangePasswordModal()" title="Alterar minha senha" style="background: none; border: none; padding: 4px; color: var(--text-secondary); cursor: pointer; transition: color 0.2s; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-secondary)'">
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </button>
             </div>
             <button class="btn btn-secondary" onclick="handleLogout()" style="width: 100%; padding: 8px 12px; font-size: 0.75rem; justify-content: center; border-color: rgba(239, 68, 68, 0.3); color: #fca5a5; background: rgba(239, 68, 68, 0.05); gap: 6px; box-shadow: none;">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -1878,6 +1881,39 @@
         </div>
     </div>
 
+    <!-- MODAL DE ALTERAR SENHA -->
+    <div class="modal-overlay" id="change-password-modal" style="z-index: 1200;">
+        <div class="modal" style="width: 400px; padding: 25px;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color: var(--text-primary); font-size: 1.1rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Alterar Minha Senha
+                </h3>
+                <button class="btn-icon" onclick="closeChangePasswordModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 0; display: flex; flex-direction: column; gap: 12px;">
+                <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                    <label for="chg-current-pass" style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Senha Atual:*</label>
+                    <input type="password" id="chg-current-pass" class="form-control" placeholder="Digite sua senha atual">
+                </div>
+                <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                    <label for="chg-new-pass" style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Nova Senha:*</label>
+                    <input type="password" id="chg-new-pass" class="form-control" placeholder="Mínimo 6 caracteres">
+                </div>
+                <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                    <label for="chg-confirm-pass" style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Confirmar Nova Senha:*</label>
+                    <input type="password" id="chg-confirm-pass" class="form-control" placeholder="Repita a nova senha">
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeChangePasswordModal()">Cancelar</button>
+                <button class="btn" onclick="submitChangePassword()">Confirmar Alteração</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Core Logic Engine -->
     <script>
         // Intercept global fetch on file:// protocol for offline/serverless mode
@@ -2013,6 +2049,19 @@
                     responseData = { success: true };
                 } else if (url.startsWith('/api/auth/me')) {
                     responseData = { success: true, user: { username: authenticatedUser.username, role: authenticatedUser.role } };
+                } else if (url.startsWith('/api/auth/change-password')) {
+                    const { currentPassword, newPassword } = JSON.parse(options.body);
+                    const users = getLocalUsers();
+                    const userIndex = users.findIndex(u => u.username === authenticatedUser.username);
+                    if (userIndex !== -1 && users[userIndex].password === currentPassword) {
+                        users[userIndex].password = newPassword;
+                        localStorage.setItem('tecfag_users', JSON.stringify(users));
+                        responseData = { success: true, message: 'Senha alterada com sucesso!' };
+                    } else {
+                        isErrorResponse = true;
+                        errorStatus = 400;
+                        responseData = { error: 'Senha atual incorreta.' };
+                    }
                 } else if (url.startsWith('/api/projects')) {
                     let projects = getLocalProjects();
                     projects = projects.map(p => {
@@ -4006,6 +4055,64 @@
             .catch(err => {
                 console.error(err);
                 alert('Erro ao conectar ao servidor para marcar perda.');
+            });
+        }
+
+        // Change password management
+        function openChangePasswordModal() {
+            document.getElementById('chg-current-pass').value = "";
+            document.getElementById('chg-new-pass').value = "";
+            document.getElementById('chg-confirm-pass').value = "";
+            document.getElementById('change-password-modal').classList.add('active');
+        }
+
+        function closeChangePasswordModal() {
+            document.getElementById('change-password-modal').classList.remove('active');
+        }
+
+        function submitChangePassword() {
+            const currentPassword = document.getElementById('chg-current-pass').value;
+            const newPassword = document.getElementById('chg-new-pass').value;
+            const confirmPassword = document.getElementById('chg-confirm-pass').value;
+
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                alert('Por favor, preencha todos os campos obrigatórios.');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                alert('A nova senha deve ter no mínimo 6 caracteres.');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                alert('A nova senha e a confirmação de senha não coincidem.');
+                return;
+            }
+
+            const token = localStorage.getItem('tecfag_session_token');
+
+            fetch('/api/auth/change-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ currentPassword, newPassword })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Erro ao alterar senha: ' + data.error);
+                    return;
+                }
+                alert('Senha alterada com sucesso! Você será desconectado para realizar o login com a nova senha.');
+                closeChangePasswordModal();
+                handleLogout();
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Erro ao alterar senha no servidor.');
             });
         }
 
