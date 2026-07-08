@@ -7,5 +7,10 @@ services:
     startCommand: node server.js
     disk:
       name: tecfag-mrp-db
-      mountPath: /opt/render/project/src/data
+      mountPath: /data
       sizeGB: 1
+    envVars:
+      - key: DATABASE_PATH
+        value: /data/tecfag_mrp.db
+      - key: UPLOADS_PATH
+        value: /data/uploads

@@ -12,7 +12,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Garantir que as pastas de uploads e banco de dados existam
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const UPLOADS_DIR = process.env.UPLOADS_PATH || path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
     fs.mkdirSync(UPLOADS_DIR);
 }
@@ -22,12 +22,12 @@ const DB_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DB_DIR)) {
     fs.mkdirSync(DB_DIR);
 }
-const dbPath = path.join(DB_DIR, 'tecfag_mrp.db');
+const dbPath = process.env.DATABASE_PATH || path.join(DB_DIR, 'tecfag_mrp.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Erro ao conectar ao banco SQLite:', err.message);
     } else {
-        console.log('Conectado com sucesso ao banco SQLite local em:', dbPath);
+        console.log('Conectado com sucesso ao banco SQLite em:', dbPath);
         initializeDatabase();
     }
 });
