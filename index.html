@@ -1214,6 +1214,8 @@
                 <option value="ESTOQUE">📦 Estoquista / Almoxarifado</option>
                 <option value="TECNICO">🔧 Técnico / Engenheiro Campo</option>
                 <option value="GERENTE">📈 Gerente de Projetos (PM)</option>
+                <option value="GERENTE_COMERCIAL">🤝 Gerente Comercial</option>
+                <option value="DIRETOR">👑 Diretor (Acompanhamento)</option>
             </select>
         </div>
 
@@ -1908,13 +1910,19 @@
                 }
                 if (!Array.isArray(users) || users.length === 0 || !users.some(u => u.username === 'admin')) {
                     users = [
-                        { username: 'admin', password: 'admin123', role: 'ALL' },
-                        { username: 'vendas', password: 'vendas123', role: 'VENDAS' },
-                        { username: 'engenharia', password: 'eng123', role: 'ENGENHARIA' },
-                        { username: 'compras', password: 'compras123', role: 'COMPRAS' },
-                        { username: 'estoque', password: 'estoque123', role: 'ESTOQUE' },
-                        { username: 'tecnico', password: 'tec123', role: 'TECNICO' },
-                        { username: 'gerente', password: 'gerente123', role: 'GERENTE' }
+                        { username: 'admin', password: 'adm@tecfag99', role: 'ALL' },
+                        { username: 'vendas', password: 'vend@tecfag01', role: 'VENDAS' },
+                        { username: 'engenharia', password: 'eng#tecfag22', role: 'ENGENHARIA' },
+                        { username: 'compras', password: 'comp@tecfag33', role: 'COMPRAS' },
+                        { username: 'estoque', password: 'estq@tecfag44', role: 'ESTOQUE' },
+                        { username: 'tecnico', password: 'tec#tecfag88', role: 'TECNICO' },
+                        { username: 'gerente', password: 'pm#tecfag55', role: 'GERENTE' },
+                        { username: 'gerente_comercial', password: 'comercial#77', role: 'GERENTE_COMERCIAL' },
+                        { username: 'joao.lanza', password: 'diretor@10', role: 'DIRETOR' },
+                        { username: 'vendas1', password: 'vend@tecfag02', role: 'VENDAS' },
+                        { username: 'vendas2', password: 'vend@tecfag03', role: 'VENDAS' },
+                        { username: 'vendas3', password: 'vend@tecfag04', role: 'VENDAS' },
+                        { username: 'vendas4', password: 'vend@tecfag05', role: 'VENDAS' }
                     ];
                     localStorage.setItem('tecfag_users', JSON.stringify(users));
                 }
@@ -2084,14 +2092,14 @@
                     if (method === 'GET') {
                         const projectCode = decodeURIComponent(urlParts[urlParts.length - 1]);
                         let filtered = attachments.filter(a => a.projectCode === projectCode);
-                        if (authenticatedUser.role !== 'ALL' && authenticatedUser.role !== 'GERENTE') {
+                        if (authenticatedUser.role !== 'ALL' && authenticatedUser.role !== 'GERENTE' && authenticatedUser.role !== 'DIRETOR') {
                             filtered = filtered.filter(a => a.phase !== 'cotacao');
                         }
                         responseData = filtered;
                     } else if (method === 'POST') {
                         const formData = options.body; 
                         const phase = formData.get('phase') || '1';
-                        if (phase === 'cotacao' && authenticatedUser.role !== 'ALL' && authenticatedUser.role !== 'GERENTE') {
+                        if (phase === 'cotacao' && authenticatedUser.role !== 'ALL' && authenticatedUser.role !== 'GERENTE' && authenticatedUser.role !== 'DIRETOR') {
                             isErrorResponse = true;
                             errorStatus = 403;
                             responseData = { error: 'Acesso negado.' };
@@ -2114,7 +2122,7 @@
                         const index = attachments.findIndex(a => a.id === id);
                         if (index !== -1) {
                             const attach = attachments[index];
-                            if (attach.phase === 'cotacao' && authenticatedUser.role !== 'ALL' && authenticatedUser.role !== 'GERENTE') {
+                            if (attach.phase === 'cotacao' && authenticatedUser.role !== 'ALL' && authenticatedUser.role !== 'GERENTE' && authenticatedUser.role !== 'DIRETOR') {
                                 isErrorResponse = true;
                                 errorStatus = 403;
                                 responseData = { error: 'Acesso negado.' };
@@ -2248,13 +2256,13 @@
             const menuLog = document.getElementById('menu-log');
             
             if (menuNew) {
-                menuNew.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'VENDAS') ? 'block' : 'none';
+                menuNew.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'VENDAS' || role === 'GERENTE_COMERCIAL') ? 'block' : 'none';
             }
             if (menuTag) {
                 menuTag.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'ESTOQUE') ? 'block' : 'none';
             }
             if (menuLog) {
-                menuLog.style.display = (role === 'ALL' || role === 'GERENTE') ? 'block' : 'none';
+                menuLog.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'DIRETOR') ? 'block' : 'none';
             }
             
             // If active tab gets hidden, switch to dashboard
@@ -2274,7 +2282,9 @@
                 'COMPRAS': 'Analista de Importação',
                 'ESTOQUE': 'Estoquista / Almoxarifado',
                 'TECNICO': 'Técnico Instalador',
-                'GERENTE': 'Gerente de Contratos (PM)'
+                'GERENTE': 'Gerente de Contratos (PM)',
+                'GERENTE_COMERCIAL': 'Gerente Comercial',
+                'DIRETOR': 'Diretor (Acompanhamento)'
             };
             return labels[role] || role;
         }
@@ -3294,7 +3304,7 @@
                     const container = document.getElementById(`attach-step-${stepKey}`);
                     if (!container) return;
                     
-                    if (stepKey === 'cotacao' && currentRole !== 'ALL' && currentRole !== 'GERENTE') {
+                    if (stepKey === 'cotacao' && currentRole !== 'ALL' && currentRole !== 'GERENTE' && currentRole !== 'DIRETOR') {
                         container.innerHTML = `
                             <div style="font-size: 0.7rem; color: #ef4444; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border: 1px dashed rgba(239,68,68,0.3); border-radius: 4px; background: rgba(239,68,68,0.05);" title="Acesso restrito ao PM e Administrador">
                                 <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -3360,7 +3370,13 @@
                 logistica_saida: "TECNICO", startup: "TECNICO", sat: "TECNICO"
             };
             const requiredRole = taskRoleMap[stepKey];
-            if (currentRole !== 'ALL' && currentRole !== 'GERENTE' && currentRole !== requiredRole) {
+            const isAuthorized = (
+                currentRole === 'ALL' || 
+                currentRole === 'GERENTE' || 
+                currentRole === requiredRole || 
+                (requiredRole === 'VENDAS' && currentRole === 'GERENTE_COMERCIAL')
+            );
+            if (!isAuthorized) {
                 alert(`Acesso negado: Seu cargo (${getRoleLabel(currentRole)}) não tem permissão para anexar arquivos nesta etapa. Responsável: ${getRoleLabel(requiredRole)}.`);
                 return;
             }
@@ -3455,7 +3471,13 @@
                 logistica_saida: "TECNICO", startup: "TECNICO", sat: "TECNICO"
             };
             const requiredRole = taskRoleMap[phase];
-            if (currentRole !== 'ALL' && currentRole !== 'GERENTE' && currentRole !== requiredRole) {
+            const isAuthorized = (
+                currentRole === 'ALL' || 
+                currentRole === 'GERENTE' || 
+                currentRole === requiredRole || 
+                (requiredRole === 'VENDAS' && currentRole === 'GERENTE_COMERCIAL')
+            );
+            if (!isAuthorized) {
                 alert(`Acesso negado: Seu cargo (${getRoleLabel(currentRole)}) não tem permissão para remover arquivos nesta etapa. Responsável: ${getRoleLabel(requiredRole)}.`);
                 return;
             }
@@ -3549,7 +3571,13 @@
 
             // 1. Verificar permissão de Cargo/Função
             const requiredRole = taskRoleMap[key];
-            if (currentRole !== 'ALL' && currentRole !== 'GERENTE' && currentRole !== requiredRole) {
+            const isAuthorized = (
+                currentRole === 'ALL' || 
+                currentRole === 'GERENTE' || 
+                currentRole === requiredRole || 
+                (requiredRole === 'VENDAS' && currentRole === 'GERENTE_COMERCIAL')
+            );
+            if (!isAuthorized) {
                 alert(`Acesso negado: Seu cargo (${getRoleLabel(currentRole)}) não tem permissão para editar esta etapa. Responsável: ${getRoleLabel(requiredRole)}.`);
                 return;
             }

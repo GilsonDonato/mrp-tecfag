@@ -130,25 +130,40 @@ function hashPassword(password, salt) {
 
 function seedDefaultUsers() {
     const defaultUsers = [
-        { username: 'admin', password: 'admin123', role: 'ALL' },
-        { username: 'vendas', password: 'vendas123', role: 'VENDAS' },
-        { username: 'engenharia', password: 'eng123', role: 'ENGENHARIA' },
-        { username: 'compras', password: 'compras123', role: 'COMPRAS' },
-        { username: 'estoque', password: 'estoque123', role: 'ESTOQUE' },
-        { username: 'tecnico', password: 'tec123', role: 'TECNICO' },
-        { username: 'gerente', password: 'gerente123', role: 'GERENTE' }
+        { username: 'admin', password: 'adm@tecfag99', role: 'ALL' },
+        { username: 'vendas', password: 'vend@tecfag01', role: 'VENDAS' },
+        { username: 'engenharia', password: 'eng#tecfag22', role: 'ENGENHARIA' },
+        { username: 'compras', password: 'comp@tecfag33', role: 'COMPRAS' },
+        { username: 'estoque', password: 'estq@tecfag44', role: 'ESTOQUE' },
+        { username: 'tecnico', password: 'tec#tecfag88', role: 'TECNICO' },
+        { username: 'gerente', password: 'pm#tecfag55', role: 'GERENTE' },
+        { username: 'gerente_comercial', password: 'comercial#77', role: 'GERENTE_COMERCIAL' },
+        { username: 'joao.lanza', password: 'diretor@10', role: 'DIRETOR' },
+        { username: 'vendas1', password: 'vend@tecfag02', role: 'VENDAS' },
+        { username: 'vendas2', password: 'vend@tecfag03', role: 'VENDAS' },
+        { username: 'vendas3', password: 'vend@tecfag04', role: 'VENDAS' },
+        { username: 'vendas4', password: 'vend@tecfag05', role: 'VENDAS' }
     ];
 
     defaultUsers.forEach((u) => {
         db.get('SELECT username FROM users WHERE username = ?', [u.username], (err, row) => {
-            if (!err && !row) {
+            if (!err) {
                 const { salt, hash } = hashPassword(u.password);
-                db.run('INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)', [
-                    u.username,
-                    hash,
-                    salt,
-                    u.role
-                ]);
+                if (!row) {
+                    db.run('INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)', [
+                        u.username,
+                        hash,
+                        salt,
+                        u.role
+                    ]);
+                } else {
+                    db.run('UPDATE users SET password_hash = ?, salt = ?, role = ? WHERE username = ?', [
+                        hash,
+                        salt,
+                        u.role,
+                        u.username
+                    ]);
+                }
             }
         });
     });
@@ -686,8 +701,8 @@ app.get('/api/attachments/:projectCode', async (req, res) => {
     try {
         let rows = await dbAll('SELECT * FROM attachments WHERE projectCode = ?', [req.params.projectCode]);
         
-        // Filtrar arquivo 4 da fase 1 (Cotação) para quem não for admin/gerente
-        if (req.user.role !== 'ALL' && req.user.role !== 'GERENTE') {
+        // Filtrar arquivo 4 da fase 1 (Cotação) para quem não for admin/gerente/diretor
+        if (req.user.role !== 'ALL' && req.user.role !== 'GERENTE' && req.user.role !== 'DIRETOR') {
             rows = rows.filter(r => r.phase !== 'cotacao');
         }
 
