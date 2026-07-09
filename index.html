@@ -1664,9 +1664,29 @@
                             </div>
                         </div>
 
+                        <!-- Banner de Conscientização da Engenharia -->
+                        <div style="background: rgba(249, 115, 22, 0.08); border-left: 4px solid #f97316; padding: 15px; border-radius: 6px; margin-bottom: 20px; box-shadow: 0 0 15px rgba(249, 115, 22, 0.05);">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <span style="font-size: 1.1rem;">⚠️</span>
+                                <h4 style="color: #f97316; font-size: 0.82rem; font-weight: bold; text-transform: uppercase; margin: 0; letter-spacing: 0.5px;">COMPROMETIMENTO DA ENGENHARIA & QUALIFICAÇÃO</h4>
+                            </div>
+                            <p style="font-size: 0.78rem; line-height: 1.5; color: #cbd5e1; margin: 0;">
+                                <strong>Atenção Vendedor:</strong> A partir da abertura deste projeto, a Engenharia da Tecfag trabalhará 100% focada em buscar e desenhar a melhor solução. 
+                                Certifique-se de que a oportunidade está qualificada (não é cotação de curiosidade) e de detalhar <strong>todas as particularidades, customizações e exigências</strong> do cliente no Diagnóstico abaixo. 
+                                A omissão de detalhes conversados que resulte em retrabalho forçará o reinício completo do projeto.
+                            </p>
+                        </div>
+
                         <div class="form-group">
                             <label for="prj-diagnostico">Diagnóstico Inicial de Automação (Necessidade do Cliente)*</label>
-                            <textarea id="prj-diagnostico" class="form-control" style="height: 250px; resize: vertical;" placeholder="Ex: Seladora a laser integrada de alta velocidade. Requer laudo técnico de adequação à NR-12..." required></textarea>
+                            <textarea id="prj-diagnostico" class="form-control" style="height: 250px; resize: vertical;" required>1. ESCOPO & PRODUTO: 
+[O que a máquina vai dosar/embalar? Peso, formato, velocidade...]
+
+2. PARTICULARIDADES & CUSTOMIZAÇÕES: 
+[Ex: Tensão 220V trifásico, espaço reduzido de layout, integração com esteira existente, adequação NR-12...]
+
+3. REAL POTENCIAL COMERCIAL: 
+[O cliente tem orçamento disponível? Qual a real chance de fechamento comercial?]</textarea>
                         </div>
 
                         <div class="form-row" style="align-items: flex-start;">
@@ -1711,9 +1731,17 @@
                             </div>
                         </div>
 
-                        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 25px;">
-                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('new-project-form').reset(); resetDaysFields();">Limpar Form</button>
-                            <button type="submit" class="btn">Cadastrar Projeto & Iniciar Funil</button>
+                        <!-- Caixa de Confirmação Obrigatória -->
+                        <div style="margin-top: 25px; padding: 12px; background: rgba(14, 165, 233, 0.05); border: 1px solid rgba(14, 165, 233, 0.15); border-radius: 6px; display: flex; align-items: flex-start; gap: 10px;">
+                            <input type="checkbox" id="prj-compromisso" onchange="toggleSubmitButton()" style="margin-top: 3px; cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);">
+                            <label for="prj-compromisso" style="font-size: 0.8rem; line-height: 1.4; color: #cbd5e1; cursor: pointer; user-select: none; font-weight: normal; margin-bottom: 0;">
+                                Confirmo que todas as particularidades técnicas e comerciais discutidas com o cliente estão especificadas no Diagnóstico acima, e que este projeto possui real viabilidade de venda (não sendo apenas cotação de curiosidade).
+                            </label>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+                            <button type="button" class="btn btn-secondary" onclick="handleFormReset()">Limpar Form</button>
+                            <button type="submit" id="btn-submit-project" class="btn" style="opacity: 0.5; pointer-events: none;" disabled>Cadastrar Projeto & Iniciar Funil</button>
                         </div>
                     </form>
                 </div>
@@ -3261,6 +3289,40 @@
             }
         }
 
+        function toggleSubmitButton() {
+            const checkbox = document.getElementById('prj-compromisso');
+            const submitBtn = document.getElementById('btn-submit-project');
+            if (checkbox && submitBtn) {
+                if (checkbox.checked) {
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                    submitBtn.style.pointerEvents = 'auto';
+                } else {
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.5';
+                    submitBtn.style.pointerEvents = 'none';
+                }
+            }
+        }
+
+        function handleFormReset() {
+            const form = document.getElementById('new-project-form');
+            if (form) {
+                form.reset();
+            }
+            // Reset do checkbox e botão de envio
+            const checkbox = document.getElementById('prj-compromisso');
+            if (checkbox) checkbox.checked = false;
+            toggleSubmitButton();
+            resetDaysFields();
+            
+            // Restaura o template do diagnóstico
+            const diagTextarea = document.getElementById('prj-diagnostico');
+            if (diagTextarea) {
+                diagTextarea.value = `1. ESCOPO & PRODUTO: \n[O que a máquina vai dosar/embalar? Peso, formato, velocidade...]\n\n2. PARTICULARIDADES & CUSTOMIZAÇÕES: \n[Ex: Tensão 220V trifásico, espaço reduzido de layout, integração com esteira existente, adequação NR-12...]\n\n3. REAL POTENCIAL COMERCIAL: \n[O cliente tem orçamento disponível? Qual a real chance de fechamento comercial?]`;
+            }
+        }
+
         // Geração Automática de Código Único de Projeto
         function generateProjectCode() {
             const codeInput = document.getElementById('prj-code');
@@ -3417,14 +3479,13 @@
                         })
                     });
 
-                    document.getElementById('new-project-form').reset();
+                    handleFormReset();
                     // Reset machines list
                     document.getElementById('intake-machines-container').innerHTML = '';
                     intakeMachineCount = 0;
                     addMachineIntakeRow();
 
                     generateProjectCode(); // gera o próximo da fila
-                    resetDaysFields(); // restabelece as durações padrões
                     loadProjectsDB();
                     switchTab('dash');
                 })
@@ -3438,8 +3499,8 @@
                 setTimeout(() => {
                     isSubmitting = false;
                     if (submitBtn) {
-                        submitBtn.disabled = false;
                         submitBtn.innerText = "Cadastrar Projeto & Iniciar Funil";
+                        toggleSubmitButton();
                     }
                 }, 1000);
             }
