@@ -1151,6 +1151,63 @@
             transform: translateY(0);
             opacity: 1;
         }
+
+        /* Estilização Premium para o Banco de Projetos em Grade */
+        .project-table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            background-color: var(--bg-surface);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-top: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        #projects-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed; /* Layout fixado para controlar larguras perfeitamente */
+            font-size: 0.82rem;
+            color: var(--text-primary);
+        }
+
+        #projects-table th, 
+        #projects-table td {
+            padding: 14px 16px;
+            border: 1px solid var(--border-color); /* Linhas visíveis estilo grade */
+            text-align: left;
+            vertical-align: middle;
+            white-space: normal; /* Permite quebra de linha do texto */
+            word-wrap: break-word; /* Quebra palavras muito longas */
+        }
+
+        #projects-table th {
+            background-color: #0b0f19;
+            color: var(--text-secondary);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.72rem;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        #projects-table tr {
+            transition: background-color 0.15s ease;
+        }
+
+        #projects-table tr:hover {
+            background-color: var(--bg-surface-hover);
+        }
+
+        /* Definição de larguras para as colunas do Banco de Projetos */
+        #projects-table th:nth-child(1), #projects-table td:nth-child(1) { width: 14%; } /* Código */
+        #projects-table th:nth-child(2), #projects-table td:nth-child(2) { width: 15%; } /* Cliente */
+        #projects-table th:nth-child(3), #projects-table td:nth-child(3) { width: 22%; } /* Máquina (SKU) */
+        #projects-table th:nth-child(4), #projects-table td:nth-child(4) { width: 16%; } /* Fase Atual */
+        #projects-table th:nth-child(5), #projects-table td:nth-child(5) { width: 12%; } /* Progresso */
+        #projects-table th:nth-child(6), #projects-table td:nth-child(6) { width: 10%; } /* Responsável Atual */
+        #projects-table th:nth-child(7), #projects-table td:nth-child(7) { width: 9%; }  /* Última Atualização */
+        #projects-table th:nth-child(8), #projects-table td:nth-child(8) { width: 8%; }  /* Ações */
     </style>
 </head>
 <body class="not-logged-in">
@@ -3335,19 +3392,20 @@
                         deadlineStr = `${d < 10 ? '0' + d : d}/${m < 10 ? '0' + m : m}/${y}`;
                         
                         const now = new Date();
-                        if (now > deadlineDate) {
+                        // Calcular diferença em dias de calendário ignorando horas
+                        const deadlineMidnight = new Date(deadlineDate.getFullYear(), deadlineDate.getMonth(), deadlineDate.getDate());
+                        const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        const diffTime = deadlineMidnight - nowMidnight;
+                        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays < 0) {
                             deadlineClass = "deadline-overdue";
-                            const diffOverdue = Math.ceil((now - deadlineDate) / (1000 * 60 * 60 * 24));
-                            deadlineLabel = ` (ATRASADO ${diffOverdue}d)`;
+                            deadlineLabel = ` (ATRASADO ${Math.abs(diffDays)}d)`;
+                        } else if (diffDays <= 2) {
+                            deadlineClass = "deadline-warning";
+                            deadlineLabel = diffDays === 0 ? ` (URGENTE hoje)` : ` (URGENTE ${diffDays}d)`;
                         } else {
-                            const diffTime = deadlineDate - now;
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            if (diffDays <= 2) {
-                                deadlineClass = "deadline-warning";
-                                deadlineLabel = ` (URGENTE ${diffDays}d)`;
-                            } else {
-                                deadlineLabel = ` (${diffDays}d restantes)`;
-                            }
+                            deadlineLabel = ` (${diffDays}d restantes)`;
                         }
                     }
                 }
@@ -3932,6 +3990,38 @@
                 }
             }
 
+            // 4. Validação de Sequenciamento de Fases (Melhoria 1)
+            const itemPhases = {
+                diagnostico: 1, customizacao: 1, aprovacao: 1, cotacao: 1, contrato: 1,
+                pagamento: 2, producao: 2, embarque: 2, fedex: 2,
+                desembaraco: 3, vistoria: 3, travas: 3, direcionamento: 3,
+                logistica_saida: 4, startup: 4, sat: 4
+            };
+            const currentItemPhase = itemPhases[key];
+            const isChecking = !currentlyChecked;
+
+            if (isChecking) {
+                // Verificar se todas as etapas das fases anteriores estão concluídas
+                for (const k of Object.keys(itemPhases)) {
+                    if (itemPhases[k] < currentItemPhase) {
+                        if (!project.checklist[k]) {
+                            alert(`Atenção: Não é permitido iniciar as etapas da Fase ${currentItemPhase} se as etapas das fases anteriores ainda não foram totalmente concluídas.`);
+                            return;
+                        }
+                    }
+                }
+            } else {
+                // Desmarcando: Verificar se existem etapas de fases posteriores que já estão concluídas
+                for (const k of Object.keys(itemPhases)) {
+                    if (itemPhases[k] > currentItemPhase) {
+                        if (project.checklist[k]) {
+                            alert(`Atenção: Não é permitido reabrir uma etapa da Fase ${currentItemPhase} se existem etapas concluídas nas fases seguintes (Fase ${itemPhases[k]} em diante). Primeiro desmarque as etapas das fases seguintes.`);
+                            return;
+                        }
+                    }
+                }
+            }
+
             // Se clicar no item 12 (direcionamento)
             if (key === 'direcionamento') {
                 const isChecking = !currentlyChecked;
@@ -4140,22 +4230,29 @@
             let finalFase = project.fase;
             let updatedChecklist = { ...project.checklist };
 
+            const fase1And2Completed = [
+                'diagnostico', 'customizacao', 'aprovacao', 'cotacao', 'contrato',
+                'pagamento', 'producao', 'embarque', 'fedex'
+            ].every(k => project.checklist[k] === true);
+
             const allMachinesHaveSerial = updatedMachines.every(m => m.serial !== '-');
             const someMachinesJustGotSerial = updatedMachines.some((m, idx) => m.serial !== '-' && (project.machines && project.machines[idx] ? project.machines[idx].serial === '-' : true));
 
-            if (allMachinesHaveSerial && someMachinesJustGotSerial) {
-                updatedChecklist.desembaraco = true;
-                updatedChecklist.vistoria = true;
-                updatedChecklist.travas = true;
-                
-                if (finalFase < 3) {
-                    finalFase = 3;
+            if (fase1And2Completed) {
+                if (allMachinesHaveSerial && someMachinesJustGotSerial) {
+                    updatedChecklist.desembaraco = true;
+                    updatedChecklist.vistoria = true;
+                    updatedChecklist.travas = true;
+                    
+                    if (finalFase < 3) {
+                        finalFase = 3;
+                    }
                 }
-            }
 
-            const allMachinesHaveRoute = updatedMachines.every(m => m.route !== '-');
-            if (allMachinesHaveSerial && allMachinesHaveRoute) {
-                updatedChecklist.direcionamento = true;
+                const allMachinesHaveRoute = updatedMachines.every(m => m.route !== '-');
+                if (allMachinesHaveSerial && allMachinesHaveRoute) {
+                    updatedChecklist.direcionamento = true;
+                }
             }
 
             const updateBody = {
