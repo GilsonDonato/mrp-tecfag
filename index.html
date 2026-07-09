@@ -2037,7 +2037,9 @@
                 } catch(e) {
                     users = [];
                 }
-                if (!Array.isArray(users) || users.length === 0 || !users.some(u => u.username === 'admin')) {
+                const adminUser = Array.isArray(users) && users.find(u => u.username === 'admin');
+                const needsReset = !adminUser || adminUser.password === 'admin123';
+                if (needsReset) {
                     users = [
                         { username: 'admin', password: 'adm@tecfag99', role: 'ALL' },
                         { username: 'vendas', password: 'vend@tecfag01', role: 'VENDAS' },
