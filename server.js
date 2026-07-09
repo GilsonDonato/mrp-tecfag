@@ -578,7 +578,7 @@ async function sendWebhookNotification(event, details) {
 }
 
 // GET /api/metrics - Retorna métricas gerenciais sobre os projetos (exclusivo gerência/diretoria)
-app.get('/api/metrics', async (req, res) => {
+app.get('/api/metrics', authenticateToken, async (req, res) => {
     if (req.user.role !== 'ALL' && req.user.role !== 'GERENTE' && req.user.role !== 'DIRETOR') {
         return res.status(403).json({ error: 'Acesso negado: Apenas a gerência ou diretoria podem visualizar métricas.' });
     }
