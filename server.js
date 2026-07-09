@@ -383,16 +383,16 @@ async function sendPhaseChangeEmail(project, oldFase, newFase) {
     };
 
     const destMap = {
-        1: process.env.EMAIL_VENDAS,
-        2: process.env.EMAIL_COMPRAS,
-        3: process.env.EMAIL_ESTOQUE,
-        4: process.env.EMAIL_TECNICO,
-        5: process.env.EMAIL_GERENTE,
-        6: process.env.EMAIL_GERENTE
+        1: process.env.EMAIL_VENDAS || 'vendas14@tecfag.com.br, vendas20@tecfag.com.br, vendas21@tecfag.com.br, vendas4@tecfag.com.br, vendas17@tecfag.com.br, vendas19@tecfag.com.br',
+        2: process.env.EMAIL_COMPRAS || 'gilson@tecfag.com.br',
+        3: process.env.EMAIL_ESTOQUE || 'almoxarifado2@tecfag.com.br',
+        4: process.env.EMAIL_TECNICO || 'assistencia@tecfag.com.br',
+        5: process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br',
+        6: process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br'
     };
 
-    const destEmail = destMap[newFase] || process.env.EMAIL_GERENTE;
-    const pmEmail = process.env.EMAIL_GERENTE;
+    const destEmail = destMap[newFase] || process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br';
+    const pmEmail = process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br';
 
     if (!destEmail) {
         console.log(`[E-mail Notificação] Destinatário para Fase ${newFase} não cadastrado nas variáveis de ambiente.`);
