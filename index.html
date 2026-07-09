@@ -4399,7 +4399,7 @@
             phases.forEach(ph => {
                 checklistHtml += `
                     <div class="phase-section">
-                        <h3>\${ph.title}</h3>
+                        <h3>${ph.title}</h3>
                         <table>
                             <thead>
                                 <tr>
@@ -4414,17 +4414,17 @@
 
                 ph.items.forEach(item => {
                     const isChecked = project.checklist && project.checklist[item];
-                    const checker = project.checklist && project.checklist[\`\${item}_user\`] || '-';
-                    const date = project.checklist && project.checklist[\`\${item}_date\`] ? new Date(project.checklist[\`\${item}_date\`]).toLocaleDateString() : '-';
+                    const checker = (project.checklist && project.checklist[item + '_user']) || '-';
+                    const date = (project.checklist && project.checklist[item + '_date']) ? new Date(project.checklist[item + '_date']).toLocaleDateString() : '-';
 
                     checklistHtml += `
                         <tr>
-                            <td>\${checklistLabels[item] || item}</td>
-                            <td class="status-cell \${isChecked ? 'status-done' : 'status-pending'}">
-                                \${isChecked ? '✓ Concluído' : '○ Pendente'}
+                            <td>${checklistLabels[item] || item}</td>
+                            <td class="status-cell ${isChecked ? 'status-done' : 'status-pending'}">
+                                ${isChecked ? '✓ Concluído' : '○ Pendente'}
                             </td>
-                            <td>\${checker}</td>
-                            <td style="text-align: center;">\${date}</td>
+                            <td>${checker}</td>
+                            <td style="text-align: center;">${date}</td>
                         </tr>
                     `;
                 });
@@ -4455,9 +4455,9 @@
                 project.machines.forEach(m => {
                     machinesHtml += `
                         <tr>
-                            <td><strong>\${m.sku || '-'}</strong></td>
-                            <td><code>\${m.serial || '-'}</code></td>
-                            <td>\${m.route || '-'}</td>
+                            <td><strong>${m.sku || '-'}</strong></td>
+                            <td><code>${m.serial || '-'}</code></td>
+                            <td>${m.route || '-'}</td>
                         </tr>
                     `;
                 });
@@ -4472,7 +4472,7 @@
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Relatório do Projeto \${project.code}</title>
+                    <title>Relatório do Projeto ${project.code}</title>
                     <meta charset="utf-8">
                     <style>
                         body {
@@ -4594,36 +4594,36 @@
                     <div class="meta-grid">
                         <div class="meta-item">
                             <span class="meta-label">Código do Projeto</span>
-                            <span class="meta-value">\${project.code}</span>
+                            <span class="meta-value">${project.code}</span>
                         </div>
                         <div class="meta-item">
                             <span class="meta-label">Cliente / Razão Social</span>
-                            <span class="meta-value">\${project.client}</span>
+                            <span class="meta-value">${project.client}</span>
                         </div>
                         <div class="meta-item">
                             <span class="meta-label">Gerente Responsável</span>
-                            <span class="meta-value">\${project.pm}</span>
+                            <span class="meta-value">${project.pm}</span>
                         </div>
                         <div class="meta-item">
                             <span class="meta-label">Fase Atual</span>
-                            <span class="meta-value">\${phaseLabels[project.fase] || 'Fase ' + project.fase}</span>
+                            <span class="meta-value">${phaseLabels[project.fase] || 'Fase ' + project.fase}</span>
                         </div>
                         <div class="meta-item">
                             <span class="meta-label">Última Atualização</span>
-                            <span class="meta-value">\${new Date(project.lastUpdate).toLocaleString()}</span>
+                            <span class="meta-value">${new Date(project.lastUpdate).toLocaleString()}</span>
                         </div>
                         <div class="meta-item">
                             <span class="meta-label">Contato Direto</span>
-                            <span class="meta-value">\${project.contact || '-'}</span>
+                            <span class="meta-value">${project.contact || '-'}</span>
                         </div>
                     </div>
 
-                    \${machinesHtml}
-                    \${checklistHtml}
+                    ${machinesHtml}
+                    ${checklistHtml}
 
                     <div class="footer">
                         Este documento detalha o checklist de rastreabilidade de máquinas e processos do TECFAG MRP II.<br>
-                        Documento gerado em \${new Date().toLocaleString()} por \${localStorage.getItem('tecfag_user') || 'sistema'}.
+                        Documento gerado em ${new Date().toLocaleString()} por ${localStorage.getItem('tecfag_user') || 'sistema'}.
                     </div>
 
                     <script>
