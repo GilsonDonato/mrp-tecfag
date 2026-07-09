@@ -3277,9 +3277,9 @@
         // Cálculo do Progresso do Projeto (%) com base nas 16 etapas do checklist
         function calculateProjectProgress(project) {
             if (!project || !project.checklist) return 0;
-            const items = Object.values(project.checklist);
-            const checked = items.filter(val => val === true).length;
-            return Math.round((checked / items.length) * 100);
+            const keys = Object.keys(project.checklist).filter(key => !key.endsWith('_user') && !key.endsWith('_date'));
+            const checked = keys.filter(key => project.checklist[key] === true).length;
+            return Math.round((checked / 16) * 100);
         }
 
         // Alerta Crítico: Mais de 7 dias sem atualização
