@@ -896,6 +896,8 @@ app.get('/api/cnpj/:cnpj', authenticateToken, async (req, res) => {
         console.error('[CNPJ API] Erro no endpoint:', err.message);
         res.status(500).json({ error: 'Erro interno ao processar a validação do CNPJ.' });
     }
+});
+
 // GET /api/cambio - Proxy para consulta de cotações cambiais (AwesomeAPI)
 app.get('/api/cambio', async (req, res) => {
     try {
