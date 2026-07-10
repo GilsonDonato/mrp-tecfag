@@ -1648,6 +1648,14 @@
             </div>
         </div>
 
+        <!-- Storage Low Warning Banner (Shown only when disk space is > 80%) -->
+        <div id="storage-low-warning" style="display: none; background: linear-gradient(90deg, #ef4444 0%, #b91c1c 100%); color: #ffffff; padding: 14px 20px; border-radius: 8px; margin-bottom: 25px; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25); border-left: 5px solid #7f1d1d;">
+            <div style="display: flex; align-items: center; gap: 12px; font-size: 0.9rem; font-weight: 500;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span><strong>ALERTA DE ESPAÇO:</strong> O armazenamento do servidor está crítico (<span id="storage-warning-pct">--</span>% usado). Risco iminente de travamento. Por favor, remova anexos antigos ou faça o upgrade do plano de disco no Render!</span>
+            </div>
+        </div>
+
         <!-- High-Tech Industrial Telemetry Header (Live HUD) -->
         <div class="industrial-telemetry-hud" style="background: rgba(23, 29, 44, 0.7); border: 1px solid var(--border-color); border-left: 5px solid var(--primary); border-radius: 8px; padding: 12px 20px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; font-family: monospace; font-size: 0.78rem; color: var(--text-primary); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); backdrop-filter: blur(8px); flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
@@ -1668,6 +1676,8 @@
                     <span style="color: var(--text-primary); font-weight: bold;" id="hud-eur-rate">EUR R$ --</span>
                     <span style="color: var(--text-primary); font-weight: bold;" id="hud-cny-rate">CNY R$ --</span>
                 </span>
+                <span style="color: var(--text-secondary);">|</span>
+                <span>💾 DISCO: <span id="hud-storage-pct" style="color: #4ade80; font-weight: bold;" title="Uso de Armazenamento do Servidor (Limite de 1GB)">--%</span></span>
             </div>
             <div style="display: flex; align-items: center; gap: 10px; overflow: hidden; max-width: 45%; white-space: nowrap; text-overflow: ellipsis; color: var(--primary);" id="telemetry-ticker">
                 <span style="font-weight: bold; animation: glitch 3s infinite;" id="telemetry-ticker-text">[SISTEMA OPERACIONAL: AGUARDANDO COMANDO]</span>
@@ -3442,6 +3452,59 @@
             const now = new Date();
             const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             document.getElementById('exchange-last-update').innerText = `Ref: Hoje ${timeStr}`;
+        }
+
+        // Monitoramento de Espaço em Disco
+        async function fetchSystemStorage() {
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                // Se estiver rodando offline/local via file://, define um valor fictício simbólico para não quebrar a UI
+                if (window.location.protocol === 'file:') {
+                    const storagePctEl = document.getElementById('hud-storage-pct');
+                    if (storagePctEl) {
+                        storagePctEl.innerText = '0.50%';
+                        storagePctEl.style.color = '#4ade80';
+                        storagePctEl.title = 'Uso de Armazenamento Local (IndexedDB/Simulado)';
+                    }
+                    return;
+                }
+
+                const response = await fetch('/api/system-storage', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.status === 200) {
+                    const data = await response.json();
+                    const pct = data.usagePercentage;
+                    const storagePctEl = document.getElementById('hud-storage-pct');
+                    const warningBanner = document.getElementById('storage-low-warning');
+                    const warningPctSpan = document.getElementById('storage-warning-pct');
+
+                    if (storagePctEl) {
+                        storagePctEl.innerText = `${pct.toFixed(2)}%`;
+                        // Se o uso estiver acima de 80%, colocar em vermelho, senão verde/laranja
+                        if (pct > 80) {
+                            storagePctEl.style.color = '#ef4444';
+                        } else if (pct > 50) {
+                            storagePctEl.style.color = '#fb923c';
+                        } else {
+                            storagePctEl.style.color = '#4ade80';
+                        }
+                        storagePctEl.title = `Espaço Utilizado: ${data.usedFormatted} de ${data.limitFormatted}`;
+                    }
+
+                    if (warningBanner) {
+                        if (pct > 80) {
+                            warningBanner.style.display = 'flex';
+                            if (warningPctSpan) warningPctSpan.innerText = pct.toFixed(2);
+                        } else {
+                            warningBanner.style.display = 'none';
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('[STORAGE] Erro ao buscar dados de armazenamento:', err.message);
+            }
         }
 
         function formatPctChange(elementId, pct) {
@@ -6627,6 +6690,10 @@
             // Inicializar cotações de câmbio
             fetchExchangeRates();
             setInterval(fetchExchangeRates, 10 * 60 * 1000);
+
+            // Inicializar monitoramento de espaço em disco
+            fetchSystemStorage();
+            setInterval(fetchSystemStorage, 10 * 60 * 1000);
 
             initIndexedDB().then(() => {
                 initializeSession();

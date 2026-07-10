@@ -22,8 +22,25 @@ const DB_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DB_DIR)) {
     fs.mkdirSync(DB_DIR);
 }
-const dbPath = process.env.DATABASE_PATH || path.join(DB_DIR, 'tecfag_mrp.db');
-const BACKUPS_DIR = path.join(DB_DIR, 'backups');
+function getDirectorySize(dirPath) {
+    let size = 0;
+    try {
+        if (!fs.existsSync(dirPath)) return 0;
+        const files = fs.readdirSync(dirPath);
+        for (let i = 0; i < files.length; i++) {
+            const filePath = path.join(dirPath, files[i]);
+            const stats = fs.statSync(filePath);
+            if (stats.isDirectory()) {
+                size += getDirectorySize(filePath);
+            } else {
+                size += stats.size;
+            }
+        }
+    } catch (e) {
+        console.error('Erro ao calcular tamanho do diretório:', e.message);
+    }
+    return size;
+}
 
 function runDailyBackup() {
     try {
@@ -940,6 +957,43 @@ app.get('/api/ncm/:codigo', authenticateToken, async (req, res) => {
     } catch (err) {
         console.error('[NCM API] Erro no endpoint:', err.message);
         res.status(500).json({ error: 'Erro interno ao processar a validação do NCM.' });
+    }
+});
+
+// GET /api/system-storage - Retorna o espaço de armazenamento utilizado e restante no disco persistente de 1 GB
+app.get('/api/system-storage', authenticateToken, async (req, res) => {
+    try {
+        // Obter caminhos
+        const dbDir = process.env.DATABASE_PATH ? path.dirname(process.env.DATABASE_PATH) : path.join(__dirname, 'data');
+        const uploadsDir = UPLOADS_DIR;
+
+        // Calcular tamanho do diretório base persistent
+        let totalUsedBytes = 0;
+        if (process.env.DATABASE_PATH) {
+            // Em produção (Render com disco persistente /data)
+            totalUsedBytes = getDirectorySize('/data');
+        } else {
+            // Em ambiente local
+            const dbSize = fs.existsSync(dbDir) ? getDirectorySize(dbDir) : 0;
+            const uploadsSize = fs.existsSync(uploadsDir) ? getDirectorySize(uploadsDir) : 0;
+            totalUsedBytes = dbSize + uploadsSize;
+        }
+
+        // Definir o limite máximo do Render (1 GB)
+        const limitBytes = 1 * 1024 * 1024 * 1024; // 1 GB
+        const usagePercentage = ((totalUsedBytes / limitBytes) * 100).toFixed(2);
+
+        res.json({
+            usedBytes: totalUsedBytes,
+            usedFormatted: (totalUsedBytes / (1024 * 1024)).toFixed(2) + ' MB',
+            limitBytes: limitBytes,
+            limitFormatted: '1.00 GB',
+            usagePercentage: parseFloat(usagePercentage),
+            warning: parseFloat(usagePercentage) > 80 // Alerta acima de 80%
+        });
+    } catch (err) {
+        console.error('[STORAGE API] Erro ao calcular espaço:', err.message);
+        res.status(500).json({ error: 'Erro ao calcular espaço de armazenamento.' });
     }
 });
 
