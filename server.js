@@ -896,6 +896,22 @@ app.get('/api/cnpj/:cnpj', authenticateToken, async (req, res) => {
         console.error('[CNPJ API] Erro no endpoint:', err.message);
         res.status(500).json({ error: 'Erro interno ao processar a validação do CNPJ.' });
     }
+// GET /api/cambio - Proxy para consulta de cotações cambiais (AwesomeAPI)
+app.get('/api/cambio', async (req, res) => {
+    try {
+        console.log('[CAMBIO API] Consultando AwesomeAPI...');
+        const response = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,CNY-BRL');
+        if (response.status === 200) {
+            const data = await response.json();
+            return res.json(data);
+        } else {
+            console.error(`[CAMBIO API] Erro ao consultar AwesomeAPI: status ${response.status}`);
+            return res.status(response.status).json({ error: 'Erro ao consultar cotações externas.' });
+        }
+    } catch (err) {
+        console.error('[CAMBIO API] Erro interno:', err.message);
+        res.status(500).json({ error: 'Erro interno ao consultar cotação de câmbio.' });
+    }
 });
 
 // POST /api/projects - Cria um novo projeto com receita_data

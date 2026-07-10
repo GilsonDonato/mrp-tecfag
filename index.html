@@ -1328,6 +1328,90 @@
         #projects-table th:nth-child(6), #projects-table td:nth-child(6) { width: 10%; } /* Responsável Atual */
         #projects-table th:nth-child(7), #projects-table td:nth-child(7) { width: 9%; }  /* Última Atualização */
         #projects-table th:nth-child(8), #projects-table td:nth-child(8) { width: 8%; }  /* Ações */
+
+        /* Widget de Cotação de Câmbio Lateral */
+        .sidebar-exchange-widget {
+            background-color: rgba(23, 29, 44, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-size: 0.78rem;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .exchange-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.65rem;
+            letter-spacing: 0.5px;
+        }
+
+        .exchange-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .exchange-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .exchange-currency {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .exchange-value {
+            font-family: monospace;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        .exchange-change {
+            font-size: 0.65rem;
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-family: monospace;
+        }
+
+        .exchange-change.up {
+            color: #4ade80;
+            background-color: rgba(74, 222, 128, 0.1);
+        }
+
+        .exchange-change.down {
+            color: #f87171;
+            background-color: rgba(248, 113, 113, 0.1);
+        }
+
+        .exchange-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed var(--border-color);
+        }
+        
+        .exchange-footer a:hover {
+            color: var(--text-primary) !important;
+            text-shadow: 0 0 5px var(--primary-glow);
+        }
     </style>
 </head>
 <body class="not-logged-in">
@@ -1443,6 +1527,48 @@
             </li>
         </ul>
 
+        <!-- Widget de Câmbio Comercial -->
+        <div class="sidebar-exchange-widget">
+            <div class="exchange-header">
+                <span>💵 Câmbio Comercial</span>
+                <button onclick="fetchExchangeRates()" title="Atualizar Cotações" style="background: none; border: none; color: var(--primary); cursor: pointer; display: flex; align-items: center; padding: 2px;">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" id="exchange-refresh-icon" style="transition: transform 0.5s ease;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                </button>
+            </div>
+            <div id="exchange-rates-container">
+                <!-- USD -->
+                <div class="exchange-row">
+                    <div class="exchange-currency">🇺🇸 USD</div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="exchange-value" id="exchange-usd-val">R$ --</span>
+                        <span class="exchange-change" id="exchange-usd-pct">--</span>
+                    </div>
+                </div>
+                <!-- EUR -->
+                <div class="exchange-row">
+                    <div class="exchange-currency">🇪🇺 EUR</div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="exchange-value" id="exchange-eur-val">R$ --</span>
+                        <span class="exchange-change" id="exchange-eur-pct">--</span>
+                    </div>
+                </div>
+                <!-- CNY -->
+                <div class="exchange-row">
+                    <div class="exchange-currency">🇨🇳 CNY</div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="exchange-value" id="exchange-cny-val">R$ --</span>
+                        <span class="exchange-change" id="exchange-cny-pct">--</span>
+                    </div>
+                </div>
+            </div>
+            <div class="exchange-footer">
+                <span id="exchange-last-update" style="font-size: 0.62rem; opacity: 0.85;">Carregando...</span>
+                <a href="#" onclick="openExchangeCalcModal(event)" style="color: var(--primary); text-decoration: none; font-weight: bold; font-size: 0.65rem; display: flex; align-items: center; gap: 2px;">
+                    🧮 Converter
+                </a>
+            </div>
+        </div>
+
         <!-- User Profile Card & Logout -->
         <div class="user-profile-sidebar" style="margin-top: auto; padding-top: 15px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px;">
             <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
@@ -1487,6 +1613,13 @@
                 <span>ERP: <span style="color: #fb7185;">SQLITE3_DB_ONLINE</span></span>
                 <span style="color: var(--text-secondary);">|</span>
                 <span id="hud-active-machines" style="color: var(--text-secondary);">MÁQUINAS EM PROCESSO: <span style="color: var(--text-primary); font-weight: bold;" id="hud-machines-count">0</span></span>
+                <span style="color: var(--text-secondary);">|</span>
+                <span id="hud-exchange-rates" style="color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                    💵 CÂMBIO: 
+                    <span style="color: var(--text-primary); font-weight: bold;" id="hud-usd-rate">USD R$ --</span>
+                    <span style="color: var(--text-primary); font-weight: bold;" id="hud-eur-rate">EUR R$ --</span>
+                    <span style="color: var(--text-primary); font-weight: bold;" id="hud-cny-rate">CNY R$ --</span>
+                </span>
             </div>
             <div style="display: flex; align-items: center; gap: 10px; overflow: hidden; max-width: 45%; white-space: nowrap; text-overflow: ellipsis; color: var(--primary);" id="telemetry-ticker">
                 <span style="font-weight: bold; animation: glitch 3s infinite;" id="telemetry-ticker-text">[SISTEMA OPERACIONAL: AGUARDANDO COMANDO]</span>
@@ -2367,6 +2500,55 @@
         </div>
     </div>
 
+    <!-- MODAL DE CALCULADORA DE CONVERSÃO DE CÂMBIO -->
+    <div class="modal-overlay" id="exchange-calc-modal" style="z-index: 1250;">
+        <div class="modal" style="width: 400px; padding: 25px;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color: var(--text-primary); font-size: 1.1rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    🧮 Calculadora de Câmbio
+                </h3>
+                <button class="btn-icon" onclick="closeExchangeCalcModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 0; display: flex; flex-direction: column; gap: 15px;">
+                <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                    <label for="calc-amount" style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Valor a Converter:*</label>
+                    <input type="number" id="calc-amount" class="form-control" placeholder="Digite o valor (ex: 1000)" value="1000" oninput="calculateConversion()">
+                </div>
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                        <label for="calc-from" style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">De (Moeda Origem):*</label>
+                        <select id="calc-from" class="form-control" onchange="calculateConversion()">
+                            <option value="USD">🇺🇸 USD (Dólar)</option>
+                            <option value="EUR">🇪🇺 EUR (Euro)</option>
+                            <option value="CNY">🇨🇳 CNY (Iuan)</option>
+                            <option value="BRL">🇧🇷 BRL (Real)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                        <label for="calc-to" style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Para (Moeda Destino):*</label>
+                        <select id="calc-to" class="form-control" onchange="calculateConversion()">
+                            <option value="BRL" selected>🇧🇷 BRL (Real)</option>
+                            <option value="USD">🇺🇸 USD (Dólar)</option>
+                            <option value="EUR">🇪🇺 EUR (Euro)</option>
+                            <option value="CNY">🇨🇳 CNY (Iuan)</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Resultado -->
+                <div style="background-color: var(--bg-base); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center; margin-top: 5px;">
+                    <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 5px;">Resultado Estimado</span>
+                    <span id="calc-result-display" style="font-size: 1.5rem; font-weight: 800; color: #4ade80;">R$ --</span>
+                    <span id="calc-rate-info" style="font-size: 0.65rem; color: var(--text-secondary); display: block; margin-top: 6px;">Cotação usada: --</span>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeExchangeCalcModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Core Logic Engine -->
     <script>
         // Intercept global fetch on file:// protocol for offline/serverless mode
@@ -2863,6 +3045,194 @@
                 'DIRETOR': 'Diretor (Acompanhamento)'
             };
             return labels[role] || role;
+        }
+
+        // Lógica de Cotação de Câmbio em Tempo Real (AwesomeAPI)
+        let exchangeRates = {
+            USD: 1,
+            EUR: 1,
+            CNY: 1
+        };
+
+        async function fetchExchangeRates() {
+            const refreshIcon = document.getElementById('exchange-refresh-icon');
+            if (refreshIcon) {
+                refreshIcon.style.transform = 'rotate(360deg)';
+            }
+            
+            try {
+                let data = null;
+                // Tenta consultar diretamente no front-end primeiro
+                try {
+                    const response = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,CNY-BRL');
+                    if (response.status === 200) {
+                        data = await response.json();
+                    }
+                } catch (e) {
+                    console.warn('[CAMBIO] Falha na consulta direta (CORS/rede). Tentando proxy do servidor...');
+                }
+
+                // Se falhou direta, tenta via proxy do servidor
+                if (!data) {
+                    const response = await fetch('/api/cambio');
+                    if (response.status === 200) {
+                        data = await response.json();
+                    }
+                }
+
+                if (data && data.USDBRL && data.EURBRL && data.CNYBRL) {
+                    // Atualiza cache local
+                    exchangeRates.USD = parseFloat(data.USDBRL.bid);
+                    exchangeRates.EUR = parseFloat(data.EURBRL.bid);
+                    exchangeRates.CNY = parseFloat(data.CNYBRL.bid);
+
+                    // Renderiza no Widget da Barra Lateral
+                    renderExchangeWidget(data);
+                    
+                    // Renderiza na Telemetria (HUD)
+                    renderTelemetryExchange();
+                } else {
+                    console.error('[CAMBIO] Estrutura de resposta de câmbio inválida.');
+                    showExchangeError();
+                }
+            } catch (err) {
+                console.error('[CAMBIO] Erro ao carregar cotações:', err);
+                showExchangeError();
+            } finally {
+                if (refreshIcon) {
+                    setTimeout(() => {
+                        refreshIcon.style.transform = 'none';
+                    }, 500);
+                }
+            }
+        }
+
+        function renderExchangeWidget(data) {
+            const usdVal = parseFloat(data.USDBRL.bid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            const eurVal = parseFloat(data.EURBRL.bid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            const cnyVal = parseFloat(data.CNYBRL.bid).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+            const usdPct = parseFloat(data.USDBRL.pctChange);
+            const eurPct = parseFloat(data.EURBRL.pctChange);
+            const cnyPct = parseFloat(data.CNYBRL.pctChange);
+
+            document.getElementById('exchange-usd-val').innerText = usdVal;
+            document.getElementById('exchange-eur-val').innerText = eurVal;
+            document.getElementById('exchange-cny-val').innerText = cnyVal;
+
+            formatPctChange('exchange-usd-pct', usdPct);
+            formatPctChange('exchange-eur-pct', eurPct);
+            formatPctChange('exchange-cny-pct', cnyPct);
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('exchange-last-update').innerText = `Ref: Hoje ${timeStr}`;
+        }
+
+        function formatPctChange(elementId, pct) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const isUp = pct >= 0;
+            el.innerText = `${isUp ? '▲' : '▼'} ${Math.abs(pct).toFixed(2)}%`;
+            el.className = `exchange-change ${isUp ? 'up' : 'down'}`;
+        }
+
+        function renderTelemetryExchange() {
+            const usdText = document.getElementById('hud-usd-rate');
+            const eurText = document.getElementById('hud-eur-rate');
+            const cnyText = document.getElementById('hud-cny-rate');
+
+            if (usdText) usdText.innerText = `USD R$ ${exchangeRates.USD.toFixed(2)}`;
+            if (eurText) eurText.innerText = `EUR R$ ${exchangeRates.EUR.toFixed(2)}`;
+            if (cnyText) cnyText.innerText = `CNY R$ ${exchangeRates.CNY.toFixed(2)}`;
+        }
+
+        function showExchangeError() {
+            document.getElementById('exchange-usd-val').innerText = 'Erro';
+            document.getElementById('exchange-eur-val').innerText = 'Erro';
+            document.getElementById('exchange-cny-val').innerText = 'Erro';
+            document.getElementById('exchange-last-update').innerText = 'Falha ao atualizar';
+        }
+
+        // Lógica de Modais da Calculadora
+        function openExchangeCalcModal(event) {
+            if (event) event.preventDefault();
+            document.getElementById('exchange-calc-modal').classList.add('active');
+            calculateConversion();
+        }
+
+        function closeExchangeCalcModal() {
+            document.getElementById('exchange-calc-modal').classList.remove('active');
+        }
+
+        function calculateConversion() {
+            const amountInput = document.getElementById('calc-amount');
+            const fromSelect = document.getElementById('calc-from');
+            const toSelect = document.getElementById('calc-to');
+            const resultDisplay = document.getElementById('calc-result-display');
+            const rateInfo = document.getElementById('calc-rate-info');
+
+            if (!amountInput || !fromSelect || !toSelect || !resultDisplay || !rateInfo) return;
+
+            const amount = parseFloat(amountInput.value);
+            if (isNaN(amount) || amount <= 0) {
+                resultDisplay.innerText = '--';
+                rateInfo.innerText = 'Digite um valor válido';
+                return;
+            }
+
+            const from = fromSelect.value;
+            const to = toSelect.value;
+
+            // Converter moeda de origem para BRL
+            let valueInBrl = amount;
+            if (from === 'USD') {
+                valueInBrl = amount * exchangeRates.USD;
+            } else if (from === 'EUR') {
+                valueInBrl = amount * exchangeRates.EUR;
+            } else if (from === 'CNY') {
+                valueInBrl = amount * exchangeRates.CNY;
+            }
+
+            // Converter BRL para moeda de destino
+            let finalValue = valueInBrl;
+            if (to === 'USD') {
+                finalValue = valueInBrl / exchangeRates.USD;
+            } else if (to === 'EUR') {
+                finalValue = valueInBrl / exchangeRates.EUR;
+            } else if (to === 'CNY') {
+                finalValue = valueInBrl / exchangeRates.CNY;
+            }
+
+            // Formatação do Resultado
+            let formattedValue = '';
+            if (to === 'BRL') {
+                formattedValue = finalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            } else if (to === 'USD') {
+                formattedValue = finalValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            } else if (to === 'EUR') {
+                formattedValue = finalValue.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+            } else if (to === 'CNY') {
+                formattedValue = '¥ ' + finalValue.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            resultDisplay.innerText = formattedValue;
+
+            // Informação da Taxa
+            if (from === to) {
+                rateInfo.innerText = 'Mesma moeda, taxa 1:1';
+            } else {
+                let rate = 1;
+                if (from === 'BRL') {
+                    rate = 1 / exchangeRates[to];
+                } else if (to === 'BRL') {
+                    rate = exchangeRates[from];
+                } else {
+                    // Ex: USD para EUR -> rate = USD_BRL / EUR_BRL
+                    rate = exchangeRates[from] / exchangeRates[to];
+                }
+                rateInfo.innerText = `1 ${from} = ${rate.toFixed(4)} ${to}`;
+            }
         }
 
         function initializeSession() {
@@ -5904,6 +6274,11 @@
         window.onload = function() {
             startLoginBgCarousel();
             startTelemetryTicker();
+            
+            // Inicializar cotações de câmbio
+            fetchExchangeRates();
+            setInterval(fetchExchangeRates, 10 * 60 * 1000);
+
             initIndexedDB().then(() => {
                 initializeSession();
                 setTimeout(autoDownloadBackup, 2000);
