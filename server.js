@@ -97,6 +97,8 @@ function initializeDatabase() {
         db.run("ALTER TABLE projects ADD COLUMN cnpj TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN contact_phone TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN contact_email TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN cnae_codigo TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN cnae_descricao TEXT", (err) => {});
 
         // Tabela de Logs de Auditoria
         db.run(`CREATE TABLE IF NOT EXISTS logs (
@@ -666,7 +668,9 @@ async function fetchCNPJWithFallback(cnpj) {
                 valid: true,
                 razao_social: data.razao_social,
                 nome_fantasia: data.nome_fantasia || data.razao_social,
-                situacao: (data.descricao_situacao_cadastral || '').toUpperCase()
+                situacao: (data.descricao_situacao_cadastral || '').toUpperCase(),
+                cnae_codigo: data.cnae_fiscal || '',
+                cnae_descricao: data.cnae_fiscal_descricao || ''
             };
         } else if (response.status === 404) {
             return { error: 'CNPJ inexistente na base da Receita Federal.' };
@@ -685,11 +689,14 @@ async function fetchCNPJWithFallback(cnpj) {
             if (data.status === 'ERROR') {
                 return { error: data.message || 'CNPJ inexistente.' };
             }
+            const cnaeObj = data.atividade_principal && data.atividade_principal[0] ? data.atividade_principal[0] : {};
             return {
                 valid: true,
                 razao_social: data.nome,
                 nome_fantasia: data.fantasia || data.nome,
-                situacao: (data.situacao || '').toUpperCase()
+                situacao: (data.situacao || '').toUpperCase(),
+                cnae_codigo: cnaeObj.code ? cnaeObj.code.replace(/\D/g, '') : '',
+                cnae_descricao: cnaeObj.text || ''
             };
         } else if (response.status === 429) {
             console.warn(`[CNPJ API] ReceitaWS retornou 429 (Limite atingido). Tentando próximo fallback...`);
@@ -704,11 +711,14 @@ async function fetchCNPJWithFallback(cnpj) {
         const response = await fetch(`https://publica.cnpj.ws/cnpj/${cnpj}`);
         if (response.status === 200) {
             const data = await response.json();
+            const cnaeObj = data.estabelecimento && data.estabelecimento.atividade_principal ? data.estabelecimento.atividade_principal : {};
             return {
                 valid: true,
                 razao_social: data.estabelecimento.razao_social || data.razao_social,
                 nome_fantasia: data.estabelecimento.nome_fantasia || data.estabelecimento.razao_social || data.razao_social,
-                situacao: (data.estabelecimento.situacao_cadastral || '').toUpperCase()
+                situacao: (data.estabelecimento.situacao_cadastral || '').toUpperCase(),
+                cnae_codigo: cnaeObj.subclasse ? cnaeObj.subclasse.replace(/\D/g, '') : '',
+                cnae_descricao: cnaeObj.descricao || ''
             };
         } else if (response.status === 404) {
             return { error: 'CNPJ inexistente.' };
@@ -733,7 +743,6 @@ app.get('/api/cnpj/:cnpj', authenticateToken, async (req, res) => {
         const result = await fetchCNPJWithFallback(cnpj);
         
         if (result.error) {
-            // Retorna o erro vindo da API de consulta correspondente
             return res.status(400).json({ error: result.error });
         }
 
@@ -750,7 +759,9 @@ app.get('/api/cnpj/:cnpj', authenticateToken, async (req, res) => {
             razao_social: result.razao_social,
             nome_fantasia: result.nome_fantasia || result.razao_social,
             cnpj: cnpj,
-            situacao: result.situacao
+            situacao: result.situacao,
+            cnae_codigo: result.cnae_codigo,
+            cnae_descricao: result.cnae_descricao
         });
     } catch (err) {
         console.error('[CNPJ API] Erro no endpoint:', err.message);
@@ -760,7 +771,7 @@ app.get('/api/cnpj/:cnpj', authenticateToken, async (req, res) => {
 
 // POST /api/projects - Cria um novo projeto
 app.post('/api/projects', async (req, res) => {
-    const { code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, machines, cnpj, contact_phone, contact_email } = req.body;
+    const { code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, machines, cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao } = req.body;
     
     if (!code || !client || !sku || !pm || !cnpj) {
         return res.status(400).json({ error: 'Os campos Código, Cliente, CNPJ, SKU e Gerente (PM) são obrigatórios.' });
@@ -775,8 +786,8 @@ app.post('/api/projects', async (req, res) => {
         const sql = `INSERT INTO projects (
             code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, 
             checklist, prazos, faseEntryDate, lastUpdate, motivoPerda, machines,
-            cnpj, contact_phone, contact_email
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+            cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
         await dbRun(sql, [
             code,
@@ -797,7 +808,9 @@ app.post('/api/projects', async (req, res) => {
             JSON.stringify(machines || []),
             cnpj,
             contact_phone || '',
-            contact_email || ''
+            contact_email || '',
+            cnae_codigo || '',
+            cnae_descricao || ''
         ]);
 
         sendWebhookNotification('CREATE', { code, client, pm, sku });

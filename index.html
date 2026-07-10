@@ -1665,6 +1665,18 @@
                             </div>
                         </div>
 
+                        <!-- CNAE do Cliente (Preenchido Automaticamente) -->
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 2.5fr; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label for="prj-cnae-code">Código CNAE</label>
+                                <input type="text" id="prj-cnae-code" class="form-control" placeholder="Preenchido pelo CNPJ" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="prj-cnae-desc">Descrição da Atividade (CNAE)</label>
+                                <input type="text" id="prj-cnae-desc" class="form-control" placeholder="Preenchido pelo CNPJ" readonly>
+                            </div>
+                        </div>
+
                         <!-- Dados de Contato no Cliente -->
                         <div style="margin-top: 15px; margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px;">
                             <h4 style="font-size: 0.78rem; color: var(--primary); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">Dados de Contato no Cliente</h4>
@@ -2160,9 +2172,13 @@
                                     <td style="padding: 8px 0; font-weight: bold; color: var(--text-secondary);">Telefone:</td>
                                     <td style="padding: 8px 0;" id="modal-desc-contact-phone">-</td>
                                 </tr>
-                                <tr>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                                     <td style="padding: 8px 0; font-weight: bold; color: var(--text-secondary);">E-mail:</td>
                                     <td style="padding: 8px 0;" id="modal-desc-contact-email">-</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; font-weight: bold; color: var(--text-secondary);">CNAE Fiscal:</td>
+                                    <td style="padding: 8px 0;" id="modal-desc-cnae">-</td>
                                 </tr>
                             </table>
                         </div>
@@ -3359,12 +3375,16 @@
             toggleSubmitButton();
             resetDaysFields();
             
-            // Limpa o status do CNPJ
+            // Limpa o status do CNPJ e campos CNAE
             const statusEl = document.getElementById('cnpj-status');
             if (statusEl) {
                 statusEl.innerText = "Digite o CNPJ para validar e consultar.";
                 statusEl.style.color = "var(--text-secondary)";
             }
+            const codeEl = document.getElementById('prj-cnae-code');
+            const descEl = document.getElementById('prj-cnae-desc');
+            if (codeEl) codeEl.value = "";
+            if (descEl) descEl.value = "";
 
             // Restaura o template do diagnóstico
             const diagTextarea = document.getElementById('prj-diagnostico');
@@ -3439,19 +3459,25 @@
             
             const statusEl = document.getElementById('cnpj-status');
             const clientEl = document.getElementById('prj-client');
+            const codeEl = document.getElementById('prj-cnae-code');
+            const descEl = document.getElementById('prj-cnae-desc');
 
             if (window.location.protocol === 'file:') {
                 console.log('[OFFLINE] Simulando validação de CNPJ');
                 cnpjCache[cnpj] = {
                     valid: true,
                     razao_social: 'TECFAG AUTOMACAO INDUSTRIAL LTDA',
-                    cnpj: cnpj
+                    cnpj: cnpj,
+                    cnae_codigo: '4663000',
+                    cnae_descricao: 'Comércio atacadista de Máquinas e equipamentos para uso industrial; partes e peças'
                 };
                 if (statusEl) {
                     statusEl.innerText = `✅ [OFFLINE] CNPJ Ativo: TECFAG AUTOMACAO INDUSTRIAL LTDA`;
                     statusEl.style.color = "#4ade80";
                 }
                 if (clientEl) clientEl.value = 'TECFAG AUTOMACAO INDUSTRIAL LTDA';
+                if (codeEl) codeEl.value = '4663000';
+                if (descEl) descEl.value = 'Comércio atacadista de Máquinas e equipamentos para uso industrial; partes e peças';
                 return;
             }
             
@@ -3463,12 +3489,16 @@
                         statusEl.style.color = "#f87171";
                     }
                     if (clientEl) clientEl.value = "";
+                    if (codeEl) codeEl.value = "";
+                    if (descEl) descEl.value = "";
                 } else {
                     if (statusEl) {
                         statusEl.innerText = `✅ CNPJ Ativo: ${res.razao_social}`;
                         statusEl.style.color = "#4ade80";
                     }
                     if (clientEl) clientEl.value = res.razao_social;
+                    if (codeEl) codeEl.value = res.cnae_codigo || "";
+                    if (descEl) descEl.value = res.cnae_descricao || "";
                 }
                 return;
             }
@@ -3497,6 +3527,8 @@
                         statusEl.style.color = "#f87171";
                     }
                     if (clientEl) clientEl.value = "";
+                    if (codeEl) codeEl.value = "";
+                    if (descEl) descEl.value = "";
                 } else {
                     cnpjCache[cnpj] = data;
                     if (statusEl) {
@@ -3504,6 +3536,8 @@
                         statusEl.style.color = "#4ade80";
                     }
                     if (clientEl) clientEl.value = data.razao_social;
+                    if (codeEl) codeEl.value = data.cnae_codigo || "";
+                    if (descEl) descEl.value = data.cnae_descricao || "";
                 }
             } catch (err) {
                 console.error(err);
@@ -3562,6 +3596,8 @@
                 const code = document.getElementById('prj-code').value.trim().toUpperCase().replace(/\s+/g, '');
                 const cnpj = document.getElementById('prj-cnpj').value.trim().replace(/\D/g, '');
                 const client = document.getElementById('prj-client').value.trim();
+                const cnaeCodigo = document.getElementById('prj-cnae-code').value.trim();
+                const cnaeDescricao = document.getElementById('prj-cnae-desc').value.trim();
                 const contactName = document.getElementById('prj-contact-name').value.trim();
                 const contactPhone = document.getElementById('prj-contact-phone').value.trim();
                 const contactEmail = document.getElementById('prj-contact-email').value.trim();
@@ -3640,6 +3676,8 @@
                     cnpj,
                     contact_phone: contactPhone,
                     contact_email: contactEmail,
+                    cnae_codigo: cnaeCodigo,
+                    cnae_descricao: cnaeDescricao,
                     pm,
                     diagnostico,
                     sku,
@@ -3993,6 +4031,13 @@
             document.getElementById('modal-desc-contact-name').innerText = project.contact || '-';
             document.getElementById('modal-desc-contact-phone').innerText = project.contact_phone || '-';
             document.getElementById('modal-desc-contact-email').innerText = project.contact_email || '-';
+            
+            let cnaeText = '-';
+            if (project.cnae_codigo) {
+                cnaeText = `${project.cnae_codigo} ${project.cnae_descricao ? '- ' + project.cnae_descricao : ''}`;
+            }
+            document.getElementById('modal-desc-cnae').innerText = cnaeText;
+
             document.getElementById('modal-desc-diagnostico').innerText = project.diagnostico;
             
             // Render machines in modal
