@@ -1642,25 +1642,45 @@
                         <h3>Iniciar Atendimento / Nova Oportunidade</h3>
                     </div>
                     <form id="new-project-form" onsubmit="handleProjectSubmit(event)">
-                        <div class="form-row">
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 15px; margin-bottom: 15px;">
                             <div class="form-group">
                                 <label for="prj-code">Código do Projeto (Gerado Automaticamente)</label>
                                 <input type="text" id="prj-code" class="form-control" placeholder="PRJTEC000000001" readonly required>
                             </div>
                             <div class="form-group">
-                                <label for="prj-client">Nome do Cliente (Empresa)*</label>
-                                <input type="text" id="prj-client" class="form-control" placeholder="Ex: Nestlé Alimentos S/A" required>
+                                <label for="prj-cnpj">CNPJ do Cliente (Somente Números)*</label>
+                                <input type="text" id="prj-cnpj" class="form-control" placeholder="00.000.000/0000-00" maxlength="18" required oninput="handleCnpjInput(this)" onblur="validateCnpjOnBlur(this)">
+                                <small id="cnpj-status" style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 4px; display: block;">Digite o CNPJ para validar e consultar.</small>
                             </div>
                         </div>
 
-                        <div class="form-row">
+                        <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 15px; margin-bottom: 15px;">
                             <div class="form-group">
-                                <label for="prj-contact">Contato / Responsável Cliente</label>
-                                <input type="text" id="prj-contact" class="form-control" placeholder="Ex: Carlos Alberto (Mnt.)">
+                                <label for="prj-client">Nome do Cliente (Razão Social)*</label>
+                                <input type="text" id="prj-client" class="form-control" placeholder="Preenchido automaticamente pelo CNPJ" required>
                             </div>
                             <div class="form-group">
                                 <label for="prj-pm">Gerente de Projetos Alocado (Tecfag)*</label>
                                 <input type="text" id="prj-pm" class="form-control" placeholder="Ex: Eng. Roberto Albuquerque" required>
+                            </div>
+                        </div>
+
+                        <!-- Dados de Contato no Cliente -->
+                        <div style="margin-top: 15px; margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px;">
+                            <h4 style="font-size: 0.78rem; color: var(--primary); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">Dados de Contato no Cliente</h4>
+                            <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr 1.2fr; gap: 15px;">
+                                <div class="form-group">
+                                    <label for="prj-contact-name">Nome do Contato*</label>
+                                    <input type="text" id="prj-contact-name" class="form-control" placeholder="Ex: Carlos Silva" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="prj-contact-phone">Telefone / WhatsApp*</label>
+                                    <input type="text" id="prj-contact-phone" class="form-control" placeholder="Ex: (11) 99999-9999" required oninput="maskPhone(this)">
+                                </div>
+                                <div class="form-group">
+                                    <label for="prj-contact-email">E-mail de Contato*</label>
+                                    <input type="email" id="prj-contact-email" class="form-control" placeholder="Ex: carlos@cliente.com" required>
+                                </div>
                             </div>
                         </div>
 
@@ -2123,6 +2143,29 @@
                         </div>
 
 
+
+                        <!-- DADOS DO CLIENTE & CONTATO -->
+                        <div class="detail-card" style="margin-bottom: 20px;">
+                            <h4 style="margin-bottom: 15px; color: var(--primary);">Ficha do Cliente & Contato</h4>
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; color: #cbd5e1;">
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding: 8px 0; font-weight: bold; color: var(--text-secondary); width: 110px;">CNPJ:</td>
+                                    <td style="padding: 8px 0;" id="modal-desc-cnpj">-</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding: 8px 0; font-weight: bold; color: var(--text-secondary);">Nome Contato:</td>
+                                    <td style="padding: 8px 0;" id="modal-desc-contact-name">-</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <td style="padding: 8px 0; font-weight: bold; color: var(--text-secondary);">Telefone:</td>
+                                    <td style="padding: 8px 0;" id="modal-desc-contact-phone">-</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; font-weight: bold; color: var(--text-secondary);">E-mail:</td>
+                                    <td style="padding: 8px 0;" id="modal-desc-contact-email">-</td>
+                                </tr>
+                            </table>
+                        </div>
 
                         <div class="detail-card">
                             <h4 style="margin-bottom: 15px; color: var(--primary);">Ficha de Diagnóstico</h4>
@@ -3316,10 +3359,160 @@
             toggleSubmitButton();
             resetDaysFields();
             
+            // Limpa o status do CNPJ
+            const statusEl = document.getElementById('cnpj-status');
+            if (statusEl) {
+                statusEl.innerText = "Digite o CNPJ para validar e consultar.";
+                statusEl.style.color = "var(--text-secondary)";
+            }
+
             // Restaura o template do diagnóstico
             const diagTextarea = document.getElementById('prj-diagnostico');
             if (diagTextarea) {
                 diagTextarea.value = `1. ESCOPO & PRODUTO: \n[O que a máquina vai dosar/embalar? Peso, formato, velocidade...]\n\n2. PARTICULARIDADES & CUSTOMIZAÇÕES: \n[Ex: Tensão 220V trifásico, espaço reduzido de layout, integração com esteira existente, adequação NR-12...]\n\n3. REAL POTENCIAL COMERCIAL: \n[O cliente tem orçamento disponível? Qual a real chance de fechamento comercial?]`;
+            }
+        }
+
+        function maskPhone(el) {
+            let val = el.value.replace(/\D/g, '');
+            if (val.length > 11) val = val.substring(0, 11);
+            if (val.length > 10) {
+                el.value = `(${val.substring(0, 2)}) ${val.substring(2, 7)}-${val.substring(7, 11)}`;
+            } else if (val.length > 6) {
+                el.value = `(${val.substring(0, 2)}) ${val.substring(2, 6)}-${val.substring(6, 10)}`;
+            } else if (val.length > 2) {
+                el.value = `(${val.substring(0, 2)}) ${val.substring(2)}`;
+            } else if (val.length > 0) {
+                el.value = `(${val}`;
+            } else {
+                el.value = '';
+            }
+        }
+
+        let cnpjCache = {}; 
+        let isCnpjValidating = false;
+
+        function handleCnpjInput(el) {
+            let val = el.value.replace(/\D/g, '');
+            if (val.length > 14) val = val.substring(0, 14);
+            
+            if (val.length > 12) {
+                el.value = `${val.substring(0, 2)}.${val.substring(2, 5)}.${val.substring(5, 8)}/${val.substring(8, 12)}-${val.substring(12)}`;
+            } else if (val.length > 8) {
+                el.value = `${val.substring(0, 2)}.${val.substring(2, 5)}.${val.substring(5, 8)}/${val.substring(8)}`;
+            } else if (val.length > 5) {
+                el.value = `${val.substring(0, 2)}.${val.substring(2, 5)}.${val.substring(5)}`;
+            } else if (val.length > 2) {
+                el.value = `${val.substring(0, 2)}.${val.substring(2)}`;
+            } else {
+                el.value = val;
+            }
+
+            if (val.length === 14) {
+                validateCnpj(val);
+            } else {
+                const statusEl = document.getElementById('cnpj-status');
+                if (statusEl) {
+                    statusEl.innerText = "Digite os 14 números do CNPJ para consulta automática.";
+                    statusEl.style.color = "var(--text-secondary)";
+                }
+                const clientEl = document.getElementById('prj-client');
+                if (clientEl && clientEl.placeholder === "Preenchido automaticamente pelo CNPJ") {
+                    clientEl.value = "";
+                }
+            }
+        }
+
+        function validateCnpjOnBlur(el) {
+            const val = el.value.replace(/\D/g, '');
+            if (val.length > 0 && val.length < 14) {
+                const statusEl = document.getElementById('cnpj-status');
+                if (statusEl) {
+                    statusEl.innerText = "❌ O CNPJ deve conter exatamente 14 dígitos.";
+                    statusEl.style.color = "#f87171";
+                }
+            }
+        }
+
+        async function validateCnpj(cnpj) {
+            if (isCnpjValidating) return;
+            
+            const statusEl = document.getElementById('cnpj-status');
+            const clientEl = document.getElementById('prj-client');
+
+            if (window.location.protocol === 'file:') {
+                console.log('[OFFLINE] Simulando validação de CNPJ');
+                cnpjCache[cnpj] = {
+                    valid: true,
+                    razao_social: 'TECFAG AUTOMACAO INDUSTRIAL LTDA',
+                    cnpj: cnpj
+                };
+                if (statusEl) {
+                    statusEl.innerText = `✅ [OFFLINE] CNPJ Ativo: TECFAG AUTOMACAO INDUSTRIAL LTDA`;
+                    statusEl.style.color = "#4ade80";
+                }
+                if (clientEl) clientEl.value = 'TECFAG AUTOMACAO INDUSTRIAL LTDA';
+                return;
+            }
+            
+            if (cnpjCache[cnpj]) {
+                const res = cnpjCache[cnpj];
+                if (res.error) {
+                    if (statusEl) {
+                        statusEl.innerText = `❌ ${res.error}`;
+                        statusEl.style.color = "#f87171";
+                    }
+                    if (clientEl) clientEl.value = "";
+                } else {
+                    if (statusEl) {
+                        statusEl.innerText = `✅ CNPJ Ativo: ${res.razao_social}`;
+                        statusEl.style.color = "#4ade80";
+                    }
+                    if (clientEl) clientEl.value = res.razao_social;
+                }
+                return;
+            }
+
+            isCnpjValidating = true;
+            if (statusEl) {
+                statusEl.innerText = "🔍 Consultando CNPJ na base da Receita...";
+                statusEl.style.color = "var(--primary)";
+            }
+
+            try {
+                const headers = {};
+                const token = sessionStorage.getItem('tecfag_mrp_token') || localStorage.getItem('tecfag_mrp_token');
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch(`/api/cnpj/${cnpj}`, { headers });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    const errMsg = data.error || 'Erro desconhecido ao validar CNPJ.';
+                    cnpjCache[cnpj] = { error: errMsg };
+                    if (statusEl) {
+                        statusEl.innerText = `❌ ${errMsg}`;
+                        statusEl.style.color = "#f87171";
+                    }
+                    if (clientEl) clientEl.value = "";
+                } else {
+                    cnpjCache[cnpj] = data;
+                    if (statusEl) {
+                        statusEl.innerText = `✅ CNPJ Ativo: ${data.razao_social}`;
+                        statusEl.style.color = "#4ade80";
+                    }
+                    if (clientEl) clientEl.value = data.razao_social;
+                }
+            } catch (err) {
+                console.error(err);
+                if (statusEl) {
+                    statusEl.innerText = "⚠️ Erro de conexão ao validar CNPJ. Tente novamente.";
+                    statusEl.style.color = "#fbbf24";
+                }
+            } finally {
+                isCnpjValidating = false;
             }
         }
 
@@ -3367,8 +3560,11 @@
 
             try {
                 const code = document.getElementById('prj-code').value.trim().toUpperCase().replace(/\s+/g, '');
+                const cnpj = document.getElementById('prj-cnpj').value.trim().replace(/\D/g, '');
                 const client = document.getElementById('prj-client').value.trim();
-                const contact = document.getElementById('prj-contact').value.trim();
+                const contactName = document.getElementById('prj-contact-name').value.trim();
+                const contactPhone = document.getElementById('prj-contact-phone').value.trim();
+                const contactEmail = document.getElementById('prj-contact-email').value.trim();
                 const pm = document.getElementById('prj-pm').value.trim();
                 const diagnostico = document.getElementById('prj-diagnostico').value.trim();
                 const tech = document.getElementById('prj-tech').value.trim() || 'Técnico Não Alocado';
@@ -3404,6 +3600,16 @@
                     return;
                 }
 
+                if (!cnpj || cnpj.length !== 14) {
+                    alert('Erro: É necessário preencher um CNPJ válido e ativo!');
+                    isSubmitting = false;
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerText = "Cadastrar Projeto & Iniciar Funil";
+                    }
+                    return;
+                }
+
                 if (machines.length === 0) {
                     alert('Erro: Adicione pelo menos um Modelo de Máquina (SKU Original)!');
                     isSubmitting = false;
@@ -3430,7 +3636,10 @@
                 const newProject = {
                     code,
                     client,
-                    contact,
+                    contact: contactName,
+                    cnpj,
+                    contact_phone: contactPhone,
+                    contact_email: contactEmail,
                     pm,
                     diagnostico,
                     sku,
@@ -3773,6 +3982,17 @@
 
             document.getElementById('modal-project-title').innerText = `${project.code} - ${project.client}`;
             document.getElementById('modal-project-subtitle').innerText = `Gerente: ${project.pm} | Técnico Instalador: ${project.tech}`;
+            
+            // Formatar CNPJ
+            let maskedCnpj = project.cnpj || '-';
+            if (maskedCnpj && maskedCnpj.length === 14) {
+                maskedCnpj = `${maskedCnpj.substring(0, 2)}.${maskedCnpj.substring(2, 5)}.${maskedCnpj.substring(5, 8)}/${maskedCnpj.substring(8, 12)}-${maskedCnpj.substring(12)}`;
+            }
+            
+            document.getElementById('modal-desc-cnpj').innerText = maskedCnpj;
+            document.getElementById('modal-desc-contact-name').innerText = project.contact || '-';
+            document.getElementById('modal-desc-contact-phone').innerText = project.contact_phone || '-';
+            document.getElementById('modal-desc-contact-email').innerText = project.contact_email || '-';
             document.getElementById('modal-desc-diagnostico').innerText = project.diagnostico;
             
             // Render machines in modal

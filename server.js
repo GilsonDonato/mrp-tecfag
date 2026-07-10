@@ -92,10 +92,11 @@ function initializeDatabase() {
             machines TEXT   -- Salvo como String JSON
         )`);
 
-        // Executar migração de coluna para bancos existentes
-        db.run("ALTER TABLE projects ADD COLUMN machines TEXT", (err) => {
-            // Ignorar erro se a coluna já existir
-        });
+        // Executar migração de colunas para bancos existentes
+        db.run("ALTER TABLE projects ADD COLUMN machines TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN cnpj TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN contact_phone TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN contact_email TEXT", (err) => {});
 
         // Tabela de Logs de Auditoria
         db.run(`CREATE TABLE IF NOT EXISTS logs (
@@ -653,12 +654,53 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/cnpj/:cnpj - Valida e consulta CNPJ na BrasilAPI (segura via autenticação)
+app.get('/api/cnpj/:cnpj', authenticateToken, async (req, res) => {
+    let { cnpj } = req.params;
+    cnpj = cnpj.replace(/\D/g, ''); // Limpa formatação
+
+    if (cnpj.length !== 14) {
+        return res.status(400).json({ error: 'O CNPJ deve conter exatamente 14 dígitos.' });
+    }
+
+    try {
+        const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+        if (response.status === 404) {
+            return res.status(404).json({ error: 'CNPJ inexistente na base da Receita Federal.' });
+        }
+        if (!response.ok) {
+            return res.status(response.status).json({ error: 'Erro ao conectar com a base do Ministério da Fazenda.' });
+        }
+
+        const data = await response.json();
+        const situacao = (data.descricao_situacao_cadastral || '').toUpperCase();
+
+        if (situacao !== 'ATIVA') {
+            return res.status(400).json({ 
+                error: `Atenção: Este CNPJ está com situação cadastral ${situacao || 'INATIVA'} e não pode ser cadastrado.`,
+                razao_social: data.razao_social 
+            });
+        }
+
+        res.json({
+            valid: true,
+            razao_social: data.razao_social,
+            nome_fantasia: data.nome_fantasia || data.razao_social,
+            cnpj: data.cnpj,
+            situacao: situacao
+        });
+    } catch (err) {
+        console.error('[CNPJ API] Erro na consulta:', err.message);
+        res.status(500).json({ error: 'Serviço de consulta de CNPJ temporariamente indisponível.' });
+    }
+});
+
 // POST /api/projects - Cria um novo projeto
 app.post('/api/projects', async (req, res) => {
-    const { code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, machines } = req.body;
+    const { code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, machines, cnpj, contact_phone, contact_email } = req.body;
     
-    if (!code || !client || !sku || !pm) {
-        return res.status(400).json({ error: 'Os campos Código, Cliente, SKU e Gerente (PM) são obrigatórios.' });
+    if (!code || !client || !sku || !pm || !cnpj) {
+        return res.status(400).json({ error: 'Os campos Código, Cliente, CNPJ, SKU e Gerente (PM) são obrigatórios.' });
     }
 
     try {
@@ -669,13 +711,14 @@ app.post('/api/projects', async (req, res) => {
 
         const sql = `INSERT INTO projects (
             code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, 
-            checklist, prazos, faseEntryDate, lastUpdate, motivoPerda, machines
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+            checklist, prazos, faseEntryDate, lastUpdate, motivoPerda, machines,
+            cnpj, contact_phone, contact_email
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
         await dbRun(sql, [
             code,
             client,
-            contact,
+            contact || '',
             pm,
             diagnostico,
             sku,
@@ -688,7 +731,10 @@ app.post('/api/projects', async (req, res) => {
             faseEntryDate || new Date().toISOString(),
             lastUpdate || new Date().toISOString(),
             null,
-            JSON.stringify(machines || [])
+            JSON.stringify(machines || []),
+            cnpj,
+            contact_phone || '',
+            contact_email || ''
         ]);
 
         sendWebhookNotification('CREATE', { code, client, pm, sku });
