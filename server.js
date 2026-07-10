@@ -22,6 +22,9 @@ const DB_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DB_DIR)) {
     fs.mkdirSync(DB_DIR);
 }
+const dbPath = process.env.DATABASE_PATH || path.join(DB_DIR, 'tecfag_mrp.db');
+const BACKUPS_DIR = path.join(DB_DIR, 'backups');
+
 function getDirectorySize(dirPath) {
     let size = 0;
     try {
