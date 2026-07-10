@@ -4005,6 +4005,23 @@
                 }
             ];
 
+            // Auto-populate mock users and dates for any step marked as true in mock data
+            mockProjects.forEach(p => {
+                const stepRoles = {
+                    diagnostico: "gerente.vendas", customizacao: "roberto.eng", aprovacao: "vendedor.sp",
+                    cotacao: "roberto.eng", fluxograma: "roberto.eng", contrato: "vendedor.sp", planta_baixa: "roberto.eng",
+                    pagamento: "lucas.compras", producao: "lucas.compras", embarque: "lucas.compras", fedex: "lucas.compras",
+                    desembaraco: "marcos.estoque", vistoria: "marcos.estoque", travas: "marcos.estoque", direcionamento: "marcos.estoque",
+                    logistica_saida: "bruno.tecnico", startup: "bruno.tecnico", sat: "bruno.tecnico"
+                };
+                Object.keys(p.checklist).forEach(k => {
+                    if (p.checklist[k] === true && !k.endsWith('_user') && !k.endsWith('_date')) {
+                        if (!p.checklist[k + '_user']) p.checklist[k + '_user'] = stepRoles[k] || 'admin';
+                        if (!p.checklist[k + '_date']) p.checklist[k + '_date'] = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+                    }
+                });
+            });
+
             try {
                 // Insere os projetos mockados sequencialmente
                 for (const p of mockProjects) {
@@ -4506,6 +4523,9 @@
                 // Concatenated string of SKUs for legacy compatibility & visual display
                 const sku = machines.map(m => m.sku).join(', ');
 
+                const userStr = localStorage.getItem('tecfag_user');
+                const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
+
                 const newProject = {
                     code,
                     client,
@@ -4524,7 +4544,10 @@
                     route: '-',
                     fase: 1, // Vendas
                     checklist: {
-                        diagnostico: true, customizacao: false, aprovacao: false, cotacao: false, 
+                        diagnostico: true,
+                        diagnostico_user: currentUser,
+                        diagnostico_date: new Date().toISOString(),
+                        customizacao: false, aprovacao: false, cotacao: false, 
                         fluxograma: false, contrato: false, planta_baixa: false,
                         pagamento: false, producao: false, embarque: false, fedex: false,
                         desembaraco: false, vistoria: false, travas: false, direcionamento: false,
@@ -5465,8 +5488,10 @@
             project.checklist[key] = isChecked;
             if (isChecked) {
                 project.checklist[key + '_user'] = currentUser;
+                project.checklist[key + '_date'] = new Date().toISOString();
             } else {
                 delete project.checklist[key + '_user'];
+                delete project.checklist[key + '_date'];
             }
             
             // Pipeline routing
@@ -6076,7 +6101,10 @@
                 </head>
                 <body>
                     <div class="header">
-                        <div class="logo-text">TECFAG</div>
+                        <div class="logo-container" style="display: flex; align-items: center; gap: 8px;">
+                            <img src="media/tecfag_emblem.png" alt="TECFAG Emblem" style="height: 35px;">
+                            <img src="media/tecfag_text.png" alt="TECFAG" style="height: 18px;">
+                        </div>
                         <div class="report-title">Relatório de Acompanhamento MRP</div>
                     </div>
 
