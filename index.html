@@ -2156,37 +2156,94 @@
 
 
 
-                        <!-- DADOS DO CLIENTE & CONTATO -->
-                        <div class="detail-card" style="margin-bottom: 20px;">
-                            <h4 style="margin-bottom: 15px; color: var(--primary);">Ficha do Cliente & Contato</h4>
-                            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; color: #cbd5e1;">
-                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                    <td style="padding: 8px 0; font-weight: bold; color: var(--text-secondary); width: 110px;">CNPJ:</td>
-                                    <td style="padding: 8px 0;" id="modal-desc-cnpj">-</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                    <td style="padding: 8px 0; font-weight: bold; color: var(--text-secondary);">Nome Contato:</td>
-                                    <td style="padding: 8px 0;" id="modal-desc-contact-name">-</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                    <td style="padding: 8px 0; font-weight: bold; color: var(--text-secondary);">Telefone:</td>
-                                    <td style="padding: 8px 0;" id="modal-desc-contact-phone">-</td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                    <td style="padding: 8px 0; font-weight: bold; color: var(--text-secondary);">E-mail:</td>
-                                    <td style="padding: 8px 0;" id="modal-desc-contact-email">-</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 8px 0; font-weight: bold; color: var(--text-secondary);">CNAE Fiscal:</td>
-                                    <td style="padding: 8px 0;" id="modal-desc-cnae">-</td>
-                                </tr>
-                            </table>
-                        </div>
+                        <!-- DOSSIER DO CLIENTE E ESCOPO (ABAS) -->
+                        <div class="detail-card" style="margin-bottom: 20px; padding: 0; overflow: hidden;">
+                            <div style="display: flex; border-bottom: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.02); overflow: hidden;">
+                                <button id="modal-tab-btn-contato" onclick="switchModalSubTab('contato')" style="flex: 1; padding: 12px; background: none; border: none; color: var(--primary); font-weight: bold; font-size: 0.82rem; cursor: pointer; border-bottom: 2px solid var(--primary); transition: all 0.3s;">📞 Contato & Escopo</button>
+                                <button id="modal-tab-btn-receita" onclick="switchModalSubTab('receita')" style="flex: 1; padding: 12px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.82rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s;">🏛️ Dossiê Receita Federal</button>
+                            </div>
+                            
+                            <div style="padding: 15px;">
+                                <!-- SUB-TAB 1: Contato e Escopo -->
+                                <div id="modal-subtab-contato" style="display: block;">
+                                    <h5 style="color: var(--primary); margin-bottom: 10px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">Dados de Contato no Cliente</h5>
+                                    <table style="width: 100%; border-collapse: collapse; font-size: 0.83rem; color: #cbd5e1; margin-bottom: 15px;">
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary); width: 110px;">CNPJ:</td>
+                                            <td style="padding: 6px 0;" id="modal-desc-cnpj">-</td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">Nome Contato:</td>
+                                            <td style="padding: 6px 0;" id="modal-desc-contact-name">-</td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">Telefone:</td>
+                                            <td style="padding: 6px 0;" id="modal-desc-contact-phone">-</td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">E-mail:</td>
+                                            <td style="padding: 6px 0;" id="modal-desc-contact-email">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">CNAE Fiscal:</td>
+                                            <td style="padding: 6px 0;" id="modal-desc-cnae">-</td>
+                                        </tr>
+                                    </table>
+                                    
+                                    <h5 style="color: var(--primary); margin-bottom: 10px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">Diagnóstico de Automação Requerida</h5>
+                                    <p id="modal-desc-diagnostico" style="font-size: 0.82rem; line-height: 1.5; color: #cbd5e1; background-color: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); white-space: pre-wrap; margin: 0;"></p>
+                                </div>
+                                
+                                <!-- SUB-TAB 2: Dossiê Receita Federal -->
+                                <div id="modal-subtab-receita" style="display: none;">
+                                    <div id="modal-receita-empty" style="text-align: center; padding: 30px 15px; color: var(--text-secondary); font-size: 0.85rem;">
+                                        ⚠️ Sem dados enriquecidos da Receita Federal disponíveis para este projeto (cadastros antigos ou sem CNPJ validado).
+                                    </div>
+                                    <div id="modal-receita-content" style="display: none;">
+                                        <h5 style="color: var(--primary); margin-bottom: 10px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">Qualificação Cadastral & Financeira</h5>
+                                        <table style="width: 100%; border-collapse: collapse; font-size: 0.83rem; color: #cbd5e1; margin-bottom: 15px;">
+                                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                                <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary); width: 130px;">Capital Social:</td>
+                                                <td style="padding: 6px 0; font-weight: bold; color: #4ade80;" id="modal-rec-capital">-</td>
+                                            </tr>
+                                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                                <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">Porte da Empresa:</td>
+                                                <td style="padding: 6px 0;" id="modal-rec-porte">-</td>
+                                            </tr>
+                                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                                <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">Simples Nacional:</td>
+                                                <td style="padding: 6px 0;" id="modal-rec-simples">-</td>
+                                            </tr>
+                                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                                <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">Natureza Jurídica:</td>
+                                                <td style="padding: 6px 0;" id="modal-rec-natureza">-</td>
+                                            </tr>
+                                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                                <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">Data de Abertura:</td>
+                                                <td style="padding: 6px 0;" id="modal-rec-abertura">-</td>
+                                            </tr>
+                                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                                <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">Endereço Oficial:</td>
+                                                <td style="padding: 6px 0; font-size: 0.78rem; line-height: 1.4;" id="modal-rec-endereco">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">Contato Receita:</td>
+                                                <td style="padding: 6px 0;" id="modal-rec-contato">-</td>
+                                            </tr>
+                                        </table>
+                                        
+                                        <h5 style="color: var(--primary); margin-bottom: 8px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">Quadro de Sócios e Administradores (QSA)</h5>
+                                        <div id="modal-rec-qsa" style="background-color: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.78rem; line-height: 1.5; color: #cbd5e1; margin-bottom: 15px; max-height: 120px; overflow-y: auto;">
+                                            <!-- Preenchido via JS -->
+                                        </div>
 
-                        <div class="detail-card">
-                            <h4 style="margin-bottom: 15px; color: var(--primary);">Ficha de Diagnóstico</h4>
-                            <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 8px;"><strong>Automação Requerida:</strong></p>
-                            <p id="modal-desc-diagnostico" style="font-size: 0.85rem; line-height: 1.5; color: #cbd5e1; background-color: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color);"></p>
+                                        <h5 style="color: var(--primary); margin-bottom: 8px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">Atividades Secundárias (CNAEs)</h5>
+                                        <div id="modal-rec-cnaes-secundarios" style="background-color: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.78rem; line-height: 1.5; color: #cbd5e1; max-height: 120px; overflow-y: auto;">
+                                            <!-- Preenchido via JS -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2844,6 +2901,7 @@
         let activeProjectCode = null;
         let isSubmitting = false;
         let projectToMarkLost = null;
+        let currentCnpjReceitaData = null;
 
         // Dynamic machine inputs in intake form
         let intakeMachineCount = 0;
@@ -3364,6 +3422,37 @@
             }
         }
 
+        function switchModalSubTab(tab) {
+            const btnContato = document.getElementById('modal-tab-btn-contato');
+            const btnReceita = document.getElementById('modal-tab-btn-receita');
+            const tabContato = document.getElementById('modal-subtab-contato');
+            const tabReceita = document.getElementById('modal-subtab-receita');
+            
+            if (tab === 'contato') {
+                if (tabContato) tabContato.style.display = 'block';
+                if (tabReceita) tabReceita.style.display = 'none';
+                if (btnContato) {
+                    btnContato.style.color = 'var(--primary)';
+                    btnContato.style.borderBottomColor = 'var(--primary)';
+                }
+                if (btnReceita) {
+                    btnReceita.style.color = 'var(--text-secondary)';
+                    btnReceita.style.borderBottomColor = 'transparent';
+                }
+            } else {
+                if (tabContato) tabContato.style.display = 'none';
+                if (tabReceita) tabReceita.style.display = 'block';
+                if (btnContato) {
+                    btnContato.style.color = 'var(--text-secondary)';
+                    btnContato.style.borderBottomColor = 'transparent';
+                }
+                if (btnReceita) {
+                    btnReceita.style.color = 'var(--primary)';
+                    btnReceita.style.borderBottomColor = 'var(--primary)';
+                }
+            }
+        }
+
         function handleFormReset() {
             const form = document.getElementById('new-project-form');
             if (form) {
@@ -3385,6 +3474,7 @@
             const descEl = document.getElementById('prj-cnae-desc');
             if (codeEl) codeEl.value = "";
             if (descEl) descEl.value = "";
+            currentCnpjReceitaData = null;
 
             // Restaura o template do diagnóstico
             const diagTextarea = document.getElementById('prj-diagnostico');
@@ -3469,7 +3559,24 @@
                     razao_social: 'TECFAG AUTOMACAO INDUSTRIAL LTDA',
                     cnpj: cnpj,
                     cnae_codigo: '4663000',
-                    cnae_descricao: 'Comércio atacadista de Máquinas e equipamentos para uso industrial; partes e peças'
+                    cnae_descricao: 'Comércio atacadista de Máquinas e equipamentos para uso industrial; partes e peças',
+                    receita_data: {
+                        capital_social: 'R$ 1.500.000,00',
+                        porte: 'Demais (Média/Grande)',
+                        data_abertura: '06/07/2011',
+                        endereco: 'Rua Léo Greatti Neto, 1130 - Distrito Industrial - Bauru/SP - CEP: 17064-857',
+                        contato: '(14) 3161-5000',
+                        simples: 'Não (Lucro Presumido/Real)',
+                        natureza_juridica: 'Sociedade Empresária Limitada',
+                        qsa: [
+                            { nome: 'GILSON DONATO', cargo: 'Sócio-Administrador' },
+                            { nome: 'ERIKA SORAIA JARDIM ALVES', cargo: 'Sócio-Administrador' }
+                        ],
+                        cnaes_secundarios: [
+                            { codigo: '3314710', descricao: 'Manutenção e reparação de máquinas e equipamentos' },
+                            { codigo: '4686902', descricao: 'Comércio atacadista de embalagens' }
+                        ]
+                    }
                 };
                 if (statusEl) {
                     statusEl.innerText = `✅ [OFFLINE] CNPJ Ativo: TECFAG AUTOMACAO INDUSTRIAL LTDA`;
@@ -3478,6 +3585,7 @@
                 if (clientEl) clientEl.value = 'TECFAG AUTOMACAO INDUSTRIAL LTDA';
                 if (codeEl) codeEl.value = '4663000';
                 if (descEl) descEl.value = 'Comércio atacadista de Máquinas e equipamentos para uso industrial; partes e peças';
+                currentCnpjReceitaData = cnpjCache[cnpj].receita_data;
                 return;
             }
             
@@ -3491,6 +3599,7 @@
                     if (clientEl) clientEl.value = "";
                     if (codeEl) codeEl.value = "";
                     if (descEl) descEl.value = "";
+                    currentCnpjReceitaData = null;
                 } else {
                     if (statusEl) {
                         statusEl.innerText = `✅ CNPJ Ativo: ${res.razao_social}`;
@@ -3499,6 +3608,7 @@
                     if (clientEl) clientEl.value = res.razao_social;
                     if (codeEl) codeEl.value = res.cnae_codigo || "";
                     if (descEl) descEl.value = res.cnae_descricao || "";
+                    currentCnpjReceitaData = res.receita_data || null;
                 }
                 return;
             }
@@ -3529,6 +3639,7 @@
                     if (clientEl) clientEl.value = "";
                     if (codeEl) codeEl.value = "";
                     if (descEl) descEl.value = "";
+                    currentCnpjReceitaData = null;
                 } else {
                     cnpjCache[cnpj] = data;
                     if (statusEl) {
@@ -3538,6 +3649,7 @@
                     if (clientEl) clientEl.value = data.razao_social;
                     if (codeEl) codeEl.value = data.cnae_codigo || "";
                     if (descEl) descEl.value = data.cnae_descricao || "";
+                    currentCnpjReceitaData = data.receita_data || null;
                 }
             } catch (err) {
                 console.error(err);
@@ -3545,6 +3657,7 @@
                     statusEl.innerText = "⚠️ Erro de conexão ao validar CNPJ. Tente novamente.";
                     statusEl.style.color = "#fbbf24";
                 }
+                currentCnpjReceitaData = null;
             } finally {
                 isCnpjValidating = false;
             }
@@ -3678,6 +3791,7 @@
                     contact_email: contactEmail,
                     cnae_codigo: cnaeCodigo,
                     cnae_descricao: cnaeDescricao,
+                    receita_data: currentCnpjReceitaData,
                     pm,
                     diagnostico,
                     sku,
@@ -4021,6 +4135,9 @@
             document.getElementById('modal-project-title').innerText = `${project.code} - ${project.client}`;
             document.getElementById('modal-project-subtitle').innerText = `Gerente: ${project.pm} | Técnico Instalador: ${project.tech}`;
             
+            // Reseta para a aba de contato
+            switchModalSubTab('contato');
+
             // Formatar CNPJ
             let maskedCnpj = project.cnpj || '-';
             if (maskedCnpj && maskedCnpj.length === 14) {
@@ -4039,6 +4156,67 @@
             document.getElementById('modal-desc-cnae').innerText = cnaeText;
 
             document.getElementById('modal-desc-diagnostico').innerText = project.diagnostico;
+
+            // Renderização do dossiê da Receita
+            const emptyEl = document.getElementById('modal-receita-empty');
+            const contentEl = document.getElementById('modal-receita-content');
+            
+            let recData = null;
+            if (project.receita_data) {
+                try {
+                    recData = typeof project.receita_data === 'string' ? JSON.parse(project.receita_data) : project.receita_data;
+                } catch (e) {
+                    console.error('Erro ao fazer parse dos dados da Receita:', e);
+                }
+            }
+
+            if (recData && recData.capital_social) {
+                if (emptyEl) emptyEl.style.display = 'none';
+                if (contentEl) contentEl.style.display = 'block';
+
+                document.getElementById('modal-rec-capital').innerText = recData.capital_social || 'Não informado';
+                document.getElementById('modal-rec-porte').innerText = recData.porte || 'Não informado';
+                document.getElementById('modal-rec-simples').innerText = recData.simples || 'Não informado';
+                document.getElementById('modal-rec-natureza').innerText = recData.natureza_juridica || 'Não informado';
+                document.getElementById('modal-rec-abertura').innerText = recData.data_abertura || 'Não informada';
+                document.getElementById('modal-rec-endereco').innerText = recData.endereco || 'Não informado';
+                document.getElementById('modal-rec-contato').innerText = recData.contato || 'Não informado';
+
+                // QSA
+                const qsaBox = document.getElementById('modal-rec-qsa');
+                if (qsaBox) {
+                    qsaBox.innerHTML = '';
+                    if (recData.qsa && recData.qsa.length > 0) {
+                        recData.qsa.forEach(s => {
+                            const p = document.createElement('div');
+                            p.style.marginBottom = '4px';
+                            p.innerHTML = `👤 <strong>${s.nome}</strong> (${s.cargo || 'Sócio'})`;
+                            qsaBox.appendChild(p);
+                        });
+                    } else {
+                        qsaBox.innerText = 'Nenhum sócio informado.';
+                    }
+                }
+
+                // CNAEs Secundários
+                const cnaesBox = document.getElementById('modal-rec-cnaes-secundarios');
+                if (cnaesBox) {
+                    cnaesBox.innerHTML = '';
+                    if (recData.cnaes_secundarios && recData.cnaes_secundarios.length > 0) {
+                        recData.cnaes_secundarios.forEach(c => {
+                            const p = document.createElement('div');
+                            p.style.marginBottom = '4px';
+                            p.innerHTML = `📌 <strong>${c.codigo}</strong> - ${c.descricao}`;
+                            cnaesBox.appendChild(p);
+                        });
+                    } else {
+                        cnaesBox.innerText = 'Nenhuma atividade secundária informada.';
+                    }
+                }
+            } else {
+                if (emptyEl) emptyEl.style.display = 'block';
+                if (contentEl) contentEl.style.display = 'none';
+            }
             
             // Render machines in modal
             const machinesContainer = document.getElementById('modal-machines-list');

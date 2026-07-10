@@ -99,6 +99,7 @@ function initializeDatabase() {
         db.run("ALTER TABLE projects ADD COLUMN contact_email TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN cnae_codigo TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN cnae_descricao TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN receita_data TEXT", (err) => {});
 
         // Tabela de Logs de Auditoria
         db.run(`CREATE TABLE IF NOT EXISTS logs (
@@ -657,6 +658,7 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
 });
 
 // Função auxiliar para consulta de CNPJ com 3 APIs redundantes de fallback
+// Função auxiliar para consulta de CNPJ com 3 APIs redundantes de fallback e extração de dossiê completo
 async function fetchCNPJWithFallback(cnpj) {
     // API 1: BrasilAPI
     try {
@@ -664,13 +666,55 @@ async function fetchCNPJWithFallback(cnpj) {
         const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
         if (response.status === 200) {
             const data = await response.json();
+            
+            // Porte
+            const porteMap = { 1: 'Microempresa (ME)', 3: 'Empresa de Pequeno Porte (EPP)', 5: 'Demais (Média/Grande)' };
+            const porteText = porteMap[data.codigo_porte] || data.porte || 'Não informado';
+
+            // Simples Nacional
+            const simplesText = data.opcao_pelo_simples === true ? 'Sim (Optante)' : 'Não (Lucro Presumido/Real)';
+
+            // QSA
+            const qsaParsed = (data.qsa || []).map(s => ({
+                nome: s.nome_socio || '',
+                cargo: s.qualificacao_socio || ''
+            }));
+
+            // CNAEs secundários
+            const cnaesSecParsed = (data.cnaes_secundarios || []).map(c => ({
+                codigo: c.codigo || '',
+                descricao: c.descricao || ''
+            }));
+
+            // Endereço
+            const endParts = [
+                data.descricao_tipo_de_logradouro,
+                data.logradouro,
+                data.numero ? `, ${data.numero}` : '',
+                data.complemento ? ` (${data.complemento})` : '',
+                data.bairro ? ` - ${data.bairro}` : '',
+                data.municipio ? ` - ${data.municipio}/${data.uf || ''}` : '',
+                data.cep ? ` - CEP: ${data.cep}` : ''
+            ].filter(Boolean).join('');
+
             return {
                 valid: true,
                 razao_social: data.razao_social,
                 nome_fantasia: data.nome_fantasia || data.razao_social,
                 situacao: (data.descricao_situacao_cadastral || '').toUpperCase(),
                 cnae_codigo: data.cnae_fiscal || '',
-                cnae_descricao: data.cnae_fiscal_descricao || ''
+                cnae_descricao: data.cnae_fiscal_descricao || '',
+                receita_data: {
+                    capital_social: data.capital_social ? data.capital_social.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Não informado',
+                    porte: porteText,
+                    data_abertura: data.data_inicio_atividade ? data.data_inicio_atividade.split('-').reverse().join('/') : 'Não informada',
+                    endereco: endParts || 'Não informado',
+                    contato: data.ddd_telefone_1 ? `(${data.ddd_telefone_1.substring(0, 2)}) ${data.ddd_telefone_1.substring(2)}` : 'Não informado',
+                    simples: simplesText,
+                    natureza_juridica: data.natureza_juridica || 'Não informado',
+                    qsa: qsaParsed,
+                    cnaes_secundarios: cnaesSecParsed
+                }
             };
         } else if (response.status === 404) {
             return { error: 'CNPJ inexistente na base da Receita Federal.' };
@@ -690,13 +734,53 @@ async function fetchCNPJWithFallback(cnpj) {
                 return { error: data.message || 'CNPJ inexistente.' };
             }
             const cnaeObj = data.atividade_principal && data.atividade_principal[0] ? data.atividade_principal[0] : {};
+            
+            // Simples
+            const simplesText = data.simples && data.simples.optante === true ? 'Sim (Optante)' : 'Não (Lucro Presumido/Real)';
+
+            // QSA
+            const qsaParsed = (data.qsa || []).map(s => ({
+                nome: s.nome || '',
+                cargo: s.qual || ''
+            }));
+
+            // CNAEs secundários
+            const cnaesSecParsed = (data.atividades_secundarias || []).map(c => ({
+                codigo: c.code ? c.code.replace(/\D/g, '') : '',
+                descricao: c.text || ''
+            }));
+
+            // Endereço
+            const endParts = [
+                data.logradouro,
+                data.numero ? `, ${data.numero}` : '',
+                data.complemento ? ` (${data.complemento})` : '',
+                data.bairro ? ` - ${data.bairro}` : '',
+                data.municipio ? ` - ${data.municipio}/${data.uf || ''}` : '',
+                data.cep ? ` - CEP: ${data.cep}` : ''
+            ].filter(Boolean).join('');
+
+            const capVal = parseFloat(data.capital_social);
+            const capStr = !isNaN(capVal) ? capVal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : (data.capital_social || 'Não informado');
+
             return {
                 valid: true,
                 razao_social: data.nome,
                 nome_fantasia: data.fantasia || data.nome,
                 situacao: (data.situacao || '').toUpperCase(),
                 cnae_codigo: cnaeObj.code ? cnaeObj.code.replace(/\D/g, '') : '',
-                cnae_descricao: cnaeObj.text || ''
+                cnae_descricao: cnaeObj.text || '',
+                receita_data: {
+                    capital_social: capStr,
+                    porte: data.porte || 'Não informado',
+                    data_abertura: data.abertura || 'Não informada',
+                    endereco: endParts || 'Não informado',
+                    contato: data.telefone || 'Não informado',
+                    simples: simplesText,
+                    natureza_juridica: data.natureza_juridica || 'Não informado',
+                    qsa: qsaParsed,
+                    cnaes_secundarios: cnaesSecParsed
+                }
             };
         } else if (response.status === 429) {
             console.warn(`[CNPJ API] ReceitaWS retornou 429 (Limite atingido). Tentando próximo fallback...`);
@@ -712,13 +796,57 @@ async function fetchCNPJWithFallback(cnpj) {
         if (response.status === 200) {
             const data = await response.json();
             const cnaeObj = data.estabelecimento && data.estabelecimento.atividade_principal ? data.estabelecimento.atividade_principal : {};
+            const estab = data.estabelecimento || {};
+
+            // Simples
+            const simplesText = data.simples && data.simples.optante === 'sim' ? 'Sim (Optante)' : 'Não (Lucro Presumido/Real)';
+
+            // QSA
+            const qsaParsed = (data.socios || []).map(s => ({
+                nome: s.nome || '',
+                cargo: s.qualificacao_socio ? s.qualificacao_socio.descricao : 'Sócio'
+            }));
+
+            // CNAEs secundários
+            const cnaeSecRaw = estab.atividades_secundarias || [];
+            const cnaesSecParsed = cnaeSecRaw.map(c => ({
+                codigo: c.subclasse ? c.subclasse.replace(/\D/g, '') : '',
+                descricao: c.descricao || ''
+            }));
+            
+            // Endereço
+            const endParts = [
+                estab.tipo_logradouro,
+                estab.logradouro,
+                estab.numero ? `, ${estab.numero}` : '',
+                estab.complemento ? ` (${estab.complemento})` : '',
+                estab.bairro ? ` - ${estab.bairro}` : '',
+                estab.cidade ? ` - ${estab.cidade.nome}/${estab.estado ? estab.estado.sigla : ''}` : '',
+                estab.cep ? ` - CEP: ${estab.cep}` : ''
+            ].filter(Boolean).join('');
+
+            const capSocial = data.capital_social || estab.capital_social;
+            const capVal = parseFloat(capSocial);
+            const capStr = !isNaN(capVal) ? capVal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Não informado';
+
             return {
                 valid: true,
                 razao_social: data.estabelecimento.razao_social || data.razao_social,
                 nome_fantasia: data.estabelecimento.nome_fantasia || data.estabelecimento.razao_social || data.razao_social,
                 situacao: (data.estabelecimento.situacao_cadastral || '').toUpperCase(),
                 cnae_codigo: cnaeObj.subclasse ? cnaeObj.subclasse.replace(/\D/g, '') : '',
-                cnae_descricao: cnaeObj.descricao || ''
+                cnae_descricao: cnaeObj.descricao || '',
+                receita_data: {
+                    capital_social: capStr,
+                    porte: data.porte ? data.porte.descricao : 'Não informado',
+                    data_abertura: estab.data_inicio_atividade ? estab.data_inicio_atividade.split('-').reverse().join('/') : 'Não informada',
+                    endereco: endParts || 'Não informado',
+                    contato: estab.telefone1 ? `(${estab.ddd1}) ${estab.telefone1}` : 'Não informado',
+                    simples: simplesText,
+                    natureza_juridica: data.natureza_juridica ? data.natureza_juridica.descricao : 'Não informado',
+                    qsa: qsaParsed,
+                    cnaes_secundarios: cnaesSecParsed
+                }
             };
         } else if (response.status === 404) {
             return { error: 'CNPJ inexistente.' };
@@ -761,7 +889,8 @@ app.get('/api/cnpj/:cnpj', authenticateToken, async (req, res) => {
             cnpj: cnpj,
             situacao: result.situacao,
             cnae_codigo: result.cnae_codigo,
-            cnae_descricao: result.cnae_descricao
+            cnae_descricao: result.cnae_descricao,
+            receita_data: result.receita_data
         });
     } catch (err) {
         console.error('[CNPJ API] Erro no endpoint:', err.message);
@@ -769,9 +898,9 @@ app.get('/api/cnpj/:cnpj', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/projects - Cria um novo projeto
+// POST /api/projects - Cria um novo projeto com receita_data
 app.post('/api/projects', async (req, res) => {
-    const { code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, machines, cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao } = req.body;
+    const { code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, machines, cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, receita_data } = req.body;
     
     if (!code || !client || !sku || !pm || !cnpj) {
         return res.status(400).json({ error: 'Os campos Código, Cliente, CNPJ, SKU e Gerente (PM) são obrigatórios.' });
@@ -786,8 +915,8 @@ app.post('/api/projects', async (req, res) => {
         const sql = `INSERT INTO projects (
             code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, 
             checklist, prazos, faseEntryDate, lastUpdate, motivoPerda, machines,
-            cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+            cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, receita_data
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
         await dbRun(sql, [
             code,
@@ -810,7 +939,8 @@ app.post('/api/projects', async (req, res) => {
             contact_phone || '',
             contact_email || '',
             cnae_codigo || '',
-            cnae_descricao || ''
+            cnae_descricao || '',
+            receita_data ? (typeof receita_data === 'string' ? receita_data : JSON.stringify(receita_data)) : '{}'
         ]);
 
         sendWebhookNotification('CREATE', { code, client, pm, sku });
