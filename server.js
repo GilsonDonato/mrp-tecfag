@@ -654,7 +654,73 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/cnpj/:cnpj - Valida e consulta CNPJ na BrasilAPI (segura via autenticação)
+// Função auxiliar para consulta de CNPJ com 3 APIs redundantes de fallback
+async function fetchCNPJWithFallback(cnpj) {
+    // API 1: BrasilAPI
+    try {
+        console.log(`[CNPJ API] Tentando BrasilAPI para CNPJ: ${cnpj}`);
+        const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+        if (response.status === 200) {
+            const data = await response.json();
+            return {
+                valid: true,
+                razao_social: data.razao_social,
+                nome_fantasia: data.nome_fantasia || data.razao_social,
+                situacao: (data.descricao_situacao_cadastral || '').toUpperCase()
+            };
+        } else if (response.status === 404) {
+            return { error: 'CNPJ inexistente na base da Receita Federal.' };
+        }
+        console.warn(`[CNPJ API] BrasilAPI retornou status ${response.status}. Tentando fallback...`);
+    } catch (e) {
+        console.error(`[CNPJ API] Falha na BrasilAPI: ${e.message}. Tentando fallback...`);
+    }
+
+    // API 2: ReceitaWS
+    try {
+        console.log(`[CNPJ API] Tentando ReceitaWS para CNPJ: ${cnpj}`);
+        const response = await fetch(`https://receitaws.com.br/v1/cnpj/${cnpj}`);
+        if (response.status === 200) {
+            const data = await response.json();
+            if (data.status === 'ERROR') {
+                return { error: data.message || 'CNPJ inexistente.' };
+            }
+            return {
+                valid: true,
+                razao_social: data.nome,
+                nome_fantasia: data.fantasia || data.nome,
+                situacao: (data.situacao || '').toUpperCase()
+            };
+        } else if (response.status === 429) {
+            console.warn(`[CNPJ API] ReceitaWS retornou 429 (Limite atingido). Tentando próximo fallback...`);
+        }
+    } catch (e) {
+        console.error(`[CNPJ API] Falha na ReceitaWS: ${e.message}. Tentando próximo fallback...`);
+    }
+
+    // API 3: CNPJ.ws
+    try {
+        console.log(`[CNPJ API] Tentando CNPJ.ws para CNPJ: ${cnpj}`);
+        const response = await fetch(`https://publica.cnpj.ws/cnpj/${cnpj}`);
+        if (response.status === 200) {
+            const data = await response.json();
+            return {
+                valid: true,
+                razao_social: data.estabelecimento.razao_social || data.razao_social,
+                nome_fantasia: data.estabelecimento.nome_fantasia || data.estabelecimento.razao_social || data.razao_social,
+                situacao: (data.estabelecimento.situacao_cadastral || '').toUpperCase()
+            };
+        } else if (response.status === 404) {
+            return { error: 'CNPJ inexistente.' };
+        }
+    } catch (e) {
+        console.error(`[CNPJ API] Falha na CNPJ.ws: ${e.message}`);
+    }
+
+    return { error: 'Não foi possível validar o CNPJ. Todos os servidores da Receita Federal falharam.' };
+}
+
+// GET /api/cnpj/:cnpj - Valida e consulta CNPJ com triplo fallback
 app.get('/api/cnpj/:cnpj', authenticateToken, async (req, res) => {
     let { cnpj } = req.params;
     cnpj = cnpj.replace(/\D/g, ''); // Limpa formatação
@@ -664,34 +730,31 @@ app.get('/api/cnpj/:cnpj', authenticateToken, async (req, res) => {
     }
 
     try {
-        const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
-        if (response.status === 404) {
-            return res.status(404).json({ error: 'CNPJ inexistente na base da Receita Federal.' });
-        }
-        if (!response.ok) {
-            return res.status(response.status).json({ error: 'Erro ao conectar com a base do Ministério da Fazenda.' });
+        const result = await fetchCNPJWithFallback(cnpj);
+        
+        if (result.error) {
+            // Retorna o erro vindo da API de consulta correspondente
+            return res.status(400).json({ error: result.error });
         }
 
-        const data = await response.json();
-        const situacao = (data.descricao_situacao_cadastral || '').toUpperCase();
-
-        if (situacao !== 'ATIVA') {
+        // Verificar se está ativo
+        if (result.situacao !== 'ATIVA' && result.situacao !== 'ATIVO') {
             return res.status(400).json({ 
-                error: `Atenção: Este CNPJ está com situação cadastral ${situacao || 'INATIVA'} e não pode ser cadastrado.`,
-                razao_social: data.razao_social 
+                error: `Atenção: Este CNPJ está com situação cadastral ${result.situacao || 'INATIVA'} e não pode ser cadastrado.`,
+                razao_social: result.razao_social
             });
         }
 
         res.json({
             valid: true,
-            razao_social: data.razao_social,
-            nome_fantasia: data.nome_fantasia || data.razao_social,
-            cnpj: data.cnpj,
-            situacao: situacao
+            razao_social: result.razao_social,
+            nome_fantasia: result.nome_fantasia || result.razao_social,
+            cnpj: cnpj,
+            situacao: result.situacao
         });
     } catch (err) {
-        console.error('[CNPJ API] Erro na consulta:', err.message);
-        res.status(500).json({ error: 'Serviço de consulta de CNPJ temporariamente indisponível.' });
+        console.error('[CNPJ API] Erro no endpoint:', err.message);
+        res.status(500).json({ error: 'Erro interno ao processar a validação do CNPJ.' });
     }
 });
 
