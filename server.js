@@ -916,6 +916,33 @@ app.get('/api/cambio', async (req, res) => {
     }
 });
 
+// GET /api/ncm/:codigo - Proxy para consulta de NCM (BrasilAPI)
+app.get('/api/ncm/:codigo', authenticateToken, async (req, res) => {
+    let { codigo } = req.params;
+    codigo = codigo.replace(/\D/g, ''); // Limpa formatação
+
+    if (codigo.length !== 8) {
+        return res.status(400).json({ error: 'O código NCM deve conter exatamente 8 dígitos.' });
+    }
+
+    try {
+        console.log(`[NCM API] Consultando BrasilAPI para NCM: ${codigo}`);
+        const response = await fetch(`https://brasilapi.com.br/api/ncm/v1/${codigo}`);
+        if (response.status === 200) {
+            const data = await response.json();
+            return res.json(data);
+        } else if (response.status === 404) {
+            return res.status(404).json({ error: 'Código NCM inexistente na base de dados.' });
+        } else {
+            console.error(`[NCM API] Erro ao consultar BrasilAPI: status ${response.status}`);
+            return res.status(response.status).json({ error: 'Erro ao consultar NCM no servidor externo.' });
+        }
+    } catch (err) {
+        console.error('[NCM API] Erro no endpoint:', err.message);
+        res.status(500).json({ error: 'Erro interno ao processar a validação do NCM.' });
+    }
+});
+
 // POST /api/projects - Cria um novo projeto com receita_data
 app.post('/api/projects', async (req, res) => {
     const { code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, machines, cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, receita_data } = req.body;
