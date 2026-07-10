@@ -1982,9 +1982,14 @@
             <div class="project-table-card">
                 <div class="flex-between" style="margin-bottom: 20px;">
                     <h3>Histórico Geral de Auditoria & Notificações</h3>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-secondary" onclick="exportBackupData()">💾 Exportar Backup (.json)</button>
-                        <button class="btn btn-secondary" onclick="triggerImportBackup()">📂 Importar Backup</button>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <!-- Controles de Backup de Banco Real (Administradores) -->
+                        <div id="admin-db-controls" style="display: none; gap: 10px;">
+                            <button class="btn" onclick="downloadDatabaseFile()" style="background-color: var(--primary); color: #0f172a; font-weight: bold;">📥 Baixar Banco (.db)</button>
+                            <button class="btn btn-secondary" onclick="triggerEmailBackup()">📧 Forçar E-mail Backup</button>
+                        </div>
+                        <button class="btn btn-secondary" onclick="exportBackupData()">💾 Exportar Logs (.json)</button>
+                        <button class="btn btn-secondary" onclick="triggerImportBackup()">📂 Importar Logs</button>
                         <button class="btn btn-danger" onclick="clearAuditLogs()">Limpar Histórico</button>
                     </div>
                 </div>
@@ -3364,6 +3369,16 @@
         }
 
         function updateRolePanel() {
+            // Exibir botões de backup de banco de dados apenas para Administradores
+            const dbControls = document.getElementById('admin-db-controls');
+            if (dbControls) {
+                if (currentRole === 'ALL' || currentRole === 'DIRETOR') {
+                    dbControls.style.display = 'flex';
+                } else {
+                    dbControls.style.display = 'none';
+                }
+            }
+
             const panel = document.getElementById('tasks-role-alert-bar');
             const countBadge = document.getElementById('tasks-role-count');
             const title = document.getElementById('tasks-role-title');
@@ -5650,6 +5665,79 @@
             if (confirm('Deseja limpar todos os registros?')) {
                 state.logs = [];
                 saveProjectsDB();
+            }
+        }
+
+        // Download do Banco de Dados SQLite físico (.db)
+        async function downloadDatabaseFile() {
+            try {
+                const token = sessionStorage.getItem('tecfag_mrp_token') || localStorage.getItem('tecfag_mrp_token');
+                const headers = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch('/api/admin/backup/download', { headers });
+                if (!response.ok) {
+                    const data = await response.json();
+                    alert(data.error || 'Erro ao realizar download do banco.');
+                    return;
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `tecfag_mrp_database_${new Date().toISOString().slice(0,10)}.db`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao baixar o banco de dados.');
+            }
+        }
+
+        // Forçar envio de backup por e-mail
+        async function triggerEmailBackup() {
+            try {
+                const token = sessionStorage.getItem('tecfag_mrp_token') || localStorage.getItem('tecfag_mrp_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const btn = document.querySelector('button[onclick="triggerEmailBackup()"]');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerText = 'Enviando...';
+                }
+
+                const response = await fetch('/api/admin/backup/send-email', {
+                    method: 'POST',
+                    headers
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(data.message || 'Backup enviado com sucesso para o e-mail gilson@tecfag.com.br!');
+                } else {
+                    alert(data.error || 'Falha ao enviar backup por e-mail.');
+                }
+                
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = '📧 Forçar E-mail Backup';
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao acionar o envio de backup.');
+                const btn = document.querySelector('button[onclick="triggerEmailBackup()"]');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = '📧 Forçar E-mail Backup';
+                }
             }
         }
 

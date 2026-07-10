@@ -1194,6 +1194,105 @@ app.delete('/api/attachments/:id', async (req, res) => {
     }
 });
 
+// ===================================================
+// SISTEMA DE SEGURANÇA E BACKUPS REDUNDANTES
+// ===================================================
+
+// Função para enviar o arquivo de banco de dados por e-mail (Backup Redundante)
+async function sendDatabaseBackupEmail() {
+    try {
+        if (!fs.existsSync(dbPath)) {
+            console.log('[BACKUP EMAIL] Arquivo de banco de dados não encontrado.');
+            return false;
+        }
+
+        if (!process.env.SMTP_USER || !process.env.SMTP_HOST) {
+            console.log('[BACKUP EMAIL] SMTP não configurado. Backup por e-mail ignorado.');
+            return false;
+        }
+
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT) || 587,
+            secure: process.env.SMTP_SECURE === 'true',
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        });
+
+        const dateStr = new Date().toLocaleDateString('pt-BR');
+        const mailOptions = {
+            from: `"Tecfag MRP Backup" <${process.env.SMTP_USER}>`,
+            to: 'gilson@tecfag.com.br',
+            subject: `💾 [BACKUP AUTOMÁTICO] Banco de Dados MRP II Tecfag - ${dateStr}`,
+            text: `Olá Gilson,\n\nSegue em anexo a cópia de segurança (backup físico) do banco de dados do sistema Tecfag MRP II referente ao dia ${dateStr}.\n\nPara restaurar o sistema em caso de sinistro, basta substituir o arquivo "tecfag_mrp.db" no diretório persistente do servidor por esta versão.\n\nAtenciosamente,\nSistema Tecfag MRP II`,
+            attachments: [
+                {
+                    filename: `tecfag_mrp_backup_${new Date().toISOString().split('T')[0]}.db`,
+                    path: dbPath
+                }
+            ]
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log(`[BACKUP EMAIL] Cópia de segurança enviada com sucesso para gilson@tecfag.com.br`);
+        return true;
+    } catch (err) {
+        console.error('[BACKUP EMAIL] Erro ao enviar cópia de segurança por e-mail:', err.message);
+        return false;
+    }
+}
+
+// Agendamento diário de backup por e-mail (a cada 24 horas)
+setInterval(() => {
+    console.log('[AGENDADOR] Executando rotina de backup diário por e-mail...');
+    sendDatabaseBackupEmail();
+}, 24 * 60 * 60 * 1000);
+
+// Executa um backup 15 segundos após a inicialização do servidor para validar o canal de backup
+setTimeout(() => {
+    console.log('[AGENDADOR] Executando backup inicial de inicialização...');
+    sendDatabaseBackupEmail();
+}, 15000);
+
+// GET /api/admin/backup/download - Permite baixar o arquivo físico .db do banco de dados (Apenas ALL e DIRETOR)
+app.get('/api/admin/backup/download', authenticateToken, (req, res) => {
+    if (req.user.role !== 'ALL' && req.user.role !== 'DIRETOR') {
+        return res.status(403).json({ error: 'Acesso negado. Apenas administradores podem baixar o banco de dados.' });
+    }
+
+    if (!fs.existsSync(dbPath)) {
+        return res.status(404).json({ error: 'Arquivo do banco de dados não encontrado no servidor.' });
+    }
+
+    res.download(dbPath, 'tecfag_mrp.db', (err) => {
+        if (err) {
+            console.error('[BACKUP DOWNLOAD] Erro ao transferir arquivo:', err.message);
+            if (!res.headersSent) {
+                res.status(500).json({ error: 'Erro ao baixar o arquivo de banco de dados.' });
+            }
+        }
+    });
+});
+
+// POST /api/admin/backup/send-email - Dispara manualmente o envio do backup por e-mail (Apenas ALL e DIRETOR)
+app.post('/api/admin/backup/send-email', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'ALL' && req.user.role !== 'DIRETOR') {
+        return res.status(403).json({ error: 'Acesso negado. Apenas administradores podem acionar backups.' });
+    }
+
+    const success = await sendDatabaseBackupEmail();
+    if (success) {
+        res.json({ success: true, message: 'Backup enviado com sucesso para o e-mail gilson@tecfag.com.br!' });
+    } else {
+        res.status(500).json({ error: 'Falha ao enviar backup. Verifique os logs do servidor ou as configurações de SMTP.' });
+    }
+});
+
 // Inicialização do Servidor Express
 app.listen(PORT, () => {
     console.log(`===================================================`);
