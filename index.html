@@ -2911,6 +2911,7 @@
                 loadProjectsDB();
                 renderLogs();
                 updateKPIs();
+                updateRolePanel();
             } catch (e) {
                 console.error(e);
                 handleLogout();
@@ -3657,7 +3658,7 @@
 
             try {
                 const headers = {};
-                const token = sessionStorage.getItem('tecfag_mrp_token') || localStorage.getItem('tecfag_mrp_token');
+                const token = localStorage.getItem('tecfag_session_token');
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
                 }
@@ -5671,7 +5672,7 @@
         // Download do Banco de Dados SQLite físico (.db)
         async function downloadDatabaseFile() {
             try {
-                const token = sessionStorage.getItem('tecfag_mrp_token') || localStorage.getItem('tecfag_mrp_token');
+                const token = localStorage.getItem('tecfag_session_token');
                 const headers = {};
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
@@ -5702,7 +5703,7 @@
         // Forçar envio de backup por e-mail
         async function triggerEmailBackup() {
             try {
-                const token = sessionStorage.getItem('tecfag_mrp_token') || localStorage.getItem('tecfag_mrp_token');
+                const token = localStorage.getItem('tecfag_session_token');
                 const headers = { 'Content-Type': 'application/json' };
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
