@@ -963,6 +963,30 @@ app.get('/api/ncm/:codigo', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/ncm - Busca NCMs por termo/descrição ou código parcial (BrasilAPI)
+app.get('/api/ncm', authenticateToken, async (req, res) => {
+    const { search } = req.query;
+
+    if (!search) {
+        return res.status(400).json({ error: 'Parâmetro de busca não informado.' });
+    }
+
+    try {
+        console.log(`[NCM API] Buscando NCMs por descrição/termo: ${search}`);
+        const response = await fetch(`https://brasilapi.com.br/api/ncm/v1?search=${encodeURIComponent(search)}`);
+        if (response.status === 200) {
+            const data = await response.json();
+            return res.json(data);
+        } else {
+            console.error(`[NCM API] Erro ao buscar NCMs no BrasilAPI: status ${response.status}`);
+            return res.status(response.status).json({ error: 'Erro ao buscar NCM no servidor externo.' });
+        }
+    } catch (err) {
+        console.error('[NCM API] Erro no endpoint de busca:', err.message);
+        res.status(500).json({ error: 'Erro interno ao processar a busca do NCM.' });
+    }
+});
+
 // GET /api/system-storage - Retorna o espaço de armazenamento utilizado e restante no disco persistente de 1 GB
 app.get('/api/system-storage', authenticateToken, async (req, res) => {
     try {
