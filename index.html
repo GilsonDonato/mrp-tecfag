@@ -1567,6 +1567,12 @@
                     Fila de Alertas
                 </button>
             </li>
+            <li class="nav-item" id="menu-supplier" onclick="switchTab('supplier')" style="display: none;">
+                <button>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><path d="M2 10h20"/></svg>
+                    Biblioteca Técnica
+                </button>
+            </li>
             <li class="nav-item" id="menu-ncm" onclick="openNcmLookupModal()">
                 <button>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20M4 19.5V5A2.5 2.5 0 0 1 6.5 2.5H20v14H6.5a2.5 2.5 0 0 0-2.5 2.5z"/></svg>
@@ -3062,6 +3068,80 @@
                 </div>
             </div>
         </div>
+        <!-- TAB 6: BIBLIOTECA TÉCNICA -->
+        <div id="tab-supplier" class="tab-content">
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
+                <!-- Formulário de cadastro de fornecedores/catálogos -->
+                <div class="project-table-card">
+                    <h3 style="margin-bottom: 20px; color: var(--primary);">Cadastrar Novo Recurso</h3>
+                    <form id="supplier-resource-form" onsubmit="handleSupplierSubmit(event)">
+                        <div class="form-group">
+                            <label for="sup-name" class="required">Nome do Fornecedor</label>
+                            <input type="text" id="sup-name" required placeholder="Ex: Bosch, Omron, TecnoPack">
+                        </div>
+                        <div class="form-group">
+                            <label for="sup-category" class="required">Categoria de Equipamento</label>
+                            <select id="sup-category" required>
+                                <option value="" disabled selected>Selecione uma categoria...</option>
+                                <option value="SELADORA">Seladora / Empacotadora</option>
+                                <option value="ENVASADORA">Envasadora / Dosadora</option>
+                                <option value="ROTULADORA">Rotuladora / Datadora</option>
+                                <option value="ESTEIRA">Esteira / Roscas / Alimentador</option>
+                                <option value="CLP">CLP / IHM / Automação (Elétrica)</option>
+                                <option value="SENSOR">Sensores / Instrumentação</option>
+                                <option value="BALANCA">Balança de Precisão / Checkweigher</option>
+                                <option value="OUTROS">Outras Categorias Industriais</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sup-title" class="required">Título do Recurso</label>
+                            <input type="text" id="sup-title" required placeholder="Ex: Catálogo Técnico Seladoras HF, Cotação Balança 14 Cabeçotes">
+                        </div>
+                        <div class="form-group">
+                            <label for="sup-url" class="required">Link do Arquivo (Google Drive / OneDrive / Nuvem)</label>
+                            <input type="url" id="sup-url" required placeholder="https://drive.google.com/drive/folders/..." style="font-family: monospace; font-size: 0.8rem;">
+                            <span style="font-size: 0.65rem; color: var(--text-secondary); margin-top: 4px; display: block;">Insira o link de compartilhamento do seu arquivo em nuvem (ex: Google Drive configurado como 'Qualquer pessoa com o link pode ler').</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="sup-notes">Anotações / Observações Rápidas</label>
+                            <textarea id="sup-notes" rows="4" placeholder="Ex: Cotação válida até dez/2026. Falar com Eng. Carlos da Bosch. Prazo de entrega de 60 dias."></textarea>
+                        </div>
+                        <button type="submit" class="btn" style="width: 100%; margin-top: 15px;">Salvar na Biblioteca Técnica</button>
+                    </form>
+                </div>
+                
+                <!-- Lista de recursos cadastrados -->
+                <div class="project-table-card">
+                    <div class="flex-between" style="margin-bottom: 20px;">
+                        <div>
+                            <h3>Biblioteca de Recursos Técnicos</h3>
+                            <p style="font-size: 0.75rem; color: var(--text-secondary);">Consulte catálogos e cotações de fornecedores salvos para suporte à engenharia.</p>
+                        </div>
+                        <div>
+                            <input type="text" id="sup-search" oninput="renderSupplierResourcesList()" placeholder="🔎 Filtrar por palavra-chave..." style="width: 250px; padding: 8px 12px; font-size: 0.8rem;">
+                        </div>
+                    </div>
+                    
+                    <div style="overflow-y: auto; max-height: 550px; padding-right: 5px;">
+                        <table class="project-table">
+                            <thead>
+                                <tr>
+                                    <th>Equipamento</th>
+                                    <th>Recurso</th>
+                                    <th>Fornecedor</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="supplier-resources-table-body">
+                                <tr>
+                                    <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 30px;">Carregando biblioteca técnica...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- INTERACTIVE PROJECT DIALOG (MODAL PONTUADO) -->
@@ -3118,7 +3198,10 @@
                                 </div>
                                 <div class="checklist-item" id="chk-cotacao" onclick="toggleCheckItem('cotacao')">
                                     <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                    <span class="checklist-label">4. Busca por Fornecedor & Cotação Recebida <strong style="color: #a855f7;">[ENGENHARIA]</strong></span>
+                                    <div style="display: flex; flex-direction: column; flex: 1;">
+                                        <span class="checklist-label">4. Busca por Fornecedor & Cotação Recebida <strong style="color: #a855f7;">[ENGENHARIA]</strong></span>
+                                        <div id="supplier-suggestion-box" style="display: none; margin-top: 8px;"></div>
+                                    </div>
                                     <div class="step-attach-area" id="attach-step-cotacao" onclick="event.stopPropagation()"></div>
                                 </div>
                                 <div class="checklist-item" id="chk-fluxograma" onclick="toggleCheckItem('fluxograma')">
@@ -4038,6 +4121,7 @@
             const menuTag = document.getElementById('menu-tag');
             const menuLog = document.getElementById('menu-log');
             const menuMetrics = document.getElementById('menu-metrics');
+            const menuSupplier = document.getElementById('menu-supplier');
             
             if (menuNew) {
                 menuNew.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'VENDAS' || role === 'GERENTE_COMERCIAL') ? 'block' : 'none';
@@ -4050,6 +4134,9 @@
             }
             if (menuMetrics) {
                 menuMetrics.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'DIRETOR') ? 'block' : 'none';
+            }
+            if (menuSupplier) {
+                menuSupplier.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'ENGENHARIA') ? 'block' : 'none';
             }
             
             // If active tab gets hidden, switch to dashboard
@@ -5098,6 +5185,28 @@
                     });
                 }
 
+                // Insere recursos técnicos mockados na biblioteca de cotações
+                const mockSuppliers = [
+                    { supplier_name: 'Bosch Embaladoras', machine_category: 'SELADORA', title: 'Manual e Folder Técnico Seladora HF', url: 'https://drive.google.com/open?id=1_bosch_hf_manual', notes: 'Contato comercial: Eng. Carlos da Bosch. Ótima máquina para selagem contínua.' },
+                    { supplier_name: 'TecnoPack Automação', machine_category: 'SELADORA', title: 'Cotação e Planta de Linha Seladora Automática 2026', url: 'https://drive.google.com/open?id=2_tecnopack_quota', notes: 'Inclui layout técnico em formato DWG compartilhado no drive.' },
+                    { supplier_name: 'Dosadores Omron BR', machine_category: 'ENVASADORA', title: 'Catálogo Geral de Bicos e Válvulas de Envase', url: 'https://drive.google.com/open?id=3_omron_nozzles', notes: 'Excelente material para soluções de envase viscoso/pastoso.' },
+                    { supplier_name: 'Toledo Industrial', machine_category: 'BALANCA', title: 'Catálogo Técnico Balança de Múltiplos Cabeçotes', url: 'https://drive.google.com/open?id=4_toledo_scales', notes: 'Balança de 14 cabeçotes recomendada para empacotamento vertical rápido.' }
+                ];
+                
+                const token = localStorage.getItem('tecfag_session_token');
+                if (token) {
+                    for (const s of mockSuppliers) {
+                        await fetch('/api/supplier-resources', {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify(s)
+                        });
+                    }
+                }
+
                 loadProjectsDB();
             } catch (err) {
                 console.error('Erro ao popular dados mockados no servidor:', err);
@@ -5181,7 +5290,8 @@
                 cadprj: "Inserir Novo Projeto no Funil",
                 tag: "Gerador e Impressor de Etiquetas",
                 metrics: "Painel de Métricas e Gargalos",
-                log: "Histórico de Auditoria & Alertas"
+                log: "Histórico de Auditoria & Alertas",
+                supplier: "Biblioteca Técnica de Fornecedores"
             };
 
             const subtitles = {
@@ -5190,7 +5300,8 @@
                 cadprj: "Cadastre uma oportunidade, faça o diagnóstico de automação e inicie o fluxo do pedido.",
                 tag: "Imprima a etiqueta de caixa física de projeto e trave o ERP de vendas indébitas.",
                 metrics: "Visão analítica dos prazos das fases e gargalos de produtividade por setor.",
-                log: "Logs de comunicação automáticos simulando e-mails para cada etapa do processo."
+                log: "Logs de comunicação automáticos simulando e-mails para cada etapa do processo.",
+                supplier: "Consulte e gerencie catálogos, cotações e documentação técnica de fornecedores."
             };
 
             document.getElementById('main-title').innerText = titles[tabId];
@@ -5200,6 +5311,8 @@
                 generateProjectCode();
             } else if (tabId === 'metrics') {
                 loadMetrics();
+            } else if (tabId === 'supplier') {
+                loadSupplierResources();
             }
         }
 
@@ -7232,6 +7345,9 @@
             // Load Stage Attachments from IndexedDB
             renderAttachments();
 
+            // Atualiza sugestões automáticas de fornecedores (Restrito)
+            updateSupplierSuggestions(project);
+
             // Controle do botão de exclusão baseado no cargo
             const deleteBtn = document.getElementById('btn-delete-project');
             if (deleteBtn) {
@@ -8762,6 +8878,281 @@
             setTimeout(() => {
                 toast.classList.remove('active');
             }, 6000);
+        }
+
+        // --- SISTEMA DE BIBLIOTECA TÉCNICA DE FORNECEDORES ---
+        let supplierResources = [];
+
+        async function loadSupplierResources() {
+            if (window.location.protocol === 'file:') {
+                // Modo offline: Simular alguns recursos para testes
+                supplierResources = [
+                    { id: 1, supplier_name: 'Bosch do Brasil', machine_category: 'SELADORA', title: 'Manual Técnico Seladora Linha HF', url: 'https://drive.google.com/open?id=1', notes: 'Contato: Engenheiro Carlos (carlos@bosch.com)', created_by: 'admin', created_at: new Date().toISOString() },
+                    { id: 2, supplier_name: 'TecnoPack Ltda', machine_category: 'SELADORA', title: 'Cotação e Desenho Seladora Automática 2026', url: 'https://drive.google.com/open?id=2', notes: 'Contato comercial: Rafael', created_by: 'fernando.eng', created_at: new Date().toISOString() },
+                    { id: 3, supplier_name: 'Dosadores Omron', machine_category: 'ENVASADORA', title: 'Catálogo de Bicos e Válvulas de Envase', url: 'https://drive.google.com/open?id=3', notes: 'Envase de alta viscosidade', created_by: 'admin', created_at: new Date().toISOString() },
+                    { id: 4, supplier_name: 'Toledo Pesagem', machine_category: 'BALANCA', title: 'Cotação Balança 14 Cabeçotes Semiautomática', url: 'https://drive.google.com/open?id=4', notes: 'Preços válidos até dez/2026', created_by: 'fernando.eng', created_at: new Date().toISOString() }
+                ];
+                renderSupplierResourcesList();
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const res = await fetch('/api/supplier-resources', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.status === 200) {
+                    supplierResources = await res.json();
+                    renderSupplierResourcesList();
+                } else if (res.status === 403) {
+                    console.warn('[LIBRARY] Acesso restrito apenas para Engenharia e Administradores.');
+                }
+            } catch (err) {
+                console.error('Erro ao buscar biblioteca técnica:', err.message);
+            }
+        }
+
+        function renderSupplierResourcesList() {
+            const tbody = document.getElementById('supplier-resources-table-body');
+            if (!tbody) return;
+
+            const searchQuery = document.getElementById('sup-search').value.trim().toLowerCase();
+            
+            const filtered = supplierResources.filter(r => {
+                return r.supplier_name.toLowerCase().includes(searchQuery) ||
+                       r.machine_category.toLowerCase().includes(searchQuery) ||
+                       r.title.toLowerCase().includes(searchQuery) ||
+                       (r.notes && r.notes.toLowerCase().includes(searchQuery));
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 20px;">Nenhum recurso técnico localizado.</td></tr>`;
+                return;
+            }
+
+            const categoryLabels = {
+                'SELADORA': 'Seladora',
+                'ENVASADORA': 'Envasadora',
+                'ROTULADORA': 'Rotuladora',
+                'ESTEIRA': 'Esteira/Alimentação',
+                'CLP': 'CLP/IHM',
+                'SENSOR': 'Sensores',
+                'BALANCA': 'Balança/Checkweigher',
+                'OUTROS': 'Outros'
+            };
+
+            tbody.innerHTML = '';
+            filtered.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span class="status-badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); font-size: 0.68rem; padding: 2px 6px; border-radius: 4px;">${categoryLabels[r.machine_category] || r.machine_category}</span></td>
+                    <td>
+                        <div style="font-weight: 600; font-size: 0.8rem; color: var(--text-primary);">${r.title}</div>
+                        ${r.notes ? `<div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px; max-width: 350px; white-space: normal;">${r.notes}</div>` : ''}
+                    </td>
+                    <td style="font-size: 0.78rem; color: var(--text-secondary); font-family: monospace;">${r.supplier_name}</td>
+                    <td style="white-space: nowrap;">
+                        <a href="${r.url}" target="_blank" class="btn" style="padding: 4px 8px; font-size: 0.68rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); text-decoration: none; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; font-weight: bold;">
+                            📂 Abrir Link
+                        </a>
+                        <button onclick="deleteSupplierResource(${r.id})" class="btn" style="padding: 4px 8px; font-size: 0.68rem; background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; display: inline-flex; margin-left: 5px;">
+                            Excluir
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function handleSupplierSubmit(event) {
+            event.preventDefault();
+            const name = document.getElementById('sup-name').value.trim();
+            const category = document.getElementById('sup-category').value;
+            const title = document.getElementById('sup-title').value.trim();
+            const url = document.getElementById('sup-url').value.trim();
+            const notes = document.getElementById('sup-notes').value.trim();
+
+            if (window.location.protocol === 'file:') {
+                // Modo offline/teste local
+                const newResource = {
+                    id: Date.now(),
+                    supplier_name: name,
+                    machine_category: category,
+                    title: title,
+                    url: url,
+                    notes: notes,
+                    created_by: 'admin',
+                    created_at: new Date().toISOString()
+                };
+                supplierResources.unshift(newResource);
+                document.getElementById('supplier-resource-form').reset();
+                renderSupplierResourcesList();
+                alert('Recurso cadastrado com sucesso na biblioteca simulada!');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const res = await fetch('/api/supplier-resources', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        supplier_name: name,
+                        machine_category: category,
+                        title: title,
+                        url: url,
+                        notes: notes
+                    })
+                });
+
+                if (res.status === 201) {
+                    document.getElementById('supplier-resource-form').reset();
+                    await loadSupplierResources();
+                    alert('Recurso cadastrado com sucesso na Biblioteca Técnica!');
+                } else {
+                    const errData = await res.json();
+                    alert('Erro ao cadastrar recurso: ' + errData.error);
+                }
+            } catch (err) {
+                alert('Erro ao cadastrar no servidor.');
+                console.error(err);
+            }
+        }
+
+        async function deleteSupplierResource(id) {
+            if (!confirm('Deseja realmente remover este recurso técnico da biblioteca?')) return;
+
+            if (window.location.protocol === 'file:') {
+                supplierResources = supplierResources.filter(r => r.id !== id);
+                renderSupplierResourcesList();
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const res = await fetch(`/api/supplier-resources/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.status === 200) {
+                    await loadSupplierResources();
+                } else {
+                    const errData = await res.json();
+                    alert('Erro ao remover recurso: ' + errData.error);
+                }
+            } catch (err) {
+                alert('Erro ao remover do servidor.');
+                console.error(err);
+            }
+        }
+
+        // Busca recursos sugeridos para um projeto ativo no Modal e renderiza na Etapa 4 se autorizado
+        async function updateSupplierSuggestions(project) {
+            const suggestionBox = document.getElementById('supplier-suggestion-box');
+            if (!suggestionBox) return;
+
+            // Restrição de Acesso: Apenas Gilson (ALL/GERENTE) e Fernando (ENGENHARIA) podem ver as sugestões
+            if (currentRole !== 'ALL' && currentRole !== 'GERENTE' && currentRole !== 'ENGENHARIA') {
+                suggestionBox.style.display = 'none';
+                return;
+            }
+
+            // Mapeia o SKU do projeto para termos de pesquisa gerais de categoria
+            const projectSkus = (project.sku || '').toUpperCase();
+            const categoriesToSearch = [];
+            
+            if (projectSkus.includes('SELADORA') || projectSkus.includes('EMPACOTADORA') || projectSkus.includes('BOX-KRAFT')) {
+                categoriesToSearch.push('SELADORA');
+            }
+            if (projectSkus.includes('ENVASA') || projectSkus.includes('DOSADOR') || projectSkus.includes('BAGGER')) {
+                categoriesToSearch.push('ENVASADORA');
+            }
+            if (projectSkus.includes('ROTULADORA') || projectSkus.includes('DATADORA')) {
+                categoriesToSearch.push('ROTULADORA');
+            }
+            if (projectSkus.includes('ESTEIRA') || projectSkus.includes('MESA-ROTATIVA') || projectSkus.includes('ROSQUEADORA')) {
+                categoriesToSearch.push('ESTEIRA');
+            }
+            if (projectSkus.includes('CLP') || projectSkus.includes('PAINEL') || projectSkus.includes('SORTER')) {
+                categoriesToSearch.push('CLP');
+            }
+            if (projectSkus.includes('SENSOR') || projectSkus.includes('INSTRUM')) {
+                categoriesToSearch.push('SENSOR');
+            }
+            if (projectSkus.includes('BALANCA') || projectSkus.includes('PESADOR') || projectSkus.includes('CHECKWEIGHER')) {
+                categoriesToSearch.push('BALANCA');
+            }
+
+            // Se nenhuma categoria óbvia for mapeada, buscar padrão OUTROS
+            if (categoriesToSearch.length === 0) {
+                categoriesToSearch.push('OUTROS');
+            }
+
+            // Carregar biblioteca do banco se necessário
+            if (supplierResources.length === 0) {
+                if (window.location.protocol === 'file:') {
+                    supplierResources = [
+                        { id: 1, supplier_name: 'Bosch do Brasil', machine_category: 'SELADORA', title: 'Manual Técnico Seladora Linha HF', url: 'https://drive.google.com/open?id=1', notes: 'Contato: Engenheiro Carlos (carlos@bosch.com)', created_by: 'admin', created_at: new Date().toISOString() },
+                        { id: 2, supplier_name: 'TecnoPack Ltda', machine_category: 'SELADORA', title: 'Cotação e Desenho Seladora Automática 2026', url: 'https://drive.google.com/open?id=2', notes: 'Contato comercial: Rafael', created_by: 'fernando.eng', created_at: new Date().toISOString() },
+                        { id: 3, supplier_name: 'Dosadores Omron', machine_category: 'ENVASADORA', title: 'Catálogo de Bicos e Válvulas de Envase', url: 'https://drive.google.com/open?id=3', notes: 'Envase de alta viscosidade', created_by: 'admin', created_at: new Date().toISOString() },
+                        { id: 4, supplier_name: 'Toledo Pesagem', machine_category: 'BALANCA', title: 'Cotação Balança 14 Cabeçotes Semiautomática', url: 'https://drive.google.com/open?id=4', notes: 'Preços válidos até dez/2026', created_by: 'fernando.eng', created_at: new Date().toISOString() }
+                    ];
+                } else {
+                    try {
+                        const token = localStorage.getItem('tecfag_session_token');
+                        const res = await fetch('/api/supplier-resources', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (res.status === 200) {
+                            supplierResources = await res.json();
+                        }
+                    } catch (e) {
+                        console.error('Falha de sugestões:', e.message);
+                    }
+                }
+            }
+
+            // Filtrar recursos pertencentes à categoria mapeada
+            const matchedResources = supplierResources.filter(r => categoriesToSearch.includes(r.machine_category));
+
+            if (matchedResources.length === 0) {
+                suggestionBox.style.display = 'none';
+                return;
+            }
+
+            // Renderizar alerta de sugestão
+            suggestionBox.style.display = 'block';
+            let suggestionsHtml = `
+                <div style="background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 6px; padding: 10px; margin-top: 5px;">
+                    <div style="display: flex; align-items: center; gap: 6px; color: #c084fc; font-size: 0.72rem; font-weight: bold; margin-bottom: 6px; text-transform: uppercase;">
+                        <span>💡 Sugestão da Engenharia</span>
+                    </div>
+                    <p style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 8px;">Encontramos ${matchedResources.length} recurso(s) técnico(s) na Biblioteca relevantes para as máquinas do projeto:</p>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+            `;
+
+            matchedResources.forEach(res => {
+                suggestionsHtml += `
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.02); padding: 5px 8px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <div style="display: flex; flex-direction: column; overflow: hidden; flex: 1; margin-right: 10px;">
+                            <span style="font-size: 0.72rem; font-weight: 600; color: var(--text-primary); text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">${res.title}</span>
+                            <span style="font-size: 0.65rem; color: var(--text-secondary); font-family: monospace;">Forn: ${res.supplier_name}</span>
+                        </div>
+                        <a href="${res.url}" target="_blank" style="padding: 2px 6px; font-size: 0.62rem; font-weight: bold; color: #a855f7; text-decoration: none; border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 4px; background: rgba(168, 85, 247, 0.05); white-space: nowrap;">
+                            Abrir
+                        </a>
+                    </div>
+                `;
+            });
+
+            suggestionsHtml += `
+                    </div>
+                </div>
+            `;
+            suggestionBox.innerHTML = suggestionsHtml;
         }
 
         // Dynamic Telemetry Ticker

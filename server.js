@@ -157,6 +157,18 @@ function initializeDatabase() {
             FOREIGN KEY(username) REFERENCES users(username) ON DELETE CASCADE
         )`);
 
+        // Tabela de Recursos de Fornecedores (Catálogos e Cotações)
+        db.run(`CREATE TABLE IF NOT EXISTS supplier_resources (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            supplier_name TEXT NOT NULL,
+            machine_category TEXT NOT NULL,
+            title TEXT NOT NULL,
+            url TEXT NOT NULL,
+            notes TEXT,
+            created_by TEXT,
+            created_at TEXT NOT NULL
+        )`);
+
         // Seed de usuários padrão
         seedDefaultUsers();
     });
@@ -1021,6 +1033,62 @@ app.get('/api/system-storage', authenticateToken, async (req, res) => {
     } catch (err) {
         console.error('[STORAGE API] Erro ao calcular espaço:', err.message);
         res.status(500).json({ error: 'Erro ao calcular espaço de armazenamento.' });
+    }
+});
+
+// Middleware auxiliar para restringir rotas à Engenharia e Administradores
+function restrictToEngineeringAndAdmin(req, res, next) {
+    const role = req.user.role;
+    if (role === 'ALL' || role === 'GERENTE' || role === 'ENGENHARIA') {
+        next();
+    } else {
+        return res.status(403).json({ error: 'Acesso negado. Esta área é restrita para Engenharia e Administradores.' });
+    }
+}
+
+// GET /api/supplier-resources - Retorna todos os recursos cadastrados (restrito a Admin/Engenharia)
+app.get('/api/supplier-resources', authenticateToken, restrictToEngineeringAndAdmin, async (req, res) => {
+    try {
+        const rows = await dbAll('SELECT * FROM supplier_resources ORDER BY created_at DESC');
+        res.json(rows);
+    } catch (err) {
+        console.error('[SUPPLIER API] Erro ao listar recursos:', err.message);
+        res.status(500).json({ error: 'Erro ao listar recursos da biblioteca técnica.' });
+    }
+});
+
+// POST /api/supplier-resources - Cadastra novo recurso (restrito a Admin/Engenharia)
+app.post('/api/supplier-resources', authenticateToken, restrictToEngineeringAndAdmin, async (req, res) => {
+    const { supplier_name, machine_category, title, url, notes } = req.body;
+    if (!supplier_name || !machine_category || !title || !url) {
+        return res.status(400).json({ error: 'Os campos Fornecedor, Categoria de Máquina, Título e Link do Drive são obrigatórios.' });
+    }
+
+    try {
+        const sql = `INSERT INTO supplier_resources (
+            supplier_name, machine_category, title, url, notes, created_by, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        
+        const created_at = new Date().toISOString();
+        const created_by = req.user.username;
+
+        await dbRun(sql, [supplier_name, machine_category, title, url, notes, created_by, created_at]);
+        res.status(201).json({ message: 'Recurso cadastrado com sucesso!' });
+    } catch (err) {
+        console.error('[SUPPLIER API] Erro ao cadastrar recurso:', err.message);
+        res.status(500).json({ error: 'Erro ao cadastrar recurso na biblioteca técnica.' });
+    }
+});
+
+// DELETE /api/supplier-resources/:id - Remove um recurso (restrito a Admin/Engenharia)
+app.delete('/api/supplier-resources/:id', authenticateToken, restrictToEngineeringAndAdmin, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await dbRun('DELETE FROM supplier_resources WHERE id = ?', [id]);
+        res.json({ message: 'Recurso removido com sucesso!' });
+    } catch (err) {
+        console.error('[SUPPLIER API] Erro ao remover recurso:', err.message);
+        res.status(500).json({ error: 'Erro ao remover recurso da biblioteca técnica.' });
     }
 });
 
