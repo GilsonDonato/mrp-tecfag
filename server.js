@@ -6,6 +6,9 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const https = require('https');
+const http = require('http');
+const pdfParse = require('pdf-parse');
 require('dotenv').config();
 
 const app = express();
@@ -165,9 +168,19 @@ function initializeDatabase() {
             title TEXT NOT NULL,
             url TEXT NOT NULL,
             notes TEXT,
+            extracted_text TEXT,
             created_by TEXT,
             created_at TEXT NOT NULL
         )`);
+
+        // Migração para adicionar extração de texto em instalações existentes
+        db.run("ALTER TABLE supplier_resources ADD COLUMN extracted_text TEXT", (err) => {
+            if (err && !err.message.includes("duplicate column name")) {
+                console.log("[MIGRATE] Coluna extracted_text já existente ou erro:", err.message);
+            } else if (!err) {
+                console.log("[MIGRATE] Coluna extracted_text adicionada com sucesso.");
+            }
+        });
 
         // Seed de usuários padrão
         seedDefaultUsers();
@@ -1057,7 +1070,60 @@ app.get('/api/supplier-resources', authenticateToken, restrictToEngineeringAndAd
     }
 });
 
-// POST /api/supplier-resources - Cadastra novo recurso (restrito a Admin/Engenharia)
+// Helper para converter link de compartilhamento do Google Drive em link de download direto
+function convertDriveUrl(url) {
+    try {
+        if (url.includes('drive.google.com')) {
+            let fileId = '';
+            // Formato: /file/d/FILE_ID/view...
+            if (url.includes('/file/d/')) {
+                fileId = url.split('/file/d/')[1].split('/')[0];
+            } 
+            // Formato: ?id=FILE_ID
+            else if (url.includes('?id=')) {
+                fileId = url.split('?id=')[1].split('&')[0];
+            }
+            
+            if (fileId) {
+                return `https://drive.google.com/uc?export=download&id=${fileId}`;
+            }
+        }
+    } catch (e) {
+        console.error('[DRIVE CONVERTER] Erro ao converter URL:', e.message);
+    }
+    return url;
+}
+
+// Helper para fazer download de arquivos em memória (Buffer) de forma assíncrona
+function downloadFile(url) {
+    return new Promise((resolve, reject) => {
+        const client = url.startsWith('https') ? https : http;
+        
+        // Configura user-agent para evitar bloqueios de alguns servidores
+        const options = {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        };
+
+        client.get(url, options, (res) => {
+            // Lida com redirecionamentos (muito comum em encurtadores e downloads do Drive)
+            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                return downloadFile(res.headers.location).then(resolve).catch(reject);
+            }
+
+            if (res.statusCode !== 200) {
+                return reject(new Error(`Falha ao baixar arquivo. Código HTTP: ${res.statusCode}`));
+            }
+
+            const data = [];
+            res.on('data', (chunk) => data.push(chunk));
+            res.on('end', () => resolve(Buffer.concat(data)));
+        }).on('error', (err) => reject(err));
+    });
+}
+
+// POST /api/supplier-resources - Cadastra novo recurso com extração automática de texto (restrito a Admin/Engenharia)
 app.post('/api/supplier-resources', authenticateToken, restrictToEngineeringAndAdmin, async (req, res) => {
     const { supplier_name, machine_category, title, url, notes } = req.body;
     if (!supplier_name || !machine_category || !title || !url) {
@@ -1065,15 +1131,31 @@ app.post('/api/supplier-resources', authenticateToken, restrictToEngineeringAndA
     }
 
     try {
+        let extracted_text = '';
+        
+        // Tenta converter e fazer o download do PDF para extrair o texto
+        const directDownloadUrl = convertDriveUrl(url);
+        console.log(`[SUPPLIER API] Tentando extrair texto do link de download: ${directDownloadUrl}`);
+
+        try {
+            const fileBuffer = await downloadFile(directDownloadUrl);
+            const pdfData = await pdfParse(fileBuffer);
+            extracted_text = pdfData.text || '';
+            console.log(`[SUPPLIER API] Sucesso! Texto extraído (${extracted_text.length} caracteres) do catálogo.`);
+        } catch (parseErr) {
+            console.warn(`[SUPPLIER API] Não foi possível extrair texto do PDF (o cadastro será feito apenas com metadados):`, parseErr.message);
+            // Continua a execução para salvar pelo menos o link e as anotações
+        }
+
         const sql = `INSERT INTO supplier_resources (
-            supplier_name, machine_category, title, url, notes, created_by, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+            supplier_name, machine_category, title, url, notes, extracted_text, created_by, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
         
         const created_at = new Date().toISOString();
         const created_by = req.user.username;
 
-        await dbRun(sql, [supplier_name, machine_category, title, url, notes, created_by, created_at]);
-        res.status(201).json({ message: 'Recurso cadastrado com sucesso!' });
+        await dbRun(sql, [supplier_name, machine_category, title, url, notes, extracted_text, created_by, created_at]);
+        res.status(201).json({ message: 'Recurso cadastrado com sucesso e texto indexado!' });
     } catch (err) {
         console.error('[SUPPLIER API] Erro ao cadastrar recurso:', err.message);
         res.status(500).json({ error: 'Erro ao cadastrar recurso na biblioteca técnica.' });
@@ -1089,6 +1171,119 @@ app.delete('/api/supplier-resources/:id', authenticateToken, restrictToEngineeri
     } catch (err) {
         console.error('[SUPPLIER API] Erro ao remover recurso:', err.message);
         res.status(500).json({ error: 'Erro ao remover recurso da biblioteca técnica.' });
+    }
+});
+
+// POST /api/supplier-resources/ai-search - Realiza busca semântica inteligente de catálogos com a API do Gemini
+app.post('/api/supplier-resources/ai-search', authenticateToken, restrictToEngineeringAndAdmin, async (req, res) => {
+    const { query } = req.body;
+    if (!query || query.trim() === '') {
+        return res.status(400).json({ error: 'Termo de busca não informado.' });
+    }
+
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+        return res.status(500).json({ error: 'A chave da API do Gemini não está configurada no servidor.' });
+    }
+
+    try {
+        // Busca todos os catálogos que possuem texto extraído ou notas
+        const resources = await dbAll('SELECT id, supplier_name, machine_category, title, url, notes, extracted_text FROM supplier_resources');
+        
+        if (resources.length === 0) {
+            return res.json({ 
+                answer: 'A biblioteca técnica está vazia no momento. Cadastre alguns catálogos ou cotações de fornecedores antes de realizar a pesquisa por IA.',
+                references: [] 
+            });
+        }
+
+        // Prepara o contexto dos recursos para enviar ao Gemini
+        // Trunca o texto extraído para não estourar o limite de tokens da API do Gemini em chamadas simples
+        const resourcesContext = resources.map((r, index) => {
+            const snippet = (r.extracted_text || r.notes || '').substring(0, 4000); // 4k caracteres por catálogo
+            return `[ID: ${r.id}] Fornecedor: ${r.supplier_name} | Título: ${r.title} | Categoria: ${r.machine_category} | Notas: ${r.notes || 'Sem observações'} | Conteúdo do Catálogo:\n${snippet}\n---`;
+        }).join('\n\n');
+
+        // Prompt de instrução estruturado para o Gemini
+        const systemInstruction = `Você é o Assistente Técnico Inteligente da Tecfag Engenharia. Sua tarefa é ajudar os engenheiros a encontrar fornecedores e catálogos adequados para atender demandas de projetos específicos dos clientes.
+Abaixo você receberá uma lista de documentos cadastrados na nossa biblioteca e a pergunta/necessidade do engenheiro.
+
+Analise as especificações técnicas descritas em cada catálogo e decida quais fornecedores/catálogos podem atender à demanda.
+
+Responda em formato JSON válido contendo exatamente dois campos:
+1. "answer" (string): Uma resposta clara e profissional em português, justificando tecnicamente sua escolha e citando qual fornecedor e máquina atende, e por quê.
+2. "references" (array de números): Lista com os IDs inteiros dos catálogos sugeridos que realmente servem para a demanda.
+
+Responda APENAS com o objeto JSON puramente, sem formatação markdown de código (como \`\`\`json ... \`\`\`).`;
+
+        const requestBody = {
+            contents: [
+                {
+                    parts: [
+                        { text: `${systemInstruction}\n\nLISTA DE DOCUMENTOS DISPONÍVEIS NA BIBLIOTECA:\n${resourcesContext}\n\nPERGUNTA/NECESSIDADE DO ENGENHEIRO:\n"${query}"` }
+                    ]
+                }
+            ],
+            generationConfig: {
+                responseMimeType: "application/json"
+            }
+        };
+
+        // Realiza requisição direta para a API do Gemini 2.5 Flash
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
+        
+        const reqOpts = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        };
+
+        const apiRequest = https.request(url, reqOpts, (apiRes) => {
+            let data = '';
+            apiRes.on('data', (chunk) => data += chunk);
+            apiRes.on('end', () => {
+                try {
+                    const parsedResponse = JSON.parse(data);
+                    if (parsedResponse.error) {
+                        console.error('[GEMINI API ERROR]', parsedResponse.error);
+                        return res.status(500).json({ error: `Erro na API do Gemini: ${parsedResponse.error.message}` });
+                    }
+
+                    const rawText = parsedResponse.candidates[0].content.parts[0].text;
+                    const result = JSON.parse(rawText.trim());
+                    
+                    // Cruza as referências de ID retornadas com os recursos reais do banco para enviar detalhes completos ao frontend
+                    const matchedRefs = resources.filter(r => (result.references || []).includes(r.id));
+                    
+                    res.json({
+                        answer: result.answer,
+                        references: matchedRefs.map(r => ({
+                            id: r.id,
+                            supplier_name: r.supplier_name,
+                            title: r.title,
+                            url: r.url,
+                            machine_category: r.machine_category
+                        }))
+                    });
+                } catch (parseErr) {
+                    console.error('[GEMINI PARSE ERROR] Resposta bruta da API:', data);
+                    res.status(500).json({ error: 'Falha ao processar a resposta analítica da inteligência artificial.' });
+                }
+            });
+        });
+
+        apiRequest.on('error', (apiErr) => {
+            console.error('[GEMINI HTTP ERROR]', apiErr.message);
+            res.status(500).json({ error: 'Erro de conexão com o servidor do Gemini.' });
+        });
+
+        apiRequest.write(JSON.stringify(requestBody));
+        apiRequest.end();
+
+    } catch (err) {
+        console.error('[AI SEARCH API] Erro ao processar busca por IA:', err.message);
+        res.status(500).json({ error: 'Erro interno ao processar busca com inteligência artificial.' });
     }
 });
 
