@@ -1923,14 +1923,18 @@
                                 <label for="prj-intake-segment">Segmento de Equipamento Principal*</label>
                                 <select id="prj-intake-segment" class="form-control" required onchange="updateSegmentFields(); runSkuSuggestionEngine();" style="border: 1px solid var(--primary); background: rgba(59, 130, 246, 0.03);">
                                     <option value="" disabled selected>Selecione o segmento principal...</option>
-                                    <option value="MISTURADORES">1. Processamento e Mistura (Misturadores Ribbon Blender / V)</option>
-                                    <option value="ENCAPSULADORAS">2. Farmacêuticos/Cosméticos (Encapsuladoras Softgel & Líquidos)</option>
-                                    <option value="GOMAS">2.a Farmacêuticos/Suplementos (Fabricação de Gomas / Balas Gummy)</option>
-                                    <option value="INDUSAO">3. Sistemas de Fechamento (Seladoras por Indução)</option>
-                                    <option value="DOSAGEM_EMPACOTAMENTO">3.a Embalagem (Dosagem e Empacotamento Pós/Grãos/Sólidos)</option>
-                                    <option value="ENVASE">3.b Embalagem (Linhas de Envase Líquidos/Pastosos)</option>
-                                    <option value="ROTULADORAS">4. Rotulagem (Máquinas Rotuladoras)</option>
-                                    <option value="FINAL_LINHA">4.a Final de Linha (Tray Sealers, Paletização, Fechamento de Caixas)</option>
+                                    <option value="MISTURADORES">1. Processamento e Mistura (Misturadores Ribbon Blender / V / Moinhos)</option>
+                                    <option value="ENCAPSULADORAS">2. Encapsulamento & Linhas Farmacêuticas (Softgel / Duras / Contadores)</option>
+                                    <option value="GOMAS">2.a Fabricação de Gomas & Balas Gummy (Cabeçotes, Moldes 3D e Túneis)</option>
+                                    <option value="DOSAGEM_SEMIAUTOMATICA">3. Dosagem e Pesagem Semiautomática (Rosca, Pistão, Balança Caneca)</option>
+                                    <option value="DOSAGEM_EMPACOTAMENTO">3.a Empacotamento Automático (VFFS / Flow Pack / Balança Cabeçotes)</option>
+                                    <option value="ENVASE">3.b Envasadoras Automáticas de Líquidos/Pastosos (Linhas de Envase)</option>
+                                    <option value="FECHAMENTO_TAMPAGEM">4. Sistemas de Fechamento & Tampagem (Rosqueadoras, Indução)</option>
+                                    <option value="VACUO_TERMOFORMADORAS">4.a Seladoras a Vácuo & Termoformadoras (Campana, Bandeja, MAP)</option>
+                                    <option value="ROTULADORAS">5. Rotuladoras & Etiquetadoras (Lineares/Rotativas Autoadesivas/Sleeve)</option>
+                                    <option value="TERMOENCOLHIVEL">5.a Termoencolhíveis & Selamento em L (Seladoras L, Túneis Encolhimento)</option>
+                                    <option value="FINAL_LINHA">6. Final de Linha & Paletização (Formadoras, Fechadoras Caixas, Robôs)</option>
+                                    <option value="PROJETOS_ESPECIAIS">7. Projetos Especiais & Customizações Personnalité (Engenharia sob Medida)</option>
                                 </select>
                             </div>
 
@@ -5051,16 +5055,16 @@
                 document.getElementById('group-softgel').style.display = 'block';
             } else if (segment === 'GOMAS') {
                 document.getElementById('group-gummy').style.display = 'block';
-            } else if (segment === 'INDUSAO') {
-                document.getElementById('group-inducao').style.display = 'block';
-            } else if (segment === 'DOSAGEM_EMPACOTAMENTO') {
+            } else if (segment === 'DOSAGEM_SEMIAUTOMATICA' || segment === 'DOSAGEM_EMPACOTAMENTO') {
                 document.getElementById('group-dosagem').style.display = 'block';
             } else if (segment === 'ENVASE') {
                 document.getElementById('group-envase').style.display = 'block';
-            } else if (segment === 'ROTULADORAS') {
-                document.getElementById('group-rotulagem').style.display = 'block';
-            } else if (segment === 'FINAL_LINHA') {
+            } else if (segment === 'FECHAMENTO_TAMPAGEM') {
+                document.getElementById('group-inducao').style.display = 'block';
+            } else if (segment === 'VACUO_TERMOFORMADORAS' || segment === 'FINAL_LINHA' || segment === 'PROJETOS_ESPECIAIS') {
                 document.getElementById('group-final-linha').style.display = 'block';
+            } else if (segment === 'ROTULADORAS' || segment === 'TERMOENCOLHIVEL') {
+                document.getElementById('group-rotulagem').style.display = 'block';
             }
         }
 
@@ -5180,7 +5184,7 @@
                     defaultSkuDetails = 'Linha padrão com moldes de formato geométrico comum (ursinho/amora).';
                 }
                 
-            } else if (segment === 'INDUSAO') {
+            } else if (segment === 'FECHAMENTO_TAMPAGEM') {
                 const diameter = parseFloat(document.getElementById('prj-inducao-diameter').value) || 0;
                 const materialFrasco = document.getElementById('prj-inducao-material').value;
                 
@@ -5190,30 +5194,35 @@
                 }
                 if (materialFrasco === 'Vidro') {
                     isCustom = true;
-                    customReasons.push('Material de frasco em vidro (exige selo e potência eletromagnética diferenciada)');
+                    customReasons.push('Material de frasco em vidro (exige selagem ou potência eletromagnética diferenciada)');
                 }
                 
                 if (!isCustom) {
                     suggestedSku = 'IND-AUTO-130 (Seladora por Indução Automática em Esteira)';
-                    defaultSkuDetails = 'Excelente para frascos cilíndricos plásticos comuns com tampas até 130mm.';
+                    defaultSkuDetails = 'Excelente para frascos cilíndricos plásticos comuns com tampas de indução.';
                 }
                 
-            } else if (segment === 'DOSAGEM_EMPACOTAMENTO') {
+            } else if (segment === 'DOSAGEM_SEMIAUTOMATICA' || segment === 'DOSAGEM_EMPACOTAMENTO') {
                 const bagStyle = document.getElementById('prj-dosagem-bag-style').value;
                 const sensitivity = document.getElementById('prj-dosagem-sensitivity').value;
                 
-                if (bagStyle === 'Standup') {
-                    isCustom = true;
-                    customReasons.push('Embalagem tipo Stand-up Pouch (exige alimentador e sistema abridor de zíper pneumático)');
-                }
-                if (sensitivity === 'Alta') {
-                    isCustom = true;
-                    customReasons.push('Produto de altíssima fragilidade (requer calhas inclinadas de baixa queda para evitar quebra)');
-                }
-                
-                if (!isCustom) {
-                    suggestedSku = 'VFFS-BAL-320 (Empacotadora Vertical com Balança de Múltiplos Cabeçotes)';
-                    defaultSkuDetails = 'Excelente custo-benefício para produtos granulares comuns (grãos e pedaços secos).';
+                if (segment === 'DOSAGEM_SEMIAUTOMATICA') {
+                    suggestedSku = 'DOS-VOL-SEMI (Dosadora Semiautomática de Caneca / Rosca)';
+                    defaultSkuDetails = 'Excelente para dosagens simples semiautomáticas operadas por pedal.';
+                } else {
+                    if (bagStyle === 'Standup') {
+                        isCustom = true;
+                        customReasons.push('Embalagem tipo Stand-up Pouch (exige alimentador e sistema abridor de zíper pneumático)');
+                    }
+                    if (sensitivity === 'Alta') {
+                        isCustom = true;
+                        customReasons.push('Produto de altíssima fragilidade (requer calhas inclinadas de baixa queda para evitar quebra)');
+                    }
+                    
+                    if (!isCustom) {
+                        suggestedSku = 'VFFS-BAL-320 (Empacotadora Vertical com Balança de Múltiplos Cabeçotes)';
+                        defaultSkuDetails = 'Excelente custo-benefício para produtos granulares comuns (grãos e pós).';
+                    }
                 }
                 
             } else if (segment === 'ENVASE') {
@@ -5234,41 +5243,60 @@
                     defaultSkuDetails = 'Atende frascos cilíndricos e ovais padrão para líquidos e pastosos de viscosidade regular.';
                 }
                 
-            } else if (segment === 'ROTULADORAS') {
+            } else if (segment === 'ROTULADORAS' || segment === 'TERMOENCOLHIVEL') {
                 const shape = document.getElementById('prj-rotulagem-shape').value;
                 const label = document.getElementById('prj-rotulagem-label-type').value;
                 
-                if (shape === 'Quadrado') {
+                if (segment === 'TERMOENCOLHIVEL') {
                     isCustom = true;
-                    customReasons.push('Frasco quadrado/retangular (exige sistema orientador de frascos em esteira antes da aplicação)');
+                    customReasons.push('Sistemas termoencolhíveis requerem acoplamento de túnel de calor/vapor e guias especiais');
+                    suggestedSku = 'TUNEL-SHRINK-600 (Túnel de Encolhimento Termoencolhível)';
+                } else {
+                    if (shape === 'Quadrado') {
+                        isCustom = true;
+                        customReasons.push('Frasco quadrado/retangular (exige sistema orientador de frascos em esteira antes da aplicação)');
+                    }
+                    if (label === 'Sleeve') {
+                        isCustom = true;
+                        customReasons.push('Rótulo termoencolhível Sleeve (exige túnel de encolhimento a vapor ou elétrico acoplado)');
+                    }
+                    
+                    if (!isCustom) {
+                        suggestedSku = 'ROT-LINEAR-AD (Rotuladora Linear para Rótulo Autoadesivo)';
+                        defaultSkuDetails = 'Perfeita para aplicação de rótulo em frascos redondos comuns.';
+                    }
                 }
-                if (label === 'Sleeve') {
+                
+            } else if (segment === 'VACUO_TERMOFORMADORAS' || segment === 'FINAL_LINHA' || segment === 'PROJETOS_ESPECIAIS') {
+                if (segment === 'PROJETOS_ESPECIAIS') {
                     isCustom = true;
-                    customReasons.push('Rótulo termoencolhível Sleeve (exige túnel de encolhimento a vapor ou elétrico acoplado)');
-                }
-                
-                if (!isCustom) {
-                    suggestedSku = 'ROT-LINEAR-AD (Rotuladora Linear para Rótulo Autoadesivo)';
-                    defaultSkuDetails = 'Perfeita para aplicação de rótulo em frascos redondos comuns.';
-                }
-                
-            } else if (segment === 'FINAL_LINHA') {
-                const tray = document.getElementById('prj-final-tray').value;
-                const pallet = document.getElementById('prj-final-pallet').value;
-                const box = document.getElementById('prj-final-box').value;
-                const inspect = document.getElementById('prj-final-inspect').value;
-                
-                if (tray === 'MAP' || pallet === 'Mecanica' || box === 'HotMelt' || inspect === 'Visao') {
-                    isCustom = true;
-                    if (tray === 'MAP') customReasons.push('Selagem de bandejas com injeção de gás (MAP) para alimentos fresca');
-                    if (pallet === 'Mecanica') customReasons.push('Paletização com garra mecânica customizada para caixas/sacos de peso elevado');
-                    if (box === 'HotMelt') customReasons.push('Fechamento de caixas com aplicação de cola Hot Melt (Melt-on-demand)');
-                    if (inspect === 'Visao') customReasons.push('Inspeção por visão artificial inteligente para controle de qualidade rigoroso');
-                }
-                
-                if (!isCustom) {
-                    suggestedSku = 'FINAL-LINE-STD (Fechadora de Caixas com Fita e Balança de Peso Padrão)';
-                    defaultSkuDetails = 'Solução de final de linha clássica para caixas de papelão regulares.';
+                    customReasons.push('Projetos especiais Tecfag Personnalité exigem projeto estrutural e de automação 100% sob medida');
+                } else {
+                    const tray = document.getElementById('prj-final-tray').value;
+                    const pallet = document.getElementById('prj-final-pallet').value;
+                    const box = document.getElementById('prj-final-box').value;
+                    const inspect = document.getElementById('prj-final-inspect').value;
+                    
+                    if (segment === 'VACUO_TERMOFORMADORAS') {
+                        if (tray === 'Vacuo' || tray === 'MAP') {
+                            isCustom = true;
+                            customReasons.push('Selagem a vácuo com atmosfera modificada (MAP) exige bomba de vácuo integrada e injeção de gás');
+                        }
+                        suggestedSku = 'VAC-TERMO-STD (Termoformadora / Seladora a Vácuo Industrial)';
+                    } else {
+                        if (tray === 'MAP' || pallet === 'Mecanica' || box === 'HotMelt' || inspect === 'Visao') {
+                            isCustom = true;
+                            if (tray === 'MAP') customReasons.push('Selagem de bandejas com injeção de gás (MAP) para alimentos fresca');
+                            if (pallet === 'Mecanica') customReasons.push('Paletização com garra mecânica customizada para caixas/sacos de peso elevado');
+                            if (box === 'HotMelt') customReasons.push('Fechamento de caixas com aplicação de cola Hot Melt (Melt-on-demand)');
+                            if (inspect === 'Visao') customReasons.push('Inspeção por visão artificial inteligente para controle de qualidade rigoroso');
+                        }
+                        
+                        if (!isCustom) {
+                            suggestedSku = 'FINAL-LINE-STD (Fechadora de Caixas com Fita e Balança de Peso Padrão)';
+                            defaultSkuDetails = 'Solução de final de linha clássica para caixas de papelão regulares.';
+                        }
+                    }
                 }
             }
             
@@ -5333,28 +5361,28 @@ Agente Gelificante: ${document.getElementById('prj-gummy-agent').value}
 Cores/Sabores: ${document.getElementById('prj-gummy-colors').value}
 Desenho Moldes: ${document.getElementById('prj-gummy-molds').value}
 Túnel/Desmolde: ${document.getElementById('prj-gummy-tunnel').value.trim()}`;
-                } else if (segment === 'INDUSAO') {
-                    segmentDetails = `Diâmetro Gargalo: ${document.getElementById('prj-inducao-diameter').value.trim()}
+                } else if (segment === 'FECHAMENTO_TAMPAGEM') {
+                    segmentDetails = `Diâmetro Gargalo: ${document.getElementById('prj-inducao-diameter').value.trim()} mm
 Material Frasco: ${document.getElementById('prj-inducao-material').value}
 Tipo de Selo: ${document.getElementById('prj-inducao-foil-type').value}
 Altura Frasco: ${document.getElementById('prj-inducao-height').value.trim()} mm
 Potência: ${document.getElementById('prj-inducao-power').value.trim()}`;
-                } else if (segment === 'DOSAGEM_EMPACOTAMENTO') {
+                } else if (segment === 'DOSAGEM_SEMIAUTOMATICA' || segment === 'DOSAGEM_EMPACOTAMENTO') {
                     segmentDetails = `Tipo de Dosador: ${document.getElementById('prj-dosagem-feeder').value}
 Formato Embalagem: ${document.getElementById('prj-dosagem-bag-style').value}
 Sensibilidade Grânulo: ${document.getElementById('prj-dosagem-sensitivity').value}`;
                 } else if (segment === 'ENVASE') {
-                    segmentDetails = `Viscosidade: ${document.getElementById('prj-envase-viscosity').value.trim()}
-Temp. Envase: ${document.getElementById('prj-envase-temp').value.trim()}
+                    segmentDetails = `Viscosidade: ${document.getElementById('prj-envase-viscosity').value.trim()} cps
+Temp. Envase: ${document.getElementById('prj-envase-temp').value.trim()} °C
 Ciclo CIP/SIP: ${document.getElementById('prj-envase-cip-sip').value}
 Bico Envase: ${document.getElementById('prj-envase-nozzle').value}
 Formato Frasco: ${document.getElementById('prj-envase-bottle-shape').value}`;
-                } else if (segment === 'ROTULADORAS') {
+                } else if (segment === 'ROTULADORAS' || segment === 'TERMOENCOLHIVEL') {
                     segmentDetails = `Tipo Aplicação: ${document.getElementById('prj-rotulagem-type').value}
 Formato Frasco: ${document.getElementById('prj-rotulagem-shape').value}
 Tipo Rótulo: ${document.getElementById('prj-rotulagem-label-type').value}`;
-                } else if (segment === 'FINAL_LINHA') {
-                    segmentDetails = `Selagem Bandeja: ${document.getElementById('prj-final-tray').value}
+                } else if (segment === 'VACUO_TERMOFORMADORAS' || segment === 'FINAL_LINHA' || segment === 'PROJETOS_ESPECIAIS') {
+                    segmentDetails = `Selagem Bandeja/Vácuo: ${document.getElementById('prj-final-tray').value}
 Paletização Robotizada: ${document.getElementById('prj-final-pallet').value}
 Formadora Caixas: ${document.getElementById('prj-final-box').value}
 Rejeito Automático: ${document.getElementById('prj-final-inspect').value}`;
