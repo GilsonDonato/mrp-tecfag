@@ -3131,7 +3131,7 @@
                         </div>
                         <div class="form-group">
                             <label for="sup-url" class="required">Link do Arquivo (Google Drive / OneDrive / Nuvem)</label>
-                            <input type="url" id="sup-url" required placeholder="https://drive.google.com/drive/folders/..." style="font-family: monospace; font-size: 0.8rem;">
+                            <input type="url" id="sup-url" required value="https://drive.google.com/drive/folders/1kTsUS-DLRJIqkc3mA8_5fDyLG34b4iQ" placeholder="https://drive.google.com/drive/folders/..." style="font-family: monospace; font-size: 0.8rem;">
                             <span style="font-size: 0.65rem; color: var(--text-secondary); margin-top: 4px; display: block;">Insira o link de compartilhamento do seu arquivo em nuvem (ex: Google Drive configurado como 'Qualquer pessoa com o link pode ler').</span>
                         </div>
                         <div class="form-group">
@@ -8943,6 +8943,13 @@
             } catch (err) {
                 console.error('Erro ao buscar biblioteca técnica:', err.message);
             }
+
+            // Garante que o input recupere o link salvo/padrão
+            const defaultUrl = localStorage.getItem('tecfag_last_supplier_url') || 'https://drive.google.com/drive/folders/1kTsUS-DLRJIqkc3mA8_5fDyLG34b4iQ';
+            const urlInput = document.getElementById('sup-url');
+            if (urlInput) {
+                urlInput.value = defaultUrl;
+            }
         }
 
         function renderSupplierResourcesList() {
@@ -9019,7 +9026,9 @@
                     created_at: new Date().toISOString()
                 };
                 supplierResources.unshift(newResource);
+                localStorage.setItem('tecfag_last_supplier_url', url);
                 document.getElementById('supplier-resource-form').reset();
+                document.getElementById('sup-url').value = url; // Mantém o link preenchido
                 renderSupplierResourcesList();
                 alert('Recurso cadastrado com sucesso na biblioteca simulada!');
                 return;
@@ -9043,7 +9052,9 @@
                 });
 
                 if (res.status === 201) {
+                    localStorage.setItem('tecfag_last_supplier_url', url);
                     document.getElementById('supplier-resource-form').reset();
+                    document.getElementById('sup-url').value = url; // Mantém o link preenchido
                     await loadSupplierResources();
                     alert('Recurso cadastrado com sucesso na Biblioteca Técnica!');
                 } else {
