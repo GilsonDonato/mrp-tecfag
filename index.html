@@ -1914,21 +1914,79 @@
                             </p>
                         </div>
 
-                        <div class="form-group">
-                            <label for="prj-diagnostico">Diagnóstico Inicial de Automação (Necessidade do Cliente)*</label>
-                            <textarea id="prj-diagnostico" class="form-control" style="height: 250px; resize: vertical;" required>1. ESCOPO, PROCESSO & OPCIONAIS:
-- O que quer automatizar? (Produção: Softgel/Gomas/Blender... | Envase: Pó/Líquido/Sólido... | Fim de Linha: Paletização/Transp...)
-- Quais opcionais e particularidades o cliente exige?
+                        <!-- Estrutura de Diagnóstico de Engenharia & Amostras -->
+                        <div style="margin-top: 15px; margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-color); border-radius: 8px;">
+                            <h4 style="font-size: 0.78rem; color: var(--primary); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">Diagnóstico Técnico & Necessidade de Engenharia</h4>
+                            
+                            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                                <div class="form-group">
+                                    <label for="prj-intake-product-type">Tipo de Produto / Processo*</label>
+                                    <select id="prj-intake-product-type" class="form-control" required>
+                                        <option value="" disabled selected>Selecione o tipo de produto...</option>
+                                        <option value="Pó">Pó</option>
+                                        <option value="Grãos">Grãos</option>
+                                        <option value="Líquido / Pastoso">Líquido / Pastoso</option>
+                                        <option value="Sólidos / Peças / Outros">Sólidos / Peças / Outros</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="prj-intake-dosage">Peso ou Volume da Dose*</label>
+                                    <input type="text" id="prj-intake-dosage" class="form-control" placeholder="Ex: 500g, 1kg, 200ml" required>
+                                </div>
+                            </div>
 
-2. LEIAUTE & ESPAÇO DISPONÍVEL (CRÍTICO):
-- Para linhas automáticas, o cliente enviou a Planta Baixa do espaço físico? (Ideal em formato DWG ou PDF)
-- Há restrições de espaço ou layout? (Evitar retrabalho de engenharia)
+                            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                                <div class="form-group">
+                                    <label for="prj-intake-speed">Velocidade Alvo / Produção Requerida*</label>
+                                    <input type="text" id="prj-intake-speed" class="form-control" placeholder="Ex: 30 pacotes/min, 15 ciclos/min" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="prj-intake-tension">Tensão Elétrica Requerida*</label>
+                                    <select id="prj-intake-tension" class="form-control" required>
+                                        <option value="" disabled selected>Selecione a tensão elétrica...</option>
+                                        <option value="220V Monofásico">220V Monofásico</option>
+                                        <option value="220V Bifásico">220V Bifásico</option>
+                                        <option value="220V Trifásico">220V Trifásico</option>
+                                        <option value="380V Trifásico">380V Trifásico</option>
+                                        <option value="Pneumática (Apenas Ar)">Pneumática (Apenas Ar)</option>
+                                    </select>
+                                </div>
+                            </div>
 
-3. EXIGÊNCIAS & CERTIFICAÇÕES:
-- Quais certificações são exigidas? (Ex: NR-12, grau alimentício, GMP, FDA, etc.)
+                            <!-- Exigências Adicionais -->
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 8px;">Exigências e Layout (Selecione todas que se aplicam)</label>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.8rem;">
+                                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                                        <input type="checkbox" id="prj-intake-opt-layout" value="Layout Compacto / Espaço Limitado"> Layout Compacto / Espaço Limitado
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                                        <input type="checkbox" id="prj-intake-opt-nr12" value="Adequação de Segurança NR-12"> Exige Adequação de Segurança NR-12
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                                        <input type="checkbox" id="prj-intake-opt-datador" value="Datador / Impressor de Lote Integrado"> Datador / Impressor de Lote Integrado
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer;">
+                                        <input type="checkbox" id="prj-intake-opt-esteira" value="Esteiras / Alimentadores Integrados"> Esteiras / Alimentadores Integrados
+                                    </label>
+                                </div>
+                            </div>
 
-4. REAL POTENCIAL COMERCIAL:
-- O cliente tem orçamento disponível? Qual a real chance de fechamento comercial?</textarea>
+                            <!-- Upload de fotos/vídeos de amostras -->
+                            <div class="form-group" style="margin-bottom: 15px;">
+                                <label for="intake-attachments">Amostras do Cliente (Fotos de Sacos/Potes, Vídeos, Desenhos de Layout)</label>
+                                <input type="file" id="intake-attachments" class="form-control" multiple style="background-color: #0b0f19; font-size: 0.8rem;" accept="image/*,video/*,application/pdf">
+                                <small style="display: block; margin-top: 4px; color: var(--text-secondary); font-size: 0.7rem;">Dica: Selecione múltiplos arquivos para subir tudo de uma vez.</small>
+                            </div>
+
+                            <!-- Observações adicionais -->
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="prj-intake-observations">Observações Técnicas / Particularidades Relevantes</label>
+                                <textarea id="prj-intake-observations" class="form-control" style="height: 90px; resize: vertical;" placeholder="Descreva qualquer outra necessidade especial da máquina, do produto do cliente ou particularidade discutida..."></textarea>
+                            </div>
+
+                            <!-- Textarea Original Oculto (Garante compatibilidade total com o restante da lógica) -->
+                            <textarea id="prj-diagnostico" style="display: none;"></textarea>
                         </div>
 
                         <div class="form-row" style="align-items: flex-start;">
@@ -4636,6 +4694,28 @@
             }
 
             try {
+                // Monta o diagnóstico estruturado
+                const prodType = document.getElementById('prj-intake-product-type').value;
+                const dosage = document.getElementById('prj-intake-dosage').value.trim();
+                const speed = document.getElementById('prj-intake-speed').value.trim();
+                const tension = document.getElementById('prj-intake-tension').value;
+                const observations = document.getElementById('prj-intake-observations').value.trim();
+
+                const selectedOptions = [];
+                if (document.getElementById('prj-intake-opt-layout').checked) selectedOptions.push("Layout Compacto / Espaço Limitado");
+                if (document.getElementById('prj-intake-opt-nr12').checked) selectedOptions.push("Adequação de Segurança NR-12");
+                if (document.getElementById('prj-intake-opt-datador').checked) selectedOptions.push("Datador / Impressor de Lote Integrado");
+                if (document.getElementById('prj-intake-opt-esteira').checked) selectedOptions.push("Esteiras / Alimentadores Integrados");
+
+                const assembledDiagnostico = `PRODUTO/PROCESSO: ${prodType || '-'}
+PESO/VOLUME DOSE: ${dosage || '-'}
+VELOCIDADE ALVO: ${speed || '-'}
+TENSÃO ELÉTRICA: ${tension || '-'}
+EXIGÊNCIAS: ${selectedOptions.length > 0 ? selectedOptions.join(', ') : 'Nenhuma'}
+OBSERVAÇÕES: ${observations || 'Nenhuma'}`;
+
+                document.getElementById('prj-diagnostico').value = assembledDiagnostico;
+
                 const code = document.getElementById('prj-code').value.trim().toUpperCase().replace(/\s+/g, '');
                 const cnpj = document.getElementById('prj-cnpj').value.trim().replace(/\D/g, '');
                 const client = document.getElementById('prj-client').value.trim();
@@ -4645,7 +4725,7 @@
                 const contactPhone = document.getElementById('prj-contact-phone').value.trim();
                 const contactEmail = document.getElementById('prj-contact-email').value.trim();
                 const pm = document.getElementById('prj-pm').value.trim();
-                const diagnostico = document.getElementById('prj-diagnostico').value.trim();
+                const diagnostico = assembledDiagnostico;
                 const tech = document.getElementById('prj-tech').value.trim() || 'Técnico Não Alocado';
 
                 // Collect machines list
@@ -4762,6 +4842,37 @@
                             submitBtn.innerText = "Cadastrar Projeto & Iniciar Funil";
                         }
                         return;
+                    }
+
+                    // Upload de anexos iniciais se houver
+                    const intakeFilesInput = document.getElementById('intake-attachments');
+                    if (intakeFilesInput && intakeFilesInput.files.length > 0) {
+                        const uploadPromises = Array.from(intakeFilesInput.files).map(file => {
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            formData.append('projectCode', code);
+                            formData.append('phase', 'diagnostico');
+
+                            const token = localStorage.getItem('tecfag_session_token');
+                            const headers = {};
+                            if (token) {
+                                headers['Authorization'] = `Bearer ${token}`;
+                            }
+
+                            return fetch('/api/attachments', {
+                                method: 'POST',
+                                headers,
+                                body: formData
+                            });
+                        });
+                        
+                        try {
+                            await Promise.all(uploadPromises);
+                            console.log('[INTAKE] Todos os arquivos iniciais foram enviados com sucesso.');
+                        } catch (err) {
+                            console.error('[INTAKE] Erro ao enviar arquivos de amostra:', err);
+                            alert('Aviso: O projeto foi criado, mas houve uma falha ao enviar os arquivos de amostras.');
+                        }
                     }
 
                     // Audit Log
