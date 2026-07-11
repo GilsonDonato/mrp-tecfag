@@ -1237,14 +1237,16 @@ app.post('/api/attachments', upload.single('file'), async (req, res) => {
         // Obter caminho relativo para servir via HTTP
         const relativePath = 'uploads/' + file.filename;
 
-        // Se já existe um anexo nessa etapa para esse projeto, deletar o antigo antes de inserir
-        const existing = await dbGet('SELECT * FROM attachments WHERE projectCode = ? AND phase = ?', [projectCode, phase]);
-        if (existing) {
-            const oldFullPath = path.join(__dirname, existing.filePath);
-            if (fs.existsSync(oldFullPath)) {
-                fs.unlinkSync(oldFullPath);
+        // Se já existe um anexo nessa etapa para esse projeto, deletar o antigo antes de inserir (exceto no diagnóstico que permite múltiplos)
+        if (phase !== 'diagnostico') {
+            const existing = await dbGet('SELECT * FROM attachments WHERE projectCode = ? AND phase = ?', [projectCode, phase]);
+            if (existing) {
+                const oldFullPath = path.join(__dirname, existing.filePath);
+                if (fs.existsSync(oldFullPath)) {
+                    fs.unlinkSync(oldFullPath);
+                }
+                await dbRun('DELETE FROM attachments WHERE id = ?', [existing.id]);
             }
-            await dbRun('DELETE FROM attachments WHERE id = ?', [existing.id]);
         }
 
         await dbRun(`INSERT INTO attachments (
