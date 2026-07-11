@@ -1174,6 +1174,34 @@ app.delete('/api/supplier-resources/:id', authenticateToken, restrictToEngineeri
     }
 });
 
+// GET /api/gemini-test - Rota de diagnóstico para listar os modelos disponíveis para a chave do Gemini
+app.get('/api/gemini-test', async (req, res) => {
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+        return res.status(500).json({ error: 'A chave GEMINI_API_KEY não está configurada.' });
+    }
+
+    try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${geminiKey}`;
+        https.get(url, (apiRes) => {
+            let data = '';
+            apiRes.on('data', (chunk) => data += chunk);
+            apiRes.on('end', () => {
+                try {
+                    const parsed = JSON.parse(data);
+                    res.json(parsed);
+                } catch (e) {
+                    res.status(500).json({ error: 'Erro ao parsear resposta: ' + e.message, raw: data });
+                }
+            });
+        }).on('error', (err) => {
+            res.status(500).json({ error: 'Erro na requisição: ' + err.message });
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // POST /api/supplier-resources/ai-search - Realiza busca semântica inteligente de catálogos com a API do Gemini
 app.post('/api/supplier-resources/ai-search', authenticateToken, restrictToEngineeringAndAdmin, async (req, res) => {
     const { query } = req.body;
