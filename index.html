@@ -3083,6 +3083,7 @@
                             <label for="sup-category" class="required">Categoria de Equipamento</label>
                             <select id="sup-category" required>
                                 <option value="" disabled selected>Selecione uma categoria...</option>
+                                <option value="GERAL">Catálogo Geral / Multiuso</option>
                                 <option value="SELADORA">Seladora / Empacotadora</option>
                                 <option value="ENVASADORA">Envasadora / Dosadora</option>
                                 <option value="ROTULADORA">Rotuladora / Datadora</option>
@@ -5187,6 +5188,7 @@
 
                 // Insere recursos técnicos mockados na biblioteca de cotações
                 const mockSuppliers = [
+                    { supplier_name: 'Catálogo Geral Tecfag', machine_category: 'GERAL', title: 'Portfólio Completo de Máquinas e Equipamentos Tecfag', url: 'https://drive.google.com/open?id=tecfag_general_catalog', notes: 'Catálogo institucional contendo todas as soluções de envase, selagem, rotulagem e pesagem.' },
                     { supplier_name: 'Bosch Embaladoras', machine_category: 'SELADORA', title: 'Manual e Folder Técnico Seladora HF', url: 'https://drive.google.com/open?id=1_bosch_hf_manual', notes: 'Contato comercial: Eng. Carlos da Bosch. Ótima máquina para selagem contínua.' },
                     { supplier_name: 'TecnoPack Automação', machine_category: 'SELADORA', title: 'Cotação e Planta de Linha Seladora Automática 2026', url: 'https://drive.google.com/open?id=2_tecnopack_quota', notes: 'Inclui layout técnico em formato DWG compartilhado no drive.' },
                     { supplier_name: 'Dosadores Omron BR', machine_category: 'ENVASADORA', title: 'Catálogo Geral de Bicos e Válvulas de Envase', url: 'https://drive.google.com/open?id=3_omron_nozzles', notes: 'Excelente material para soluções de envase viscoso/pastoso.' },
@@ -8931,6 +8933,7 @@
             }
 
             const categoryLabels = {
+                'GERAL': 'Catálogo Geral',
                 'SELADORA': 'Seladora',
                 'ENVASADORA': 'Envasadora',
                 'ROTULADORA': 'Rotuladora',
@@ -9115,8 +9118,10 @@
                 }
             }
 
-            // Filtrar recursos pertencentes à categoria mapeada
-            const matchedResources = supplierResources.filter(r => categoriesToSearch.includes(r.machine_category));
+            // Filtrar recursos pertencentes à categoria mapeada ou classificados como GERAL
+            const matchedResources = supplierResources.filter(r => 
+                categoriesToSearch.includes(r.machine_category) || r.machine_category === 'GERAL'
+            );
 
             if (matchedResources.length === 0) {
                 suggestionBox.style.display = 'none';
