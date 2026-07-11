@@ -1229,8 +1229,8 @@ Responda APENAS com o objeto JSON puramente, sem formatação markdown de códig
             }
         };
 
-        // Realiza requisição direta para a API do Gemini 2.5 Flash
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
+        // Realiza requisição direta para a API do Gemini 1.5 Flash (versão estável de produção)
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
         
         const reqOpts = {
             method: 'POST',
