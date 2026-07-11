@@ -9060,29 +9060,29 @@
                 return;
             }
 
-            // Mapeia o SKU do projeto para termos de pesquisa gerais de categoria
+            // Mapeia o SKU do projeto para termos de pesquisa gerais de categoria (com suporte a siglas)
             const projectSkus = (project.sku || '').toUpperCase();
             const categoriesToSearch = [];
             
-            if (projectSkus.includes('SELADORA') || projectSkus.includes('EMPACOTADORA') || projectSkus.includes('BOX-KRAFT')) {
+            if (['SEL', 'EMP', 'PACK', 'SEAL', 'WRAP'].some(term => projectSkus.includes(term))) {
                 categoriesToSearch.push('SELADORA');
             }
-            if (projectSkus.includes('ENVASA') || projectSkus.includes('DOSADOR') || projectSkus.includes('BAGGER')) {
+            if (['ENV', 'DOS', 'FILL', 'BICO', 'BAG'].some(term => projectSkus.includes(term))) {
                 categoriesToSearch.push('ENVASADORA');
             }
-            if (projectSkus.includes('ROTULADORA') || projectSkus.includes('DATADORA')) {
+            if (['ROT', 'DAT', 'LABEL', 'PRINT', 'COD'].some(term => projectSkus.includes(term))) {
                 categoriesToSearch.push('ROTULADORA');
             }
-            if (projectSkus.includes('ESTEIRA') || projectSkus.includes('MESA-ROTATIVA') || projectSkus.includes('ROSQUEADORA')) {
+            if (['EST', 'ROS', 'ALIM', 'MESA', 'CONV'].some(term => projectSkus.includes(term))) {
                 categoriesToSearch.push('ESTEIRA');
             }
-            if (projectSkus.includes('CLP') || projectSkus.includes('PAINEL') || projectSkus.includes('SORTER')) {
+            if (['CLP', 'IHM', 'PAI', 'ELT', 'SORTER', 'AUT'].some(term => projectSkus.includes(term))) {
                 categoriesToSearch.push('CLP');
             }
-            if (projectSkus.includes('SENSOR') || projectSkus.includes('INSTRUM')) {
+            if (['SEN', 'DET', 'PROX', 'LIMIT'].some(term => projectSkus.includes(term))) {
                 categoriesToSearch.push('SENSOR');
             }
-            if (projectSkus.includes('BALANCA') || projectSkus.includes('PESADOR') || projectSkus.includes('CHECKWEIGHER')) {
+            if (['BAL', 'PES', 'SCALE', 'WEIGH'].some(term => projectSkus.includes(term))) {
                 categoriesToSearch.push('BALANCA');
             }
 
