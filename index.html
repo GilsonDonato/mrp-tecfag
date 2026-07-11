@@ -5275,7 +5275,32 @@
             if (isCustom) {
                 hudResult.innerHTML = `⚠️ <span style="color: #f97316;">Projeto Customizado de Engenharia</span>`;
                 hudDetails.innerHTML = `<strong style="color: #f97316;">Motivos de Customização:</strong><ul style="margin: 5px 0 0 15px; padding: 0; list-style-type: square;">` + 
-                    customReasons.map(r => `<li>${r}</li>`).                // Monta o diagnóstico estruturado
+                    customReasons.map(r => `<li>${r}</li>`).join('') + `</ul>`;
+                hudBox.style.background = 'rgba(249, 115, 22, 0.05)';
+                hudBox.style.borderColor = '#f97316';
+            } else {
+                hudResult.innerHTML = `✅ <span style="color: #10b981;">Equipamento Padrão de Catálogo</span><br><span style="font-size: 0.9rem; color: var(--text-primary); font-weight: normal; margin-top: 4px; display: block;">SKU Recomendado: <strong>${suggestedSku}</strong></span>`;
+                hudDetails.innerHTML = `<strong style="color: #10b981;">Observações:</strong> ${defaultSkuDetails}`;
+                hudBox.style.background = 'rgba(16, 185, 129, 0.05)';
+                hudBox.style.borderColor = '#10b981';
+            }
+        }
+
+        // Form Submit
+        function handleProjectSubmit(e) {
+            e.preventDefault();
+
+            if (isSubmitting) return;
+            isSubmitting = true;
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerText = "Processando...";
+            }
+
+            try {
+                // Monta o diagnóstico estruturado
                 const segment = document.getElementById('prj-intake-segment').value;
                 const tension = document.getElementById('prj-infra-tension').value;
                 const frequency = document.getElementById('prj-infra-frequency').value;
