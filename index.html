@@ -1454,6 +1454,79 @@
             font-size: 0.75rem;
             line-height: 1.4;
         }
+
+        /* TECFAG MASCOT ROBOT ANIMATION */
+        .tecfag-mascot-container {
+            position: fixed;
+            bottom: 30px;
+            left: -150px;
+            width: 90px;
+            height: 110px;
+            z-index: 99999;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.5));
+        }
+
+        .tecfag-mascot-active {
+            animation: tecfag-walk-across 7s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        .tecfag-robot-body-wrapper {
+            width: 100%;
+            height: 100%;
+            animation: tecfag-robot-bob 0.5s ease-in-out infinite;
+        }
+
+        @keyframes tecfag-walk-across {
+            0% {
+                left: -120px;
+            }
+            38% {
+                left: calc(50vw - 45px);
+            }
+            68% {
+                left: calc(50vw - 45px);
+            }
+            100% {
+                left: 105vw;
+            }
+        }
+
+        @keyframes tecfag-robot-bob {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-6px) rotate(1deg);
+            }
+        }
+
+        /* FIREWORKS / FOGOS DE ARTIFÍCIO */
+        .tecfag-firework-particle {
+            position: fixed;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 99998;
+            opacity: 0;
+            animation: tecfag-firework-burst 1.5s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+
+        @keyframes tecfag-firework-burst {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(var(--tx), var(--ty)) scale(0.2);
+            }
+        }
     </style>
 </head>
 <body class="not-logged-in">
@@ -1927,7 +2000,7 @@
                             <!-- Seleção do Segmento Principal -->
                             <div class="form-group" style="margin-bottom: 15px;">
                                 <label for="prj-intake-segment">Segmento de Equipamento Principal*</label>
-                                <select id="prj-intake-segment" class="form-control" required onchange="updateSegmentFields(); runSkuSuggestionEngine();" style="border: 1px solid var(--primary); background: rgba(59, 130, 246, 0.03);">
+                                <select id="prj-intake-segment" class="form-control" required onchange="updateSegmentFields(); runSkuSuggestionEngine(); updateSalesPlaybook(this.value);" style="border: 1px solid var(--primary); background: rgba(59, 130, 246, 0.03);">
                                     <option value="" disabled selected>Selecione o segmento principal...</option>
                                     <option value="MISTURADORES">1. Processamento e Mistura (Misturadores Ribbon Blender / V / Moinhos)</option>
                                     <option value="ENCAPSULADORAS">2. Encapsulamento & Linhas Farmacêuticas (Softgel / Duras / Contadores)</option>
@@ -1942,6 +2015,14 @@
                                     <option value="FINAL_LINHA">11. Final de Linha & Paletização (Formadoras, Fechadoras Caixas, Robôs)</option>
                                     <option value="PROJETOS_ESPECIAIS">12. Projetos Especiais & Customizações Personnalité (Engenharia sob Medida)</option>
                                 </select>
+                            </div>
+
+                            <!-- Sales Playbook / Guia de Atendimento do Vendedor -->
+                            <div id="sales-playbook-box" style="display: none; margin-bottom: 15px; padding: 12px; background: rgba(14, 165, 233, 0.06); border: 1px solid rgba(14, 165, 233, 0.25); border-left: 4px solid var(--primary); border-radius: 6px; font-size: 0.76rem; line-height: 1.45;">
+                                <div style="display: flex; align-items: center; gap: 6px; color: var(--primary); font-weight: bold; margin-bottom: 5px; text-transform: uppercase; font-size: 0.7rem;">
+                                    <span>💡 Guia de Perguntas da Engenharia</span>
+                                </div>
+                                <div id="sales-playbook-content" style="color: var(--text-secondary);"></div>
                             </div>
 
                             <!-- GRUPOS CONDICIONAIS DE PARÂMETROS ESPECÍFICOS -->
@@ -6712,6 +6793,9 @@
                     generateProjectCode(); // gera o próximo da fila
                     loadProjectsDB();
                     switchTab('dash');
+                    setTimeout(() => {
+                        triggerRobotCelebration();
+                    }, 500);
 
             } catch (err) {
                 console.error('[INTAKE SUBMIT] Erro no envio:', err);
@@ -7272,6 +7356,16 @@
                         `;
                     }
 
+                    html += `
+                        <div style="margin-top: 15px; display: flex; gap: 10px;">
+                            <button class="btn btn-outline" onclick="copyScopeToClipboard(${project.id})" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.72rem; padding: 6px 12px; border-color: #22c55e; color: #22c55e; background: rgba(34, 197, 94, 0.05); cursor: pointer; border-radius: 4px; font-weight: bold;">
+                                <span>🟢</span> Copiar WhatsApp
+                            </button>
+                            <button class="btn btn-outline" onclick="copyEmailScopeToClipboard(${project.id})" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.72rem; padding: 6px 12px; border-color: #3b82f6; color: #3b82f6; background: rgba(59, 130, 246, 0.05); cursor: pointer; border-radius: 4px; font-weight: bold;">
+                                <span>✉️</span> Copiar E-mail
+                            </button>
+                        </div>
+                    `;
                     html += `</div>`;
                     document.getElementById('modal-desc-diagnostico').innerHTML = html;
                 } else if (project.diagnostico.startsWith("SEGMENTO:")) {
@@ -9421,6 +9515,383 @@
                 loginBgIndex = (loginBgIndex + 1) % slides.length;
                 slides[loginBgIndex].classList.add('active');
             }, 8000);
+        }
+
+        // --- SALES PLAYBOOK ENGINE ---
+        function updateSalesPlaybook(segment) {
+            const box = document.getElementById('sales-playbook-box');
+            const content = document.getElementById('sales-playbook-content');
+            if (!box || !content) return;
+
+            if (!segment) {
+                box.style.display = 'none';
+                return;
+            }
+
+            const playbooks = {
+                MISTURADORES: `
+                    <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
+                    • Qual é a <strong>densidade aparente</strong> do produto (g/cm³)? (Crucial para dimensionar o motor).<br>
+                    • O produto é <strong>abrasivo</strong>? (Se sim, requer soldas especiais ou Inox 316L).<br>
+                    • Qual a capacidade em <strong>litros úteis</strong> desejada por batelada (não o peso total)?<br>
+                    • A descarga deve ser por válvula borboleta manual ou pneumática?
+                `,
+                ENCAPSULADORAS: `
+                    <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
+                    • Qual é o <strong>formato e tamanho</strong> das cápsulas (ex: 00, 0, 1, 2, 3, 4)?<br>
+                    • Deseja contar cápsulas ou envasar em frascos/cartuchos?<br>
+                    • Para softgel: qual é a viscosidade e temperatura de envase do líquido interno?<br>
+                    • Exige elevador de alimentação de cápsulas automático ou abastecimento manual?
+                `,
+                GOMAS: `
+                    <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
+                    • Qual o <strong>agente gelificante</strong> utilizado? (Pectina ou Gelatina? Pectina requer cozimento rápido).<br>
+                    • Quantas <strong>cores ou sabores</strong> diferentes serão dosados na mesma linha?<br>
+                    • Qual é o formato/geometria 3D das gomas? (Necessário para desenhar os moldes).<br>
+                    • A linha exige túnel de resfriamento contínuo acoplado?
+                `,
+                DOSAGEM_SEMIAUTOMATICA: `
+                    <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
+                    • Qual o <strong>tipo de produto</strong>? (Pó fino que levanta poeira, grão, ou líquido pastoso?).<br>
+                    • Qual a <strong>faixa de peso/volume</strong> que deseja dosar? (Ex: 10g a 100g, ou 1kg a 5kg?).<br>
+                    • O produto gruda ou é úmido? (Produtos pastosos exigem pistão pneumático aquecido).<br>
+                    • O acionamento deve ser por pedal físico ou sensor óptico de aproximação?
+                `,
+                DOSAGEM_EMPACOTAMENTO: `
+                    <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
+                    • Qual é o <strong>formato do saquinho</strong>? (Almofada, 4 soldas, Sanfonado, Stand-up Pouch?).<br>
+                    • Qual a <strong>largura da bobina</strong> de filme que pretende usar?<br>
+                    • O produto será dosado por balança de cabeçotes (grãos/pequenos sólidos) ou rosca sem-fim (pós)?<br>
+                    • O filme plástico é impresso (requer fotocélula de leitura) ou transparente?
+                `,
+                ENVASE: `
+                    <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
+                    • Qual é a <strong>viscosidade do líquido</strong>? (Semelhante a água, óleo denso ou mel pastoso?).<br>
+                    • O envase será feito a <strong>quente</strong>? (Líquidos quentes exigem mangueiras e bicos térmicos).<br>
+                    • Qual o diâmetro do gargalo e altura dos frascos?<br>
+                    • O bico de envase precisa ser de mergulho (para evitar formação de espuma no produto)?
+                `,
+                FECHAMENTO_TAMPAGEM: `
+                    <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
+                    • Como é a <strong>tampa</strong>? (Rosca plástica comum, tampa com rosca metálica, snap-on de pressão?).<br>
+                    • Qual o diâmetro interno do gargalo para o selo de indução de alumínio?<br>
+                    • Exige alimentador automático de tampas ou posicionamento manual?<br>
+                    • Há necessidade de sensor para rejeitar frascos sem selo de alumínio na linha?
+                `,
+                VACUO_TERMOFORMADORAS: `
+                    <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
+                    • O produto exige injeção de <strong>gás (MAP)</strong> para estender a validade?<br>
+                    • Qual a altura/profundidade útil máxima do produto dentro da embalagem?<br>
+                    • Qual é o comprimento da barra de selagem necessária para acomodar o saco?<br>
+                    • É câmara de campana dupla (maior produtividade) ou termoformadora automática contínua?
+                `,
+                ROTULADORAS: `
+                    <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
+                    • O frasco é <strong>cilíndrico</strong> (rotulagem envolvente) ou <strong>plano/oval</strong> (frente e verso)?<br>
+                    • O rótulo é autoadesivo em bobina ou termoencolhível (sleeve)?<br>
+                    • O rótulo é transparente? (Requer sensor óptico capacitivo especial de leitura).<br>
+                    • Deseja datador acoplado na rotuladora para imprimir lote/validade?
+                `,
+                TERMOENCOLHIVEL: `
+                    <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
+                    • Qual é o <strong>tipo de filme</strong> usado? (PVC, poliolefina POF ou polietileno PE?).<br>
+                    • Quais as dimensões máximas do pacote (Largo x Alto x Comprido)?<br>
+                    • O túnel de encolhimento deve ter roletes giratórios de silicone ou esteira metálica de malha?<br>
+                    • A seladora em L deve ser pneumática automática ou acionamento manual?
+                `,
+                FINAL_LINHA: `
+                    <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
+                    • Qual o peso máximo da caixa fechada?<br>
+                    • O fechamento das caixas deve ser com fita adesiva comum ou cola hot melt?<br>
+                    • A paletização exige braço robótico de coordenadas ou robô articulado de 6 eixos?<br>
+                    • O cliente exige arqueadora automática integrada para segurança do transporte?
+                `,
+                PROJETOS_ESPECIAIS: `
+                    <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
+                    • Qual é o <strong>objetivo principal da customização</strong>? (Aumentar velocidade, integrar CLP Siemens/Allen Bradley, ou espaço físico restrito?).<br>
+                    • Quais são as principais restrições técnicas do processo?<br>
+                    • O projeto exige algum tipo de integração de dados com ERP do cliente (Indústria 4.0)?<br>
+                    • Qual o cronograma esperado para desenvolvimento do protótipo?
+                `
+            };
+
+            content.innerHTML = playbooks[segment] || 'Selecione o segmento principal para ver dicas e guias técnicos de atendimento.';
+            box.style.display = 'block';
+        }
+
+        // --- ROBOT MASCOT CELEBRATION (TECFAG) ---
+        function triggerRobotCelebration() {
+            // Remove mascot container se já existir por segurança
+            const oldMascot = document.getElementById('tecfag-mascot');
+            if (oldMascot) oldMascot.remove();
+
+            const mascot = document.createElement('div');
+            mascot.id = 'tecfag-mascot';
+            mascot.className = 'tecfag-mascot-container tecfag-mascot-active';
+
+            // SVG do Robô Tecfag
+            const robotSvg = `
+            <div class="tecfag-robot-body-wrapper">
+                <svg width="85" height="95" viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Antena -->
+                    <rect x="38" y="5" width="4" height="12" rx="2" fill="#0ea5e9" />
+                    <circle cx="40" cy="4" r="4" fill="#00d2ff" />
+                    
+                    <!-- Cabeça -->
+                    <rect x="18" y="15" width="44" height="30" rx="8" fill="#1e293b" stroke="#334155" stroke-width="2" />
+                    <!-- Visor Ciano -->
+                    <rect x="23" y="20" width="34" height="20" rx="4" fill="#0b1329" stroke="#00d2ff" stroke-width="1.5" />
+                    <!-- Olhos Digitais Felizes -->
+                    <path id="robot-eyes" d="M28 28 L32 25 L36 28 M44 28 L48 25 L52 28" stroke="#00d2ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    
+                    <!-- Pescoço -->
+                    <rect x="35" y="44" width="10" height="6" fill="#475569" />
+                    
+                    <!-- Corpo -->
+                    <rect x="20" y="48" width="40" height="32" rx="6" fill="#1e293b" stroke="#334155" stroke-width="2" />
+                    <!-- Detalhe do Peito (Círculo Brilhante) -->
+                    <circle cx="40" cy="62" r="6" fill="#090d16" stroke="#0ea5e9" stroke-width="1.5" />
+                    <circle cx="40" cy="62" r="3" fill="#00d2ff" />
+                    
+                    <!-- Ombros e Braços -->
+                    <!-- Esquerdo -->
+                    <circle cx="15" cy="54" r="4" fill="#475569" />
+                    <rect x="12" y="56" width="6" height="15" rx="3" fill="#334155" transform="rotate(15 15 54)" />
+                    <!-- Direito -->
+                    <circle cx="65" cy="54" r="4" fill="#475569" />
+                    <rect x="62" y="56" width="6" height="15" rx="3" fill="#334155" transform="rotate(-15 65 54)" />
+                    
+                    <!-- Rodinhas / Lagarta (Estilo esteira de automação) -->
+                    <rect x="23" y="79" width="34" height="7" rx="3.5" fill="#0f172a" stroke="#334155" stroke-width="1.5" />
+                    <circle cx="28" cy="82.5" r="2.5" fill="#475569" />
+                    <circle cx="40" cy="82.5" r="2.5" fill="#475569" />
+                    <circle cx="52" cy="82.5" r="2.5" fill="#475569" />
+                </svg>
+            </div>
+            `;
+
+            mascot.innerHTML = robotSvg;
+            document.body.appendChild(mascot);
+
+            // Animação dos fogos no centro (38% da animação de 7 segundos = ~2660ms)
+            setTimeout(() => {
+                const rect = mascot.getBoundingClientRect();
+                const centerX = window.innerWidth / 2;
+                const centerY = window.innerHeight - 100;
+                
+                // Três rajadas de fogos consecutivas para dar um efeito premium
+                createFireworkSparks(centerX, centerY - 20);
+                
+                setTimeout(() => {
+                    createFireworkSparks(centerX - 50, centerY - 60);
+                }, 300);
+                
+                setTimeout(() => {
+                    createFireworkSparks(centerX + 50, centerY - 60);
+                }, 600);
+
+                // Muda o visor dos olhos para corações piscando!
+                const eyesPath = document.getElementById('robot-eyes');
+                if (eyesPath) {
+                    eyesPath.setAttribute('d', 'M26 27 C26 25, 30 25, 30 27 C30 25, 34 25, 34 27 C34 30, 30 33, 30 33 C30 33, 26 30, 26 27 M46 27 C46 25, 50 25, 50 27 C50 25, 54 25, 54 27 C54 30, 50 33, 50 33 C50 33, 46 30, 46 27');
+                    eyesPath.setAttribute('stroke', '#ff007f'); // Corações rosa neon
+                }
+            }, 2660);
+
+            // Remove o robô ao fim da trajetória (7s)
+            setTimeout(() => {
+                mascot.remove();
+            }, 7100);
+        }
+
+        // --- EXPLOSÃO DE FOGOS (CSS PARTÍCULAS) ---
+        function createFireworkSparks(x, y) {
+            const colors = ['#00d2ff', '#0ea5e9', '#38bdf8', '#7dd3fc', '#ff007f', '#ec4899', '#10b981', '#f59e0b'];
+            const particleCount = 45;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'tecfag-firework-particle';
+                
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.backgroundColor = color;
+                particle.style.boxShadow = `0 0 8px ${color}`;
+                
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+                
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 60 + Math.random() * 120;
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance - (20 + Math.random() * 40); // sobe como rojão
+                
+                particle.style.setProperty('--tx', `${tx}px`);
+                particle.style.setProperty('--ty', `${ty}px`);
+                
+                const size = 4 + Math.random() * 5;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                document.body.appendChild(particle);
+                
+                setTimeout(() => {
+                    particle.remove();
+                }, 1500);
+            }
+        }
+
+        // --- FUNÇÕES DE CÓPIA DE ESCOPO DO VENDEDOR ---
+        function copyScopeToClipboard(projectId) {
+            const project = state.projects.find(p => p.id === projectId);
+            if (!project) return;
+            
+            let parsed = null;
+            try {
+                parsed = JSON.parse(project.diagnostico);
+            } catch (e) {
+                navigator.clipboard.writeText(project.diagnostico);
+                alert('Memorial Técnico copiado para a área de transferência!');
+                return;
+            }
+
+            const translateParamKey = (k) => {
+                const dict = {
+                    subtype: 'Sub-tipo de Máquina',
+                    volumeTotal: 'Volume Total Requerido',
+                    volumeUtil: 'Volume Útil Requerido',
+                    cycleTime: 'Tempo de Ciclo Estimado',
+                    discharge: 'Tipo de Descarga',
+                    abrasive: 'Grau de Abrasividade',
+                    capsuleSize: 'Tamanho da Cápsula',
+                    viscosity: 'Viscosidade',
+                    productivity: 'Produtividade Alvo',
+                    semiType: 'Acionamento do Dosador',
+                    semiVolume: 'Faixa de Dosagem',
+                    bagStyle: 'Formato da Embalagem',
+                    filmWidth: 'Largura Máxima Bobina',
+                    envaseViscosity: 'Viscosidade do Produto',
+                    envaseNozzlesCount: 'Quantidade de Bicos',
+                    shrinkFilm: 'Tipo de Filme Plástico',
+                    shrinkPkgDims: 'Dimensões Máx do Pacote'
+                };
+                return dict[k] || k;
+            };
+
+            let txt = `*📄 MEMORIAL TÉCNICO & DIRETRIZES DE PROJETO - TECFAG*\n\n`;
+            txt += `*Código do Projeto:* ${project.code}\n`;
+            txt += `*Cliente:* ${project.client}\n`;
+            txt += `*Segmento:* ${parsed.segment}\n`;
+            txt += `*Indicação de SKU:* ${parsed.skuSugestaoResult}\n\n`;
+            
+            txt += `*⚡ Requisitos de Infraestrutura:*\n`;
+            txt += `• Tensão Elétrica: ${parsed.infra?.tension || '-'}\n`;
+            txt += `• Frequência de Rede: ${parsed.infra?.frequency || '-'}\n`;
+            txt += `• Pressão Pneumática: ${parsed.infra?.pressure || '-'} bar/PSI\n`;
+            txt += `• Consumo de Ar: ${parsed.infra?.airConsumption || '-'} L/min\n`;
+            txt += `• Secador na Linha: ${parsed.infra?.airDryer || '-'}\n`;
+            txt += `• Aço de Contato: ${parsed.infra?.material === 'Inox304' ? 'Inox 304 (Padrão)' : 'Inox 316L (Farmacêutico)'}\n`;
+            txt += `• Polimento: ${parsed.infra?.roughness === 'Padrao' ? 'Industrial' : 'Sanitário (Ra < 0.4µm)'}\n`;
+            txt += `• Painel IP: ${parsed.infra?.ipRating || '-'}\n`;
+            txt += `• Adequação NR-12: ${parsed.infra?.nr12 === 'Padrao' ? 'Padrão Tecfag' : 'Rigorosa (ART/Laudo)'}\n`;
+            txt += `• Atmosfera Risco EX: ${parsed.infra?.classifiedArea || 'Não'}\n`;
+            txt += `• Higienização: ${parsed.infra?.cleaning || '-'}\n`;
+            txt += `• Temperatura Sala: ${parsed.infra?.envTemp || '-'}\n`;
+            txt += `• Espaço / Acesso Físico: ${parsed.infra?.spaceLimit || 'Adequado'}\n\n`;
+
+            txt += `*⚙️ Parâmetros Técnicos do Equipamento:*\n`;
+            for (const [k, v] of Object.entries(parsed.parameters || {})) {
+                if (v !== undefined && v !== null && v !== '') {
+                    txt += `• ${translateParamKey(k)}: ${v}\n`;
+                }
+            }
+            txt += `\n`;
+
+            if (parsed.observations) {
+                txt += `*✍️ Observações do Vendedor:*\n${parsed.observations}\n`;
+            }
+            
+            navigator.clipboard.writeText(txt);
+            alert('Memorial Técnico copiado para o WhatsApp com sucesso!');
+        }
+
+        function copyEmailScopeToClipboard(projectId) {
+            const project = state.projects.find(p => p.id === projectId);
+            if (!project) return;
+            
+            let parsed = null;
+            try {
+                parsed = JSON.parse(project.diagnostico);
+            } catch (e) {
+                navigator.clipboard.writeText(project.diagnostico);
+                alert('Memorial Técnico copiado para a área de transferência!');
+                return;
+            }
+
+            const translateParamKey = (k) => {
+                const dict = {
+                    subtype: 'Sub-tipo de Máquina',
+                    volumeTotal: 'Volume Total Requerido',
+                    volumeUtil: 'Volume Útil Requerido',
+                    cycleTime: 'Tempo de Ciclo Estimado',
+                    discharge: 'Tipo de Descarga',
+                    abrasive: 'Grau de Abrasividade',
+                    capsuleSize: 'Tamanho da Cápsula',
+                    viscosity: 'Viscosidade',
+                    productivity: 'Produtividade Alvo',
+                    semiType: 'Acionamento do Dosador',
+                    semiVolume: 'Faixa de Dosagem',
+                    bagStyle: 'Formato da Embalagem',
+                    filmWidth: 'Largura Máxima Bobina',
+                    envaseViscosity: 'Viscosidade do Produto',
+                    envaseNozzlesCount: 'Quantidade de Bicos',
+                    shrinkFilm: 'Tipo de Filme Plástico',
+                    shrinkPkgDims: 'Dimensões Máx do Pacote'
+                };
+                return dict[k] || k;
+            };
+
+            let txt = `MEMORIAL TÉCNICO DE ENGENHARIA - TECFAG\n\n`;
+            txt += `Código do Projeto: ${project.code}\n`;
+            txt += `Cliente: ${project.client}\n`;
+            txt += `Segmento: ${parsed.segment}\n`;
+            txt += `Indicação de SKU sugerido: ${parsed.skuSugestaoResult}\n\n`;
+            
+            txt += `==============================================\n`;
+            txt += `REQUISITOS DE INFRAESTRUTURA & INSTALAÇÃO\n`;
+            txt += `==============================================\n`;
+            txt += `Tensão Elétrica: ${parsed.infra?.tension || '-'}\n`;
+            txt += `Frequência de Rede: ${parsed.infra?.frequency || '-'}\n`;
+            txt += `Pressão Pneumática Mínima: ${parsed.infra?.pressure || '-'} bar/PSI\n`;
+            txt += `Consumo Estimado de Ar: ${parsed.infra?.airConsumption || '-'} L/min\n`;
+            txt += `Secador de Ar na Linha: ${parsed.infra?.airDryer || '-'}\n`;
+            txt += `Aço de Contato: ${parsed.infra?.material === 'Inox304' ? 'Inox 304 (Padrão)' : 'Inox 316L (Farmacêutico)'}\n`;
+            txt += `Polimento/Rugosidade de Solda: ${parsed.infra?.roughness === 'Padrao' ? 'Industrial' : 'Sanitário (Ra < 0.4µm)'}\n`;
+            txt += `Grau de Proteção Painel: ${parsed.infra?.ipRating || '-'}\n`;
+            txt += `Adequação NR-12: ${parsed.infra?.nr12 === 'Padrao' ? 'Padrão Tecfag' : 'Rigorosa (ART/Laudo)'}\n`;
+            txt += `Atmosfera Explosiva (Risco EX): ${parsed.infra?.classifiedArea || 'Não'}\n`;
+            txt += `Método de Limpeza: ${parsed.infra?.cleaning || '-'}\n`;
+            txt += `Temperatura Sala de Produção: ${parsed.infra?.envTemp || '-'}\n`;
+            txt += `Espaço / Acesso Físico: ${parsed.infra?.spaceLimit || 'Adequado'}\n\n`;
+
+            txt += `==============================================\n`;
+            txt += `PARÂMETROS TÉCNICOS ESPECÍFICOS DO EQUIPAMENTO\n`;
+            txt += `==============================================\n`;
+            for (const [k, v] of Object.entries(parsed.parameters || {})) {
+                if (v !== undefined && v !== null && v !== '') {
+                    txt += `${translateParamKey(k)}: ${v}\n`;
+                }
+            }
+            txt += `\n`;
+
+            if (parsed.observations) {
+                txt += `==============================================\n`;
+                txt += `OBSERVAÇÕES ADICIONAIS\n`;
+                txt += `==============================================\n`;
+                txt += `${parsed.observations}\n`;
+            }
+            
+            navigator.clipboard.writeText(txt);
+            alert('Memorial Técnico copiado no formato de e-mail com sucesso!');
         }
 
         // On Load Init
