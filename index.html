@@ -8950,6 +8950,18 @@
             if (urlInput) {
                 urlInput.value = defaultUrl;
             }
+
+            const defaultName = localStorage.getItem('tecfag_last_supplier_name') || '';
+            const nameInput = document.getElementById('sup-name');
+            if (nameInput && defaultName) {
+                nameInput.value = defaultName;
+            }
+
+            const defaultCategory = localStorage.getItem('tecfag_last_supplier_category') || '';
+            const categorySelect = document.getElementById('sup-category');
+            if (categorySelect && defaultCategory) {
+                categorySelect.value = defaultCategory;
+            }
         }
 
         function renderSupplierResourcesList() {
@@ -9026,9 +9038,13 @@
                     created_at: new Date().toISOString()
                 };
                 supplierResources.unshift(newResource);
+                localStorage.setItem('tecfag_last_supplier_name', name);
+                localStorage.setItem('tecfag_last_supplier_category', category);
                 localStorage.setItem('tecfag_last_supplier_url', url);
                 document.getElementById('supplier-resource-form').reset();
-                document.getElementById('sup-url').value = url; // Mantém o link preenchido
+                document.getElementById('sup-name').value = name;
+                document.getElementById('sup-category').value = category;
+                document.getElementById('sup-url').value = url;
                 renderSupplierResourcesList();
                 alert('Recurso cadastrado com sucesso na biblioteca simulada!');
                 return;
@@ -9052,9 +9068,13 @@
                 });
 
                 if (res.status === 201) {
+                    localStorage.setItem('tecfag_last_supplier_name', name);
+                    localStorage.setItem('tecfag_last_supplier_category', category);
                     localStorage.setItem('tecfag_last_supplier_url', url);
                     document.getElementById('supplier-resource-form').reset();
-                    document.getElementById('sup-url').value = url; // Mantém o link preenchido
+                    document.getElementById('sup-name').value = name;
+                    document.getElementById('sup-category').value = category;
+                    document.getElementById('sup-url').value = url;
                     await loadSupplierResources();
                     alert('Recurso cadastrado com sucesso na Biblioteca Técnica!');
                 } else {
