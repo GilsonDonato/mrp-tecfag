@@ -3623,6 +3623,650 @@ async function seedSupplierResources() {
         "title": "SBH Series 3D Motion mixer.pdf",
         "url": "https://drive.google.com/file/d/1bjcMhO3pR3wXmsYxwAmAQhptXiTtAsgJ/view?usp=drive_link",
         "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ESCOPO DO PROJETO - SELADORA EM L COM ALIMENTA├ç├âO AUTOAMTICA 2X3.docx",
+        "url": "https://drive.google.com/file/d/112RVFRawiBI_s_vJs3M-rZ7SKm0W0lez/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Informacao detalhada.docx",
+        "url": "https://drive.google.com/file/d/1qj78005WLk9qLxRL59IbAX0xxHmIzzTp/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quote LY115060501 PRO-625.pdf",
+        "url": "https://drive.google.com/file/d/19k-8XEPvN-qbYzn-4x5LWoU0M38pgp8w/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quote for  JL-250III servo softgel production line with smart dryer-260526.pdf",
+        "url": "https://drive.google.com/file/d/1yVNhIh1OkYxik76put2BGre2lddqToUB/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "JL250III softgel production line layout-260526 dehumidifer tumbler dryer Model (1).pdf",
+        "url": "https://drive.google.com/file/d/1MsJmvpJvRwGHqAUeZAARx2WaUJJSlWPe/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quote for  JL-250III servo softgel production line with smart dryer-251030.pdf",
+        "url": "https://drive.google.com/file/d/1HYNNiiPsIAR79mO0wVmWaJLm-XIKrURM/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Lab Suppository Production Line ZL-1L(B)- 2026.05.20.pdf",
+        "url": "https://drive.google.com/file/d/1qtt4RoAzHnyy9Pr6iFwE1b8TjlIMFvzq/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Automatc Round Jar Labeling Machine .doc",
+        "url": "https://drive.google.com/file/d/1NjQNlx-afXHChggv-G9PdmiapWp2x2Re/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation-Syrup Filling Line & Cartoning machines-V0402.doc",
+        "url": "https://drive.google.com/file/d/1REa9Um6px_S_54NRerLYa59cq7uj57kp/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Separador de disco.pdf",
+        "url": "https://drive.google.com/file/d/1Qfhn8QjKDwKc065kpv1bsWMaUfr092O4/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Rotary type pre-made bag packaging machine µùïÞ¢¼Õ╝Åþ╗ÖÞóïµ£║.pdf",
+        "url": "https://drive.google.com/file/d/1BLlBcNgX6zDNvhZwWx8I3UzcNp3axiqz/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Envasadora de agua 12000bottle per hour  USA.doc",
+        "url": "https://drive.google.com/file/d/1BhLn2FFw6ebTL5Wy76Lbl6escb5_R_RO/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Tray for HVT.docx",
+        "url": "https://drive.google.com/file/d/1ClyOkD9LfzLX2FgI_i4eSMvYZLe9nICK/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "SHIN",
+        "machine_category": "GERAL",
+        "title": "20250916-J1-304 Quotation of HVT-650A Automatic Tray Gas-flushing pack Machine Double Station-BRTC.docx",
+        "url": "https://drive.google.com/file/d/1DLQx-NWF1xnLDqAKWGoEHhIDxGjRrpwq/view",
+        "notes": "Cotação comercial do fornecedor SHIN."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Qutation list for suppository-25.08.05(1).docx",
+        "url": "https://drive.google.com/file/d/1rzn5E7N4OFi3L7kEuIEUzYMHGk8-hOn4/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "0203-SJ3LS Automatic Suppository Line.docx",
+        "url": "https://drive.google.com/file/d/1O7hgcuBpQPhvs_KBECZAuie7MIToWkPY/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Rotuladora de ampolas Y-500 Labeling machine proposal.doc",
+        "url": "https://drive.google.com/file/d/1eyy3imrsegV6sqzJSIpDzIm3LJFyIROW/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Modelos de comprimidos.pdf",
+        "url": "https://drive.google.com/file/d/1bNbl1wtFyhOgdC9Ihs4MDmbjSmnk0ZmO/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "HVT-450R Rotary type quotation and trays bandeja.docx",
+        "url": "https://drive.google.com/file/d/1c1IjIq74OhguVbscRHj7POly7ucC2c3H/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "bandejas retas PE.doc",
+        "url": "https://drive.google.com/file/d/1SFLTvzEmgeBdHwwaoPA8-YexyhFx2CfT/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "HVC-760FS Skin packaging vacuum sealer-e BANDEJAS.doc",
+        "url": "https://drive.google.com/file/d/1jFL994ioOQZK1riNoATqxlnMFMkOXkG2/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DPH-260H automatic high-speed blister packaging machine catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1z-uYao5bZu0CzGdy_KlXD6HmoiF_0ENY/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Softech 250III - Servo Motor.pdf",
+        "url": "https://drive.google.com/file/d/1LqpG96XU8k8XnFZhC7ZH8wpefmOYmTSU/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quote for double deck intelligent tumble dryer 24 dryers-240506.pdf",
+        "url": "https://drive.google.com/file/d/1DtG_6UgEpOVjeN2vA84AzxAPd5F0hLy_/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "JL150III softgel production line layout with dehumidifer tumbler dryer-240915 Model (1).pdf",
+        "url": "https://drive.google.com/file/d/1TkcKgJWxidBLKGGFOvP_0J_Ad_qOvjY_/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quote for  JL-250III servo softgel production line-240404 Version 2 (003).pdf",
+        "url": "https://drive.google.com/file/d/1OVgQvUJE3B0XAh_FwZrXk3Mojo0J9SAP/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quote for  JL-250III servo softgel production line-240628.pdf",
+        "url": "https://drive.google.com/file/d/1FRv56DIaa19KrnAau5WM5mnQVJY1koOn/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "melting tank mixer electrical panel 2024.8.5 .pdf",
+        "url": "https://drive.google.com/file/d/1Nya-RH6YNdyd2bB_So5d4Xa3ddaD2NOq/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "JL-150III  Softgel Production Line Quote  with smart tumbler dryer 24-2.doc",
+        "url": "https://drive.google.com/file/d/1tB5Fa2gI-5TiMf0jlsrbY-n0vZl3V1KV/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quote for  JL-300III servo softgel production line-240625 Version 1.pdf",
+        "url": "https://drive.google.com/file/d/1uJmq8EcyZ2gBxGSrBeNFzXdmtM1O0y56/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quote for  JL-300III servo softgel production line-2400903 Version 1(1).pdf",
+        "url": "https://drive.google.com/file/d/1umUcYhJF7Y2fOL2gphRc4BcdUeR8UECj/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Softech - 250 Plus com Servo Motor + Sistema de Secagem Linear Duplo -_db0dc985-3ded-4db5-a3e7-9d9bc70c76f1.pdf",
+        "url": "https://drive.google.com/file/d/1N8ZqF7yUC_oT0fS6EeTHYmuIfbmnPuwf/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "JL250III softgel production line layout-2400912 double deck dryer Model (1).pdf",
+        "url": "https://drive.google.com/file/d/1R5-_GZ2f8awjQe5JA4v4R-orHd2lwjVE/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quote for  JL-250III servo softgel production line with online dryer-240912.pdf",
+        "url": "https://drive.google.com/file/d/1x_OEJkv6l5UPOjRrfpYbUr1odHyimW76/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "JL150III softgel production line layout with double deck tumbler dryer-2409151 Model (1).pdf",
+        "url": "https://drive.google.com/file/d/12vna5fiVaqcxeIFeVaD_a-d7QqkCLOF0/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "JL100II softgel production line layout with double deck tumbler dryer-240915 Model (1).pdf",
+        "url": "https://drive.google.com/file/d/1RSKo1fuXMTpYy9kpj8p5WCLmXzyLy8aE/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "JLGZ-70 Intelligent Dehumidification Tumble Dryer .pdf",
+        "url": "https://drive.google.com/file/d/1HZ4OLTApC86u3p_2TfO5aq8OSV3OM-ku/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "auxiliary equipment holder-240712.pdf",
+        "url": "https://drive.google.com/file/d/16PnlSjxvrPsdtZDwEuanGw6hqZgxNTGm/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "schematic of 1000L gel melting system 1 (1).pdf",
+        "url": "https://drive.google.com/file/d/1LZe2Cbw2C337lS-frKCHio3I2vvGh9s1/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quote┬áfor┬átable┬átop┬áRD┬ámachine-250312.doc",
+        "url": "https://drive.google.com/file/d/1wnzuinUJb4Dvo7U3t4Ple5DzDtfcQ2Lv/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quote for  JL-250III servo softgel production line with smart dryer-250219.doc",
+        "url": "https://drive.google.com/file/d/1P4C68RvW4zptnH2TcaiGF4gNdKzZPCfQ/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quote for  JL-250III servo softgel production line drying trays-250219.doc",
+        "url": "https://drive.google.com/file/d/19pwBhvGp7V4odQPdZV5lJjKEd4ozgftm/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SW-320  Protein Powder Doypack Pouch Packing Machine.pdf",
+        "url": "https://drive.google.com/file/d/1p9YSqRj_xuy0uPayLDcSCzrfHREra5SF/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Pre├ºo SOFTECH250.xlsx",
+        "url": "https://drive.google.com/file/d/1jCGadjyRhWQT2xeyb9iimVKNab-qJoOO/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "0608-Quotation of Sleeve labeling machine.pdf",
+        "url": "https://drive.google.com/file/d/10qL29STplXeb0_WoDCrC54UaXVRcLSy8/view?usp=sharing",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Confirmed quotation list of RG2-250C softgel encapsulation line. 230306.docx",
+        "url": "https://drive.google.com/file/d/1R-Khiuvvdm1KQ3AdKsyEl0cVwnQCg-ge/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "F500-1 model Soap making production Line(capacity 300- 500KG per hour) catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1SusfQgeN84b188dgQgTjXVCwGunDmsVP/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Cotação em Reais100-300kg.doc",
+        "url": "https://drive.google.com/file/d/1nmctqLe_U52m3KWYyr0Z8mmnLcXmiYU-/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "2023Jan-cotation(100-300kg of standard).doc",
+        "url": "https://drive.google.com/file/d/1bQA74pLbUBIeijnmMMtKJ1oLsl0HNgeM/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Cotação em Reais500KG-600KG .doc",
+        "url": "https://drive.google.com/file/d/1gTA03IwneIYVw2_MQlSeWFuvVxltzkiN/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "2023Jan-cotation(500-600kg of standard).doc",
+        "url": "https://drive.google.com/file/d/1x6xIwBzP3q3T4ATiXkwmwkPEv9wBeHPf/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SW-200 Whey Protein Powder Zipper Doypack Pouch Automatic Packing Machine.pdf",
+        "url": "https://drive.google.com/file/d/1HMvDJ3PRfjt7vr_BF9Yq_k_GhHFJQuQm/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Pre├ºo 10-2022.docx",
+        "url": "https://drive.google.com/file/d/1RKa-PD_jRFST9DJt9h_M0XVsl2zsVpTL/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Pre├ºo RG2-200C.docx",
+        "url": "https://drive.google.com/file/d/1pGqtdJjCjd7Nt2j_SuvMuTcbjMqPFSLk/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "RG2-250C Soft Gelatin Encapsulation Production Line catalogue.pdf",
+        "url": "https://drive.google.com/file/d/135mMi_g08koWaB-e3Qvl-yy-IkAAG9Lg/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "RG2-200C Soft Gelatin Encapsulation Production Line catalogue (1).pdf",
+        "url": "https://drive.google.com/file/d/1NwfXByOisMLC4zKo0NWSjHOoG78IbBB7/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "2022May-Quotation of Powder packaging machine unit.docx",
+        "url": "https://drive.google.com/file/d/1wP7WxHUkiOf8C40HEd0Lf_eBuJdOVywW/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SP8-250B Rotary Packing Machine - Tecfag.pdf",
+        "url": "https://drive.google.com/file/d/1qpLrCPLm387e0UJZntG4NrtYjmO7HjRE/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SP8-250B Rotary Packing Machine - Tecfag.doc",
+        "url": "https://drive.google.com/file/d/1ykc42tXD9s1SOKwAmkOfuYiZ1X3W4Bqs/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "GD8-250B Rotary Packing Machine.doc",
+        "url": "https://drive.google.com/file/d/1Tiv4DQu5J_F70WLCUGOZ2AOeshmG2xwA/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "price RG2-250C.docx",
+        "url": "https://drive.google.com/file/d/1BoA1fe0Src4Fe9uxuKpg6HxOGqUCA7sY/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "RG250 softgel encapsulation line. quotation list. 220225.docx",
+        "url": "https://drive.google.com/file/d/1cAyIveLMKRE1xT1mn7Ytv6tDU0HO5CJr/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "RG0.8-110 COTA├ç├éO complete sofgel encapsulation line.docx",
+        "url": "https://drive.google.com/file/d/1-it-2zUSkRDiD_vDj2gDBIltqxWBWdCo/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SHL.1582ÕìºÕ╝ÅÞ┤┤µáçµ£║.PDF.pdf",
+        "url": "https://drive.google.com/file/d/1nCdQs8QMHlhvM2iHzpbS7qv16-dcAyda/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Bottle packaging production line catalouge.pdf",
+        "url": "https://drive.google.com/file/d/1QsxoB7h3ourZILikVKsx5dPeN1vm5xbB/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DPP260H2 Automatic tablet capsule softgel blister packing machine.pdf",
+        "url": "https://drive.google.com/file/d/1lzevToUJSC_p0KSpXan22vvbf5tucwGk/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DPH260 blister machine and ZH-260 High Speed Automatic Continously Cartoning Machine catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1_25D-6Wpw8vDu4dE6MA1RwZK4ITAj1eF/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "RG0.8-110 COTA├ç├éO complete sofgel encapsulation line.pdf",
+        "url": "https://drive.google.com/file/d/1Ad9Pk6lcZrhIIFjnk6kKMQKu3QQN1xBk/view?usp=sharing",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "RG0.8-110 completo processo de produ├º├úo.pdf",
+        "url": "https://drive.google.com/file/d/1pfIVg2J0hqcVE89985ttxVIYMINdEsyx/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "RG0 8-110c Normal production type soft encapsulation.pdf",
+        "url": "https://drive.google.com/file/d/1iw7CPlr23d7xyRaFMGjp2FPyyWObRexa/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "RG0 8-110C R&D type Soft gel encapsulation line.pdf",
+        "url": "https://drive.google.com/file/d/16J377-SiNY91RH-Ir9WvFVy0OY0O6Wx-/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DLZ-596 Model automatic.pdf",
+        "url": "https://drive.google.com/file/d/1HUiD1yFkyEMgedfrz97MWMEkqiWL6Dhf/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DLZ-596 Automatic stretch film food vacuum packing machine for peanuts.doc",
+        "url": "https://drive.google.com/file/d/1zhwoULjSxjW6s_uFwvHJNSRabrZHe1hJ/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DZL596 com sistema 2 balan├ºa cabe├ºas .mp4",
+        "url": "https://drive.google.com/file/d/11CxreINbpan7-dl6CcjWE8ZB8IVoy4xp/view?usp=sharing",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Automatic disposable shoe cover making machine catalogue Tecfag.pdf",
+        "url": "https://drive.google.com/file/d/1uqvTNThFnzM6SE6WtoLbr88lnkQBtzZi/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Disposable head cover automatic cap making_machinecatalogue Tecfag.pdf",
+        "url": "https://drive.google.com/file/d/1nRm9EmI4AKXwU5Mgwo0rjT3cmgicgIES/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SHL-3520 Carton corner labeling machine catalogue n.doc",
+        "url": "https://drive.google.com/file/d/1fmykyUYrE1SsH_wAeCzXEBreu3tZfdLg/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "CD-1680  and DZP600 paper card packing machine(1).pdf",
+        "url": "https://drive.google.com/file/d/1iie2X_vhAK4LRcJ7sImk3fmA26267yam/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DPP-120HÔûæ┬│├ÄÔûæÔòù┬ÀGMPÔòÜ┬ñ├ì├▒├ÄÔò®Ôö┤┬ñ.doc",
+        "url": "https://drive.google.com/file/d/15Cf_LnEu7Zp_4tlWDXVXJUZoIM8MXYNR/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "QUOTATION- DPB-260H Flat-plate Automatic Blister Packing Machine 20190815.pdf",
+        "url": "https://drive.google.com/file/d/1SRZCVkkF-KIblkext9i00Uq95Q043OFS/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DPP80_140__250_ model blister packing machine.pdf",
+        "url": "https://drive.google.com/file/d/1j-rRSz9Nel5C3azHRV0OOItpxU2BYnsp/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DPP80L Automatic Blister Packing Machine for honey jam chocolate.pdf",
+        "url": "https://drive.google.com/file/d/1S7a1uYyUXAIv1UdGegcvKADzTu74rSRq/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "quotation for DPM-SLM-B Automatic top side_labeling machine.pdf",
+        "url": "https://drive.google.com/file/d/1-Mic5wJkzEPO0TJbCYu6pmg9ajxbbrZP/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "quotation of labelling machine20190111.xlsx",
+        "url": "https://drive.google.com/file/d/1plabP8Xi3nysrXFrKcdDq7hpo-fOynsr/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DPT80 blister packing machine.pdf",
+        "url": "https://drive.google.com/file/d/18nqJSZDCJxIXF3OuKsQeF4V-w-EIo9FM/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DPB180 Automatic Blister Packing Machine. newÔÇØþÜäÕë»µ£¼.pdf",
+        "url": "https://drive.google.com/file/d/1Mho4ByQD6k9NDpHNj1ADI_vMH5xurqyu/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DPB-80 DQ,IQ,OQ,PQ1 (1).doc",
+        "url": "https://drive.google.com/file/d/1QqVjA7VhHY3xQX1CWEOVmARgm95risYm/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DPB140 Multifunctional Automatic Blister Packing Machine.pdf",
+        "url": "https://drive.google.com/file/d/1vuZwi0IooxxdbllzFKE0SC2heJwjY_kc/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DPB80 Small type blister packing machine.new.pdf",
+        "url": "https://drive.google.com/file/d/1sKBBijICj0-sV-krwhUsmXjX4vQerURZ/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DPB-420V 520V Fully Automatic Soft _Hard_ Plastic Vacuum Blister Packing....pdf",
+        "url": "https://drive.google.com/file/d/1eXOPgngANrTq-j5yedDH4E8_mpfLFw50/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DPB-420V 520V Fully Automatic Soft _Hard_ Plastic Vacuum Blister Packing Machine.pdf",
+        "url": "https://drive.google.com/file/d/1uCXYIlAKK75fDx-vuMmtYi6WmQ3ahKTm/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DPB-420 Soft plastic Automatic Blister Packing Machine.doc",
+        "url": "https://drive.google.com/file/d/1CS6J_vQ5gL-_HRpPteu-gKom2V8szuIe/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
     }
 ];
 
