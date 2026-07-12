@@ -1253,7 +1253,24 @@ Responda APENAS com o objeto JSON puramente, sem formatação markdown de códig
                 }
             ],
             generationConfig: {
-                responseMimeType: "application/json"
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        answer: {
+                            type: "STRING",
+                            description: "Uma resposta clara e profissional em português, justificando tecnicamente sua escolha e citando qual fornecedor e máquina atende, e por quê."
+                        },
+                        references: {
+                            type: "ARRAY",
+                            items: {
+                                type: "INTEGER"
+                            },
+                            description: "Lista com os IDs inteiros dos catálogos sugeridos que realmente servem para a demanda."
+                        }
+                    },
+                    required: ["answer", "references"]
+                }
             }
         };
 
