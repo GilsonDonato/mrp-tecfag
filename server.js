@@ -1125,42 +1125,392 @@ function downloadFile(url) {
 
 async function seedSupplierResources() {
     const seedData = [
-        {
-            supplier_name: 'ANKE-YIMU',
-            machine_category: 'GERAL',
-            title: 'Linha de Contagem e Envase (ANKE-YIMU)',
-            url: 'https://drive.google.com/file/d/1_QV7QBG5LKu9-xqb9kymxw9MmD0bSAvM/view?usp=sharing',
-            notes: 'Catálogo de linhas de contagem, fracionamento e envase de cápsulas e comprimidos Yimu.'
-        },
-        {
-            supplier_name: 'HEADLY',
-            machine_category: 'GERAL',
-            title: 'Máquinas de Embalagem e Dosagem (HEADLY)',
-            url: 'https://drive.google.com/file/d/14Hy3KyJRFimtMutRFnjxbkPF6AeKLMKm/view?usp=sharing',
-            notes: 'Catálogo técnico de ensacadoras, empacotadoras e dosadores automáticos.'
-        },
-        {
-            supplier_name: 'VGOPACK',
-            machine_category: 'GERAL',
-            title: 'Máquinas de Embalar Cápsulas (VGOPACK)',
-            url: 'https://drive.google.com/file/d/1GqmPfY3_f07AO9lAAs5B_dWWiNW37flk/view?usp=sharing',
-            notes: 'Catálogo de máquinas de contagem de cápsulas, blisters e envase farmacêutico.'
-        },
-        {
-            supplier_name: 'Gurki',
-            machine_category: 'GERAL',
-            title: 'Robôs e Linhas de Embalagem (Gurki)',
-            url: 'https://drive.google.com/file/d/1AD_-yc-D6e6a21bEvzaCGu49HpiIIFkI/view?usp=drive_link',
-            notes: 'Linhas robóticas de final de linha, fechadoras de caixas e paletizadores Gurki.'
-        },
-        {
-            supplier_name: 'Yongsun',
-            machine_category: 'GERAL',
-            title: 'Máquinas de Arquear e Fitas (Yongsun)',
-            url: 'https://drive.google.com/file/d/14CNyZDuA3rPmyaOUQ7JFO8mWMPsnOnbm/view?usp=drive_link',
-            notes: 'Catálogo de fitas e arquear, arqueadoras semiautomáticas e automáticas Yongsun.'
-        }
-    ];
+    {
+        "supplier_name": "ANKE-YIMU",
+        "machine_category": "GERAL",
+        "title": "Linha de Contagem e Envase (ANKE-YIMU)",
+        "url": "https://drive.google.com/file/d/1_QV7QBG5LKu9-xqb9kymxw9MmD0bSAvM/view?usp=sharing",
+        "notes": "Catálogo de linhas de contagem, fracionamento e envase de cápsulas e comprimidos Yimu."
+    },
+    {
+        "supplier_name": "HEADLY",
+        "machine_category": "GERAL",
+        "title": "Máquinas de Embalagem e Dosagem (HEADLY)",
+        "url": "https://drive.google.com/file/d/14Hy3KyJRFimtMutRFnjxbkPF6AeKLMKm/view?usp=sharing",
+        "notes": "Catálogo técnico de ensacadoras, empacotadoras e dosadores automáticos."
+    },
+    {
+        "supplier_name": "VGOPACK",
+        "machine_category": "GERAL",
+        "title": "Máquinas de Embalar Cápsulas (VGOPACK)",
+        "url": "https://drive.google.com/file/d/1GqmPfY3_f07AO9lAAs5B_dWWiNW37flk/view?usp=sharing",
+        "notes": "Catálogo de máquinas de contagem de cápsulas, blisters e envase farmacêutico."
+    },
+    {
+        "supplier_name": "Gurki",
+        "machine_category": "GERAL",
+        "title": "Robôs e Linhas de Embalagem (Gurki)",
+        "url": "https://drive.google.com/file/d/1AD_-yc-D6e6a21bEvzaCGu49HpiIIFkI/view?usp=drive_link",
+        "notes": "Linhas robóticas de final de linha, fechadoras de caixas e paletizadores Gurki."
+    },
+    {
+        "supplier_name": "Yongsun",
+        "machine_category": "GERAL",
+        "title": "Máquinas de Arquear e Fitas (Yongsun)",
+        "url": "https://drive.google.com/file/d/14CNyZDuA3rPmyaOUQ7JFO8mWMPsnOnbm/view?usp=drive_link",
+        "notes": "Catálogo de fitas e arquear, arqueadoras semiautomáticas e automáticas Yongsun."
+    },
+    {
+        "supplier_name": "AOLGE",
+        "machine_category": "GERAL",
+        "title": "Aolge Catalog.pdf",
+        "url": "https://drive.google.com/file/d/15vbNawoOE4uMv_KEzpYvolhlSeofZ22J/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor AOLGE importado no lote em lote."
+    },
+    {
+        "supplier_name": "YOUNA",
+        "machine_category": "GERAL",
+        "title": "YOUNA Catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1ufhNf4q9VzKyhr9F4NtBENjczunqpZ7O/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor YOUNA importado no lote em lote."
+    },
+    {
+        "supplier_name": "ZHONGYLONG",
+        "machine_category": "GERAL",
+        "title": "Zhongylong numer 1.pdf",
+        "url": "https://drive.google.com/file/d/1SzhAPrChlnWEMNqe_JjOwVjERlnbSnB4/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor ZHONGYLONG importado no lote em lote."
+    },
+    {
+        "supplier_name": "ZHONGYLONG",
+        "machine_category": "GERAL",
+        "title": "Zhongylong number 2.pdf",
+        "url": "https://drive.google.com/file/d/17j5lbh2tJn0yiuAbNkrVWFn99wgtKItj/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor ZHONGYLONG importado no lote em lote."
+    },
+    {
+        "supplier_name": "XIAMEN",
+        "machine_category": "GERAL",
+        "title": "XIAMEN.pdf",
+        "url": "https://drive.google.com/file/d/1ZY7mF4hgUcHGNfIMcso0ifqHU8jd4V6x/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor XIAMEN importado no lote em lote."
+    },
+    {
+        "supplier_name": "HANGZHOU",
+        "machine_category": "GERAL",
+        "title": "HanGzhou multihead weigher and packing machine Series E-catalog20200618.pdf",
+        "url": "https://drive.google.com/file/d/1KCNfYtztoEXkaOZm2J9FfHQCWOuWXt9-/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor HANGZHOU importado no lote em lote."
+    },
+    {
+        "supplier_name": "RUIPACKING",
+        "machine_category": "GERAL",
+        "title": "RuiPacking.pdf",
+        "url": "https://drive.google.com/file/d/19plWMUWl0wE7Cpw-d1oE0X1vMZ9gvCsx/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor RUIPACKING importado no lote em lote."
+    },
+    {
+        "supplier_name": "NEOSPACK",
+        "machine_category": "GERAL",
+        "title": "NEOSPACK CATALOG(日英文版) 20230331 (日本).pdf",
+        "url": "https://drive.google.com/file/d/1xiQ6K01m670pIghRKknq0UZjfATzDgaZ/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor NEOSPACK importado no lote em lote."
+    },
+    {
+        "supplier_name": "DARIN",
+        "machine_category": "GERAL",
+        "title": "Darin pet 2026-01.pdf",
+        "url": "https://drive.google.com/file/d/12QVJCFRg8OcyJ97RoHSpoRJFkJDv9B4X/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor DARIN importado no lote em lote."
+    },
+    {
+        "supplier_name": "HONGCHAO",
+        "machine_category": "GERAL",
+        "title": "Product Brochure of Hongchao.pdf",
+        "url": "https://drive.google.com/file/d/1kM1kl0JdxlzZPkLvUB6AEW_Ky1EF6G7U/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor HONGCHAO importado no lote em lote."
+    },
+    {
+        "supplier_name": "Y & G",
+        "machine_category": "GERAL",
+        "title": "Y & G PACKING MACHINERY.pdf",
+        "url": "https://drive.google.com/file/d/1drZU7Iy1MfqoLnFB_HiF72JIAKwuBJbM/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor Y & G importado no lote em lote."
+    },
+    {
+        "supplier_name": "GZHMD",
+        "machine_category": "GERAL",
+        "title": "GZHMD machinery.pdf",
+        "url": "https://drive.google.com/file/d/1aL2SyJJGYZnGJHCpyqjOzfT8DNEcGZvD/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor GZHMD importado no lote em lote."
+    },
+    {
+        "supplier_name": "GZHMD",
+        "machine_category": "GERAL",
+        "title": "GZHMDCML.pdf",
+        "url": "https://drive.google.com/file/d/1XApwT4-Qgj0G0W9W9XBtzMHQivkTg9IJ/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor GZHMD importado no lote em lote."
+    },
+    {
+        "supplier_name": "HUALIAN",
+        "machine_category": "GERAL",
+        "title": "Hualian New Products.pdf",
+        "url": "https://drive.google.com/file/d/1mYgv9LOnjdjzz4Ei9GwT0hXCgIUXb9FI/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor HUALIAN importado no lote em lote."
+    },
+    {
+        "supplier_name": "HAOMINGDA",
+        "machine_category": "GERAL",
+        "title": "Haomingda catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1PB-Ilzyf_Tb9Qz33vvPNJ_vdTVKrzFdT/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor HAOMINGDA importado no lote em lote."
+    },
+    {
+        "supplier_name": "HAITE",
+        "machine_category": "GERAL",
+        "title": "Haite.pdf",
+        "url": "https://drive.google.com/file/d/1bPT-Ola__Cw5H6kL9Vg98mK2zGld7cQd/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor HAITE importado no lote em lote."
+    },
+    {
+        "supplier_name": "ISG",
+        "machine_category": "GERAL",
+        "title": "ISG Link catalogues-cataloghi.docx",
+        "url": "https://drive.google.com/file/d/1LiNv06mx4KEWLSkvoHHerUCqiUIW2nrJ/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor ISG importado no lote em lote."
+    },
+    {
+        "supplier_name": "ISG",
+        "machine_category": "GERAL",
+        "title": "ISG POF microperforated price list ISG Pack 2018.pdf",
+        "url": "https://drive.google.com/file/d/1pyPBIYPBWkqeM68U2Q7IFM5tmRaDN4nU/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor ISG importado no lote em lote."
+    },
+    {
+        "supplier_name": "ISG",
+        "machine_category": "GERAL",
+        "title": "Pof price list ISG Pack 2018.pdf",
+        "url": "https://drive.google.com/file/d/1z7qyjUs1y8yUgtyoMnAaNGxAFQM8UOzJ/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor ISG importado no lote em lote."
+    },
+    {
+        "supplier_name": "ISG",
+        "machine_category": "GERAL",
+        "title": "ISG Stretch wrapping machines price list ISG Pack 2018 (1).pdf",
+        "url": "https://drive.google.com/file/d/1qHMI2oZbAxup5gPh3ginAJs3EM31DPWi/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor ISG importado no lote em lote."
+    },
+    {
+        "supplier_name": "ISG",
+        "machine_category": "GERAL",
+        "title": "ISG Strapping tools price list ISG Pack 2018.pdf",
+        "url": "https://drive.google.com/file/d/1t-6RLlGyimltaMvBEF7jLfgFC0QpKybU/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor ISG importado no lote em lote."
+    },
+    {
+        "supplier_name": "ISG",
+        "machine_category": "GERAL",
+        "title": "ISG Shrink machines price list ISG Pack 2018.pdf",
+        "url": "https://drive.google.com/file/d/1c-7WUB9yqoo6b8h2LOjLCmt8SX7fZ_ry/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor ISG importado no lote em lote."
+    },
+    {
+        "supplier_name": "ISG",
+        "machine_category": "GERAL",
+        "title": "Horizontal flowpack price list ISG Pack 2018.pdf",
+        "url": "https://drive.google.com/file/d/1-1SQ7n0eGgc5BqtoYzmp8QGX7CYyrUEe/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor ISG importado no lote em lote."
+    },
+    {
+        "supplier_name": "ISG",
+        "machine_category": "GERAL",
+        "title": "ISG Banding machines price list Pack 2018.pdf",
+        "url": "https://drive.google.com/file/d/1AAp-s3p-i1Ps_Ad2vjWCInAM673_z-UX/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor ISG importado no lote em lote."
+    },
+    {
+        "supplier_name": "ISG",
+        "machine_category": "GERAL",
+        "title": "ISG Stretch wrapping machines price list ISG Pack 2018.pdf",
+        "url": "https://drive.google.com/file/d/17FUJJEI73GNpiwIvGuLMrQfaRORigwG6/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor ISG importado no lote em lote."
+    },
+    {
+        "supplier_name": "ISG",
+        "machine_category": "GERAL",
+        "title": "ISGCarton sealers price list ISG Pack 2018.pdf",
+        "url": "https://drive.google.com/file/d/1k1lC9d9mRctic5_aB0C0NILgiHKpawXE/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor ISG importado no lote em lote."
+    },
+    {
+        "supplier_name": "ISG",
+        "machine_category": "GERAL",
+        "title": "ISG Case erectors price list ISG Pack 2018.pdf",
+        "url": "https://drive.google.com/file/d/1Qh46t0v6BxNo4wFdV74LotDtkih-Ghhy/view?usp=sharing",
+        "notes": "Catálogo do fornecedor ISG importado no lote em lote."
+    },
+    {
+        "supplier_name": "ISG",
+        "machine_category": "GERAL",
+        "title": "ISG Pack 2018.pdf",
+        "url": "https://drive.google.com/file/d/1XAa1zGVeLXfyH2Berraq2SMLWe_mCzhZ/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor ISG importado no lote em lote."
+    },
+    {
+        "supplier_name": "HOFEN",
+        "machine_category": "GERAL",
+        "title": "HOFEN.pdf",
+        "url": "https://drive.google.com/file/d/1iZWDvGF6Mtr60qGqsCKrx7_421Itr-dZ/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor HOFEN importado no lote em lote."
+    },
+    {
+        "supplier_name": "UBPACK",
+        "machine_category": "GERAL",
+        "title": "Quotation_ubpack_20230707.xls",
+        "url": "https://drive.google.com/file/d/1UlbM2wM1BCjKx0E7xSZaHNXHDrBTXHRu/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor UBPACK importado no lote em lote."
+    },
+    {
+        "supplier_name": "MEENJET",
+        "machine_category": "GERAL",
+        "title": "Meenjet Laser Marking-Catalog.pdf",
+        "url": "https://drive.google.com/file/d/1mabCpfG6dKdC3Mp7cavWolMLJWdUql3X/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor MEENJET importado no lote em lote."
+    },
+    {
+        "supplier_name": "MEENJET",
+        "machine_category": "GERAL",
+        "title": "Meenjet TIJ-CATALOG.pdf",
+        "url": "https://drive.google.com/file/d/1FrWqjSWM8s637P24iVVoaCRR3I-cNDYZ/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor MEENJET importado no lote em lote."
+    },
+    {
+        "supplier_name": "MEENJET",
+        "machine_category": "GERAL",
+        "title": "Meenjet Laser-Agent-Price-P.pdf",
+        "url": "https://drive.google.com/file/d/1Iw5rJtHoKnNwK5W-uCvf6WjL3RniAIvJ/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor MEENJET importado no lote em lote."
+    },
+    {
+        "supplier_name": "SHISHA",
+        "machine_category": "GERAL",
+        "title": "SHISHAcatalog.pdf",
+        "url": "https://drive.google.com/file/d/1YB0E3whEetTpJRTeb62AZ-D80YYDMLnF/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor SHISHA importado no lote em lote."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Catalogue-Sheet Feeding Paper bag making Machine.pptx",
+        "url": "https://drive.google.com/file/d/1Vzozef8F9EJmh3vXxpC38rdy3Kd8Hlye/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor GERAL importado no lote em lote."
+    },
+    {
+        "supplier_name": "URBAN",
+        "machine_category": "GERAL",
+        "title": "URBAN2.pdf",
+        "url": "https://drive.google.com/file/d/1XZ8IAohKYHO6neJYXCQK_q9rlfTp4Uwv/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor URBAN importado no lote em lote."
+    },
+    {
+        "supplier_name": "LISON",
+        "machine_category": "GERAL",
+        "title": "Lison .pdf",
+        "url": "https://drive.google.com/file/d/1QBqOw4ShpQb4-WOcenPGzz7iQS6AarYa/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor LISON importado no lote em lote."
+    },
+    {
+        "supplier_name": "ANBO",
+        "machine_category": "GERAL",
+        "title": "Anbo Machinery.pdf",
+        "url": "https://drive.google.com/file/d/1WHUDegv3MHidahbMjfrOOiEyWEj7Suhf/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor ANBO importado no lote em lote."
+    },
+    {
+        "supplier_name": "JOIE",
+        "machine_category": "GERAL",
+        "title": "JOIE.pdf",
+        "url": "https://drive.google.com/file/d/1ql_PNN-Gx2cJDjTT7vYzj8mDQ9KhZ09c/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor JOIE importado no lote em lote."
+    },
+    {
+        "supplier_name": "KITECH",
+        "machine_category": "GERAL",
+        "title": "Kitech2.pdf",
+        "url": "https://drive.google.com/file/d/13KqsEG6gyre37_XZBQnKl5cxhNwumQMG/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor KITECH importado no lote em lote."
+    },
+    {
+        "supplier_name": "KITECH",
+        "machine_category": "GERAL",
+        "title": "Kitech.pdf",
+        "url": "https://drive.google.com/file/d/13_kCwgBCCNjcMslaUA8BCuGpvpSrN1jp/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor KITECH importado no lote em lote."
+    },
+    {
+        "supplier_name": "KENWEI",
+        "machine_category": "GERAL",
+        "title": "KENWEI.pdf",
+        "url": "https://drive.google.com/file/d/1N8_H3IPY_TEKztOFBLktkkW7grci61ys/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor KENWEI importado no lote em lote."
+    },
+    {
+        "supplier_name": "KENWEI",
+        "machine_category": "GERAL",
+        "title": "Kenwei .pdf",
+        "url": "https://drive.google.com/file/d/1rRAk-Jv18YNyWw-6lgwNaP-Dcvwv5DVC/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor KENWEI importado no lote em lote."
+    },
+    {
+        "supplier_name": "TENGZHUO",
+        "machine_category": "GERAL",
+        "title": "TengZhuo.pdf",
+        "url": "https://drive.google.com/file/d/1Szg0JEUS0v6GFgQlk_800Q5Q547MxeQO/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor TENGZHUO importado no lote em lote."
+    },
+    {
+        "supplier_name": "INK JET",
+        "machine_category": "GERAL",
+        "title": "INK JETs.pdf",
+        "url": "https://drive.google.com/file/d/1P1WhQMO_iniXPJbyT542ZjLuunoQGKAS/view?usp=sharing",
+        "notes": "Catálogo do fornecedor INK JET importado no lote em lote."
+    },
+    {
+        "supplier_name": "URBAN",
+        "machine_category": "GERAL",
+        "title": "URBAN-2023.pdf",
+        "url": "https://drive.google.com/file/d/1fhMczI4YZJlh9frRZ7Rw9zc6i_oSEvaj/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor URBAN importado no lote em lote."
+    },
+    {
+        "supplier_name": "JWIN",
+        "machine_category": "GERAL",
+        "title": "JWIN.pdf",
+        "url": "https://drive.google.com/file/d/17Y-rZKhUHQk8WLapW976wtvKd9B3cmzu/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor JWIN importado no lote em lote."
+    },
+    {
+        "supplier_name": "SUNRISEPACK",
+        "machine_category": "GERAL",
+        "title": "Sunrisepack.pdf",
+        "url": "https://drive.google.com/file/d/1lCLLLjqeAgwyShrUITs8MtH3sKD0LSwl/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor SUNRISEPACK importado no lote em lote."
+    },
+    {
+        "supplier_name": "GURKI",
+        "machine_category": "GERAL",
+        "title": "GURKI CATALOGUE.pdf",
+        "url": "https://drive.google.com/file/d/1AKeRGGcwPELUROR3SMMe2lJSrchzC-Av/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor GURKI importado no lote em lote."
+    },
+    {
+        "supplier_name": "HAIZHOU",
+        "machine_category": "GERAL",
+        "title": "Haizhou Catalogo 2024.pdf",
+        "url": "https://drive.google.com/file/d/1Ga3-k3mSqspF2DkdV4IH_scpViylEA9F/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor HAIZHOU importado no lote em lote."
+    }
+];
 
     for (const item of seedData) {
         try {
