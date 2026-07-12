@@ -8945,7 +8945,12 @@
             }
 
             // Garante que o input recupere o link salvo/padrão
-            const defaultUrl = localStorage.getItem('tecfag_last_supplier_url') || 'https://drive.google.com/drive/folders/1kTsuS-DLRJIqkc3mA8_5fByLG3Ab4IqB?usp=sharing';
+            let defaultUrl = localStorage.getItem('tecfag_last_supplier_url');
+            // Se o link na memória estiver vazio ou for o link antigo (cortado de 32 caracteres), força o novo link correto
+            if (!defaultUrl || defaultUrl.includes('1kTsUS-DLRJIqkc3mA8_5fDyLG34b4iQ')) {
+                defaultUrl = 'https://drive.google.com/drive/folders/1kTsuS-DLRJIqkc3mA8_5fByLG3Ab4IqB?usp=sharing';
+                localStorage.setItem('tecfag_last_supplier_url', defaultUrl);
+            }
             const urlInput = document.getElementById('sup-url');
             if (urlInput) {
                 urlInput.value = defaultUrl;
