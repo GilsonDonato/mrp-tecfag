@@ -1116,8 +1116,22 @@ function downloadFile(url) {
                 return reject(new Error(`Falha ao baixar arquivo. Código HTTP: ${res.statusCode}`));
             }
 
+            // SEGURANÇA: Limita tamanho do download para evitar estouro de memória no Render
+            const contentLength = res.headers['content-length'];
+            if (contentLength && parseInt(contentLength) > 15 * 1024 * 1024) {
+                return reject(new Error(`Arquivo muito grande para limite de memória (${(parseInt(contentLength)/1024/1024).toFixed(1)}MB, máx 15MB)`));
+            }
+
             const data = [];
-            res.on('data', (chunk) => data.push(chunk));
+            let totalBytes = 0;
+            res.on('data', (chunk) => {
+                totalBytes += chunk.length;
+                if (totalBytes > 15 * 1024 * 1024) {
+                    res.destroy(); // Interrompe a conexão
+                    return reject(new Error('Tamanho máximo do arquivo excedido durante o download (máx 15MB)'));
+                }
+                data.push(chunk);
+            });
             res.on('end', () => resolve(Buffer.concat(data)));
         }).on('error', (err) => reject(err));
     });
@@ -1512,23 +1526,12 @@ async function seedSupplierResources() {
     }
 ];
 
+    // 1. Primeiro passo: Cadastra rapidamente TODOS os metadados no banco se não existirem
+    // Isso garante que apareçam no front-end na hora e evita timeouts de boot
     for (const item of seedData) {
         try {
-            // Verifica se já existe pelo URL
             const existing = await dbGet('SELECT id FROM supplier_resources WHERE url = ?', [item.url]);
             if (!existing) {
-                console.log(`[SEED] Cadastrando e extraindo texto para: ${item.title}...`);
-                let extracted_text = '';
-                try {
-                    const directUrl = convertDriveUrl(item.url);
-                    const fileBuffer = await downloadFile(directUrl);
-                    const pdfData = await pdfParse(fileBuffer);
-                    extracted_text = pdfData.text || '';
-                    console.log(`[SEED] Texto extraído (${extracted_text.length} caracteres) para ${item.title}`);
-                } catch (err) {
-                    console.warn(`[SEED] Falha ao extrair texto do PDF para ${item.title} (salvando apenas metadados):`, err.message);
-                }
-                
                 const sql = `INSERT INTO supplier_resources (
                     supplier_name, machine_category, title, url, notes, extracted_text, created_by, created_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
@@ -1538,15 +1541,59 @@ async function seedSupplierResources() {
                     item.title,
                     item.url,
                     item.notes,
-                    extracted_text,
+                    'PENDING', // Sinaliza que precisa extrair o texto em segundo plano
                     'sistema',
                     new Date().toISOString()
                 ]);
             }
         } catch (dbErr) {
-            console.error(`[SEED] Erro de banco ao inserir ${item.title}:`, dbErr.message);
+            console.error(`[SEED] Erro ao salvar metadados de ${item.title}:`, dbErr.message);
         }
     }
+
+    console.log('[SEED] Todos os metadados dos catálogos foram verificados/cadastrados.');
+
+    // 2. Segundo passo: Processa a extração de texto em segundo plano, um por um, com delay
+    // para evitar estouro de memória (Out Of Memory) no Render
+    setTimeout(async () => {
+        try {
+            const pendingResources = await dbAll("SELECT id, title, url FROM supplier_resources WHERE extracted_text = 'PENDING'");
+            if (pendingResources.length === 0) {
+                console.log('[SEED] Nenhum catálogo com extração de texto pendente.');
+                return;
+            }
+
+            console.log(`[SEED] Encontrados ${pendingResources.length} catálogos pendentes de extração de texto. Iniciando processamento sequencial...`);
+
+            for (const resInfo of pendingResources) {
+                console.log(`[SEED] Aguardando 15s antes de processar: ${resInfo.title}...`);
+                await new Promise(resolve => setTimeout(resolve, 15000)); // Delay de 15 segundos para GC liberar memória
+
+                // Marca como processando para evitar reprocessamento em caso de reinício rápido
+                await dbRun("UPDATE supplier_resources SET extracted_text = 'PROCESSING' WHERE id = ?", [resInfo.id]);
+
+                try {
+                    console.log(`[SEED] Baixando e extraindo texto de: ${resInfo.title}...`);
+                    const directUrl = convertDriveUrl(resInfo.url);
+                    const fileBuffer = await downloadFile(directUrl);
+                    
+                    const pdfData = await pdfParse(fileBuffer);
+                    const text = pdfData.text || '';
+                    
+                    await dbRun("UPDATE supplier_resources SET extracted_text = ? WHERE id = ?", [text, resInfo.id]);
+                    console.log(`[SEED] Sucesso! Texto extraído (${text.length} carac.) para: ${resInfo.title}`);
+                } catch (extractErr) {
+                    console.warn(`[SEED] Falha ao extrair texto de ${resInfo.title}:`, extractErr.message);
+                    // Salva status de falha para não tentar extrair novamente em loop
+                    const errorMsg = `FAILED: ${extractErr.message}`;
+                    await dbRun("UPDATE supplier_resources SET extracted_text = ? WHERE id = ?", [errorMsg, resInfo.id]);
+                }
+            }
+            console.log('[SEED] Processamento de extração de texto de catálogos concluído.');
+        } catch (err) {
+            console.error('[SEED] Erro no loop de extração de texto:', err.message);
+        }
+    }, 10000); // Inicia 10 segundos após o boot do servidor
 }
 
 // POST /api/supplier-resources - Cadastra novo recurso com extração automática de texto (restrito a Admin/Engenharia)
@@ -1654,7 +1701,12 @@ app.post('/api/supplier-resources/ai-search', authenticateToken, restrictToEngin
         // Prepara o contexto dos recursos para enviar ao Gemini
         // Trunca o texto extraído para não estourar o limite de tokens da API do Gemini em chamadas simples
         const resourcesContext = resources.map((r, index) => {
-            const snippet = (r.extracted_text || r.notes || '').substring(0, 4000); // 4k caracteres por catálogo
+            let textContent = r.extracted_text || '';
+            // Ignora status internos de processamento/erro para não poluir o contexto do Gemini
+            if (['PENDING', 'PROCESSING'].includes(textContent) || textContent.startsWith('FAILED:')) {
+                textContent = '';
+            }
+            const snippet = (textContent || r.notes || '').substring(0, 4000); // 4k caracteres por catálogo
             return `[ID: ${r.id}] Fornecedor: ${r.supplier_name} | Título: ${r.title} | Categoria: ${r.machine_category} | Notas: ${r.notes || 'Sem observações'} | Conteúdo do Catálogo:\n${snippet}\n---`;
         }).join('\n\n');
 
