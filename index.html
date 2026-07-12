@@ -2716,7 +2716,7 @@
                                         </select>
                                     </div>
                                 </div>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
+                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 10px;">
                                     <div class="form-group">
                                         <label for="prj-infra-pressure">Pressão Pneumática Mínima (bar/PSI)</label>
                                         <input type="text" id="prj-infra-pressure" class="form-control" placeholder="Ex: 6 bar / 90 PSI" oninput="runSkuSuggestionEngine()">
@@ -2725,10 +2725,18 @@
                                         <label for="prj-infra-air-consumption">Consumo Estimado de Ar (L/min)</label>
                                         <input type="text" id="prj-infra-air-consumption" class="form-control" placeholder="Ex: 250 L/min" oninput="runSkuSuggestionEngine()">
                                     </div>
+                                    <div class="form-group">
+                                        <label for="prj-infra-air-dryer">Secador de Ar Comprimido na Linha?</label>
+                                        <select id="prj-infra-air-dryer" class="form-control" onchange="runSkuSuggestionEngine()">
+                                            <option value="Sim">Sim (Ar seco e limpo)</option>
+                                            <option value="Não">Não (Risco de umidade nas válvulas)</option>
+                                            <option value="Não Sabe">Não Sabe / A verificar</option>
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <!-- Materiais e Normas -->
-                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
+                                <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1.2fr 1fr; gap: 15px; margin-bottom: 10px;">
                                     <div class="form-group">
                                         <label for="prj-infra-material">Aço Inox em Contato com Produto*</label>
                                         <select id="prj-infra-material" class="form-control" onchange="runSkuSuggestionEngine()">
@@ -2739,24 +2747,60 @@
                                     <div class="form-group">
                                         <label for="prj-infra-roughness">Polimento / Rugosidade de Solda*</label>
                                         <select id="prj-infra-roughness" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Padrao">Padrão Industrial (Espovada/Polida comum)</option>
+                                            <option value="Padrao">Padrão Industrial (Escovada/Polida comum)</option>
                                             <option value="Sanitario">Polimento Espelhado / Sanitário (Ra < 0.4µm - Farmacêutico)</option>
                                         </select>
                                     </div>
-                                </div>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                                     <div class="form-group">
                                         <label for="prj-infra-ip-rating">Grau de Proteção Painel (IP)*</label>
                                         <select id="prj-infra-ip-rating" class="form-control" onchange="runSkuSuggestionEngine()">
                                             <option value="IP54">IP54 (Ambiente seco / Poeira comum)</option>
-                                            <option value="IP65">IP65 (Impermeável / Lavável / Umidade constante)</option>
+                                            <option value="IP65">IP65 (Impermeável / Lavável / Umidade)</option>
                                         </select>
                                     </div>
+                                </div>
+
+                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
                                     <div class="form-group">
                                         <label for="prj-infra-nr12">Exigência Regulatória NR-12*</label>
                                         <select id="prj-infra-nr12" class="form-control" onchange="runSkuSuggestionEngine()">
                                             <option value="Padrao">Conformidade Padrão Tecfag (Sensores básicos)</option>
                                             <option value="Rigoroso">Adequação NR-12 Rigorosa com Relés duplos e Laudo ART</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="prj-infra-classified-area">Área Classificada / Atmosfera Explosiva (Risco EX)*</label>
+                                        <select id="prj-infra-classified-area" class="form-control" onchange="runSkuSuggestionEngine()">
+                                            <option value="Não">Não (Ambiente industrial comum)</option>
+                                            <option value="Poeira">Sim - Poeira Combustível (Açúcar, Cacau, Farinhas, Amidos)</option>
+                                            <option value="Gases">Sim - Líquidos/Vapores Inflamáveis (Álcool, Solventes, Químicos)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 15px;">
+                                    <div class="form-group">
+                                        <label for="prj-infra-cleaning">Método de Limpeza e Higienização*</label>
+                                        <select id="prj-infra-cleaning" class="form-control" onchange="runSkuSuggestionEngine()">
+                                            <option value="Seco">Apenas Seco (Pincel, pano seco ou ar comprimido)</option>
+                                            <option value="Umido">Pano úmido / Sanitização com álcool/panos</option>
+                                            <option value="Mangueira">Lavagem direta (Água corrente / Jato sob pressão)</option>
+                                            <option value="CIP">Clean-In-Place (Lavagem química recirculante)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="prj-infra-env-temp">Temperatura da Sala de Produção*</label>
+                                        <select id="prj-infra-env-temp" class="form-control" onchange="runSkuSuggestionEngine()">
+                                            <option value="Normal">Ambiente Normal (15°C a 30°C)</option>
+                                            <option value="Climatizada">Climatizada / Sala Fria (< 12°C - Requer aquecimento de painel)</option>
+                                            <option value="Quente">Quente / Úmida (> 35°C)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="prj-infra-space-limit">Limitação de Acesso Físico / Espaço?</label>
+                                        <select id="prj-infra-space-limit" class="form-control" onchange="runSkuSuggestionEngine()">
+                                            <option value="Não">Não (Acesso livre e espaço adequado)</option>
+                                            <option value="Sim">Sim (Portas estreitas, elevador pequeno ou teto baixo)</option>
                                         </select>
                                     </div>
                                 </div>
@@ -6360,10 +6404,15 @@
             txt += `Frequência: ${infra.frequency || '-'}\n`;
             txt += `Pressão de Ar: ${infra.pressure || '-'} bar/PSI\n`;
             txt += `Consumo de Ar: ${infra.airConsumption || '-'} L/min\n`;
+            txt += `Secador de Ar na Linha: ${infra.airDryer || '-'}\n`;
             txt += `Material de Contato: ${infra.material || '-'}\n`;
             txt += `Acabamento/Rugosidade: ${infra.roughness || '-'}\n`;
             txt += `Grau de Proteção: ${infra.ipRating || '-'}\n`;
-            txt += `Norma Reguladora: ${infra.nr12 || '-'}\n\n`;
+            txt += `Norma Reguladora: ${infra.nr12 || '-'}\n`;
+            txt += `Atmosfera Explosiva (EX): ${infra.classifiedArea || '-'}\n`;
+            txt += `Método de Limpeza: ${infra.cleaning || '-'}\n`;
+            txt += `Temperatura da Sala: ${infra.envTemp || '-'}\n`;
+            txt += `Limitação de Acesso/Espaço: ${infra.spaceLimit || '-'}\n\n`;
             
             if (variationsData && variationsData.length > 0) {
                 txt += `--- Formatos / Variações de Embalagem ---\n`;
@@ -6531,10 +6580,15 @@
                     const frequency = document.getElementById('prj-infra-frequency').value;
                     const pressure = document.getElementById('prj-infra-pressure').value.trim();
                     const airConsumption = document.getElementById('prj-infra-air-consumption').value.trim();
+                    const airDryer = document.getElementById('prj-infra-air-dryer').value;
                     const material = document.getElementById('prj-infra-material').value;
                     const roughness = document.getElementById('prj-infra-roughness').value;
                     const ipRating = document.getElementById('prj-infra-ip-rating').value;
                     const nr12 = document.getElementById('prj-infra-nr12').value;
+                    const classifiedArea = document.getElementById('prj-infra-classified-area').value;
+                    const cleaning = document.getElementById('prj-infra-cleaning').value;
+                    const envTemp = document.getElementById('prj-infra-env-temp').value;
+                    const spaceLimit = document.getElementById('prj-infra-space-limit').value;
                     const observations = document.getElementById('prj-intake-observations').value.trim();
 
                     let skuSugestaoResult = "Não calculado";
@@ -6544,7 +6598,21 @@
                     }
 
                     const params = getSegmentParametersFromDOM(segment);
-                    const infra = { tension, frequency, pressure, airConsumption, material, roughness, ipRating, nr12 };
+                    const infra = { 
+                        tension, 
+                        frequency, 
+                        pressure, 
+                        airConsumption, 
+                        airDryer, 
+                        material, 
+                        roughness, 
+                        ipRating, 
+                        nr12, 
+                        classifiedArea, 
+                        cleaning, 
+                        envTemp, 
+                        spaceLimit 
+                    };
 
                     const legacyText = compileLegacyTextRepresentation(segment, params, infra, observations, skuSugestaoResult, variationsData);
 
@@ -7098,10 +7166,15 @@
                         frequency: 'Frequência de Rede',
                         pressure: 'Pressão Pneumática (bar)',
                         airConsumption: 'Consumo de Ar (Nl/min)',
+                        airDryer: 'Secador de Ar na Linha',
                         material: 'Aço de Contato',
                         roughness: 'Polimento/Rugosidade',
                         ipRating: 'Grau Proteção IP',
-                        nr12: 'Regulamentação NR-12'
+                        nr12: 'Regulamentação NR-12',
+                        classifiedArea: 'Atmosfera Explosiva (Ex)',
+                        cleaning: 'Higienização/Limpeza',
+                        envTemp: 'Temperatura da Sala',
+                        spaceLimit: 'Limitação de Acesso'
                     };
                     for (const [key, label] of Object.entries(infraFields)) {
                         const val = parsed.infra?.[key];
@@ -7110,6 +7183,22 @@
                             if (key === 'material') cleanVal = val === 'Inox304' ? 'Inox 304' : 'Inox 316L (Farmacêutico)';
                             if (key === 'roughness') cleanVal = val === 'Padrao' ? 'Padrão Industrial' : 'Polimento Sanitário (Ra < 0.4µm)';
                             if (key === 'nr12') cleanVal = val === 'Padrao' ? 'Conformidade Básica' : 'Rigorosa (Relés/Laudo/Cortina)';
+                            if (key === 'classifiedArea') {
+                                if (val === 'Não') cleanVal = 'Não (Comum)';
+                                else if (val === 'Poeira') cleanVal = 'Sim (Poeiras Combustíveis)';
+                                else if (val === 'Gases') cleanVal = 'Sim (Gases/Líquidos Inflamáveis)';
+                            }
+                            if (key === 'cleaning') {
+                                if (val === 'Seco') cleanVal = 'Apenas Seco';
+                                else if (val === 'Umido') cleanVal = 'Pano Úmido / Sanitizantes';
+                                else if (val === 'Mangueira') cleanVal = 'Lavagem Direta (Água / Jato)';
+                                else if (val === 'CIP') cleanVal = 'Clean-In-Place (Químico)';
+                            }
+                            if (key === 'envTemp') {
+                                if (val === 'Normal') cleanVal = 'Normal (15°C a 30°C)';
+                                else if (val === 'Climatizada') cleanVal = 'Fria / Climatizada (< 12°C)';
+                                else if (val === 'Quente') cleanVal = 'Quente (> 35°C)';
+                            }
                             html += `
                                 <tr style="border-bottom: 1px dashed rgba(255,255,255,0.03);">
                                     <td style="padding: 5px 0; color: var(--text-secondary); width: 45%; font-weight: 500;">${label}:</td>
