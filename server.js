@@ -1593,6 +1593,426 @@ async function seedSupplierResources() {
         "title": "BOMBAS PERISTALTICAScatalog of Huiyu fluid.pdf",
         "url": "https://drive.google.com/file/d/1dj4f0yfOUR8Y1ttUqUx6J1Aikj627JjH/view?usp=drive_link",
         "notes": "Catálogo de bombas peristálticas Huiyu Fluid."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Pre├ºo.docx",
+        "url": "https://drive.google.com/file/d/1_Eu6P5Z0xAADm4m0POgnjdCaff0iBjfo/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "preço.docx",
+        "url": "https://drive.google.com/file/d/1P8plVYZ6MMaau_QFI4qJ1z-ZCmXEff5f/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "PI-OY20260529.pdf",
+        "url": "https://drive.google.com/file/d/1SpPvFuLki__F1G2WoqbocgKHgqDX_ZuF/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "þô»ÞÂè-ÚçìÚçÅÚÇëÕê½µ£║CW30kÞï▒µûç.pdf",
+        "url": "https://drive.google.com/file/d/15RQvgkL2PEl8IeMxwyTIeajvkuTHbDaF/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "CW400 260528 (1).pdf",
+        "url": "https://drive.google.com/file/d/1CVdOAeAQTiITwknhXqIChLS8LfdYGGlK/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation of NG-709 Conveyor Belt Checkweigher Machine.pdf",
+        "url": "https://drive.google.com/file/d/1CwYzon_pbE-XiQBSsyuHWxos19BCKsYt/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZL-4019 Check Weigher(400mm).pdf",
+        "url": "https://drive.google.com/file/d/1MPAMlzWXkK6yUODDUXSTIaVVoBqyzIev/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation  of Cereal  Bar Making Machine Processing_Machine.pdf",
+        "url": "https://drive.google.com/file/d/1WRRzOmbhRJ43Rb5nGgkjC4TBncTX5AR6/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "HONGCHAO",
+        "machine_category": "GERAL",
+        "title": "Quotation on 2026.05.13´╝êvibratory bowl feeder for plastic spoons) Hongchao Automation.pdf",
+        "url": "https://drive.google.com/file/d/1o-Vxe1JjOFNzoK7HZOSMGjsuUzrd1d8x/view?usp=sharing",
+        "notes": "Cotação comercial do fornecedor HONGCHAO."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "TCJ0815.B.4  Autoclave Industrial Retort.docx",
+        "url": "https://drive.google.com/file/d/1mwGjHPv50n-HaF9ME3qAMjQ8lgamapvH/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "TC12-3.6 Autoclave Industrial Retort .docx",
+        "url": "https://drive.google.com/file/d/1ZmFb2F0DCt3cWfnJ-qmV5PEzeBsjbanl/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "PLJ0815.B.4 retort quotation - 0415.pdf",
+        "url": "https://drive.google.com/file/d/1svdQ8jtSrGYffCEabQbwLXarYZuK0pCK/view?usp=sharing",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "PL12-3.6 retort quotation - 0415.pdf",
+        "url": "https://drive.google.com/file/d/1Uh_3EuU6aT-T0kXeK5bbFkITJco2ijLI/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "EW300-4000g.docx",
+        "url": "https://drive.google.com/file/d/1ZjTcvCQ1vexWjZzArnkgJrxO8iStDrLm/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation-Weight checker.doc",
+        "url": "https://drive.google.com/file/d/1yAzc-OSc88BWBfW48AiAPUzwTe_dpI5i/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "QHB",
+        "machine_category": "GERAL",
+        "title": "Offer-QHB-600 Fully Automatic Hard Soft Biscuit Prodcution line with Gas tunnel oven+3+2Sandwich Machine+Chocolate Enrober+Metal Detector.pdf",
+        "url": "https://drive.google.com/file/d/13Lzzw4D85jK-BJG5EZu4BPpQy1Kuh8sf/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor QHB."
+    },
+    {
+        "supplier_name": "HANYUAN",
+        "machine_category": "GERAL",
+        "title": "HY-Quotation of the Energy Bar Production Line-HANYUAN MACHINERY(20230703).pdf",
+        "url": "https://drive.google.com/file/d/1LXqverZkOzH-0tpIcDMtf2Uoq3S0ZxCl/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor HANYUAN."
+    },
+    {
+        "supplier_name": "HANYUAN",
+        "machine_category": "GERAL",
+        "title": "Quotation of HY-Automatic Protein Bar with Chocolate Coating Production LineÒÇÉHanyuan MachineryÒÇæ.pdf",
+        "url": "https://drive.google.com/file/d/1mQ1D0hT6S1zwrMMwpQxbCs9KJDPo4GxQ/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor HANYUAN."
+    },
+    {
+        "supplier_name": "ZPTF",
+        "machine_category": "GERAL",
+        "title": "(U02B250528)Quotation of ZPTF550 -76MM-200g.pdf",
+        "url": "https://drive.google.com/file/d/1-wdC3FFQErQpuw6ugyO2RFNIy2if3iKw/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor ZPTF."
+    },
+    {
+        "supplier_name": "HANYUAN",
+        "machine_category": "GERAL",
+        "title": "How to choose different cereal bar production protein bar line(Hanyuan Machinery).pdf",
+        "url": "https://drive.google.com/file/d/1mUSIkbKU3RvSaaP5Wgc7j4JGKstcfb8D/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor HANYUAN."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation Of Temp Humidity Chamber(408L). date250507.pdf",
+        "url": "https://drive.google.com/file/d/13oZHNwW5cw8EbdbHuzIqAT0MWr6kKYB5/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "0626-Quotation for Automatic nutrition bar.xls",
+        "url": "https://drive.google.com/file/d/1tX3jz4lVCLJrHJkoJW5nVI991jGp47nz/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Amassador.docx",
+        "url": "https://drive.google.com/file/d/1aRSeinoAAwctc9hdC283KWCZOwRb6mgi/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Sistema de embalagem automatico.docx",
+        "url": "https://drive.google.com/file/d/1FGnGTKYezbTSN3Z5q90XUrPK6Xxubgel/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Cópia de (U02B25)Quotation of 6-head extrusion molding and cutting.xlsx",
+        "url": "https://drive.google.com/file/d/1CzVhXjvbJQd4oUaIGZ1MrIZux2QSUA-e/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Cotação.xlsx",
+        "url": "https://drive.google.com/file/d/1tXJyle1gSDBI0UiMItuouKr59rtyDSi3/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "UBM",
+        "machine_category": "GERAL",
+        "title": "UBM550.xlsx",
+        "url": "https://drive.google.com/file/d/1Gviq3DhpQ0GvMlpXVtqXKqVyX2wQgk6E/view",
+        "notes": "Catálogo técnico do fornecedor UBM."
+    },
+    {
+        "supplier_name": "UBM",
+        "machine_category": "GERAL",
+        "title": "2023Nov-Quotation of UBM420-31D.docx",
+        "url": "https://drive.google.com/file/d/1_QJSjPBf6UjDJ5dmrGj4DbmYAs3GHvUy/view",
+        "notes": "Cotação comercial do fornecedor UBM."
+    },
+    {
+        "supplier_name": "UBM",
+        "machine_category": "GERAL",
+        "title": "2023Nov-Quotation of UBM550-39D.docx",
+        "url": "https://drive.google.com/file/d/1NW5ULPLbjxMw81G-_IipMfUyJFfZdnTJ/view",
+        "notes": "Cotação comercial do fornecedor UBM."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZP9-Tablet Press Machine Quotation ZP-9B.pdf",
+        "url": "https://drive.google.com/file/d/1_ZHmjSijN7jMe0y5OgVslMLtkPBgCiaY/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "2023Apr-Quotation of cookie machine.pdf",
+        "url": "https://drive.google.com/file/d/1aeYBOHHKkWRUML0B7wykVk8b9KKVwZVY/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "cookie machine.pdf",
+        "url": "https://drive.google.com/file/d/16sZxnouZEqFVSNjMnaRu_wH89EF-Z8xZ/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZP420-27 Model effervescent tablet press machine catalogue.pdf",
+        "url": "https://drive.google.com/file/d/12FuiqPJ5j4QVnS6G1_RhJ1KOquzE1aLP/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Informações e preço.docx",
+        "url": "https://drive.google.com/file/d/1UYolESmeNpkv3WinPjTEV2n0P9rUwdRs/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZP-25 Rotary effervescent tablet press machine catalouge.pdf",
+        "url": "https://drive.google.com/file/d/12Cwn3tYnSexhVd5FzpefqUIA9DHC2kAb/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "´╝║´╝░´╝¬´╝ì´╝ö Intelligent Four-function Tablet Tester catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1bw5o_rM7RVq19EqFP1J4gVmtu6XtAWcg/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Pre├ºos.docx",
+        "url": "https://drive.google.com/file/d/1ytSGvMoiFM-gguab3jve2RqGStLn_Oy4/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DP-12(50) single punch tablet press machine.doc",
+        "url": "https://drive.google.com/file/d/15LzMTPBBMMGWxE9kpfR1g9n_mj5LDSNH/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "tablet deduster(downhill and uphill type).pdf",
+        "url": "https://drive.google.com/file/d/16zWLMOxkUN8gwk7In9I6SS3-hOUYBIvz/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "2_GZPK-26(Vacuum´╝îUphill/Downhill,Metal Detector´╝ë.pdf",
+        "url": "https://drive.google.com/file/d/1lY8kvC_sNEzkX7ScAQZDhneJJhqs30yN/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Cotação do e-mail.pdf",
+        "url": "https://drive.google.com/file/d/1jLsyuKcLVqPN9MngXyDiwiTOAhVnDGhG/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "GZPK370-26 Model Automatic high-speed tablet press machine catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1uTwejZVPaNgLdBR-na4xN9Ob4qPM4WKz/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "0809-Cereal bar line quotation.pdf",
+        "url": "https://drive.google.com/file/d/1Zc7o9xQkE9atYiBvYgfHNKfyx6PIb96L/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Informações Gerais e preço.docx",
+        "url": "https://drive.google.com/file/d/1Plqx6_mlh7wAeTCIIHvwpOdkRGBcOU95/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "DGR",
+        "machine_category": "GERAL",
+        "title": "DGR-F2 Rotary type coffee capsule filling and sealing machine catalouge.pdf",
+        "url": "https://drive.google.com/file/d/105GGlv6ek8ovOkewTiCRMYV_n2D710Jw/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor DGR."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Pre├ºo em 25-03-2021.docx",
+        "url": "https://drive.google.com/file/d/1pdL9Ee4Zd3kGdmAJDTWGf-AhCvp2F7bw/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "WQ",
+        "machine_category": "GERAL",
+        "title": "WQ-500 NON WOVEN APRON MAKING MACHINE Catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1OefNFnqaXMoqAgy9JdkcolgJ_XgBg8G3/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor WQ."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZPW-17 special.pdf",
+        "url": "https://drive.google.com/file/d/1qNAk2zSmT01D-XDhIAjzusuPinKz4BnF/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "GZPW23D machine details.pdf",
+        "url": "https://drive.google.com/file/d/1KAf-a1iF-_aQMzTBEnI11Um1p7HEjRto/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZPT420 27D Effercent tablet press machine catalogue.doc",
+        "url": "https://drive.google.com/file/d/1ZYEFpJ00_xTR3Pv6o4X7Rhuh2pMc7i3M/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Cotação.docx",
+        "url": "https://drive.google.com/file/d/1DfoyB21I7S65fZm20fIY2yNLbYG79jXK/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "YD-188 Drip Coffee and Tea Bag Packing Machine.pdf",
+        "url": "https://drive.google.com/file/d/1910yrinllYNrgyE8lyw8HkXFvyMNQ5J2/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZPT420-31D Rotary tablet press machine catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1V3Mwf-s1dpGgxriA7QLHM8sLBPNIiIMo/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Assistant device for automatic capsule filling machine.pdf",
+        "url": "https://drive.google.com/file/d/1V33kksr_pN4DdKZ6xdM605RSrUFCASHH/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZP5 7 9 11 Rotary tablet press machine.pdf",
+        "url": "https://drive.google.com/file/d/119A8Ho2x7ckn88TIGfRS6SK6EsvSf5r0/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZPT-15D(╬ª226).pdf",
+        "url": "https://drive.google.com/file/d/1ONAJzIL2EzfeOVPnDjPl8V5FQ6gy25UJ/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZPT15D and ZPT29D ROTARY TABLET PRESS.doc",
+        "url": "https://drive.google.com/file/d/1c8PoIuEaq6buEPy8kBOyd15VV6fZl654/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZPT39D Rotary tablet press machine catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1Dad6gz-5gTUwbvhvyeSWTMtEB56ZaLFb/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZP420-(23D)(25D) EFFERVESCENT TABLET ROTARY.DOC",
+        "url": "https://drive.google.com/file/d/1AvjZUsCh5hSLERfQBHWmT28fV1hV3F8B/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "TDP",
+        "machine_category": "GERAL",
+        "title": "TDP series single punch tablet press machine with CE certificate.pdf",
+        "url": "https://drive.google.com/file/d/14N7RyuygvtA3X5ZndnC2n_vU85cQTrYz/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor TDP."
     }
 ];
 
