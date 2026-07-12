@@ -1523,6 +1523,76 @@ async function seedSupplierResources() {
         "title": "Haizhou Catalogo 2024.pdf",
         "url": "https://drive.google.com/file/d/1Ga3-k3mSqspF2DkdV4IH_scpViylEA9F/view?usp=drive_link",
         "notes": "Catálogo do fornecedor HAIZHOU importado no lote em lote."
+    },
+    {
+        "supplier_name": "AOLGE",
+        "machine_category": "GERAL",
+        "title": "Aolge Catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1ZaPRmrYWTlL-B8SemSMdw4oCCZiZ3X_D/view?usp=sharing",
+        "notes": "Catálogo do fornecedor AOLGE."
+    },
+    {
+        "supplier_name": "VISCOUNT",
+        "machine_category": "GERAL",
+        "title": "VisCount Technology.pdf",
+        "url": "https://drive.google.com/file/d/18lq-B6vjE7pWGTTJ8ZCF-nMbbsLznp3-/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor VISCOUNT."
+    },
+    {
+        "supplier_name": "COSO",
+        "machine_category": "GERAL",
+        "title": "COSO ELETRONIC TECH.pdf",
+        "url": "https://drive.google.com/file/d/1MDq7CzeA6iziOpPWLtAvwlYSpADVdHcH/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor COSO."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Comprehensive Promotion Plan for New Products.pdf",
+        "url": "https://drive.google.com/file/d/1HY_T_rm8PcL-KPIOqHgl6XWzwtdBHVBZ/view?usp=drive_link",
+        "notes": "Catálogo de novos produtos gerais."
+    },
+    {
+        "supplier_name": "FUBO",
+        "machine_category": "GERAL",
+        "title": "FUBO Machinery catalog.pdf",
+        "url": "https://drive.google.com/file/d/1-B8rzFP7Q7YChlV_dFalW7zWhkclhhe9/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor FUBO."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "General_Catalog(English)_8page.pdf",
+        "url": "https://drive.google.com/file/d/10_obTj_DlggGRlYHzB34WWY4zkHIQ3lr/view?usp=drive_link",
+        "notes": "Catálogo Geral de Catálogo."
+    },
+    {
+        "supplier_name": "RAMAC",
+        "machine_category": "GERAL",
+        "title": "RAMAC_LM-Series_ita-eng_2022_WEB.pdf",
+        "url": "https://drive.google.com/file/d/1E0M_rP3NUGJ1Jf10Yh2m49L1SsVmrpjp/view?usp=drive_link",
+        "notes": "Catálogo de ensacadoras/contadoras Ramac."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "catalog .pdf",
+        "url": "https://drive.google.com/file/d/1E0J1KhztyHeXorE4n3dOb48_HOGdD3mt/view?usp=drive_link",
+        "notes": "Catálogo Geral."
+    },
+    {
+        "supplier_name": "DONGFENG",
+        "machine_category": "GERAL",
+        "title": "DONGFENG.pdf",
+        "url": "https://drive.google.com/file/d/1Rzen9v3t_-fd-99gHqYLL6Ra_4zBqUSG/view?usp=drive_link",
+        "notes": "Catálogo do fornecedor DONGFENG."
+    },
+    {
+        "supplier_name": "HUIYU",
+        "machine_category": "GERAL",
+        "title": "BOMBAS PERISTALTICAScatalog of Huiyu fluid.pdf",
+        "url": "https://drive.google.com/file/d/1dj4f0yfOUR8Y1ttUqUx6J1Aikj627JjH/view?usp=drive_link",
+        "notes": "Catálogo de bombas peristálticas Huiyu Fluid."
     }
 ];
 
