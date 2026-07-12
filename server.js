@@ -2013,6 +2013,440 @@ async function seedSupplierResources() {
         "title": "TDP series single punch tablet press machine with CE certificate.pdf",
         "url": "https://drive.google.com/file/d/14N7RyuygvtA3X5ZndnC2n_vU85cQTrYz/view?usp=drive_link",
         "notes": "Catálogo técnico do fornecedor TDP."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "20260626-C8-202 Quotation for an Integrated System Single-Station Bag-Feeding Machine Paired with an Oversized 2-Bucket Linear Weigher (1).doc",
+        "url": "https://drive.google.com/file/d/1ghK7TXACR8CBUSMLVMTqtJS_FYOSo8IZ/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "2026-0626 Quotation 1 Bowl Counting And Desiccant Bag Feeding Packing Machine.pdf",
+        "url": "https://drive.google.com/file/d/14qZI_v2qgBN3UI6h0hrg7rdagIJcvoBb/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "AFPP300Y2 - EMPACOTADORA .pdf",
+        "url": "https://drive.google.com/file/d/1cl2xLq2kKqSIZ11flhuI3ZT957Hgf5sx/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "4 vias stick Quotation20260417-11.pdf",
+        "url": "https://drive.google.com/file/d/1K3GQvCOhCfS5QAPeOczBCzb8Um4RPSd3/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "AFPP-280BK-4 - 4 vias stick Quotation20260417-1.pdf",
+        "url": "https://drive.google.com/file/d/1Qsic3NLDb5uoUAsb2HXiLP3F3BxrqMk1/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation of DS-1020AZ pellet packing machine from Dession Rita(2026.05.26).pdf",
+        "url": "https://drive.google.com/file/d/1MTt-9bzkPF6OnvATOzitJVlHed09kl0b/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "D-160 envasadora de liquidos automatica para sacos pre formados.pdf",
+        "url": "https://drive.google.com/file/d/14X-pzACGmL03nALSzzaqmTp2vPREuQEo/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "2026-0521 Quotation of 2 Bowls Tablets Counting Packing Machine (1).pdf",
+        "url": "https://drive.google.com/file/d/1xUGFNAGPkr3UNISHBz2YE0p6bRgmXJ8T/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "15-20KG Wood Pallets Packing Solution- Inclined conveyor+1200 VFFS +2 heads linear weigher.pdf",
+        "url": "https://drive.google.com/file/d/1o7D_ict8L70pV27VosSZ08Z_DZnIkIeP/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "AFPP620G - .pdf",
+        "url": "https://drive.google.com/file/d/1xuCeIcKRFEFF70DZqYVAkE0HnsVYdf02/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "KL-300I Double feeder Lollipop Automatic Sachet Packing Machine. quotation list. 260507.pdf",
+        "url": "https://drive.google.com/file/d/1IvTBNZ3ca-zxw_e1apK84eLNMGFZO9Ho/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "AFPP720DH-6 EMPACOTADORA .pdf",
+        "url": "https://drive.google.com/file/d/1K9faeaPeae4NMGKNk97bGtKlJRpuKeiU/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Pre├ºo filme- sacos express packing.docx",
+        "url": "https://drive.google.com/file/d/11QdhqfO_NN95G3uI86_9ImpCVxt4KjUe/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "LOGIPACK - express packing machine.pdf",
+        "url": "https://drive.google.com/file/d/1eEQ28icBDPKHOSrj2zdCPLnQKf_u5pm8/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "LOGIPACK -Quotation-Express Packing Machine.doc",
+        "url": "https://drive.google.com/file/d/1JHDHIJxOioKR0rD-y2BJYqcCpUh9XiaC/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "KENWEI",
+        "machine_category": "GERAL",
+        "title": "Quotation List - KENWEI.pdf",
+        "url": "https://drive.google.com/file/d/1NmnvPL8WiopaA0vNlqOmhUyOePp2J4Aw/view?usp=sharing",
+        "notes": "Cotação comercial do fornecedor KENWEI."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "1_The quotation of GH240BF powder packing machine - .doc",
+        "url": "https://drive.google.com/file/d/1PZ3GLsr47CMBfyJvL410NOBhJYpPuSQx/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Powder Back-sealing bag packing machine - Auger feeder (1).pdf",
+        "url": "https://drive.google.com/file/d/1vCajFiqZsaZos237BN5GkRfNWbqMIzWE/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation20260301-2 Update.pdf",
+        "url": "https://drive.google.com/file/d/1lvHgE1aYxSnOR1y-gsAPBN64T5YnNpjZ/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation20260301-3 Update.pdf",
+        "url": "https://drive.google.com/file/d/18jazElD_I76XgoGXpAi2_QmrzQJEcYXG/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "AFPP-960DH-8.pdf",
+        "url": "https://drive.google.com/file/d/1FxE_jzOJ0u1aYHEk5k7za_rx5j5K8Q0K/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SED-T16SP Gummy Counting Machine.pdf",
+        "url": "https://drive.google.com/file/d/15pZAoiUQuiTEakOBz-_qjQ4_5UI7WCvV/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation-SR-FSF900D 4 line 4 side sealing machine 2026.01.14.pdf",
+        "url": "https://drive.google.com/file/d/1_hzXJAQkwVizkGUZO4_Ed894_8tzTkV_/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation-SR-FSF900T 6 line stick pack machine 2026.01.14.pdf",
+        "url": "https://drive.google.com/file/d/1u3semptWvbaW941mPVvhl31-fPxGOGcR/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation-SR-FSF900T 4 line stick pack machine 2026.01.14.pdf",
+        "url": "https://drive.google.com/file/d/1U3VH8PaQAlhRwpp3XszibZupHSnITWOM/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation 2 lines -SR-FSF300T-2026.01.29.pdf",
+        "url": "https://drive.google.com/file/d/14B8V4spkDZhmF0aZmffxJUt9J7vA02Wj/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Info.docx",
+        "url": "https://drive.google.com/file/d/1fqniRKOL4bTeJdaAsGtUjxeXnb7dIR9M/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quote-Tecfag-260203 (1).pdf",
+        "url": "https://drive.google.com/file/d/16OUZR6NX0SMG798xC_bdp_XyrwXPDWYi/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "2026T020201.pdf",
+        "url": "https://drive.google.com/file/d/1FEfkRkx6b8qauMU6Eeil7orFQzXvFOQS/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "paper printing cost.docx",
+        "url": "https://drive.google.com/file/d/116pDHGD_Kof9tHNxa0GJsrxkQlxP1GZV/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Cotação.pdf",
+        "url": "https://drive.google.com/file/d/1nmhpQLjuLsFO6ycAcM5q7MBKF90OGf2p/view?usp=sharing",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "UBM",
+        "machine_category": "GERAL",
+        "title": "standard UBM-16D speed capacity.docx",
+        "url": "https://drive.google.com/file/d/1CBPdYes06LbEAcGLX8EJ2f1TzWfOY3m_/view",
+        "notes": "Catálogo técnico do fornecedor UBM."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "GENIUS 8-16 PLUS Quotation for special gummy counting machine.docx",
+        "url": "https://drive.google.com/file/d/1fpQkfjh76UulpX-xGgf5wlIl_blmyFcT/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "BG-400E Quotation Coating machine).pdf",
+        "url": "https://drive.google.com/file/d/1LOZGGBLwS72Xr3bP0NQiafG_jWS9B_p3/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quote for Lawnmower.pdf",
+        "url": "https://drive.google.com/file/d/1S91dhX4HRACo_sA75iPVn9oXsiFR07Qy/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "UBM",
+        "machine_category": "GERAL",
+        "title": "0123-UBM-180S fully servo model.pdf",
+        "url": "https://drive.google.com/file/d/1XjFxq6DctKwK5A9GFmI8JBOIosBNTjN3/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor UBM."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SW-6L Full Automatic 6 Lines Powder Stick Packing Machine.pdf",
+        "url": "https://drive.google.com/file/d/1PWgJdcVPunGGctB0lh76YBXWNooNdeVr/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Cotação.docx",
+        "url": "https://drive.google.com/file/d/11CIQZz-NonIysmSVx7DXHOSY6R2Uexyv/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "PROJETO LINHA DE ENVASE SERVO MOTOR.docx",
+        "url": "https://drive.google.com/file/d/1eDe_IW1vBLGUEDYkAbKOVq_2D6lcqi-b/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Multihead weighing bottle packing production line. quotation list. 220719.pdf",
+        "url": "https://drive.google.com/file/d/1lKjkpjHn-S0T_5L3c-tAMwx4XY4VQlUe/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation list for film coating machine.pdf",
+        "url": "https://drive.google.com/file/d/1d-AyaQQXRYkEEBMUEaih05dTF8m7mz4v/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Pre├ºo.docx",
+        "url": "https://drive.google.com/file/d/1_A349ajJ2SM3U2N3yHQHW9U0NIbUpUv2/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Cotaçãodeduster.docx",
+        "url": "https://drive.google.com/file/d/1TFYEOtnqRt6UpYNvWwgMWr3pfBXAsHLX/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Price list of BG Series automatic tablet coating machine.docx",
+        "url": "https://drive.google.com/file/d/1-YcqMeAfozaDOnveapSc3xRNedadwZVy/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "UB-12 counting production line.pdf",
+        "url": "https://drive.google.com/file/d/1ACSqPeC9De53iJe9sqHERPhZLQ8-CNOw/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SW-320C 4 Heads Weigher Gummy Packing Machine.pptx",
+        "url": "https://drive.google.com/file/d/1BjKDuhSGT6Kd3oCAnLHdYu2Ib12ongUz/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "High Efficiency Film Coating Machine.pdf",
+        "url": "https://drive.google.com/file/d/1gdPYJSc52qT3NUu4C6SUbNOoPZdYVpN5/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SJB-06 triangle bag inner bag and outer bag integrated machine.pdf",
+        "url": "https://drive.google.com/file/d/12WzmrF-xqs5fSS47M9V_JHTD39-lztIq/view?usp=sharing",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "GD8-200B Rotary zipper bag packing machine for herb tea.pdf",
+        "url": "https://drive.google.com/file/d/1aCnsOXyOpLSr54mOg7K0_wgJwsICNIbS/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "KL-420 Automatic Peanuts VFFS Packing Machine catalougues.pdf",
+        "url": "https://drive.google.com/file/d/1T8a06Hg5F1RV_oEdhPgUg6W2U5TzeVCm/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "soft candy bottle packaging production line.pdf",
+        "url": "https://drive.google.com/file/d/1R9HYaHdz-ggL-qEPZzsNCYweUKZ5j41s/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Automatic High speed tube bottle counting machine for effervescent tablet.pdf",
+        "url": "https://drive.google.com/file/d/1Vq2_xKzM9wjGBd_gPm61cz8xyuVuNvhi/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZPP-40A effervescent tablet tube packing machine .pdf",
+        "url": "https://drive.google.com/file/d/1i8LXoYH7NjXzDg7lY3JkP7LAGD7Za-m6/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Pre├ºozp60.docx",
+        "url": "https://drive.google.com/file/d/1RPUTiCPaNqd_gbKF3erpnCCh0HErAXkc/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZPP60 Effervescent Tablets Tube Packing Machine.pdf",
+        "url": "https://drive.google.com/file/d/11StXYu_U3u_FaiaHLLMkZPEcymVywWCJ/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZJS-A Electronic Capsule Counter.pdf",
+        "url": "https://drive.google.com/file/d/1PsOQTK5fa3sqBSxair1wDWuV-pilq_Oq/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "YL series counting machine details.pdf",
+        "url": "https://drive.google.com/file/d/17aW6bWYrVCALz0ZWShnA4UEfUuXbijoS/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Cotação LFP-150 High speed vertical capsule polishing machine.pdf",
+        "url": "https://drive.google.com/file/d/1fXtTqs4tbcfRDHHA44PRoaoeJrZtUitx/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "JFP-110A Capsule polishing sorter machine.pdf",
+        "url": "https://drive.google.com/file/d/1OFTRUWV2jKc6GVSLGmptUDX1dcjKKsux/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation for DXDC-21DX Pyramid tea bag packing machine with outer envelop 20190725.pdf",
+        "url": "https://drive.google.com/file/d/143xQQju9O0WLk7nf-v4CpreGWdCxJzTX/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "YL Series electronic tablet capsule counting and filling machine.pdf",
+        "url": "https://drive.google.com/file/d/1DRL7Eb1A5ct-TfULYOCFsy6G2vTlPMdD/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "YL-2(4) electronic tablet capsule counting and filling_machine opration manual.doc",
+        "url": "https://drive.google.com/file/d/1ua4bw64zNxELeW1Sn5iIuzJwO7E0wNPF/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
     }
 ];
 
