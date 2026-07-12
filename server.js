@@ -1123,6 +1123,82 @@ function downloadFile(url) {
     });
 }
 
+async function seedSupplierResources() {
+    const seedData = [
+        {
+            supplier_name: 'ANKE-YIMU',
+            machine_category: 'GERAL',
+            title: 'Linha de Contagem e Envase (ANKE-YIMU)',
+            url: 'https://drive.google.com/file/d/1_QV7QBG5LKu9-xqb9kymxw9MmD0bSAvM/view?usp=sharing',
+            notes: 'Catálogo de linhas de contagem, fracionamento e envase de cápsulas e comprimidos Yimu.'
+        },
+        {
+            supplier_name: 'HEADLY',
+            machine_category: 'GERAL',
+            title: 'Máquinas de Embalagem e Dosagem (HEADLY)',
+            url: 'https://drive.google.com/file/d/14Hy3KyJRFimtMutRFnjxbkPF6AeKLMKm/view?usp=sharing',
+            notes: 'Catálogo técnico de ensacadoras, empacotadoras e dosadores automáticos.'
+        },
+        {
+            supplier_name: 'VGOPACK',
+            machine_category: 'GERAL',
+            title: 'Máquinas de Embalar Cápsulas (VGOPACK)',
+            url: 'https://drive.google.com/file/d/1GqmPfY3_f07AO9lAAs5B_dWWiNW37flk/view?usp=sharing',
+            notes: 'Catálogo de máquinas de contagem de cápsulas, blisters e envase farmacêutico.'
+        },
+        {
+            supplier_name: 'Gurki',
+            machine_category: 'GERAL',
+            title: 'Robôs e Linhas de Embalagem (Gurki)',
+            url: 'https://drive.google.com/file/d/1AD_-yc-D6e6a21bEvzaCGu49HpiIIFkI/view?usp=drive_link',
+            notes: 'Linhas robóticas de final de linha, fechadoras de caixas e paletizadores Gurki.'
+        },
+        {
+            supplier_name: 'Yongsun',
+            machine_category: 'GERAL',
+            title: 'Máquinas de Arquear e Fitas (Yongsun)',
+            url: 'https://drive.google.com/file/d/14CNyZDuA3rPmyaOUQ7JFO8mWMPsnOnbm/view?usp=drive_link',
+            notes: 'Catálogo de fitas e arquear, arqueadoras semiautomáticas e automáticas Yongsun.'
+        }
+    ];
+
+    for (const item of seedData) {
+        try {
+            // Verifica se já existe pelo URL
+            const existing = await dbGet('SELECT id FROM supplier_resources WHERE url = ?', [item.url]);
+            if (!existing) {
+                console.log(`[SEED] Cadastrando e extraindo texto para: ${item.title}...`);
+                let extracted_text = '';
+                try {
+                    const directUrl = convertDriveUrl(item.url);
+                    const fileBuffer = await downloadFile(directUrl);
+                    const pdfData = await pdfParse(fileBuffer);
+                    extracted_text = pdfData.text || '';
+                    console.log(`[SEED] Texto extraído (${extracted_text.length} caracteres) para ${item.title}`);
+                } catch (err) {
+                    console.warn(`[SEED] Falha ao extrair texto do PDF para ${item.title} (salvando apenas metadados):`, err.message);
+                }
+                
+                const sql = `INSERT INTO supplier_resources (
+                    supplier_name, machine_category, title, url, notes, extracted_text, created_by, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+                await dbRun(sql, [
+                    item.supplier_name,
+                    item.machine_category,
+                    item.title,
+                    item.url,
+                    item.notes,
+                    extracted_text,
+                    'sistema',
+                    new Date().toISOString()
+                ]);
+            }
+        } catch (dbErr) {
+            console.error(`[SEED] Erro de banco ao inserir ${item.title}:`, dbErr.message);
+        }
+    }
+}
+
 // POST /api/supplier-resources - Cadastra novo recurso com extração automática de texto (restrito a Admin/Engenharia)
 app.post('/api/supplier-resources', authenticateToken, restrictToEngineeringAndAdmin, async (req, res) => {
     const { supplier_name, machine_category, title, url, notes } = req.body;
@@ -1746,4 +1822,9 @@ app.listen(PORT, () => {
     console.log(`Banco SQLite ativo em: ${dbPath}`);
     console.log(`Pasta de uploads de arquivos: ${UPLOADS_DIR}`);
     console.log(`===================================================`);
+
+    // Inicia a importação e extração de texto dos catálogos em segundo plano
+    seedSupplierResources().catch(err => {
+        console.error('[SEED ERROR] Falha ao rodar importação de catálogos padrão:', err.message);
+    });
 });
