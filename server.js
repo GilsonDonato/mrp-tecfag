@@ -4442,9 +4442,56 @@ app.post('/api/supplier-resources/ai-search', authenticateToken, restrictToEngin
             });
         }
 
-        // Prepara o contexto dos recursos para enviar ao Gemini
-        // Trunca o texto extraído para não estourar o limite de tokens da API do Gemini em chamadas simples
-        const resourcesContext = resources.map((r, index) => {
+        // --- PRÉ-FILTRO DE RELEVÂNCIA (RAG Ranker) ---
+        // Tokeniza a busca do usuário em palavras-chave relevantes
+        const searchWords = query.toLowerCase()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove acentos
+            .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "") // Remove pontuação
+            .split(/\s+/)
+            .filter(w => w.length > 2 && !['para', 'com', 'sem', 'uma', 'uns', 'dos', 'das', 'nas', 'nos', 'por', 'que', 'como', 'onde', 'qual', 'quais'].includes(w));
+
+        // Pontua cada recurso de acordo com a proximidade e ocorrência das palavras-chave
+        const scoredResources = resources.map(r => {
+            let score = 0;
+            const titleLower = (r.title || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const supplierLower = (r.supplier_name || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const notesLower = (r.notes || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const textLower = (r.extracted_text || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+            for (const word of searchWords) {
+                if (supplierLower.includes(word)) score += 20;
+                if (titleLower.includes(word)) score += 15;
+                if (notesLower.includes(word)) score += 8;
+                
+                // Conta ocorrências no texto extraído do catálogo (máximo 15 ocorrências para não inflar muito)
+                let idx = textLower.indexOf(word);
+                let occurrences = 0;
+                while (idx !== -1 && occurrences < 15) {
+                    occurrences++;
+                    score += 3;
+                    idx = textLower.indexOf(word, idx + word.length);
+                }
+            }
+
+            return { resource: r, score };
+        });
+
+        // Filtra apenas recursos que tiveram alguma relevância e ordena pelo score descendente
+        let filteredResources = scoredResources
+            .filter(sr => sr.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .map(sr => sr.resource);
+
+        if (filteredResources.length === 0) {
+            // Fallback: se nada pontuou (ex: busca muito genérica), pega os 15 mais recentes cadastrados
+            filteredResources = resources.slice(-15);
+        } else {
+            // Limita aos top 15 recursos mais relevantes para caber no limite de tokens do Gemini Free Tier
+            filteredResources = filteredResources.slice(0, 15);
+        }
+
+        // Prepara o contexto dos recursos filtrados para enviar ao Gemini
+        const resourcesContext = filteredResources.map((r) => {
             let textContent = r.extracted_text || '';
             // Ignora status internos de processamento/erro para não poluir o contexto do Gemini
             if (['PENDING', 'PROCESSING'].includes(textContent) || textContent.startsWith('FAILED:')) {
