@@ -2447,6 +2447,370 @@ async function seedSupplierResources() {
         "title": "YL-2(4) electronic tablet capsule counting and filling_machine opration manual.doc",
         "url": "https://drive.google.com/file/d/1ua4bw64zNxELeW1Sn5iIuzJwO7E0wNPF/view",
         "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Grepack Quotation for HC-180SPX Doypack Form Fill Seal Pouch Packing Machine 202606 (1).pdf",
+        "url": "https://drive.google.com/file/d/1Tv5MYLopxf_2a67dC2juWNGWFTmRLjM-/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "cotation.pdf",
+        "url": "https://drive.google.com/file/d/1Ab_7xaEkP9pqfR7tt9gKnwFnfR-lkprO/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Preliminary Quote.pdf",
+        "url": "https://drive.google.com/file/d/1NoPlH6tueNidRlWda6I_AgemqmbGTicV/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "INFO Packaging Machine-RL-DZ..docx",
+        "url": "https://drive.google.com/file/d/1Uo1PjszNZiG7bbgd62iXfYbBRix3wMch/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Secondary Packaging Machine-RL-DZ.docx",
+        "url": "https://drive.google.com/file/d/1c-Z73qrrWXEFZ2HtzJybRq71f2gmHDpq/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Pre├ºo BG2.docx",
+        "url": "https://drive.google.com/file/d/1-igHvw61xSUBzYUGj6nYhD-shkU9hQz8/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "BG2 6 automatic cup filling sealing machine catalouges.pdf",
+        "url": "https://drive.google.com/file/d/159Z2PJ5sifvRsixRWgWUM9PUIcuFqmaj/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation of HTC-2 Rotary Cup Filling Sealing Machine.pdf",
+        "url": "https://drive.google.com/file/d/1zNWQ8qj47j2AvBMaFkaH-xML1y6vKhtl/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation of HTC-1 Rotary Cup Filling Sealing Machine.pdf",
+        "url": "https://drive.google.com/file/d/1I7_MlQquESkyDd6XuRFshZAatZzS7YCO/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "1.0-8 heads gravity filling machine.pdf",
+        "url": "https://drive.google.com/file/d/1G1pkprGFHTslnkbb0l1y6pg5SYMckSFj/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Oil Filling Machine Quotation Sheet.pdf",
+        "url": "https://drive.google.com/file/d/1iiXK2GfXT0e8uLUZ9IQndqWyb9WVypeZ/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation for Semi-automatic bib box bag filling machine260512 (2).pdf",
+        "url": "https://drive.google.com/file/d/1Bdu1LSGwwa9JGrasUQeenx7fXI5I2UUv/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "filling machine quotation (3).pdf",
+        "url": "https://drive.google.com/file/d/1dOANkSM6Ta2OynvwAzolqA3DCS4M2oPk/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "APL-Automatic Bag Loading And Cartoning Machine (1).doc",
+        "url": "https://drive.google.com/file/d/1lAkX3bGMyuxxK2H6pg5uHOrERIEgftiC/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation-Syrup Filling Line & Cartoning machines-V0402.doc",
+        "url": "https://drive.google.com/file/d/11NWUC_kyJpg1j25SxFWWfHW814WOrgvS/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation-Automatic Shrink Wrapping Machine .doc",
+        "url": "https://drive.google.com/file/d/1xXkVcAZPJ2Ig40zLPR1mBelVBvrpz9As/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "MIC-LL60 Auto Dropper Bottle Filling Capping Labeling and Cartoning Machine 26-03-20 (1).pdf",
+        "url": "https://drive.google.com/file/d/1vWG_bTCJaCv-8vz7wvyaqr3dI5Snd8_F/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Rotation table for Syrup filling capping labeling machine.pdf",
+        "url": "https://drive.google.com/file/d/1F8NHOvvNJX_3uA665mrJvtbIVxwsQey1/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "QUOTATION-BZH-50 Automatic cartoning machine.doc",
+        "url": "https://drive.google.com/file/d/11--N7_isvxXgcyhQMI5Z1j6cqciCgm2_/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "QUOTATION-BZH-120 Automatic cartoning machine.doc",
+        "url": "https://drive.google.com/file/d/1y39cAmqLpPIyZwhMq8XRxwkhQhi0W1qL/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "4000CPH@350ml Canned Protein-Enriched Carbonated Beverage Filling Machine.pdf",
+        "url": "https://drive.google.com/file/d/1zeafFhhJqVp-9Jazbqz1GPNjwGKfzrNC/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation_Gilson Donato (1).pdf",
+        "url": "https://drive.google.com/file/d/1AV257W4a0KSYGyHg1ssEnvB_QVqqS-O8/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "IVEN Essential oil filling line Quotationl-Sarah-WeChat3.pdf",
+        "url": "https://drive.google.com/file/d/1gUJ1KvFYlTkgmN3czCCmNKhdNMhmRHjj/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "AUTOMATIC PET BOTTLE MINERAL WATER FIILING MACHINE.pdf",
+        "url": "https://drive.google.com/file/d/10kvzjLcNPxhH-qnMXz4NLEUGB_JUth4V/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Automatic round bottle sticker Labeling machine.pdf",
+        "url": "https://drive.google.com/file/d/1ziWOo58ZGC2B9l6Jetd4oh6Xvs6FqH-X/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation of 4 head-liquid filling capping details.docx",
+        "url": "https://drive.google.com/file/d/1MBLYxpJASdQ82yq1pUklXLJqVb3v6ZsN/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation of Essential oil bottle filling packing line.pdf",
+        "url": "https://drive.google.com/file/d/1vEgCbomEmqClw8tHmwizhVFEm4FGr_Lg/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "YETO -2)-Quotation of Perfume making and packing machines-25.11.9(1).docx",
+        "url": "https://drive.google.com/file/d/1i4v5wTLyXfndqXsOQ1HP-wyzp0PsOjLv/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "16000BPH500ML PET Bottle mineral water filling machine line.pdf",
+        "url": "https://drive.google.com/file/d/1ymjNOESEIdIQCNsyIt0IDE9sTgcx28bb/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "NJP4000D Quotation Sheet.doc",
+        "url": "https://drive.google.com/file/d/1km2XL-q7TjEZAm4Pm33sWWLWpqY3Bqp5/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Union Liquid-Quotation of JTJ-A Hard capsule liquid filling.pdf",
+        "url": "https://drive.google.com/file/d/1dMQhpgcHEFZIEs-7baK0xPtqu_wDuddM/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "2023Dec-Quotation of 12 servo pump filling line.pdf",
+        "url": "https://drive.google.com/file/d/1oA_qkQJ-vdNOPgymApryu-ZOHLvHRIRJ/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Nov28-Quotation of 4 peristaltic pump filling double head capping.docx",
+        "url": "https://drive.google.com/file/d/1DV-FgciqyY5nJkB1RmsBncUqXiMCrOWh/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "priceGGS118.docx",
+        "url": "https://drive.google.com/file/d/1snfnps65-bvsB5BUpoy1bYU_HzhdR6D-/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Glass Ampoule Filling And Sealing Machine.pdf",
+        "url": "https://drive.google.com/file/d/1dIYqAdXIjt4JfiuczC498swJva-xOoBh/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Filling line--HZPK--2022.3.19.xls",
+        "url": "https://drive.google.com/file/d/1nhqpJWmN4Bpq6psa9ZhzoAq28Jncss-5/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "QGQ750 Automatic Aerosol Filling production line quotation list-210323.doc",
+        "url": "https://drive.google.com/file/d/1dz-CxfWx6KeBZeG2Qq-z4gKaFRxzhhTg/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Pre├ºo SG-1D.docx",
+        "url": "https://drive.google.com/file/d/1TT4yOJ2di_Mx6O7pOr5_FDeurtovJJjm/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SG-1D Liquid bottle filling and sealing machine.pdf",
+        "url": "https://drive.google.com/file/d/1Ubp8SsDsnrA44PR-lZi5spPttMdtCe4R/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "NJP-2500C(new).pdf",
+        "url": "https://drive.google.com/file/d/14kxeQNGPRESMD8y1xh2BURARmQER-kix/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "LZH-120D and ZH120D automatic sachet cartoning machine catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1SP70x0SsbR58xLNi06jxYAsRLXWE2ohx/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Pre├ºo.docx",
+        "url": "https://drive.google.com/file/d/1yK1-yGTaG5jJZQIIcuJ4b5ariY4iLzWs/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "WZH-130 Automatic cartonning machine and pillow bag packing machine catalogue.pdf",
+        "url": "https://drive.google.com/file/d/14tWlxolBNbrLQQqOB5Q6f-wfNi9Q4bQF/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "DZH-120 mask box packing machine.pdf",
+        "url": "https://drive.google.com/file/d/19KQ67Kb0VsUaGvQ8d6G6zbXe4X91uoD8/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "JTJ-A Pro model.doc",
+        "url": "https://drive.google.com/file/d/1cVttqTVXs5LEykEFudIzkA2rAyS5ZCv3/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "NJYF300C liquid capsule filling and sealing production line_catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1zR1UUlM6MBU8fKUfaptsx4LBqngPzRwo/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZH-50 multifunctional semi auto vertical cartoning_machine.pdf",
+        "url": "https://drive.google.com/file/d/1FzuxgjdNCApwfMPyYITn8JjjRtW1SN_x/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZH120P Automatic cartoning machine for bottles.pdf",
+        "url": "https://drive.google.com/file/d/1H9uwgB2aT_gF-RdywB3wLJFSR9AGt-uS/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Price list for NJP series automatic capsule filling machine.19814.pdf",
+        "url": "https://drive.google.com/file/d/1OxaD7SPj0gv_RBj_IFd-HWqfU-OJCNY2/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "LZH120P Automatic vertical type cartoning machine for bottles.pdf",
+        "url": "https://drive.google.com/file/d/1Pyd-mLxE1lsMu191IaO9kJGlcwQhn2LZ/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZH120 Automatic cartoning machine for blisters board.pdf",
+        "url": "https://drive.google.com/file/d/1DS-g47dq-NvScr2qPkXLtK9-SPVhuzFV/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "GGS118´╝ê240´╝ëPlastic ampoule liquid packing machine. complete version.pdf",
+        "url": "https://drive.google.com/file/d/1OjFyxLL8J5s3RptgAFh6H2iesYKzKHXV/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
     }
 ];
 
