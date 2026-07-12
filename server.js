@@ -2811,6 +2811,440 @@ async function seedSupplierResources() {
         "title": "GGS118´╝ê240´╝ëPlastic ampoule liquid packing machine. complete version.pdf",
         "url": "https://drive.google.com/file/d/1OjFyxLL8J5s3RptgAFh6H2iesYKzKHXV/view?usp=drive_link",
         "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "AOLGE",
+        "machine_category": "GERAL",
+        "title": "Aolge AG-600X heat shrink packing machine.pptx",
+        "url": "https://drive.google.com/file/d/1B_jqT1Fw8YOXh2kpXH5hnEYaIE9CFpE2/view",
+        "notes": "Catálogo técnico do fornecedor AOLGE."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "600X heating shrink packing machine.png",
+        "url": "https://drive.google.com/file/d/1PJ_h8jWr4dphkMI_fhIl9GSYiHw44sP9/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Box motion top-feed film pillow packing machine.png",
+        "url": "https://drive.google.com/file/d/151gsbyQexSDLgR_Y5K6-BUeHDTwMsUVT/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "rotary cutter flow shrink wrapper.docx",
+        "url": "https://drive.google.com/file/d/1kVgUpqOz8cN_m7O3O454tMOLGOnFxF_I/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "AOLGE",
+        "machine_category": "GERAL",
+        "title": "Aolge Quotation of 600X Pillow heat shrink packing machine.docx",
+        "url": "https://drive.google.com/file/d/1saz5vKtxR9ePHd_LXcuDGkMG4o281q-h/view",
+        "notes": "Cotação comercial do fornecedor AOLGE."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "LSU350 Auto sorting counting & flow pack machine.pdf",
+        "url": "https://drive.google.com/file/d/1kmA0aI_-1CpyirgAYC9l__MuIlGeOobV/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "TEFUDE quotation´╝ê20260622´╝ë.pdf",
+        "url": "https://drive.google.com/file/d/1X5KgqL8iONxLyLzEXOxE8QQIWnRH5ZRZ/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "100kg Pet Treat Cold Extrusion Machine with Single Head Cutting.pdf",
+        "url": "https://drive.google.com/file/d/1DKmbQYX01Tx31Dx4A0iOqqj5Lc34qU7x/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation for Customize ZX300 Counting +Flow packing line.pdf",
+        "url": "https://drive.google.com/file/d/1LLtle1T29GYSkRY56knvzPUaj8TYT3kg/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "quotation of snus production line.pdf",
+        "url": "https://drive.google.com/file/d/1tvrdmWEZ55LJtBfIJJ0wMxt74SJHvyjK/view?usp=sharing",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "AFPP300Y-2.pdf",
+        "url": "https://drive.google.com/file/d/1zMTPDEq6Htg0a6XEC225aJrCYrX6dxQG/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation+of+Fully+Automatic+Rigid+Tube+Filli.docx",
+        "url": "https://drive.google.com/file/d/1ktfZiN53iQZJ1wEwj6cNhMvAgFpv32gQ/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "ZJW300 Full Automatic Cartridge Filling Line ---20260605.pdf",
+        "url": "https://drive.google.com/file/d/1nUpKe4t-L0f85hAqRlWYpg2Jwg3ON11Z/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation Pharma of CLM300 Vitamin pectin gummy production line.pdf",
+        "url": "https://drive.google.com/file/d/1if3yXO2jHfV40oE9N7YuQMYqgMYO_bvH/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "16 lane vision counting bottling line to Jose 20260522.pdf",
+        "url": "https://drive.google.com/file/d/14E3DPmBQmTy2Z3nStAI0q4MsTsSadU4H/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Modified PI For SCL-600 Fast loading metal mold gummy production line. RYPM260428.doc",
+        "url": "https://drive.google.com/file/d/17SIIzM6VNbkDCgMJZNQCNljdMXsEqTTX/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "PI For SCL-300Model Fast loading metal mold gummy production line. RYPM260428.doc",
+        "url": "https://drive.google.com/file/d/1GyfW-pBf_WuoWUDENWg_jCMwj_l4TUpG/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "100Aþöƒõ║ºþ║┐Õ╣│ÚØóÕ©âÕ▒ÇÕø¥.pdf",
+        "url": "https://drive.google.com/file/d/1r5ookS-PksE4ASA1m6tGs2iU5-TBl_4O/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "UBM",
+        "machine_category": "GERAL",
+        "title": "Apr1st-UBM150 Gum candy making machine.pdf",
+        "url": "https://drive.google.com/file/d/1nagLw1fqOWLdPV7c54reTLfIGCwOWRLV/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor UBM."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Rich packing&#39;s quotation of 16 lane vision counting bottling line to Jose 20260522.pdf",
+        "url": "https://drive.google.com/file/d/1Es-cuD7PzAY2o66zwWWDmMa5xAgqp_vn/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Tecfag Plastic Bag 6003VDB Q726051803.pdf",
+        "url": "https://drive.google.com/file/d/1_ik_Zhvpa3I1-9Wpp3vmEvovPiin-giB/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Proforma invoice (Õ¢óÕ╝ÅÕÅæþÑ¿´╝ë (2).pdf",
+        "url": "https://drive.google.com/file/d/13N3nBrvukmk9VM2OI2IOrOCAQsr_nZT_/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "tablet capsule paking line20260317.pdf",
+        "url": "https://drive.google.com/file/d/17D8yNlZEEs-xCkV9m7qC21kYRWILQHLB/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Þ¢»þ│ûþ¢ÉÞúàµò┤õ¢ôÞºúÕå│µû╣µíê20260309 40-50 bottlemin.pdf",
+        "url": "https://drive.google.com/file/d/1ORpDg-LKbGNAwXpzmOTXw2WM2boh3jKN/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SED-T16SP Gummy Counting Machine.pdf",
+        "url": "https://drive.google.com/file/d/1uaz7MN1-hywRMp9AdLjHJinqN0B4cNUF/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SED-10DTC-H 10 Heads Weigher and bottle filling Line.pdf",
+        "url": "https://drive.google.com/file/d/1HB-nmn8u5ZplnI4vGMOE-kkaHEvgibkz/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation for packaging line.pdf",
+        "url": "https://drive.google.com/file/d/1IbJ_wToK4HzeIAP-peQGGIMIQ0MbP8kt/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "EGHF-01 Single nozzle hot filling machine  from Eugeng.pdf",
+        "url": "https://drive.google.com/file/d/1QWdMNJgDvRxBNiaCvfxtsCHc0G8n6-os/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Þ¢»þ│ûþ¢ÉÞúàµò┤õ¢ôÞºúÕå│µû╣µíê20260227 88 Õ»╣ÕñûµèÑõ╗À-Þï▒µûç(1).pdf",
+        "url": "https://drive.google.com/file/d/1p-bxixmp3AwfZa8aj7rL1fFw0iNTXdVN/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Õê®Õ║Àµ£║µó░þôÂÞúàþ║┐_1_18_translate_20260228135745.pdf",
+        "url": "https://drive.google.com/file/d/1xIry0mLYltZwsycv7-lVd__xfyi8EsOM/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "1_Õê®Õ║Àµ£║µó░þôÂÞúàþ║┐_1_18_translate_20260228135745.pdf",
+        "url": "https://drive.google.com/file/d/1Yaq0EQO4K4e9qpKOMvsA7-aA6N6yX1qh/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Gummy bottle line Quote.pdf",
+        "url": "https://drive.google.com/file/d/1XTFMUZG4LuZK4-9DhWq5PXSWwuGY2no0/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Þ¢»þ│ûþ¢ÉÞúàµò┤õ¢ôÞºúÕå│µû╣µíê20260227 Õ»╣ÕñûµèÑõ╗À-Þï▒µûç.pdf",
+        "url": "https://drive.google.com/file/d/1JxNUoGYvoHkoiEjL6CBSfEl9rjy3ZnUh/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "The Specifications of Fully Automatic Powder Cans Filling Seaming Packing Line (PSH-L)  300g 1000g.pdf",
+        "url": "https://drive.google.com/file/d/1DOWyHN1gORD2pyawtYxJaRGtIRVelTbe/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Automatic Gummy Weighing Bottles Packing Line equipments list and quotation. 260227. tecfag.pdf",
+        "url": "https://drive.google.com/file/d/1NqYCM_LvpJoAjETkAxHBKco1-KVHM2xd/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "YIFEI Cans Filling Capping Machine Quotation Doris µùïÞ¢¼Õ╝ÅµÄÑµûÖ25-35þôÂ.pdf",
+        "url": "https://drive.google.com/file/d/1HYJoWyOZAit3ypKh-W_Dh9iAG2_Xc2AD/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "EGMF-01A Automatic nail polish filling machine from Shanghai Eugeng.pdf",
+        "url": "https://drive.google.com/file/d/1ePXWFPnb1IFwlsQyXcyVI9U9B7d8wWUz/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation-Tecfag.pdf",
+        "url": "https://drive.google.com/file/d/1q1g8Xtr-SxnY06pAlY2RZXfY-HinOLH9/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation - Disposable tableware packaging machine From Alice Yang 0226.pdf",
+        "url": "https://drive.google.com/file/d/17zWojtn5xKzz5VAUdxeDYVaH93jvFG8y/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "CANDY",
+        "machine_category": "GERAL",
+        "title": "CLM300A Gummy candy production line.pdf",
+        "url": "https://drive.google.com/file/d/1IOGqy0xdLnkmXXe03ytj7whoBGh4DG6L/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor CANDY."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Modified PI For SCL-300 600 Fast loading metal mold gummy.pdf",
+        "url": "https://drive.google.com/file/d/1CptIJIrzNA14k_s5sgHLbjvHcexL3_Qt/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "PI For SCL-600 Fast loading metal mold gummy production line. RYPM260128.pdf",
+        "url": "https://drive.google.com/file/d/1y0_xR8ekHXR4VH6W_1o9WbJyZQ2bo_sd/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "5g Gummy making production line project. quotation list. Date25.12.19.pdf",
+        "url": "https://drive.google.com/file/d/1o_sSkls4xtwOiLXgiFiQltRqfeICchY9/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "HLGZJ-50  Fully Automatic Cream Filling, Pressing and Capping Machine-BRTC.docx",
+        "url": "https://drive.google.com/file/d/1q8OmJutDT1oS3plOzl9WzEKxSCkYfEkr/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Granule Filling Machine (Four Scales)-BRTC.doc",
+        "url": "https://drive.google.com/file/d/1sfocrNGeCiyUMyA-QdeJNdbHK1pS7vcX/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "´╝║´╝░´╝¬´╝ì´╝ö Intelligent Four-function Tablet Tester catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1gka9WkEgaSx9pU2hHf91xQjbU2tvFzx1/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "YD-35 Intelligent tablet hardness tester cataluge.pdf",
+        "url": "https://drive.google.com/file/d/1IXgFLVppJyQIjmE7lafsB1JSsSfyvKS-/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "CANDY",
+        "machine_category": "GERAL",
+        "title": "Small lab type pectin and gelatin candy making machine catalouge and quotation list.pdf",
+        "url": "https://drive.google.com/file/d/13m54bGUsonC15Hs1t36dixFjmdVolljq/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor CANDY."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SCL-300 Automatic sugar making production line . new quotation list.231103 (1).docx",
+        "url": "https://drive.google.com/file/d/1dlKJQTKxEUPUBc1L1HrunS2IshteDMIu/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "CANDY",
+        "machine_category": "GERAL",
+        "title": "SCL-300 Model Automatic jelly candy depositing production line.Quotation list.231017.doc",
+        "url": "https://drive.google.com/file/d/1rPrpAOnX93EV8NLoEJaEIh1NJhQd2dLl/view",
+        "notes": "Cotação comercial do fornecedor CANDY."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Powder filling line--HZPK--2022.12.9.xls",
+        "url": "https://drive.google.com/file/d/111B1IOsSyhEzDbG65j9wuFqQ_5g-CaDc/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "(C)þ▓ëµ£½þöƒõ║ºþ║┐þñ║µäÅÕø¥2022.11.30.pdf",
+        "url": "https://drive.google.com/file/d/1G0bxE01tWGiN506_vUNkZpc5wHgoCeRX/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "1130-Powder filling capping production line.docx",
+        "url": "https://drive.google.com/file/d/1It4LSxKakYcMKOppPkjeYUdjrqAt2XTl/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "2022Nov-Powder filling capping production line1.docx",
+        "url": "https://drive.google.com/file/d/1LvaSyO0o0Z0L0SpcbtvkMijVv_zkURvP/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "2022Sep-powder production line.docx",
+        "url": "https://drive.google.com/file/d/1GS9WDRMxWbU_WKReBWTt0hpq9eh7rIXS/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Filling line--HZPK--2021.11.1.xls",
+        "url": "https://drive.google.com/file/d/18W2Je6XnBAI4W4SOnpHf_jnF0CHW5t3Q/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "CANDY",
+        "machine_category": "GERAL",
+        "title": "SGDQ80 Automatic jelly candy making production line catalouge.new.pdf",
+        "url": "https://drive.google.com/file/d/1-GGEqejFhwjTQi2EZPwCTY5UJZLQ-FwG/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor CANDY."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Filling line--HZPK--2020.9.26.xls",
+        "url": "https://drive.google.com/file/d/1KtxBT3eILLYXvqc380Qa5-2fC3-obRtE/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "NF-80_120_Automatic tube filling and sealing machine with CE certificate.pdf",
+        "url": "https://drive.google.com/file/d/1Eybg_mgz0k3AnNlTUEYVSZo-rfPjWkkR/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SGDQ150 model gum line. Update quotation. 20922.doc",
+        "url": "https://drive.google.com/file/d/1eYM0NsxRmEGHxFcu_c5Ws8dj_2tHtSX2/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "CANDY",
+        "machine_category": "GERAL",
+        "title": "SGDQ150´╝êone row) jelly candy depositing line (SERVO MOTOR DRIVE).doc",
+        "url": "https://drive.google.com/file/d/1G7gv-Ygiqq094P-5v4BaYEoAe9cN4Y0R/view",
+        "notes": "Catálogo técnico do fornecedor CANDY."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "NF60 model automatic tube filling and sealing machine.pdf",
+        "url": "https://drive.google.com/file/d/1DkJS7qNEWgZJrtEQg8TYpI8LlUpiDFfD/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
     }
 ];
 
