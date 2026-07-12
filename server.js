@@ -1279,7 +1279,17 @@ Responda APENAS com o objeto JSON puramente, sem formatação markdown de códig
                     }
 
                     const rawText = parsedResponse.candidates[0].content.parts[0].text;
-                    const result = JSON.parse(rawText.trim());
+                    
+                    // Helper para limpar formatações de markdown que a IA possa ter retornado no JSON
+                    let cleanText = rawText.trim();
+                    if (cleanText.startsWith('```')) {
+                        const lines = cleanText.split('\n');
+                        if (lines[0].startsWith('```')) lines.shift();
+                        if (lines[lines.length - 1].trim() === '```') lines.pop();
+                        cleanText = lines.join('\n').trim();
+                    }
+
+                    const result = JSON.parse(cleanText);
                     
                     // Cruza as referências de ID retornadas com os recursos reais do banco para enviar detalhes completos ao frontend
                     const matchedRefs = resources.filter(r => (result.references || []).includes(r.id));
@@ -1296,7 +1306,7 @@ Responda APENAS com o objeto JSON puramente, sem formatação markdown de códig
                     });
                 } catch (parseErr) {
                     console.error('[GEMINI PARSE ERROR] Resposta bruta da API:', data);
-                    res.status(500).json({ error: 'Falha ao processar a resposta analítica da inteligência artificial.' });
+                    res.status(500).json({ error: 'Falha ao processar a resposta analítica da inteligência artificial: ' + parseErr.message });
                 }
             });
         });
