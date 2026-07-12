@@ -3245,6 +3245,384 @@ async function seedSupplierResources() {
         "title": "NF60 model automatic tube filling and sealing machine.pdf",
         "url": "https://drive.google.com/file/d/1DkJS7qNEWgZJrtEQg8TYpI8LlUpiDFfD/view?usp=drive_link",
         "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Ú½ÿÕÄï0.5-1-2-60Þ»┤µÿÄõ╣ª(1)(2).doc",
+        "url": "https://drive.google.com/file/d/1gQ7ZVWE9nO6EiH5gp79DgSA0gERa6WoM/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Robot Information-Tecfag.docx",
+        "url": "https://drive.google.com/file/d/1ICJJvYORzxpI_2Dg9-r-5BqzMNBtmH41/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Oil Spray machine - Jane Zhang -2026.05.21´╝êÞøïþ│òÕûÀµ▓╣µ£║´╝ëÚô¥µØí.pdf",
+        "url": "https://drive.google.com/file/d/1DQcx00XyZmkp6Ai1oSvGL51C1vJkqj6q/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Cópia de Equipment quotation list for plastic bag stacking^J bundling and palletizing project - 20260620.xls",
+        "url": "https://drive.google.com/file/d/171T-Lkt21BaOCdYz9D6d2FUZXosmDo0q/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "quotation for irregular lollipop from YY.pdf",
+        "url": "https://drive.google.com/file/d/1YgRx5ARJqr3qlI5P3_nghHxQnTqsVeMY/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Offer-RE26052905U-250L Chocolate Melting Tank, Lobe Pump from Rayen.pdf",
+        "url": "https://drive.google.com/file/d/1Njk91HKacFf2MbMmL8-6S29KC076xdKh/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Mixer + bomba de transferencia.docx",
+        "url": "https://drive.google.com/file/d/1dvk5MQxJmhyR808pTsGV8wc4I8CSmHSB/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quote for SS304 250L Heated Tank and Pump and Filter.pdf",
+        "url": "https://drive.google.com/file/d/13aQBFt4JudwKIMwSRFsA04i5lIXN3FBY/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "1.Henger Quotation Of Foam Cleaning station.pdf",
+        "url": "https://drive.google.com/file/d/1hFIWsufuPq7shlFnBQohuHZiWl9MQtpB/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "VPD250 INOVANCE 20260527.pdf",
+        "url": "https://drive.google.com/file/d/1sik7TSj4NnU2l700za7YPmo1GwRWr7-R/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "YINDA YDLH-500 Ribbon Mixer Quotation Sheet 20260506.pdf",
+        "url": "https://drive.google.com/file/d/1mWuHPaQGJ99ObaIgnKgbWm7RcEADetzf/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "JH1810 Pizza line quotation-360.docx",
+        "url": "https://drive.google.com/file/d/1nGnCPNEsun5-Rx9b8Oq8EmfpMp6QFt1e/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation Offer 1000liter Milk Homogenizer Tank-from Bidragon Machinery-Molly20260319.pdf",
+        "url": "https://drive.google.com/file/d/1k1I7qAKYpQOBuyoWl2UbMKH4ETgP4rLu/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "500L Double Ribbon Blender.pdf",
+        "url": "https://drive.google.com/file/d/13BPwVbnPtIuezXYy1FzVzR9AQcsMdpaA/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "300L Double Ribbon Blender Drawing.pdf",
+        "url": "https://drive.google.com/file/d/1vadBWe-EaeC11EAoPX8hfoaeZnmQz3F5/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation of  Screw Conveyor and Single Shaft Paddle Blender1.pdf",
+        "url": "https://drive.google.com/file/d/1hfb0DM0lG8zbAsrT-tnPmTriTS9l42Oe/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Single Shaft Paddle Blender (2).pdf",
+        "url": "https://drive.google.com/file/d/1OJUajxtkB9UXbiS6pp6KXJP6VsW8naut/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "4. 40L Lab Mixer-update.pdf",
+        "url": "https://drive.google.com/file/d/18OU0tZr3joP5Gek6yWH_61_VHzzv9lFF/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "2. Quotation of 40L Lab Ribbon Blender and 100L Standard Ribbon Blender.pdf",
+        "url": "https://drive.google.com/file/d/1qRIq7MemFPqku6YQv_LjCOJ9P5ENqAUG/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Single Shaft Paddle Blender (1).pdf",
+        "url": "https://drive.google.com/file/d/1ZFatWEF9eNsMSTS89BoL98LF639SviUQ/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "(Yupack)YPK-4025 fully automatic high speed carton erector.pdf",
+        "url": "https://drive.google.com/file/d/1uexQJwyG_0BzxSo1zHTM-9QXt_Kxiatr/view?usp=sharing",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "the oil heating jacket and heater + detalhamento.docx",
+        "url": "https://drive.google.com/file/d/1uOCU3c7dNDAzWX0dQsqeHL0DSI7in5mW/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "260207 MOSUN MSZDGS500 EXW QUOTATION-Gilson Jose Donato.pdf",
+        "url": "https://drive.google.com/file/d/1pLoFFKxyJbcM08NToEJfP_-sDZ_8wqbt/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "MSZDGS500 Automatic Shoe Carton Box Making Machine.pdf",
+        "url": "https://drive.google.com/file/d/1Cgs5sRzFvZhPvwf8Qp0aRLeuuUeDfIlG/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Cotation Chocolate sauce mixer.pdf",
+        "url": "https://drive.google.com/file/d/1XNoqV0DCDFApfSWJQAoZNwE8lxIv6fBx/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "3000L Double Ribbon Blender.pdf",
+        "url": "https://drive.google.com/file/d/1lXg8KDd-fn1JuP-760Qf_1fqKj-Oj4nP/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Tecfag Brazil 3000L Ribbon bender Proposal Quotation 20260115(2).pdf",
+        "url": "https://drive.google.com/file/d/1rtW6uOjp9Jcea4Co3aGwtmrj3HdOx7Uo/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "YDLH3000 Ribbon blender Layout Drawing 20260115.pdf",
+        "url": "https://drive.google.com/file/d/1CitcDe1huEkP7YF-mbB5QWdse-ye4ou1/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "1500L Ribbon bender Proposal Quotation 20260125.pdf",
+        "url": "https://drive.google.com/file/d/1qlLL_acTgdNlXG9EtqV-uv6VNbW38dvB/view?usp=sharing",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Chinese stardard 1500L Ribbon bender Proposal Quotation 20260127.pdf",
+        "url": "https://drive.google.com/file/d/1s9a3snjMPJ4LhTyo5GBEacoKXI_xjUXy/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Guangzhou Sipuxin Product Catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1NbOsK10eXAoLcnppN4GDcCKYogVZ9i7h/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Catalog-Sokos&Newpeak µû░Úø¬Õ│░þö╗Õåî.pdf",
+        "url": "https://drive.google.com/file/d/11c0lhYOm5bTqWWFDA6a4mTubvJsKqgG7/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation-20260202-OPP labeling machine-SOKOS.pdf",
+        "url": "https://drive.google.com/file/d/1AJLuAUBH8zAW3kkgoWuGE_qVuS0c3kAS/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Osmose Reversa TECFAG03T.docx",
+        "url": "https://drive.google.com/file/d/1C9C7iihjm7mK4t2f8FfflhqiJ2nROExi/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "0.25Ten-GB.docx",
+        "url": "https://drive.google.com/file/d/1Es_ZjDmo0neQttRjtb7RhwZrXLMTK4Sr/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Automatic cups packing machine line with custom services for BRTC.docx",
+        "url": "https://drive.google.com/file/d/1SFXU-N7QKEhgFAfvTa7vJM1RUiyZdDOp/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "U02B2508-Quotation of ribbon mixers.docx",
+        "url": "https://drive.google.com/file/d/1KtS8rUw58YkKxOToZcUpNzUujmHCGE_y/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Quotation of HTFD900L-75..docx",
+        "url": "https://drive.google.com/file/d/1__YHp1kJKUkZad_oAkLhwhh_mHsC5qzU/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "2024Õ╣┤µû░þëê(ÕÄ╗).pdf",
+        "url": "https://drive.google.com/file/d/1jYnHO-dA2QjeQyo9O2ikGr2KqffdWDa-/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Pre├ºo.docx",
+        "url": "https://drive.google.com/file/d/1r7pgSJEiQCfoy-0BAPe6tbSO5FbDEWWi/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "V mixer quotation.pdf",
+        "url": "https://drive.google.com/file/d/1-jlzT-AJMcSq3iAcxOfx2hyoQoeWDpHl/view?usp=drive_link",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Mar20th-Quotation sheet.docx",
+        "url": "https://drive.google.com/file/d/13HJEvs0Ecgal69jnRPksZTLPHD4K9mJs/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Pre├ºo Oral dissolving.docx",
+        "url": "https://drive.google.com/file/d/1jC60Na4uj1S6d4GqokVxPzadXhFMeywt/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Oral Dissolving Film prodction line catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1-7PFwkFXyJX3eglHlo2uzNBqa5MSYUjq/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Pre├ºo YK.docx",
+        "url": "https://drive.google.com/file/d/15WtEyp63wWkW5pv8vZv0fivXR4Dh9hKK/view",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Cotação.docx",
+        "url": "https://drive.google.com/file/d/1wlrVPK-g3r_34vTX45ngJ5FvyXrWiwk_/view",
+        "notes": "Cotação comercial do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "Small type sugar making machine catalogue.pdf",
+        "url": "https://drive.google.com/file/d/1xssufeuCFtTmH-24hQqSrW8u7gth3hh7/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "WCSJ-10(20)(20B) Universal coarse crusher.pdf",
+        "url": "https://drive.google.com/file/d/1D-qoBa6itYnXzLWI3_zHzZlAZGYvmCG9/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "YPT Non woven bed sheet cover machine catalouge.pdf",
+        "url": "https://drive.google.com/file/d/1UpslxU7OVomhSFMwv8lAGpsFFwkhzRWT/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "V Series high efficiency mixer.pdf",
+        "url": "https://drive.google.com/file/d/1_fiTB1j9yZKNmzpwMP_EN8PELfVVlIC3/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "YK Series oscillating Granulator.pdf",
+        "url": "https://drive.google.com/file/d/1-VDu9BTt4WmpB2zZQ2fEXbQuVn3hxEju/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "GHL-10 High speed mixing granulator.pdf",
+        "url": "https://drive.google.com/file/d/1SSsOdID6A_BYgxtsoVuQYGnwDzyXeAQ1/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "FLG300 closed type granuatlion line for tablet capsule machine.pdf",
+        "url": "https://drive.google.com/file/d/191Ed2hWo8ji56OVSiaWcXJwTg3VpYnz2/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
+    },
+    {
+        "supplier_name": "GERAL",
+        "machine_category": "GERAL",
+        "title": "SBH Series 3D Motion mixer.pdf",
+        "url": "https://drive.google.com/file/d/1bjcMhO3pR3wXmsYxwAmAQhptXiTtAsgJ/view?usp=drive_link",
+        "notes": "Catálogo técnico do fornecedor GERAL."
     }
 ];
 
