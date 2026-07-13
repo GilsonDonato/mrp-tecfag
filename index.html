@@ -3529,6 +3529,10 @@
                                     <h5 style="color: var(--primary); margin-bottom: 10px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">Dados de Contato no Cliente</h5>
                                     <table style="width: 100%; border-collapse: collapse; font-size: 0.83rem; color: #cbd5e1; margin-bottom: 15px;">
                                         <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary); width: 110px;">Vendedor (Criador):</td>
+                                            <td style="padding: 6px 0; font-weight: bold; color: var(--primary);" id="modal-desc-creator">-</td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                                             <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary); width: 110px;">CNPJ:</td>
                                             <td style="padding: 6px 0;" id="modal-desc-cnpj">-</td>
                                         </tr>
@@ -6952,6 +6956,20 @@
                             deadlineLabel = ` (${diffDays}d restantes)`;
                         }
                     }
+                
+                let cardCreator = 'S/V';
+                if (project.checklist && project.checklist.diagnostico_user) {
+                    const u = project.checklist.diagnostico_user;
+                    if (u === 'admin') cardCreator = 'Admin';
+                    else if (u === 'vendas') cardCreator = 'Vendas';
+                    else if (u === 'gerente') cardCreator = 'Gerente';
+                    else if (u === 'gerente_comercial') cardCreator = 'Comercial';
+                    else if (u === 'joao.lanza') cardCreator = 'J.Lanza';
+                    else if (u === 'engenharia') cardCreator = 'Engenharia';
+                    else if (u === 'compras') cardCreator = 'Compras';
+                    else if (u === 'estoque') cardCreator = 'Estoque';
+                    else if (u === 'tecnico') cardCreator = 'Técnico';
+                    else cardCreator = u;
                 }
 
                 const card = document.createElement('div');
@@ -6996,10 +7014,14 @@
                             </div>
                         </div>
                     </div>
-                    <div class="project-card-footer">
-                        <span class="project-pm-name">
+                    <div class="project-card-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="project-pm-name" title="Gerente (PM)">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             ${(project.pm || 'Sem PM').split(' ').slice(-2).join(' ')}
+                        </span>
+                        <span class="project-vendedor-name" title="Vendedor (Criador)" style="font-size: 0.68rem; color: var(--primary); display: flex; align-items: center; gap: 3px;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            Vendedor: <strong>${cardCreator}</strong>
                         </span>
                         ${hasWarning ? `
                             <span class="critical-warning-icon" title="Alerta: Mais de 7 dias sem atualização nesta fase crítica!">
@@ -7096,7 +7118,22 @@
             activeProjectCode = code;
 
             document.getElementById('modal-project-title').innerText = `${project.code} - ${project.client}`;
-            document.getElementById('modal-project-subtitle').innerText = `Gerente: ${project.pm} | Técnico Instalador: ${project.tech}`;
+            
+            let creator = '-';
+            if (project.checklist && project.checklist.diagnostico_user) {
+                creator = project.checklist.diagnostico_user;
+                if (creator === 'admin') creator = 'Administrador';
+                else if (creator === 'vendas') creator = 'Eng. Vendas';
+                else if (creator === 'gerente') creator = 'Gerente de Projetos';
+                else if (creator === 'gerente_comercial') creator = 'Gerente Comercial';
+                else if (creator === 'joao.lanza') creator = 'João Lanza';
+                else if (creator === 'engenharia') creator = 'Engenharia';
+                else if (creator === 'compras') creator = 'Importação/Compras';
+                else if (creator === 'estoque') creator = 'Estoque/PCP';
+                else if (creator === 'tecnico') creator = 'Técnico';
+            }
+            
+            document.getElementById('modal-project-subtitle').innerText = `Gerente: ${project.pm} | Vendedor: ${creator} | Técnico: ${project.tech}`;
             
             // Reseta para a aba de contato
             switchModalSubTab('contato');
@@ -7107,6 +7144,7 @@
                 maskedCnpj = `${maskedCnpj.substring(0, 2)}.${maskedCnpj.substring(2, 5)}.${maskedCnpj.substring(5, 8)}/${maskedCnpj.substring(8, 12)}-${maskedCnpj.substring(12)}`;
             }
             
+            document.getElementById('modal-desc-creator').innerText = creator;
             document.getElementById('modal-desc-cnpj').innerText = maskedCnpj;
             document.getElementById('modal-desc-contact-name').innerText = project.contact || '-';
             document.getElementById('modal-desc-contact-phone').innerText = project.contact_phone || '-';
