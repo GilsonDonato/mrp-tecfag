@@ -21,10 +21,11 @@ if %errorlevel% neq 0 (
     )
 )
 
-:: Se a pasta node_modules nao existir, rodar npm install
-if not exist node_modules (
+:: Garantir que as dependencias estao instaladas e integras
+node -e "require('express')" >nul 2>nul
+if %errorlevel% neq 0 (
     echo.
-    echo Instalando dependencias do projeto (isso pode levar alguns segundos na primeira execucao)...
+    echo [INFO] Instalando ou reparando dependencias do projeto (isso pode levar alguns segundos)...
     call npm install
 )
 
@@ -33,3 +34,8 @@ echo.
 echo Iniciando o servidor local na porta 3000...
 start "" "http://localhost:3000"
 node server.js
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERRO] O servidor encontrou um problema e foi encerrado.
+    pause
+)
