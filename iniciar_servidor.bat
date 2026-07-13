@@ -4,15 +4,21 @@ echo ===================================================
 echo   Tecfag MRP II - Inicializando Servidor Local
 echo ===================================================
 
-:: Verificar se o Node.js esta instalado
+:: Verificar se o Node.js esta instalado (com fallback para instalacoes recem-concluidas)
 where node >nul 2>nul
 if %errorlevel% neq 0 (
-    echo [ERRO] O Node.js nao foi encontrado no seu sistema.
-    echo Por favor, instale o Node.js para executar o servidor.
-    echo Voce pode baixar o instalador oficial em: https://nodejs.org/
-    echo.
-    pause
-    exit /b
+    if exist "C:\Program Files\nodejs\node.exe" (
+        set "PATH=%PATH%;C:\Program Files\nodejs"
+    ) else if exist "C:\Program Files (x86)\nodejs\node.exe" (
+        set "PATH=%PATH%;C:\Program Files (x86)\nodejs"
+    ) else (
+        echo [ERRO] O Node.js nao foi encontrado no seu sistema.
+        echo Por favor, instale o Node.js para executar o servidor.
+        echo Voce pode baixar o instalador oficial em: https://nodejs.org/
+        echo.
+        pause
+        exit /b
+    )
 )
 
 :: Se a pasta node_modules nao existir, rodar npm install
