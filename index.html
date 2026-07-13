@@ -1636,7 +1636,7 @@
             <li class="nav-item" id="menu-cadprj" onclick="switchTab('cadprj')">
                 <button>
                     <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-                    Novo Contrato
+                    Novo Projeto
                 </button>
             </li>
             <li class="nav-item" id="menu-tag" onclick="switchTab('tag')">
@@ -1790,7 +1790,7 @@
                 <button class="btn btn-secondary" onclick="seedProjectMockData()" id="btn-seed">Simular Projetos</button>
                 <button class="btn" onclick="switchTab('cadprj')">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Novo Contrato
+                    Novo Projeto
                 </button>
             </div>
         </header>
@@ -1981,7 +1981,7 @@
                         <!-- Dados de Contato no Cliente -->
                         <div style="margin-top: 15px; margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px;">
                             <h4 style="font-size: 0.78rem; color: var(--primary); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">Dados de Contato no Cliente</h4>
-                            <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr 1.2fr; gap: 15px;">
+                            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px;">
                                 <div class="form-group">
                                     <label for="prj-contact-name">Nome do Contato*</label>
                                     <input type="text" id="prj-contact-name" class="form-control" placeholder="Ex: Carlos Silva" required>
@@ -1990,9 +1990,15 @@
                                     <label for="prj-contact-phone">Telefone / WhatsApp*</label>
                                     <input type="text" id="prj-contact-phone" class="form-control" placeholder="Ex: (11) 99999-9999" required oninput="maskPhone(this)">
                                 </div>
+                            </div>
+                            <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 15px;">
                                 <div class="form-group">
                                     <label for="prj-contact-email">E-mail de Contato*</label>
                                     <input type="email" id="prj-contact-email" class="form-control" placeholder="Ex: carlos@cliente.com" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="prj-website">Website do Cliente</label>
+                                    <input type="text" id="prj-website" class="form-control" placeholder="Ex: www.cliente.com.br">
                                 </div>
                             </div>
                         </div>
@@ -3547,6 +3553,10 @@
                                         <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                                             <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">E-mail:</td>
                                             <td style="padding: 6px 0;" id="modal-desc-contact-email">-</td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">Website:</td>
+                                            <td style="padding: 6px 0;" id="modal-desc-website">-</td>
                                         </tr>
                                         <tr>
                                             <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">CNAE Fiscal:</td>
@@ -5784,6 +5794,7 @@
                     if (clientEl) clientEl.value = "";
                     if (codeEl) codeEl.value = "";
                     if (descEl) descEl.value = "";
+                    if (document.getElementById('prj-website')) document.getElementById('prj-website').value = "";
                     currentCnpjReceitaData = null;
                 } else {
                     cnpjCache[cnpj] = data;
@@ -5794,6 +5805,9 @@
                     if (clientEl) clientEl.value = data.razao_social;
                     if (codeEl) codeEl.value = data.cnae_codigo || "";
                     if (descEl) descEl.value = data.cnae_descricao || "";
+                    if (document.getElementById('prj-website') && data.website) {
+                        document.getElementById('prj-website').value = data.website;
+                    }
                     currentCnpjReceitaData = data.receita_data || null;
                 }
             } catch (err) {
@@ -6604,6 +6618,7 @@
                 const contactName = document.getElementById('prj-contact-name').value.trim();
                 const contactPhone = document.getElementById('prj-contact-phone').value.trim();
                 const contactEmail = document.getElementById('prj-contact-email').value.trim();
+                const website = document.getElementById('prj-website').value.trim();
                 const pm = document.getElementById('prj-pm').value.trim();
                 const tech = document.getElementById('prj-tech').value.trim() || 'Técnico Não Alocado';
 
@@ -6819,7 +6834,8 @@
                         prazos,
                         faseEntryDate: new Date().toISOString(),
                         lastUpdate: new Date().toISOString(),
-                        machines
+                        machines,
+                        website
                     };
 
                     if (submitBtn) {
@@ -7199,6 +7215,16 @@
             document.getElementById('modal-desc-contact-name').innerText = project.contact || '-';
             document.getElementById('modal-desc-contact-phone').innerText = project.contact_phone || '-';
             document.getElementById('modal-desc-contact-email').innerText = project.contact_email || '-';
+            
+            const webLinkEl = document.getElementById('modal-desc-website');
+            if (webLinkEl) {
+                if (project.website && project.website !== '-') {
+                    const cleanUrl = project.website.startsWith('http') ? project.website : `https://${project.website}`;
+                    webLinkEl.innerHTML = `<a href="${cleanUrl}" target="_blank" style="color: var(--primary); text-decoration: underline;">${project.website}</a>`;
+                } else {
+                    webLinkEl.innerText = '-';
+                }
+            }
             
             let cnaeText = '-';
             if (project.cnae_codigo) {

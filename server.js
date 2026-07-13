@@ -112,7 +112,8 @@ function initializeDatabase() {
             faseEntryDate TEXT,
             lastUpdate TEXT,
             motivoPerda TEXT,
-            machines TEXT   -- Salvo como String JSON
+            machines TEXT,   -- Salvo como String JSON
+            website TEXT
         )`);
 
         // Executar migração de colunas para bancos existentes
@@ -123,6 +124,7 @@ function initializeDatabase() {
         db.run("ALTER TABLE projects ADD COLUMN cnae_codigo TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN cnae_descricao TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN receita_data TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN website TEXT", (err) => {});
 
         // Tabela de Logs de Auditoria
         db.run(`CREATE TABLE IF NOT EXISTS logs (
@@ -702,7 +704,23 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
     }
 });
 
-// Função auxiliar para consulta de CNPJ com 3 APIs redundantes de fallback
+// Função auxiliar para extrair o site corporativo com base no domínio do e-mail da empresa
+function extractWebsite(email) {
+    if (!email) return '';
+    const parts = email.split('@');
+    if (parts.length < 2) return '';
+    const domain = parts[1].toLowerCase().trim();
+    const publicDomains = [
+        'gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'yahoo.com.br', 
+        'live.com', 'icloud.com', 'aol.com', 'mail.com', 'zoho.com', 'protonmail.com',
+        'terra.com.br', 'uol.com.br', 'bol.com.br', 'ig.com.br'
+    ];
+    if (publicDomains.includes(domain)) {
+        return '';
+    }
+    return 'www.' + domain;
+}
+
 // Função auxiliar para consulta de CNPJ com 3 APIs redundantes de fallback e extração de dossiê completo
 async function fetchCNPJWithFallback(cnpj) {
     // API 1: BrasilAPI
@@ -749,6 +767,8 @@ async function fetchCNPJWithFallback(cnpj) {
                 situacao: (data.descricao_situacao_cadastral || '').toUpperCase(),
                 cnae_codigo: data.cnae_fiscal || '',
                 cnae_descricao: data.cnae_fiscal_descricao || '',
+                email: data.email || '',
+                website: extractWebsite(data.email),
                 receita_data: {
                     capital_social: data.capital_social ? data.capital_social.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Não informado',
                     porte: porteText,
@@ -815,6 +835,8 @@ async function fetchCNPJWithFallback(cnpj) {
                 situacao: (data.situacao || '').toUpperCase(),
                 cnae_codigo: cnaeObj.code ? cnaeObj.code.replace(/\D/g, '') : '',
                 cnae_descricao: cnaeObj.text || '',
+                email: data.email || '',
+                website: extractWebsite(data.email),
                 receita_data: {
                     capital_social: capStr,
                     porte: data.porte || 'Não informado',
@@ -881,6 +903,8 @@ async function fetchCNPJWithFallback(cnpj) {
                 situacao: (data.estabelecimento.situacao_cadastral || '').toUpperCase(),
                 cnae_codigo: cnaeObj.subclasse ? cnaeObj.subclasse.replace(/\D/g, '') : '',
                 cnae_descricao: cnaeObj.descricao || '',
+                email: estab.email || '',
+                website: extractWebsite(estab.email),
                 receita_data: {
                     capital_social: capStr,
                     porte: data.porte ? data.porte.descricao : 'Não informado',
@@ -935,6 +959,8 @@ app.get('/api/cnpj/:cnpj', authenticateToken, async (req, res) => {
             situacao: result.situacao,
             cnae_codigo: result.cnae_codigo,
             cnae_descricao: result.cnae_descricao,
+            email: result.email || '',
+            website: result.website || '',
             receita_data: result.receita_data
         });
     } catch (err) {
@@ -4613,7 +4639,7 @@ Responda APENAS com o objeto JSON puramente, sem formatação markdown de códig
 
 // POST /api/projects - Cria um novo projeto com receita_data
 app.post('/api/projects', async (req, res) => {
-    const { code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, machines, cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, receita_data } = req.body;
+    const { code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, machines, cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, receita_data, website } = req.body;
     
     if (!code || !client || !sku || !pm || !cnpj) {
         return res.status(400).json({ error: 'Os campos Código, Cliente, CNPJ, SKU e Gerente (PM) são obrigatórios.' });
@@ -4628,8 +4654,8 @@ app.post('/api/projects', async (req, res) => {
         const sql = `INSERT INTO projects (
             code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, 
             checklist, prazos, faseEntryDate, lastUpdate, motivoPerda, machines,
-            cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, receita_data
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+            cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, receita_data, website
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
         await dbRun(sql, [
             code,
@@ -4653,7 +4679,8 @@ app.post('/api/projects', async (req, res) => {
             contact_email || '',
             cnae_codigo || '',
             cnae_descricao || '',
-            receita_data ? (typeof receita_data === 'string' ? receita_data : JSON.stringify(receita_data)) : '{}'
+            receita_data ? (typeof receita_data === 'string' ? receita_data : JSON.stringify(receita_data)) : '{}',
+            website || ''
         ]);
 
         sendWebhookNotification('CREATE', { code, client, pm, sku });
