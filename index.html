@@ -6875,7 +6875,8 @@
             if (!project || !project.checklist) return 0;
             const keys = Object.keys(project.checklist).filter(key => !key.endsWith('_user') && !key.endsWith('_date'));
             const checked = keys.filter(key => project.checklist[key] === true).length;
-            return Math.round((checked / 16) * 100);
+            if (keys.length === 0) return 0;
+            return Math.min(100, Math.round((checked / keys.length) * 100));
         }
 
         // Alerta Crítico: Mais de 7 dias sem atualização
