@@ -4994,8 +4994,57 @@
         function loadProjectsDB() {
             fetch('/api/projects')
                 .then(res => res.json())
-                .then(projects => {
+                .then(async projects => {
                     state.projects = projects;
+                    
+                    // Migração automática de projetos locais do LocalStorage para o Banco SQLite do servidor
+                    if (projects.length === 0) {
+                        try {
+                            const localPrjStr = localStorage.getItem('tecfag_projects');
+                            if (localPrjStr) {
+                                const localProjects = JSON.parse(localPrjStr);
+                                if (Array.isArray(localProjects) && localProjects.length > 0) {
+                                    console.log(`[MIGRATE] Detectados ${localProjects.length} projetos locais. Migrando para o SQLite...`);
+                                    for (const prj of localProjects) {
+                                        const payload = {
+                                            code: prj.code,
+                                            client: prj.client,
+                                            contact: prj.contact || '',
+                                            cnpj: prj.cnpj || '00000000000000',
+                                            contact_phone: prj.contact_phone || '',
+                                            contact_email: prj.contact_email || '',
+                                            cnae_codigo: prj.cnae_codigo || '',
+                                            cnae_descricao: prj.cnae_descricao || '',
+                                            receita_data: prj.receita_data || '{}',
+                                            pm: prj.pm || 'Sem PM',
+                                            diagnostico: prj.diagnostico || '',
+                                            sku: prj.sku || 'DESCONHECIDO',
+                                            tech: prj.tech || 'Não definido',
+                                            serial: prj.serial || '-',
+                                            route: prj.route || '-',
+                                            fase: prj.fase || 1,
+                                            checklist: prj.checklist || {},
+                                            prazos: prj.prazos || {},
+                                            faseEntryDate: prj.faseEntryDate || new Date().toISOString(),
+                                            lastUpdate: prj.lastUpdate || new Date().toISOString(),
+                                            machines: prj.machines || []
+                                        };
+                                        await fetch('/api/projects', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify(payload)
+                                        }).catch(err => console.error('Erro ao migrar projeto:', err));
+                                    }
+                                    localStorage.removeItem('tecfag_projects');
+                                    console.log('[MIGRATE] Migração de dados locais para o banco de dados concluída!');
+                                    return loadProjectsDB();
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Erro na migração de projetos do LocalStorage:', e);
+                        }
+                    }
+
                     if (state.projects.length === 0) {
                         document.getElementById('btn-seed').style.border = '2px dashed var(--primary)';
                     } else {
