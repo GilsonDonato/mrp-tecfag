@@ -6,20 +6,25 @@ echo ===================================================
 
 :: Verificar se o Node.js esta instalado (com fallback para instalacoes recem-concluidas)
 where node >nul 2>nul
-if %errorlevel% neq 0 (
-    if exist "C:\Program Files\nodejs\node.exe" (
-        set "PATH=%PATH%;C:\Program Files\nodejs"
-    ) else if exist "C:\Program Files (x86)\nodejs\node.exe" (
-        set "PATH=%PATH%;C:\Program Files (x86)\nodejs"
-    ) else (
-        echo [ERRO] O Node.js nao foi encontrado no seu sistema.
-        echo Por favor, instale o Node.js para executar o servidor.
-        echo Voce pode baixar o instalador oficial em: https://nodejs.org/
-        echo.
-        pause
-        exit /b
-    )
+if %errorlevel% equ 0 goto node_ok
+
+if exist "C:\Program Files\nodejs\node.exe" (
+    set "PATH=%PATH%;C:\Program Files\nodejs"
+    goto node_ok
 )
+if exist "C:\Program Files (x86)\nodejs\node.exe" (
+    set "PATH=%PATH%;C:\Program Files (x86)\nodejs"
+    goto node_ok
+)
+
+echo [ERRO] O Node.js nao foi encontrado no seu sistema.
+echo Por favor, instale o Node.js para executar o servidor.
+echo Voce pode baixar o instalador oficial em: https://nodejs.org/
+echo.
+pause
+exit /b
+
+:node_ok
 
 :: Garantir que as dependencias estao instaladas e integras
 node -e "require('express')" >nul 2>nul
