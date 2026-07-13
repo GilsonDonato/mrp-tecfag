@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Funcionalidades - Tecfag MRP II</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+        
+        :root {
+            --primary: #0ea5e9;
+            --secondary: #a855f7;
+            --dark: #0f172a;
+            --slate: #334155;
+            --light: #f8fafc;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Outfit', 'Segoe UI', sans-serif;
+            color: #1e293b;
+            background-color: #ffffff;
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            color: var(--dark);
+            font-weight: 700;
+        }
+
+        .header p {
+            margin: 5px 0 0 0;
+            color: #64748b;
+            font-size: 1rem;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            color: var(--dark);
+            border-left: 4px solid var(--primary);
+            padding-left: 10px;
+            margin-top: 40px;
+            margin-bottom: 15px;
+        }
+
+        h3 {
+            font-size: 1.15rem;
+            color: var(--slate);
+            margin-top: 25px;
+        }
+
+        p, li {
+            font-size: 0.95rem;
+            color: #334155;
+        }
+
+        ul, ol {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.9rem;
+        }
+
+        table th, table td {
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: var(--light);
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        table tr:nth-child(even) {
+            background-color: rgba(248, 250, 252, 0.5);
+        }
+
+        .alert {
+            background-color: #f0fdf4;
+            border-left: 4px solid #16a34a;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-size: 0.9rem;
+        }
+
+        .alert-title {
+            font-weight: bold;
+            color: #14532d;
+            margin-bottom: 5px;
+        }
+
+        .alert-info {
+            background-color: #f0f9ff;
+            border-left: 4px solid #0284c7;
+        }
+        .alert-info .alert-title {
+            color: #0c4a6e;
+        }
+
+        /* Regras para Impressão em PDF */
+        @media print {
+            body {
+                padding: 0;
+                font-size: 12pt;
+                background: white;
+            }
+            .container {
+                max-width: 100%;
+            }
+            .no-print {
+                display: none;
+            }
+            h2 {
+                page-break-before: always;
+            }
+            table, pre, blockquote {
+                page-break-inside: avoid;
+            }
+        }
+        
+        .print-btn-container {
+            margin-bottom: 30px;
+            text-align: right;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #0284c7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="print-btn-container no-print">
+            <button class="btn" onclick="window.print()">🖨️ Imprimir / Salvar como PDF</button>
+        </div>
+
+        <div class="header">
+            <div>
+                <h1>Tecfag MRP II</h1>
+                <p>Manual Completo de Funcionalidades & Rastreabilidade</p>
+            </div>
+            <div class="logo">TECFAG</div>
+        </div>
+
+        <p>Este documento apresenta um mapeamento completo e detalhado de todas as funcionalidades e regras de negócio integradas no sistema <strong>Tecfag MRP II & Controle de Rastreabilidade</strong>.</p>
+
+        <h2>1. Controle de Acesso e Perfis (Roles)</h2>
+        <p>O sistema opera com um controle de permissões baseado em <strong>Cargos (Roles)</strong>, garantindo que cada colaborador acesse apenas as informações pertinentes ao seu escopo de trabalho:</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Cargo</th>
+                    <th>Sigla</th>
+                    <th>Nível de Acesso</th>
+                    <th>Funcionalidades Principais</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Vendas</strong></td>
+                    <td><code>VENDAS</code></td>
+                    <td>Operacional Comercial</td>
+                    <td>Cadastro de projetos, visualização do Kanban, edição de campos da Fase 1 (Vendas) e exportação rápida de memoriais descritivos.</td>
+                </tr>
+                <tr>
+                    <td><strong>Engenharia</strong></td>
+                    <td><code>ENGENHARIA</code></td>
+                    <td>Operacional Técnico</td>
+                    <td>Validação técnica, edição de checklists da Fase 1, 2, 4 e 5, consulta e pesquisa por IA na Biblioteca Técnica.</td>
+                </tr>
+                <tr>
+                    <td><strong>Compras / Importação</strong></td>
+                    <td><code>COMPRAS</code></td>
+                    <td>Operacional Logístico</td>
+                    <td>Edição de checklists da Fase 2 (Compras/Produção/Embarque) e atualização de prazos de importação.</td>
+                </tr>
+                <tr>
+                    <td><strong>Estoque / Almoxarifado</strong></td>
+                    <td><code>ESTOQUE</code></td>
+                    <td>Operacional Físico</td>
+                    <td>Edição de checklists da Fase 3 (Transporte Marítimo/Nacionalização).</td>
+                </tr>
+                <tr>
+                    <td><strong>Assistência Técnica</strong></td>
+                    <td><code>TECNICO</code></td>
+                    <td>Operacional de Campo</td>
+                    <td>Edição de checklists da Fase 4 (Instalação e SAT) e alocação de técnicos nos cards.</td>
+                </tr>
+                <tr>
+                    <td><strong>Gerente de Projetos</strong></td>
+                    <td><code>GERENTE</code></td>
+                    <td>Administrativo Total</td>
+                    <td>Permissão total de leitura e escrita em todas as fases, exclusão de cards, reativação de projetos perdidos e auditoria de logs.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>2. Módulo CRM / Cadastro de Projetos (Fase 1)</h2>
+        <p>O módulo de entrada de projetos (CRM Intake) foi projetado para atuar como um **guia técnico interativo** para o vendedor, garantindo a coleta de parâmetros estruturados sem ruído de comunicação.</p>
+        
+        <ul>
+            <li><strong>Gerador Automático de Código:</strong> Código sequencial exclusivo (ex: <code>PRJTEC000000003</code>) gerado na abertura da tela de cadastro.</li>
+            <li><strong>Consulta de CNPJ por API:</strong> O vendedor digita o CNPJ do cliente e o sistema busca automaticamente na Receita Federal a <strong>Razão Social</strong>, o <strong>Código CNAE</strong> e a <strong>Descrição da Atividade</strong>, preenchendo os campos instantaneamente.</li>
+            <li><strong>Parâmetros de Segmentos Dinâmicos:</strong> Exibe campos de entrada específicos para o segmento de máquina selecionado. São 12 segmentos cobertos:
+                <ol>
+                    <li>Misturadores e Processamento</li>
+                    <li>Encapsuladoras e Linhas Farmacêuticas</li>
+                    <li>Fabricação de Gomas e Balas Gummy</li>
+                    <li>Dosagem e Pesagem Semiautomática</li>
+                    <li>Empacotamento Automático</li>
+                    <li>Envasadoras Automáticas de Líquidos/Pastosos</li>
+                    <li>Sistemas de Fechamento e Tampagem</li>
+                    <li>Seladoras a Vácuo e Termoformadoras</li>
+                    <li>Rotuladoras e Etiquetadoras</li>
+                    <li>Termoencolhíveis e Selamento em L</li>
+                    <li>Final de Linha e Paletização</li>
+                    <li>Projetos Especiais & Customizações Personnalité</li>
+                </ol>
+            </li>
+            <li><strong>Infraestrutura e Requisitos Regulatórios:</strong> Coleta unificada de dados de instalação elétrica/pneumática (*Tensão*, *Pressão*, *Consumo de Ar*, *Secador na Linha*, *Material de Contato*, *Rugosidade de Solda*, *Proteção IP*, *Adequação NR-12*, *Atmosfera Risco EX*, *Método de Limpeza*, *Temperatura da Sala* e *Restrições Físicas*).</li>
+            <li><strong>Playbook Dinâmico de Vendas:</strong> Uma caixa de dicas rápidas que exibe as perguntas essenciais que o vendedor deve fazer ao cliente para cada segmento, evitando visitas técnicas desnecessárias.</li>
+            <li><strong>Motor de Sugestão de SKU:</strong> Analisa os parâmetros e determina se a máquina pode ser um <strong>SKU Padrão de Catálogo</strong> ou se exige <strong>Equipamento Customizado</strong> (detalhando os motivos da customização).</li>
+        </ul>
+
+        <h2>3. Kanban e Gestão de Fluxo Operacional</h2>
+        <p>O Kanban rastreia o ciclo de vida completo do equipamento, dividido em <strong>6 fases</strong>:</p>
+        <ol>
+            <li><strong>Fase 1 - Vendas & Escopo:</strong> Fase de captação, playbook de perguntas e aprovação técnica de escopo.</li>
+            <li><strong>Fase 2 - Compras Acompanhamento Produção/Embarque:</strong> Controle da fabricação no fornecedor estrangeiro/nacional.</li>
+            <li><strong>Fase 3 - Transp. Marítimo/Nacionalização:</strong> Controle do tráfego internacional, porto/aeroporto e desembaraço aduaneiro.</li>
+            <li><strong>Fase 4 - Instalação & SAT:</strong> Entrega técnica no cliente, instalação física e treinamento.</li>
+            <li><strong>Fase 5 - Concluído:</strong> Equipamento rodando com termo de aceite técnico (SAT) assinado.</li>
+            <li><strong>Fase 6 - Cancelado/Perdido:</strong> Projetos arquivados, exigindo obrigatoriamente a descrição do motivo da perda para auditoria.</li>
+        </ol>
+
+        <div class="alert alert-info">
+            <div class="alert-title">💡 Checklist de Rastreabilidade Ativa (18 Etapas)</div>
+            Cada card possui 18 tarefas obrigatórias. Ao marcar uma tarefa, o sistema grava de forma imutável o <strong>usuário</strong> que marcou e a <strong>data/hora exata</strong> da conclusão, fornecendo um histórico completo para auditorias e KPIs de desempenho.
+        </div>
+
+        <h2>4. Biblioteca Técnica & Pesquisa Inteligente com IA</h2>
+        <p>Uma central de conhecimentos onde toda a engenharia e equipe técnica podem consultar catálogos de componentes, manuais e planilhas de fornecedores.</p>
+        <ul>
+            <li><strong>Upload de Recursos:</strong> Permite subir catálogos e manuais associados a tags de busca.</li>
+            <li><strong>Buscador Inteligente com Inteligência Artificial (Gemini):</strong> O usuário faz perguntas em linguagem natural (ex: *"Qual o contato do fornecedor de esteiras curvas?"* ou *"Qual sensor é usado na seladora de indução de 1.5kW?"*).</li>
+            <li><strong>Otimização de Contexto (Pre-Filter Ranker):</strong> O sistema realiza uma busca vetorial/palavras-chave e filtra os 15 documentos mais relevantes antes de submeter à IA. Isso otimiza o consumo de tokens e garante respostas em menos de 3 segundos sem estourar limites de quota.</li>
+        </ul>
+
+        <h2>5. Notificações e Experiência Visual</h2>
+        <ul>
+            <li><strong>E-mails Automáticos de Transição (Nodemailer):</strong> O servidor monitora o Kanban. Toda vez que um card avança de fase, um e-mail com layout corporativo é disparado para o setor responsável da nova fase com link integrado para o sistema.</li>
+            <li><strong>Mascote Tecfag de Celebração:</strong> Ao cadastrar um novo contrato com sucesso, o robô mascote da Tecfag (desenhado em SVG metálico 3D) entra caminhando na tela, para no centro, gira para a frente do usuário, faz uma dancinha de vitória, dispara uma queima de fogos com partículas coloridas e retoma a caminhada até sair da tela.</li>
+        </ul>
+
+        <h2>6. Segurança e Logs de Auditoria</h2>
+        <ul>
+            <li><strong>Log Global de Ações:</strong> Registra todas as ações do sistema (ex: *"João alterou o status da tarefa X"*, *"Maria cadastrou o projeto Y"*), exibindo um feed colorido e auditável no rodapé da página.</li>
+            <li><strong>Backup de Banco de Dados:</strong> Permite exportar e importar o banco de dados SQLite completo diretamente pela interface para contingência.</li>
+            <li><strong>Sincronismo IndexedDB:</strong> Garante persistência e velocidade de carregamento dos arquivos no navegador do usuário.</li>
+        </ul>
+    </div>
+</body>
+</html>
