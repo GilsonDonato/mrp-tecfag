@@ -2441,6 +2441,7 @@
                                         <select id="prj-dosagem-sealing-type" class="form-control" onchange="runSkuSuggestionEngine()">
                                             <option value="Lisa">Solda Lisa (Indicada para PE simples)</option>
                                             <option value="Estriada">Solda Estriada (Laminados / Barreira)</option>
+                                            <option value="3Soldas">3 Soldas (Almofada / 3 Soldas Laterais / Flow Pack)</option>
                                             <option value="4Soldas">4 Soldas Laterais (Quad-seal)</option>
                                             <option value="Fria">Solda Fria (Cold Seal)</option>
                                         </select>
@@ -2459,7 +2460,12 @@
                                     <div class="form-group">
                                         <label for="prj-dosagem-sensitivity">Sensibilidade do Produto*</label>
                                         <select id="prj-dosagem-sensitivity" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Baixa">Resistente (Grãos secos, sementes)</option>
+                                            <option value="Baixa">Resistente (Grãos secos, sementes, pós)</option>
+                                            <option value="Alta">Frágil / Quebradiço (Biscoitos, batata chips, torradas)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
                                                                  <!-- 6. ENVASADORAS AUTOMÁTICAS DE LÍQUIDOS/PASTOSOS -->
                             <div id="group-envase" class="conditional-group" style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border-left: 3px solid var(--primary); margin-bottom: 15px;">
                                 <h5 style="font-size: 0.75rem; color: var(--primary); margin-bottom: 10px; text-transform: uppercase;">6. Envasadoras Automáticas de Líquidos/Pastosos</h5>
@@ -2795,7 +2801,7 @@
                                 </h5>
                                 
                                 <!-- Elétrica e Pneumática -->
-                                <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 15px; margin-bottom: 10px;">
+                                <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr 1.2fr; gap: 15px; margin-bottom: 10px;">
                                     <div class="form-group">
                                         <label for="prj-infra-tension">Tensão Elétrica Disponível no Cliente*</label>
                                         <select id="prj-infra-tension" class="form-control" required onchange="runSkuSuggestionEngine()">
@@ -2806,15 +2812,6 @@
                                             <option value="440V Trifásico">440V Trifásico (Especial)</option>
                                         </select>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="prj-infra-frequency">Frequência da Rede*</label>
-                                        <select id="prj-infra-frequency" class="form-control" required onchange="runSkuSuggestionEngine()">
-                                            <option value="60Hz">60 Hz (Padrão Nacional)</option>
-                                            <option value="50Hz">50 Hz (Padrão Exportação / Especial)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 10px;">
                                     <div class="form-group">
                                         <label for="prj-infra-pressure">Pressão Pneumática Mínima (bar/PSI)</label>
                                         <input type="text" id="prj-infra-pressure" class="form-control" placeholder="Ex: 6 bar / 90 PSI" oninput="runSkuSuggestionEngine()">
@@ -6053,7 +6050,7 @@
             
             // Fatores Globais de Engenharia Customizada
             const tension = document.getElementById('prj-infra-tension').value;
-            const frequency = document.getElementById('prj-infra-frequency').value;
+            const frequency = '60Hz';
             const material = document.getElementById('prj-infra-material').value;
             const roughness = document.getElementById('prj-infra-roughness').value;
             const ipRating = document.getElementById('prj-infra-ip-rating').value;
@@ -6675,7 +6672,7 @@
 
                     const segment = document.getElementById('prj-intake-segment').value;
                     const tension = document.getElementById('prj-infra-tension').value;
-                    const frequency = document.getElementById('prj-infra-frequency').value;
+                    const frequency = '60Hz';
                     const pressure = document.getElementById('prj-infra-pressure').value.trim();
                     const airConsumption = document.getElementById('prj-infra-air-consumption').value.trim();
                     const airDryer = document.getElementById('prj-infra-air-dryer').value;
