@@ -2800,8 +2800,8 @@
                                     <span>⚡</span> Infraestrutura & Requisitos Regulatórios
                                 </h5>
                                 
-                                <!-- Elétrica e Pneumática -->
-                                <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr 1.2fr; gap: 15px; margin-bottom: 10px;">
+                                <!-- Elétrica e Chaparia -->
+                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 15px; margin-bottom: 10px;">
                                     <div class="form-group">
                                         <label for="prj-infra-tension">Tensão Elétrica Disponível no Cliente*</label>
                                         <select id="prj-infra-tension" class="form-control" required onchange="runSkuSuggestionEngine()">
@@ -2813,12 +2813,13 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label for="prj-infra-pressure">Pressão Pneumática Mínima (bar/PSI)</label>
-                                        <input type="text" id="prj-infra-pressure" class="form-control" placeholder="Ex: 6 bar / 90 PSI" oninput="runSkuSuggestionEngine()">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-infra-air-consumption">Consumo Estimado de Ar (L/min)</label>
-                                        <input type="text" id="prj-infra-air-consumption" class="form-control" placeholder="Ex: 250 L/min" oninput="runSkuSuggestionEngine()">
+                                        <label for="prj-infra-structure-material">Material da Estrutura Externa (Chaparia)*</label>
+                                        <select id="prj-infra-structure-material" class="form-control" required onchange="runSkuSuggestionEngine()">
+                                            <option value="Pintura eletrostática">Pintura eletrostática (Aço Carbono)</option>
+                                            <option value="Aço inox 201">Aço inox 201</option>
+                                            <option value="Aço inox 304">Aço inox 304 (Padrão Industrial)</option>
+                                            <option value="Aço inox 316">Aço inox 316 (Sanitário / Farmacêutico)</option>
+                                        </select>
                                     </div>
                                     <div class="form-group">
                                         <label for="prj-infra-air-dryer">Secador de Ar Comprimido na Linha?</label>
@@ -6674,8 +6675,9 @@
                     const segment = document.getElementById('prj-intake-segment').value;
                     const tension = document.getElementById('prj-infra-tension').value;
                     const frequency = '60Hz';
-                    const pressure = document.getElementById('prj-infra-pressure').value.trim();
-                    const airConsumption = document.getElementById('prj-infra-air-consumption').value.trim();
+                    const structureMaterial = document.getElementById('prj-infra-structure-material').value;
+                    const pressure = '';
+                    const airConsumption = '';
                     const airDryer = document.getElementById('prj-infra-air-dryer').value;
                     const material = document.getElementById('prj-infra-material').value;
                     const roughness = document.getElementById('prj-infra-roughness').value;
@@ -6697,6 +6699,7 @@
                     const infra = { 
                         tension, 
                         frequency, 
+                        structureMaterial,
                         pressure, 
                         airConsumption, 
                         airDryer, 
@@ -7264,6 +7267,7 @@
                     const infraFields = {
                         tension: 'Tensão Elétrica',
                         frequency: 'Frequência de Rede',
+                        structureMaterial: 'Estrutura Externa (Chaparia)',
                         pressure: 'Pressão Pneumática (bar)',
                         airConsumption: 'Consumo de Ar (Nl/min)',
                         airDryer: 'Secador de Ar na Linha',
@@ -9844,8 +9848,12 @@
             txt += `*⚡ Requisitos de Infraestrutura:*\n`;
             txt += `• Tensão Elétrica: ${parsed.infra?.tension || '-'}\n`;
             txt += `• Frequência de Rede: ${parsed.infra?.frequency || '-'}\n`;
-            txt += `• Pressão Pneumática: ${parsed.infra?.pressure || '-'} bar/PSI\n`;
-            txt += `• Consumo de Ar: ${parsed.infra?.airConsumption || '-'} L/min\n`;
+            if (parsed.infra?.structureMaterial) {
+                txt += `• Estrutura Externa (Chaparia): ${parsed.infra?.structureMaterial}\n`;
+            } else {
+                txt += `• Pressão Pneumática: ${parsed.infra?.pressure || '-'} bar/PSI\n`;
+                txt += `• Consumo de Ar: ${parsed.infra?.airConsumption || '-'} L/min\n`;
+            }
             txt += `• Secador na Linha: ${parsed.infra?.airDryer || '-'}\n`;
             txt += `• Aço de Contato: ${parsed.infra?.material === 'Inox304' ? 'Inox 304 (Padrão)' : 'Inox 316L (Farmacêutico)'}\n`;
             txt += `• Polimento: ${parsed.infra?.roughness === 'Padrao' ? 'Industrial' : 'Sanitário (Ra < 0.4µm)'}\n`;
@@ -9919,8 +9927,12 @@
             txt += `==============================================\n`;
             txt += `Tensão Elétrica: ${parsed.infra?.tension || '-'}\n`;
             txt += `Frequência de Rede: ${parsed.infra?.frequency || '-'}\n`;
-            txt += `Pressão Pneumática Mínima: ${parsed.infra?.pressure || '-'} bar/PSI\n`;
-            txt += `Consumo Estimado de Ar: ${parsed.infra?.airConsumption || '-'} L/min\n`;
+            if (parsed.infra?.structureMaterial) {
+                txt += `Estrutura Externa (Chaparia): ${parsed.infra?.structureMaterial}\n`;
+            } else {
+                txt += `Pressão Pneumática Mínima: ${parsed.infra?.pressure || '-'} bar/PSI\n`;
+                txt += `Consumo Estimado de Ar: ${parsed.infra?.airConsumption || '-'} L/min\n`;
+            }
             txt += `Secador de Ar na Linha: ${parsed.infra?.airDryer || '-'}\n`;
             txt += `Aço de Contato: ${parsed.infra?.material === 'Inox304' ? 'Inox 304 (Padrão)' : 'Inox 316L (Farmacêutico)'}\n`;
             txt += `Polimento/Rugosidade de Solda: ${parsed.infra?.roughness === 'Padrao' ? 'Industrial' : 'Sanitário (Ra < 0.4µm)'}\n`;
