@@ -3869,7 +3869,7 @@
                     users = [];
                 }
                 const adminUser = Array.isArray(users) && users.find(u => u.username === 'admin');
-                const needsReset = !adminUser || adminUser.password === 'admin123';
+                const needsReset = !adminUser || adminUser.password !== 'adm@tecfag99';
                 if (needsReset) {
                     users = [
                         { username: 'admin', password: 'adm@tecfag99', role: 'ALL' },
