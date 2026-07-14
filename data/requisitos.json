@@ -796,7 +796,7 @@
     "subtipo": "Seladoras L / Túneis",
     "campo": "Sub-tipo Termoencolhível*",
     "tipo": "Seleção (Select)",
-    "opcoes": "Seladora em L Semiautomática / Pneumática; Seladora em L Contínua Automática; Túnel de Encolhimento Elétrico; Túnel de Encolhimento a Vapor (Rótulos Sleeve)",
+    "opcoes": "Seladora em L Automática; Seladora em L Contínua Automática; Túnel de Encolhimento Elétrico; Túnel de Encolhimento a Vapor (Rótulos Sleeve)",
     "origem": "Atual",
     "justificativa": "Configuração do equipamento."
   },

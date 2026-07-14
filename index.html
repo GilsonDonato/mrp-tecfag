@@ -5241,6 +5241,7 @@
                     if (fieldLabel.includes('Sub-tipo')) {
                         inputEl.addEventListener('change', () => {
                             toggleDynamicSubtypes(inputEl.value);
+                            applyConditionalFieldRules();
                             runSkuSuggestionEngine();
                         });
                     } else {
@@ -5278,6 +5279,7 @@
                 } else {
                     toggleDynamicSubtypes('');
                 }
+                applyConditionalFieldRules();
             }
         }
 
@@ -5311,6 +5313,41 @@
                     }
                 }
             });
+        }
+
+        // Regras de restrição de campos e validações dinâmicas dependentes
+        function applyConditionalFieldRules() {
+            const shrinkSubtypeEl = document.getElementById('prj-shrink-subtype');
+            const filmTypeEl = document.querySelector('[data-field-name="Tipo de Filme Termoencolhível"]');
+            
+            if (shrinkSubtypeEl && filmTypeEl) {
+                const val = shrinkSubtypeEl.value;
+                if (val === 'Seladora em L Automática' || val === 'Seladora em L Contínua Automática') {
+                    // Apenas POF é permitido. Desabilita as opções PVC e PE.
+                    Array.from(filmTypeEl.options).forEach(opt => {
+                        const optVal = opt.value.toLowerCase();
+                        if (optVal.includes('pvc') || optVal.includes('pe /') || optVal.includes('polietileno')) {
+                            opt.disabled = true;
+                            opt.style.display = 'none';
+                        } else {
+                            opt.disabled = false;
+                            opt.style.display = 'block';
+                        }
+                    });
+                    // Auto-seleciona POF se a seleção atual for inválida
+                    const currentVal = filmTypeEl.value.toLowerCase();
+                    if (currentVal.includes('pvc') || currentVal.includes('pe /') || currentVal.includes('polietileno')) {
+                        const pofOpt = Array.from(filmTypeEl.options).find(opt => opt.value.toLowerCase().includes('pof'));
+                        if (pofOpt) filmTypeEl.value = pofOpt.value;
+                    }
+                } else {
+                    // Reabilita todas as opções
+                    Array.from(filmTypeEl.options).forEach(opt => {
+                        opt.disabled = false;
+                        opt.style.display = 'block';
+                    });
+                }
+            }
         }
 
         // Reseta os campos numéricos de duração com os padrões travados (7, 51, 59, 15 dias)
