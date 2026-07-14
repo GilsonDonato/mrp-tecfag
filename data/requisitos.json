@@ -38,6 +38,15 @@
   {
     "segmento": "1. Processamento e Mistura",
     "subtipo": "Misturadores",
+    "campo": "Método de Alimentação de Carga (Entrada)*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Manual (Operador joga sacos); Içamento de Big Bag; Transporte Pneumático/Rosca",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "Alimentação manual em altura exige que a engenharia projete plataformas, escadas ergonômicas e grades NR-12 anti-queda."
+  },
+  {
+    "segmento": "1. Processamento e Mistura",
+    "subtipo": "Misturadores",
     "campo": "Tempo Estimado de Ciclo (Minutos)",
     "tipo": "Texto / Número",
     "opcoes": "-",
@@ -272,6 +281,15 @@
   {
     "segmento": "3. Fabricação de Gomas & Balas Gummy",
     "subtipo": "Gummy",
+    "campo": "Gramatura Estimada por Goma (g)*",
+    "tipo": "Número",
+    "opcoes": "-",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "Crucial para o dimensionamento exato do volume da câmara do pistão da dosadora mogul."
+  },
+  {
+    "segmento": "3. Fabricação de Gomas & Balas Gummy",
+    "subtipo": "Gummy",
     "campo": "Capacidade de Produção Alvo (kg/h)*",
     "tipo": "Seleção (Select)",
     "opcoes": "Até 50 kg/h (Pequena escala / Lab); Até 150 kg/h (Escala média); Até 300 kg/h (Escala industrial); Acima de 300 kg/h (Alta performance)",
@@ -286,6 +304,15 @@
     "opcoes": "Não; Sim (Vitaminas, CBD, Melatonina, etc)",
     "origem": "Proposto Novo",
     "justificativa": "Ativos sensíveis ao calor queimam na cocção, exigindo misturador em linha perto da dosadora."
+  },
+  {
+    "segmento": "3. Fabricação de Gomas & Balas Gummy",
+    "subtipo": "Gummy",
+    "campo": "Revestimento Final (Coating)*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Óleo de polimento; Açúcar Cristal / Acido (Sanded)",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "O revestimento dita se o final da linha precisará de um tambor rotativo aplicador de óleo ou um tambor de cobertura de açúcar."
   },
   {
     "segmento": "3. Fabricação de Gomas & Balas Gummy",
@@ -321,7 +348,7 @@
     "tipo": "Seleção (Select)",
     "opcoes": "Pulverização de Óleo de Desmolde (Mais limpo); Banho de Amido (Mogul Clássico)",
     "origem": "Proposto Novo",
-    "justificativa": "Gomas de gelatina/pectina em moldes de metal exigem lubrificação activa com óleo pneumático."
+    "justificativa": "Gomas de gelatina/pectina em moldes de metal exigem lubrificação ativa com óleo pneumático."
   },
   {
     "segmento": "4. Dosagem e Pesagem Semiautomática",
@@ -380,6 +407,15 @@
   {
     "segmento": "4. Dosagem e Pesagem Semiautomática",
     "subtipo": "Dosadores Semi",
+    "campo": "Método de Alimentação do Funil da Máquina*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Manual (Operador joga de balde/saco); Bomba de Transferência; Elevador de Rosca/Taliscas",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "Funis alimentados automaticamente precisam de projetos elétricos com sensores de nível para comandar a bomba do cliente."
+  },
+  {
+    "segmento": "4. Dosagem e Pesagem Semiautomática",
+    "subtipo": "Dosadores Semi",
     "campo": "Tipo de Embalagem a Preencher*",
     "tipo": "Seleção (Select)",
     "opcoes": "Rígida (Pote / Frasco); Flexível (Saco / Pouch)",
@@ -403,6 +439,15 @@
     "opcoes": "VFFS Vertical Almofada / Travesseiro; VFFS Vertical Sanfonado / Fundo Chato; Stand-up Pouch (Pré-formado ou com Zíper); Flow Pack Horizontal; Sachê tipo Stick",
     "origem": "Atual",
     "justificativa": "Define a arquitetura física (VFFS vs Flowpack vs Stick)."
+  },
+  {
+    "segmento": "5. Empacotamento Automático",
+    "subtipo": "Empacotadoras",
+    "campo": "Equipamento de Dosagem Superior Acoplado*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Balança Multicabeçote (Grãos/Snacks); Dosador de Rosca Sem Fim (Pós); Copo Volumétrico (Grãos); Bomba de Pistão (Líquidos)",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "A empacotadora apenas forma o plástico. A engenharia precisa desenhar o suporte mecânico de acordo com o peso e formato do dosador superior."
   },
   {
     "segmento": "5. Empacotamento Automático",
@@ -475,6 +520,24 @@
     "opcoes": "Pistão Volumétrico (Pastosos e Alta Viscosidade); Gravidade por Temporização (Líquidos Finos); Ponderal por Célula de Carga (Precisão Industrial/Química)",
     "origem": "Atual",
     "justificativa": "Dimensiona a precisão e vazão mecânica da linha."
+  },
+  {
+    "segmento": "6. Envasadoras Automáticas",
+    "subtipo": "Linhas de Envase",
+    "campo": "Range Extremo de Envase (Menor e Maior Volume)*",
+    "tipo": "Texto",
+    "opcoes": "-",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "Se o cliente quiser envasar 50ml e 2 Litros na mesma envasadora, um único cilindro não consegue precisão para os dois. Exige orçar kits de camisas extras."
+  },
+  {
+    "segmento": "6. Envasadoras Automáticas",
+    "subtipo": "Linhas de Envase",
+    "campo": "Comportamento de Corte do Fluxo*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Corta limpo (Água); Forma 'fio' / Goteja (Mel/Shampoo/Óleo)",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "Líquidos que formam fio sujam o frasco. Exige projetar bicos com sucção 'corta-gota' mecânica ou pneumática."
   },
   {
     "segmento": "6. Envasadoras Automáticas",
@@ -574,6 +637,15 @@
     "opcoes": "Refrigeração a Ar (Baixa/Média velocidade); Refrigeração a Água Chiller (Alta velocidade/Industrial)",
     "origem": "Atual",
     "justificativa": "Indutoras de alta velocidade geram calor crítico, exigindo chiller d'água ativo integrado."
+  },
+  {
+    "segmento": "7. Sistemas de Fechamento & Tampagem",
+    "subtipo": "Rosqueadora",
+    "campo": "Método de Alimentação de Tampas*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Operador coloca a tampa manual; Elevador / Panela Vibratória Automática",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "Se for automático, a Engenharia precisa desenhar um classificador de tampas, que costuma representar boa parte do orçamento mecânico."
   },
   {
     "segmento": "7. Sistemas de Fechamento & Tampagem",
@@ -731,6 +803,15 @@
   {
     "segmento": "10. Termoencolhíveis & L",
     "subtipo": "Seladoras L / Túneis",
+    "campo": "Formato de Agrupamento do Fardo*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Possui bandeja rígida de papelão por baixo; Apenas garrafas soltas no filme",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "Se for só no filme, as garrafas podem tombar dentro do túnel, exigindo esteira com design de malha apertada."
+  },
+  {
+    "segmento": "10. Termoencolhíveis & L",
+    "subtipo": "Seladoras L / Túneis",
     "campo": "Sensibilidade do Produto Interno ao Calor*",
     "tipo": "Seleção (Select)",
     "opcoes": "Resistente ao calor; Sensível (Pode derreter/deformar/explodir - Chocolates, latas de aerossol)",
@@ -799,6 +880,15 @@
     "opcoes": "Formadora de Caixas de Papelão Automática; Fechadora de Caixas de Papelão (Fita adesiva / Hotmelt); Paletizadora Automática (Envolvedora de filme stretch); Esteiras de Acúmulo e Curvas de Distribuição",
     "origem": "Atual",
     "justificativa": "Configuração do equipamento."
+  },
+  {
+    "segmento": "11. Final de Linha",
+    "subtipo": "Paletização",
+    "campo": "Padrão Exato do Palete (Dimensões)*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "PBR Brasil (1000x1200mm); Euro-palete (800x1200mm); Dimensões Especiais",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "Se for diferente de PBR, todas as garras do robô, esteiras e revistas dispensadoras de paletes precisarão ser redesenhadas para essa medida."
   },
   {
     "segmento": "11. Final de Linha",
@@ -925,6 +1015,33 @@
     "opcoes": "220V Bifásico / Trifásico; 380V Trifásico; 440V Trifásico",
     "origem": "Proposto Novo",
     "justificativa": "Motores elétricos e inversores de frequência precisam vir configurados de fábrica para a voltagem correta."
+  },
+  {
+    "segmento": "Geral (Todos os Projetos)",
+    "subtipo": "Engenharia Base",
+    "campo": "Regime de Trabalho (Fadiga/Turnos)*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "1 Turno (8h/dia); 2 Turnos (16h/dia); 3 Turnos (24h/dia - Contínuo)",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "Máquinas rodando 24h exigem motores Heavy Duty e rolamentos maiores para evitar fadiga mecânica."
+  },
+  {
+    "segmento": "Geral (Todos os Projetos)",
+    "subtipo": "Engenharia Base",
+    "campo": "Integração de Linha (Handshake)*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Isolada (Stand-alone); Trabalhará conectada em linha (Exige troca de sinais)",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "Se for trabalhar conectada com outra esteira do cliente, a elétrica precisará orçar relés de contato seco para evitar encavalamento de produto."
+  },
+  {
+    "segmento": "Geral (Todos os Projetos)",
+    "subtipo": "Engenharia Base",
+    "campo": "Quantidade de Formatos Diferentes (SKUs)*",
+    "tipo": "Número",
+    "opcoes": "-",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "Se o cliente rodar muitos formatos na mesma máquina, a engenharia precisará desenhar e cotar múltiplos 'Kits de Formato / Peças de Setup' de troca rápida."
   },
   {
     "segmento": "Geral (Todos os Projetos)",
