@@ -792,26 +792,53 @@
     "justificativa": "Alinhamento essencial com a gráfica que imprime os rótulos do cliente para evitar rótulos invertidos."
   },
   {
-    "segmento": "10. Termoencolhíveis & Selamento em L",
-    "subtipo": "Seladoras L / Túneis",
+    "segmento": "10. Termoencolhíveis & Seladoras",
+    "subtipo": "Seladoras L / Bundling / Túneis",
     "campo": "Sub-tipo Termoencolhível*",
     "tipo": "Seleção (Select)",
-    "opcoes": "Seladora em L Automática; Seladora em L Contínua Automática; Túnel de Encolhimento Elétrico; Túnel de Encolhimento a Vapor (Rótulos Sleeve)",
-    "origem": "Atual",
-    "justificativa": "Configuração do equipamento."
-  },
-  {
-    "segmento": "10. Termoencolhíveis & L",
-    "subtipo": "Seladoras L / Túneis",
-    "campo": "Formato de Agrupamento do Fardo*",
-    "tipo": "Seleção (Select)",
-    "opcoes": "Possui bandeja rígida de papelão por baixo; Apenas garrafas soltas no filme",
+    "opcoes": "Seladora em L Automática; Seladora em L Contínua Automática; Enfardadora Bundling (Filme PE); Túnel de Encolhimento Elétrico; Túnel de Encolhimento a Vapor (Rótulos Sleeve)",
     "origem": "Proposto Engenharia (Zero Erros)",
-    "justificativa": "Se for só no filme, as garrafas podem tombar dentro do túnel, exigindo esteira com design de malha apertada."
+    "justificativa": "Inclusão da Enfardadora Bundling para separar o escopo de fardos pesados com filme PE."
   },
   {
-    "segmento": "10. Termoencolhíveis & L",
-    "subtipo": "Seladoras L / Túneis",
+    "segmento": "10. Termoencolhíveis & Seladoras",
+    "subtipo": "Enfardadora Bundling",
+    "campo": "Matriz de Agrupamento do Fardo (Ex: 3x4, 2x3)*",
+    "tipo": "Texto",
+    "opcoes": "-",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "Define a largura da barra de selagem (faca reta) e o curso do pistão empurrador pneumático."
+  },
+  {
+    "segmento": "10. Termoencolhíveis & Seladoras",
+    "subtipo": "Enfardadora Bundling",
+    "campo": "Sentido de Alimentação do Produto*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Frontal (Em linha reta); Lateral (Entrada em 90 graus)",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "Define totalmente o layout da esteira agrupadeira e como o produto será empurrado contra a cortina de filme de PE."
+  },
+  {
+    "segmento": "10. Termoencolhíveis & Seladoras",
+    "subtipo": "Seladoras L / Bundling / Túneis",
+    "campo": "Base de Sustentação do Produto/Fardo*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Apenas filme (Garrafas soltas); Bandeja plana de papelão por baixo (Pad); Caixa fechada / Produto único rígido",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "Garrafas soltas sem bandeja tombam facilmente ao serem empurradas pelo pistão pneumático. Exige esteiras de transição super curtas."
+  },
+  {
+    "segmento": "10. Termoencolhíveis & Seladoras",
+    "subtipo": "Enfardadora Bundling",
+    "campo": "Tipo de Fechamento do Fardo*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Padrão com furos laterais (Olho de Boi); Fechamento Total (100% selado)",
+    "origem": "Proposto Engenharia (Zero Erros)",
+    "justificativa": "Para fardos totalmente fechados (sem 'olho de boi'), a máquina exige sistemas extras de prensagem e solda lateral."
+  },
+  {
+    "segmento": "10. Termoencolhíveis & Seladoras",
+    "subtipo": "Seladoras L / Bundling / Túneis",
     "campo": "Sensibilidade do Produto Interno ao Calor*",
     "tipo": "Seleção (Select)",
     "opcoes": "Resistente ao calor; Sensível (Pode derreter/deformar/explodir - Chocolates, latas de aerossol)",
@@ -819,44 +846,44 @@
     "justificativa": "Produtos sensíveis exigem túneis de lâmpadas infravermelhas ultrarrápidas em vez de resistências lentas."
   },
   {
-    "segmento": "10. Termoencolhíveis & L",
-    "subtipo": "Seladoras L / Túneis",
-    "campo": "Peso do Produto a ser Embalado*",
-    "tipo": "Seleção (Select)",
-    "opcoes": "Normal / Pesado; Muito leve (ex: caixinhas vazias)",
+    "segmento": "10. Termoencolhíveis & Seladoras",
+    "subtipo": "Seladoras L / Bundling / Túneis",
+    "campo": "Peso Total do Fardo / Pacote (kg)*",
+    "tipo": "Número",
+    "opcoes": "-",
     "origem": "Proposto Novo",
-    "justificativa": "Produtos muito leves voam dentro do túnel. Exige esteira superior de roletes."
+    "justificativa": "Fardos pesados (>10kg) comuns em Bundling exigem roletes de aço maciço e motoredutores reforçados no túnel de calor."
   },
   {
-    "segmento": "10. Termoencolhíveis & L",
-    "subtipo": "Seladoras L / Túneis",
+    "segmento": "10. Termoencolhíveis & Seladoras",
+    "subtipo": "Seladoras L / Bundling / Túneis",
     "campo": "Dimensão da Área de Selagem (C x L)*",
     "tipo": "Texto",
     "opcoes": "-",
     "origem": "Atual",
-    "justificativa": "Define o comprimento do barramento de corte em L."
+    "justificativa": "Define o tamanho da faca de corte (em L para caixas ou Faca Reta Guilhotina para Bundling)."
   },
   {
-    "segmento": "10. Termoencolhíveis & L",
-    "subtipo": "Seladoras L / Túneis",
-    "campo": "Produtividade Requerida (ppm)*",
-    "tipo": "Texto",
+    "segmento": "10. Termoencolhíveis & Seladoras",
+    "subtipo": "Seladoras L / Bundling / Túneis",
+    "campo": "Produtividade Requerida (Pacotes ou Fardos/min)*",
+    "tipo": "Número",
     "opcoes": "-",
     "origem": "Atual",
-    "justificativa": "Paces por minuto (ppm) determinam a automação do sistema."
+    "justificativa": "Paces por minuto (ppm) determinam a automação do sistema e a velocidade da esteira."
   },
   {
-    "segmento": "10. Termoencolhíveis & L",
-    "subtipo": "Seladoras L / Túneis",
+    "segmento": "10. Termoencolhíveis & Seladoras",
+    "subtipo": "Seladoras L / Bundling / Túneis",
     "campo": "Dimensões Internas da Janela de Entrada (L x A)*",
     "tipo": "Texto",
     "opcoes": "-",
     "origem": "Atual",
-    "justificativa": "Janela interna do túnel de encolhimento para passagem livre da embalagem."
+    "justificativa": "Janela interna do túnel para passagem livre do produto. Em fardos, exige margem de folga maior."
   },
   {
-    "segmento": "10. Termoencolhíveis & L",
-    "subtipo": "Seladoras L / Túneis",
+    "segmento": "10. Termoencolhíveis & Seladoras",
+    "subtipo": "Seladoras L / Bundling / Túneis",
     "campo": "Tipo de Resistência/Aquecimento*",
     "tipo": "Seleção (Select)",
     "opcoes": "Resistências Elétricas Blindadas Aletadas; Lâmpadas Infravermelho (Rápido aquecimento/resfriamento); Gerador de Vapor Direto (Indicado para Sleeve e frascos cheios)",
@@ -864,13 +891,13 @@
     "justificativa": "Túneis a vapor são ideais para frascos cheios ou inflamáveis, evitando queima do insumo."
   },
   {
-    "segmento": "10. Termoencolhíveis & L",
-    "subtipo": "Seladoras L / Túneis",
-    "campo": "Tipo de Filme Termoencolhível",
+    "segmento": "10. Termoencolhíveis & Seladoras",
+    "subtipo": "Seladoras L / Bundling / Túneis",
+    "campo": "Tipo de Filme Termoencolhível*",
     "tipo": "Seleção (Select)",
-    "opcoes": "PVC (Alta transparência, mais rígido); POF / Poliolefínico (Alimentício comum, flexível); PE / Polietileno (Fardos de água/refrigerante, encolhimento grosso)",
+    "opcoes": "PVC (Alta transparência, mais rígido); POF / Poliolefínico (Alimentício comum, flexível); PE / Polietileno (Fardos grossos - Obrigatório em Bundling)",
     "origem": "Proposto Novo",
-    "justificativa": "Filmes de PE exigem túneis de alta caloria com fluxo forçado de ar e roletes de metal."
+    "justificativa": "Filmes de PE exigem túneis de altíssima caloria com fluxo forçado de ar e grandes ventiladores de resfriamento (cooling fans) na saída."
   },
   {
     "segmento": "11. Final de Linha & Paletização",

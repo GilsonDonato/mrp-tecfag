@@ -2034,7 +2034,7 @@
                                     <option value="FECHAMENTO_TAMPAGEM">7. Sistemas de Fechamento & Tampagem (Rosqueadoras, Indução)</option>
                                     <option value="VACUO_TERMOFORMADORAS">8. Seladoras a Vácuo & Termoformadoras (Campana, Bandeja, MAP)</option>
                                     <option value="ROTULADORAS">9. Rotuladoras & Etiquetadoras (Lineares/Rotativas Autoadesivas/Sleeve)</option>
-                                    <option value="TERMOENCOLHIVEL">10. Termoencolhíveis & Selamento em L (Seladoras L, Túneis Encolhimento)</option>
+                                    <option value="TERMOENCOLHIVEL">10. Termoencolhíveis, Selamento em L & Bundling (Seladoras L, Enfardadoras, Túneis)</option>
                                     <option value="FINAL_LINHA">11. Final de Linha & Paletização (Formadoras, Fechadoras Caixas, Robôs)</option>
                                     <option value="PROJETOS_ESPECIAIS">12. Projetos Especiais & Customizações Personnalité (Engenharia sob Medida)</option>
                                 </select>
@@ -5318,7 +5318,7 @@
         // Regras de restrição de campos e validações dinâmicas dependentes
         function applyConditionalFieldRules() {
             const shrinkSubtypeEl = document.getElementById('prj-shrink-subtype');
-            const filmTypeEl = document.querySelector('[data-field-name="Tipo de Filme Termoencolhível"]');
+            const filmTypeEl = document.querySelector('[data-field-name="Tipo de Filme Termoencolhível*"]') || document.querySelector('[data-field-name="Tipo de Filme Termoencolhível"]');
             
             if (shrinkSubtypeEl && filmTypeEl) {
                 const val = shrinkSubtypeEl.value;
@@ -5326,7 +5326,7 @@
                     // Apenas POF é permitido. Desabilita as opções PVC e PE.
                     Array.from(filmTypeEl.options).forEach(opt => {
                         const optVal = opt.value.toLowerCase();
-                        if (optVal.includes('pvc') || optVal.includes('pe /') || optVal.includes('polietileno')) {
+                        if (optVal.includes('pvc') || optVal.includes('pe /') || optVal.includes('polietileno') || optVal.includes('pe ')) {
                             opt.disabled = true;
                             opt.style.display = 'none';
                         } else {
@@ -5336,9 +5336,27 @@
                     });
                     // Auto-seleciona POF se a seleção atual for inválida
                     const currentVal = filmTypeEl.value.toLowerCase();
-                    if (currentVal.includes('pvc') || currentVal.includes('pe /') || currentVal.includes('polietileno')) {
+                    if (currentVal.includes('pvc') || currentVal.includes('pe /') || currentVal.includes('polietileno') || currentVal.includes('pe ')) {
                         const pofOpt = Array.from(filmTypeEl.options).find(opt => opt.value.toLowerCase().includes('pof'));
                         if (pofOpt) filmTypeEl.value = pofOpt.value;
+                    }
+                } else if (val === 'Enfardadora Bundling (Filme PE)') {
+                    // Apenas PE é permitido. Desabilita as opções PVC e POF.
+                    Array.from(filmTypeEl.options).forEach(opt => {
+                        const optVal = opt.value.toLowerCase();
+                        if (optVal.includes('pvc') || optVal.includes('pof')) {
+                            opt.disabled = true;
+                            opt.style.display = 'none';
+                        } else {
+                            opt.disabled = false;
+                            opt.style.display = 'block';
+                        }
+                    });
+                    // Auto-seleciona PE se a seleção atual for inválida
+                    const currentVal = filmTypeEl.value.toLowerCase();
+                    if (currentVal.includes('pvc') || currentVal.includes('pof')) {
+                        const peOpt = Array.from(filmTypeEl.options).find(opt => opt.value.toLowerCase().includes('pe /') || opt.value.toLowerCase().includes('polietileno') || opt.value.toLowerCase().includes('pe '));
+                        if (peOpt) filmTypeEl.value = peOpt.value;
                     }
                 } else {
                     // Reabilita todas as opções
