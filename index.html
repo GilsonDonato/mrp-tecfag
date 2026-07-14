@@ -2426,7 +2426,7 @@
                                 <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 10px;">
                                     <div class="form-group">
                                         <label for="prj-dosagem-bag-style">Formato da Embalagem*</label>
-                                        <select id="prj-dosagem-bag-style" class="form-control" onchange="runSkuSuggestionEngine()">
+                                        <select id="prj-dosagem-bag-style" class="form-control" onchange="handleBagStyleChange(); runSkuSuggestionEngine()">
                                             <option value="Almofada">VFFS Vertical Almofada / Travesseiro</option>
                                             <option value="Sanfonado">VFFS Vertical Sanfonado / Fundo Chato</option>
                                             <option value="Standup">Stand-up Pouch (Pré-formado ou com Zíper)</option>
@@ -2451,6 +2451,7 @@
                                             <option value="3Soldas">3 Soldas (Almofada / 3 Soldas Laterais / Flow Pack)</option>
                                             <option value="4Soldas">4 Soldas Laterais (Quad-seal)</option>
                                             <option value="Fria">Solda Fria (Cold Seal)</option>
+                                            <option value="SobProjeto">De acordo com projeto do cliente</option>
                                         </select>
                                     </div>
                                 </div>
@@ -6101,6 +6102,17 @@
         function removeEspecialFile(index) {
             especialFilesList.splice(index, 1);
             renderEspecialFilesList();
+        }
+
+        // Alterar automaticamente o tipo de solda ao selecionar formato Stick
+        function handleBagStyleChange() {
+            const bagStyle = document.getElementById('prj-dosagem-bag-style').value;
+            if (bagStyle === 'Stick') {
+                const sealingSelect = document.getElementById('prj-dosagem-sealing-type');
+                if (sealingSelect) {
+                    sealingSelect.value = 'SobProjeto';
+                }
+            }
         }
 
         // Motor de Sugestão de SKU / Engenharia Customizada
