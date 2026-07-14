@@ -2431,6 +2431,7 @@
                                             <option value="Sanfonado">VFFS Vertical Sanfonado / Fundo Chato</option>
                                             <option value="Standup">Stand-up Pouch (Pré-formado ou com Zíper)</option>
                                             <option value="FlowPack">Flow Pack Horizontal</option>
+                                            <option value="Stick">Sachê tipo Stick</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
@@ -6272,8 +6273,13 @@
                 }
                 
                 if (!isCustom) {
-                    suggestedSku = 'VFFS-BAL-320 (Empacotadora Vertical com Balança de Múltiplos Cabeçotes)';
-                    defaultSkuDetails = 'Excelente custo-benefício para produtos granulares comuns.';
+                    if (bagStyle === 'Stick') {
+                        suggestedSku = 'VFFS-STICK-4 (Empacotadora Stick 4 Vias)';
+                        defaultSkuDetails = 'Solução de alta velocidade para sachês stick monodose (pós, grãos ou líquidos sob consulta).';
+                    } else {
+                        suggestedSku = 'VFFS-BAL-320 (Empacotadora Vertical com Balança de Múltiplos Cabeçotes)';
+                        defaultSkuDetails = 'Excelente custo-benefício para produtos granulares comuns.';
+                    }
                 }
                 
             } else if (segment === 'ENVASE') {
@@ -9693,7 +9699,7 @@
                 `,
                 DOSAGEM_EMPACOTAMENTO: `
                     <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
-                    • Qual é o <strong>formato do saquinho</strong>? (Almofada, 4 soldas, Sanfonado, Stand-up Pouch?).<br>
+                    • Qual é o <strong>formato do saquinho</strong>? (Almofada, 4 soldas, Sanfonado, Stand-up Pouch ou Stick?).<br>
                     • Qual a <strong>largura da bobina</strong> de filme que pretende usar?<br>
                     • O produto será dosado por balança de cabeçotes (grãos/pequenos sólidos) ou rosca sem-fim (pós)?<br>
                     • O filme plástico é impresso (requer fotocélula de leitura) ou transparente?
