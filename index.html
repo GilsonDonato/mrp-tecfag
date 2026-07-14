@@ -2048,749 +2048,22 @@
                                 <div id="sales-playbook-content" style="color: var(--text-secondary);"></div>
                             </div>
 
-                            <!-- GRUPOS CONDICIONAIS DE PARÂMETROS ESPECÍFICOS -->
-
-                            <!-- 1. PROCESSAMENTO E MISTURA -->
-                            <div id="group-mistura" class="conditional-group" style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border-left: 3px solid var(--primary); margin-bottom: 15px;">
-                                <h5 style="font-size: 0.75rem; color: var(--primary); margin-bottom: 10px; text-transform: uppercase;">1. Processamento e Mistura</h5>
-                                <div class="form-group" style="margin-bottom: 12px;">
-                                    <label for="prj-mistura-subtype">Sub-tipo de Equipamento*</label>
-                                    <select id="prj-mistura-subtype" class="form-control" onchange="toggleMisturaSubtypes(); runSkuSuggestionEngine();">
-                                        <option value="Misturador">Misturador (Ribbon Blender / Mixer em V)</option>
-                                        <option value="Moinho">Moinho (Granuladores e Micronizadores)</option>
-                                    </select>
-                                </div>
-                                <!-- Subseção Misturadores -->
-                                <div id="sub-group-misturador" style="display: block;">
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                        <div class="form-group">
-                                            <label for="prj-mistura-density">Densidade Aparente do Produto (g/cm³)*</label>
-                                            <input type="text" id="prj-mistura-density" class="form-control" placeholder="Ex: 0.8" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-mistura-volume-total">Capacidade Total (Litros)*</label>
-                                            <input type="number" id="prj-mistura-volume-total" class="form-control" placeholder="Ex: 500" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                    </div>
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                        <div class="form-group">
-                                            <label for="prj-mistura-volume-util">Volume Útil de Trabalho (Litros)*</label>
-                                            <input type="number" id="prj-mistura-volume-util" class="form-control" placeholder="Ex: 350" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-mistura-cycle-time">Tempo Estimado de Ciclo (Minutos)</label>
-                                            <input type="text" id="prj-mistura-cycle-time" class="form-control" placeholder="Ex: 15 min" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                    </div>
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                                        <div class="form-group">
-                                            <label for="prj-mistura-discharge">Tipo de Descarga Requerida*</label>
-                                            <select id="prj-mistura-discharge" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                <option value="Borboleta">Válvula Borboleta Manual</option>
-                                                <option value="Pneumatica">Válvula Borboleta Pneumática</option>
-                                                <option value="Guilhotina">Válvula Guilhotina/Slide</option>
-                                                <option value="Rotativa">Válvula Rotativa Sanitária</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-mistura-abrasive">Nível de Abrasividade/Corrosividade*</label>
-                                            <select id="prj-mistura-abrasive" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                <option value="Baixo">Baixo (Pó comum, açúcar, grãos secos)</option>
-                                                <option value="Medio">Médio (Abrasão moderada, sal)</option>
-                                                <option value="Alto">Alto / Crítico (Altamente corrosivo)</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Subseção Moinhos -->
-                                <div id="sub-group-moinho" style="display: none;">
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                        <div class="form-group">
-                                            <label for="prj-moinho-gran-init">Granulometria Inicial (mm)*</label>
-                                            <input type="text" id="prj-moinho-gran-init" class="form-control" placeholder="Ex: 10mm" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-moinho-gran-alvo">Micronização Alvo (mesh/mm)*</label>
-                                            <input type="text" id="prj-moinho-gran-alvo" class="form-control" placeholder="Ex: 200 mesh" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                    </div>
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                                        <div class="form-group">
-                                            <label for="prj-moinho-dureza">Dureza / Abrasividade do Material*</label>
-                                            <select id="prj-moinho-dureza" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                <option value="Baixa">Baixa (Produtos leves)</option>
-                                                <option value="Media">Média (Grãos secos, sementes)</option>
-                                                <option value="Alta">Alta (Minerais)</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-moinho-peneira">Tipo de Peneira*</label>
-                                            <select id="prj-moinho-peneira" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                <option value="Furos Redondos">Furos Redondos Padrão</option>
-                                                <option value="Furos Cônicos">Furos Cônicos (Anti-entupimento)</option>
-                                                <option value="Malha Tecida">Malha Tecida (Ultra fina)</option>
-                                            </select>
-                                        </div>
-                                    </div>
+                            <!-- CONTAINER DE CAMPOS TÉCNICOS DINÂMICOS -->
+                            <div id="dynamic-segment-fields-container" style="display: none; padding: 15px; background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 15px; border-left: 3px solid var(--primary);">
+                                <h5 id="dynamic-segment-title" style="font-size: 0.75rem; color: var(--primary); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px;">Requisitos de Engenharia</h5>
+                                <div id="dynamic-fields-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                    <!-- Os campos dinâmicos serão inseridos aqui via JS -->
                                 </div>
                             </div>
 
-                            <!-- 2. ENCAPSULAMENTO & LINHAS FARMACÊUTICAS -->
-                            <div id="group-softgel" class="conditional-group" style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border-left: 3px solid var(--primary); margin-bottom: 15px;">
-                                <h5 style="font-size: 0.75rem; color: var(--primary); margin-bottom: 10px; text-transform: uppercase;">2. Encapsulamento & Linhas Farmacêuticas</h5>
-                                <div class="form-group" style="margin-bottom: 12px;">
-                                    <label for="prj-encapsulamento-subtype">Sub-tipo de Equipamento*</label>
-                                    <select id="prj-encapsulamento-subtype" class="form-control" onchange="toggleEncapsulamentoSubtypes(); runSkuSuggestionEngine();">
-                                        <option value="Encapsuladora">Encapsuladora (Softgel ou Cápsulas Duras)</option>
-                                        <option value="Contadores">Sistemas de Contagem e Envase (Sólidos)</option>
-                                    </select>
-                                </div>
-                                <!-- Subseção Encapsuladora -->
-                                <div id="sub-group-encapsuladora" style="display: block;">
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                        <div class="form-group">
-                                            <label for="prj-softgel-capsule-size">Tamanho da Cápsula (00 a 4, Oval, Oblonga)*</label>
-                                            <input type="text" id="prj-softgel-capsule-size" class="form-control" placeholder="Ex: 00 / 10 Oval" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-softgel-viscosity">Viscosidade da Gelatina (cps)</label>
-                                            <input type="text" id="prj-softgel-viscosity" class="form-control" placeholder="Ex: 8.000 cps" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                    </div>
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                                        <div class="form-group">
-                                            <label for="prj-softgel-temp">Temperatura de Fusão (°C)</label>
-                                            <input type="text" id="prj-softgel-temp" class="form-control" placeholder="Ex: 60 °C" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-softgel-humidity">Umidade da Sala Secagem (%)*</label>
-                                            <input type="text" id="prj-softgel-humidity" class="form-control" placeholder="Ex: 20%" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Subseção Contagem e Envase -->
-                                <div id="sub-group-contagem" style="display: none;">
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                        <div class="form-group">
-                                            <label for="prj-softgel-count-dest">Tipo de Embalagem de Destino*</label>
-                                            <select id="prj-softgel-count-dest" class="form-control" onchange="toggleContagemDest(); runSkuSuggestionEngine();">
-                                                <option value="Potes">Potes / Frascos</option>
-                                                <option value="Sacos">Sacos / Pouch</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-softgel-count-channels">Canais de Contagem Vibratórios*</label>
-                                            <select id="prj-softgel-count-channels" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                <option value="8 Canais">8 Canais Vibratórios</option>
-                                                <option value="12 Canais">12 Canais Vibratórios</option>
-                                                <option value="16 Canais">16 Canais Vibratórios</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Campos Condicionais para Potes -->
-                                    <div id="sub-group-contagem-potes" style="display: block;">
-                                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                                            <div class="form-group">
-                                                <label for="prj-softgel-count-gargalo">Gargalo Frasco (mm)*</label>
-                                                <input type="number" id="prj-softgel-count-gargalo" class="form-control" placeholder="Ex: 38" oninput="runSkuSuggestionEngine()">
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="prj-softgel-count-altura">Altura Frasco (mm)*</label>
-                                                <input type="number" id="prj-softgel-count-altura" class="form-control" placeholder="Ex: 120" oninput="runSkuSuggestionEngine()">
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="prj-softgel-count-rejeicao">Sistema de Rejeição*</label>
-                                                <select id="prj-softgel-count-rejeicao" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                    <option value="Nenhum">Sem rejeição</option>
-                                                    <option value="Sopro">Sopro Pneumático (Frascos leves)</option>
-                                                    <option value="Pistao">Pistão Atuador (Frascos pesados)</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Campos Condicionais para Sacos -->
-                                    <div id="sub-group-contagem-sacos" style="display: none;">
-                                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                            <div class="form-group">
-                                                <label for="prj-softgel-count-elevador">Integração c/ Elevador de Canecas?*</label>
-                                                <select id="prj-softgel-count-elevador" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                    <option value="Nao">Não</option>
-                                                    <option value="Sim">Sim (Integração automática)</option>
-                                                </select>
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="prj-softgel-count-empacotadora">Integração c/ Empacotadora VFFS/Flow Pack?*</label>
-                                                <select id="prj-softgel-count-empacotadora" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                    <option value="Nao">Não</option>
-                                                    <option value="Sim">Sim (Casado em linha)</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                                        <div class="form-group">
-                                            <label for="prj-softgel-count-dust-sensor">Sensor de Poeira / Pó Acumulado*</label>
-                                            <select id="prj-softgel-count-dust-sensor" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                <option value="Nao">Não exige</option>
-                                                <option value="Sim">Sim (Evita leituras falsas de comprimidos com pó)</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-softgel-count-solid-shape">Dimensões/Formato do Sólido*</label>
-                                            <input type="text" id="prj-softgel-count-solid-shape" class="form-control" placeholder="Ex: Comprimido redondo 12mm" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 3. FABRICAÇÃO DE GOMAS -->
-                            <div id="group-gummy" class="conditional-group" style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border-left: 3px solid var(--primary); margin-bottom: 15px;">
-                                <h5 style="font-size: 0.75rem; color: var(--primary); margin-bottom: 10px; text-transform: uppercase;">3. Fabricação de Gomas & Balas Gummy</h5>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                    <div class="form-group">
-                                        <label for="prj-gummy-productivity">Produtividade Desejada (kg/h ou peças/min)*</label>
-                                        <input type="text" id="prj-gummy-productivity" class="form-control" placeholder="Ex: 150 kg/h" oninput="runSkuSuggestionEngine()">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-gummy-agent">Agente de Gelificação Principal*</label>
-                                        <select id="prj-gummy-agent" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Gelatina">Gelatina Animal</option>
-                                            <option value="Pectina">Pectina Vegetal</option>
-                                            <option value="Agar">Ágar-ágar</option>
-                                            <option value="Misto">Misto / Amido</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                    <div class="form-group">
-                                        <label for="prj-gummy-colors">Quantidade de Cores / Sabores Simultâneos*</label>
-                                        <select id="prj-gummy-colors" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="1">1 Cor / Sabor</option>
-                                            <option value="2">2 Cores Simultâneas</option>
-                                            <option value="3">3 Cores Simultâneas</option>
-                                            <option value="4">4 Cores Simultâneas (Alta Complexidade)</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-gummy-molds">Geometria e Desenho dos Moldes*</label>
-                                        <select id="prj-gummy-molds" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Padrao">Moldes Padrão (Ursinho, Amora, Coração)</option>
-                                            <option value="Customizado">Moldes 3D / Logotipo Exclusivo (Requer Engenharia)</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-gummy-kettle">Caldeirão de Preparo (L)*</label>
-                                        <select id="prj-gummy-kettle" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Nao">Não exige caldeirão</option>
-                                            <option value="100L">100 Litros com Agitador</option>
-                                            <option value="200L">200 Litros com Agitador e Camisa Térmica</option>
-                                            <option value="500L">500 Litros Duplo (Preparo Contínuo)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="prj-gummy-tunnel">Layout do Túnel de Resfriamento / Sistema Desmoldante</label>
-                                    <textarea id="prj-gummy-tunnel" class="form-control" style="height: 60px; resize: vertical;" placeholder="Particularidades de layout do túnel, esteiras curvas, desmolde com óleo/açúcar..." oninput="runSkuSuggestionEngine()"></textarea>
-                                </div>
-                            </div>
-
-                            <!-- 7. SISTEMAS DE FECHAMENTO & TAMPAGEM -->
-                            <div id="group-fechamento" class="conditional-group" style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border-left: 3px solid var(--primary); margin-bottom: 15px;">
-                                <h5 style="font-size: 0.75rem; color: var(--primary); margin-bottom: 10px; text-transform: uppercase;">7. Sistemas de Fechamento & Tampagem</h5>
-                                <div class="form-group" style="margin-bottom: 12px;">
-                                    <label for="prj-fechamento-subtype">Sub-tipo de Processo*</label>
-                                    <select id="prj-fechamento-subtype" class="form-control" onchange="toggleFechamentoSubtypes(); runSkuSuggestionEngine();">
-                                        <option value="Inducao">Seladora por Indução Eletromagnética</option>
-                                        <option value="Rosqueadora">Rosqueadora de Tampas</option>
-                                    </select>
-                                </div>
-                                <!-- Subseção Indução -->
-                                <div id="sub-group-inducao" style="display: block;">
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                        <div class="form-group">
-                                            <label for="prj-inducao-diameter">Diâmetro Gargalo / Tampa (mm)*</label>
-                                            <input type="text" id="prj-inducao-diameter" class="form-control" placeholder="Ex: 38" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-inducao-material">Material do Frasco*</label>
-                                            <select id="prj-inducao-material" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                <option value="PEAD">PEAD</option>
-                                                <option value="PET">PET</option>
-                                                <option value="Vidro">Vidro (Requer selo condutivo especial)</option>
-                                                <option value="Outros">Outros Plásticos / Coextrusados</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 15px;">
-                                        <div class="form-group">
-                                            <label for="prj-inducao-foil-type">Tipo de Selo Alumínio*</label>
-                                            <select id="prj-inducao-foil-type" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                <option value="Padrao">Selo Padrão Simples</option>
-                                                <option value="Aba">Selo com Aba Puxa-Fácil</option>
-                                                <option value="Ventilado">Selo Valvulado / Ventilado</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-inducao-power-speed">Potência (kW) vs Velocidade Esteira*</label>
-                                            <input type="text" id="prj-inducao-power-speed" class="form-control" placeholder="Ex: 1.5 kW - 10 m/min" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-inducao-sensor">Sensor de Presença de Foil?*</label>
-                                            <select id="prj-inducao-sensor" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                <option value="Nao">Não exige sensor</option>
-                                                <option value="Sim">Sim (Rejeita sem selo de alumínio)</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Subseção Rosqueadora -->
-                                <div id="sub-group-rosqueadora" style="display: none;">
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                        <div class="form-group">
-                                            <label for="prj-rosqueadora-cap-type">Tipo de Tampa*</label>
-                                            <select id="prj-rosqueadora-cap-type" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                <option value="Tampa de Rosca Padrão">Tampa de Rosca Padrão</option>
-                                                <option value="Tampa de Batida/Pressão">Tampa de Batida / Pressão</option>
-                                                <option value="Gatilho/Trigger">Gatilho (Trigger / Borrifador)</option>
-                                                <option value="Válvula Pump">Válvula Pump (Cosméticos/Líquidos)</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-rosqueadora-torque">Torque Regulável Exigido (N.m)*</label>
-                                            <input type="text" id="prj-rosqueadora-torque" class="form-control" placeholder="Ex: 2.0 N.m" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                    </div>
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label for="prj-rosqueadora-feeder">Alimentador Automático de Tampas*</label>
-                                        <select id="prj-rosqueadora-feeder" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Vibratório">Alimentador Vibratório (Tampa redonda comum)</option>
-                                            <option value="Rotativo">Alimentador Rotativo (Tampa de encaixe direcional)</option>
-                                            <option value="Alimentação Manual">Alimentação Manual (Operador coloca a tampa)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 4. DOSAGEM E PESAGEM SEMIAUTOMÁTICA -->
-                            <div id="group-dosagem-semi" class="conditional-group" style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border-left: 3px solid var(--primary); margin-bottom: 15px;">
-                                <h5 style="font-size: 0.75rem; color: var(--primary); margin-bottom: 10px; text-transform: uppercase;">4. Dosagem e Pesagem Semiautomática</h5>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                    <div class="form-group">
-                                        <label for="prj-semi-type">Tipo de Acionamento/Dosador*</label>
-                                        <select id="prj-semi-type" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Pedal">Acionamento por Pedal Semiautomático</option>
-                                            <option value="Continuo">Contínuo Automático por Sensor</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-semi-precision">Precisão Requerida (g/mL)*</label>
-                                        <input type="text" id="prj-semi-precision" class="form-control" placeholder="Ex: ±0.5g" oninput="runSkuSuggestionEngine()">
-                                    </div>
-                                </div>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                    <div class="form-group">
-                                        <label for="prj-semi-principle">Princípio de Dosagem*</label>
-                                        <select id="prj-semi-principle" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Rosca">Rosca Sem-Fim (Pós)</option>
-                                            <option value="Pistao">Pistão Pneumático (Líquidos/Pastosos)</option>
-                                            <option value="Balanca">Balança Eletrônica (Grãos/Sólidos)</option>
-                                            <option value="VolumetricoGaveta">Volumétrico por Gaveta</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-semi-volume">Faixa de Dosagem Requerida*</label>
-                                        <select id="prj-semi-volume" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="10-100">10g a 100g / ml</option>
-                                            <option value="100-1000">100g a 1000g / ml</option>
-                                            <option value="1000-5000">1kg a 5kg / Litros</option>
-                                            <option value="5000+">Acima de 5kg / Litros</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-semi-product-chars">Características do Produto*</label>
-                                        <select id="prj-semi-product-chars" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Escoamento Livre">Escoamento Livre (Grãos secos, pós fáceis)</option>
-                                            <option value="Pegajoso">Pegajoso / Pastoso pesado</option>
-                                            <option value="Higroscópico">Higroscópico (Absorve umidade / Empedra)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 5. EMPACOTAMENTO AUTOMÁTICO -->
-                            <div id="group-dosagem-automatica" class="conditional-group" style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border-left: 3px solid var(--primary); margin-bottom: 15px;">
-                                <h5 style="font-size: 0.75rem; color: var(--primary); margin-bottom: 10px; text-transform: uppercase;">5. Empacotamento Automático</h5>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                    <div class="form-group">
-                                        <label for="prj-dosagem-bag-style">Formato da Embalagem*</label>
-                                        <select id="prj-dosagem-bag-style" class="form-control" onchange="handleBagStyleChange(); runSkuSuggestionEngine()">
-                                            <option value="Almofada">VFFS Vertical Almofada / Travesseiro</option>
-                                            <option value="Sanfonado">VFFS Vertical Sanfonado / Fundo Chato</option>
-                                            <option value="Standup">Stand-up Pouch (Pré-formado ou com Zíper)</option>
-                                            <option value="FlowPack">Flow Pack Horizontal</option>
-                                            <option value="Stick">Sachê tipo Stick</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-dosagem-film-width">Largura Máx Bobina Filme*</label>
-                                        <select id="prj-dosagem-film-width" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="320">Até 320 mm (Pequeno porte)</option>
-                                            <option value="420">Até 420 mm (Médio porte)</option>
-                                            <option value="520">Até 520 mm (Grande porte)</option>
-                                            <option value="680">Acima de 520 mm (Super dimensionado)</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-dosagem-sealing-type">Tipo de Solda/Selagem*</label>
-                                        <select id="prj-dosagem-sealing-type" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Lisa">Solda Lisa (Indicada para PE simples)</option>
-                                            <option value="Estriada">Solda Estriada (Laminados / Barreira)</option>
-                                            <option value="3Soldas">3 Soldas (Almofada / 3 Soldas Laterais / Flow Pack)</option>
-                                            <option value="4Soldas">4 Soldas Laterais (Quad-seal)</option>
-                                            <option value="Fria">Solda Fria (Cold Seal)</option>
-                                            <option value="SobProjeto">De acordo com projeto do cliente</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 15px;">
-                                    <div class="form-group">
-                                        <label for="prj-dosagem-printer">Tipo de Datador Requerido*</label>
-                                        <select id="prj-dosagem-printer" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Hot Stamping">Hot Stamping (Fita térmica simples)</option>
-                                            <option value="Inkjet">Inkjet Integrado</option>
-                                            <option value="Termotransferência">Termotransferência (TTO - Dados variáveis/barras)</option>
-                                            <option value="Nenhum">Não exige datador</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-dosagem-sensitivity">Sensibilidade do Produto*</label>
-                                        <select id="prj-dosagem-sensitivity" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Baixa">Resistente (Grãos secos, sementes, pós)</option>
-                                            <option value="Alta">Frágil / Quebradiço (Biscoitos, batata chips, torradas)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                                                                 <!-- 6. ENVASADORAS AUTOMÁTICAS DE LÍQUIDOS/PASTOSOS -->
-                            <div id="group-envase" class="conditional-group" style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border-left: 3px solid var(--primary); margin-bottom: 15px;">
-                                <h5 style="font-size: 0.75rem; color: var(--primary); margin-bottom: 10px; text-transform: uppercase;">6. Envasadoras Automáticas de Líquidos/Pastosos</h5>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                    <div class="form-group">
-                                        <label for="prj-envase-viscosity">Viscosidade do Produto (cps)*</label>
-                                        <input type="text" id="prj-envase-viscosity" class="form-control" placeholder="Ex: 5.000 cps (Ketchup)" oninput="runSkuSuggestionEngine()">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-envase-temp">Temperatura de Envase (°C)*</label>
-                                        <input type="text" id="prj-envase-temp" class="form-control" placeholder="Ex: 85°C (Envase a quente)" oninput="runSkuSuggestionEngine()">
-                                    </div>
-                                </div>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                    <div class="form-group">
-                                        <label for="prj-envase-nozzles-count">Quantidade de Bicos de Envase*</label>
-                                        <select id="prj-envase-nozzles-count" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="2_Bicos">2 Bicos de Envase</option>
-                                            <option value="4_Bicos">4 Bicos de Envase</option>
-                                            <option value="6_Bicos">6 Bicos de Envase</option>
-                                            <option value="8_Bicos">8 Bicos de Envase</option>
-                                            <option value="Rotativa">Rotativa de Envase (> 12 bicos)</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-envase-drive-type">Tipo de Acionamento dos Bicos*</label>
-                                        <select id="prj-envase-drive-type" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Pneumatico">Pneumático Standard</option>
-                                            <option value="ServoMotorizado">Servo-Motorizado (Alta precisão / Farmacêutico)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                    <div class="form-group">
-                                        <label for="prj-envase-cip-sip">Necessidade de Ciclo CIP/SIP*</label>
-                                        <select id="prj-envase-cip-sip" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Nao">Não exige lavagem automática</option>
-                                            <option value="CIP">Exige apenas CIP (Clean in Place com água/detergente)</option>
-                                            <option value="CIP_SIP">Exige CIP e SIP (Esterilização por vapor - Padrão Farmacêutico)</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-envase-nozzle">Tipo de Bico de Envase*</label>
-                                        <select id="prj-envase-nozzle" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Antigota">Padrão com Válvula Antigota</option>
-                                            <option value="Mergulhador">Bico Mergulhador (Evita espuma no envase)</option>
-                                            <option value="Rotativo">Bico Rotativo Especial</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label for="prj-envase-bottle-shape">Formato e Geometria do Frasco*</label>
-                                    <select id="prj-envase-bottle-shape" class="form-control" onchange="runSkuSuggestionEngine()">
-                                        <option value="Redondo">Redondo Padrão (Sem orientação específica)</option>
-                                        <option value="Oval">Oval / Cônico (Requer guias de alinhamento)</option>
-                                        <option value="Irregular">Geometria Irregular / Instável (Requer garras ou pucks)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- 8. SELADORAS A VÁCUO & TERMOFORMADORAS -->
-                            <div id="group-vacuo" class="conditional-group" style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border-left: 3px solid var(--primary); margin-bottom: 15px;">
-                                <h5 style="font-size: 0.75rem; color: var(--primary); margin-bottom: 10px; text-transform: uppercase;">8. Seladoras a Vácuo & Termoformadoras</h5>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                    <div class="form-group">
-                                        <label for="prj-vacuo-level">Vácuo Residual Requerido (mbar)*</label>
-                                        <input type="text" id="prj-vacuo-level" class="form-control" placeholder="Ex: < 10 mbar" oninput="runSkuSuggestionEngine()">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-vacuo-map">Injeção de Gás Atmosfera Modificada (MAP)*</label>
-                                        <select id="prj-vacuo-map" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Nao">Não exige MAP</option>
-                                            <option value="Sim">Sim (MAP com mistura Nitrogênio/CO2)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                                    <div class="form-group">
-                                        <label for="prj-vacuo-bar-size">Barra Selagem (mm)*</label>
-                                        <input type="text" id="prj-vacuo-bar-size" class="form-control" placeholder="Ex: 500mm" oninput="runSkuSuggestionEngine()">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-vacuo-cycles">Ciclos / Minuto*</label>
-                                        <input type="number" id="prj-vacuo-cycles" class="form-control" placeholder="Ex: 3" oninput="runSkuSuggestionEngine()">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-vacuo-depth">Profundidade Cuba (mm)</label>
-                                        <input type="number" id="prj-vacuo-depth" class="form-control" placeholder="Ex: 80" oninput="runSkuSuggestionEngine()">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-vacuo-pump-type">Tipo de Bomba de Vácuo*</label>
-                                        <select id="prj-vacuo-pump-type" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Busch">Bomba Busch (Palhetas a Óleo)</option>
-                                            <option value="Seca">Bomba Seca (Livre de Óleo)</option>
-                                            <option value="AnelLiquido">Bomba de Anel Líquido</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label for="prj-vacuo-pump-capacity">Capacidade Vazão da Bomba (m³/h)*</label>
-                                    <select id="prj-vacuo-pump-capacity" class="form-control" onchange="runSkuSuggestionEngine()">
-                                        <option value="20">20 m³/h (Ideal para bancada)</option>
-                                        <option value="40">40 m³/h (Seladora dupla média)</option>
-                                        <option value="63">63 m³/h (Alta produção industrial)</option>
-                                        <option value="100">100 m³/h (Termoformadora grande porte)</option>
-                                        <option value="200">200 m³/h ou superior (Linhas de alta cadência)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- 9. ROTULADORAS & ETIQUETADORAS -->
-                            <div id="group-rotulagem" class="conditional-group" style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border-left: 3px solid var(--primary); margin-bottom: 15px;">
-                                <h5 style="font-size: 0.75rem; color: var(--primary); margin-bottom: 10px; text-transform: uppercase;">9. Rotuladoras & Etiquetadoras</h5>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                    <div class="form-group">
-                                        <label for="prj-rotulagem-type">Tipo de Aplicação*</label>
-                                        <select id="prj-rotulagem-type" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Linear">Linear em Esteira</option>
-                                            <option value="Rotativa">Rotativa (Alta Velocidade)</option>
-                                            <option value="Envelope">Envelope / Envolvente Lateral</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-rotulagem-shape">Formato do Frasco/Garrafa*</label>
-                                        <select id="prj-rotulagem-shape" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Redondo">Cilíndrico / Redondo comum</option>
-                                            <option value="Quadrado">Quadrado / Retangular (Requer alinhadores)</option>
-                                            <option value="Conico">Cônico</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1.2fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                    <div class="form-group">
-                                        <label for="prj-rotulagem-label-type">Tipo de Rótulo*</label>
-                                        <select id="prj-rotulagem-label-type" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Autoadesivo">Autoadesivo em Bobina</option>
-                                            <option value="Sleeve">Sleeve Termoencolhível</option>
-                                            <option value="ColaQuente">BOPP / Cola Quente</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-rotulagem-position">Posição de Rotulagem*</label>
-                                        <select id="prj-rotulagem-position" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Monolado">Uma Lateral (Monolado)</option>
-                                            <option value="Bilado">Frente e Verso (Bilado)</option>
-                                            <option value="Envolvente">Envolvente 360° (Frascos redondos)</option>
-                                            <option value="Topo">Superior (Aplicador de lacre ou rótulo topo)</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-rotulagem-transparent-sensor">Sensor p/ Transparente?*</label>
-                                        <select id="prj-rotulagem-transparent-sensor" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Nao">Não exige (Papel ou plástico comum)</option>
-                                            <option value="Sim">Sim (Fotocélula especial ultra-sônica)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label for="prj-rotulagem-printer">Datador Acoplado Requerido*</label>
-                                    <select id="prj-rotulagem-printer" class="form-control" onchange="runSkuSuggestionEngine()">
-                                        <option value="Sem_Datador">Sem datador acoplado</option>
-                                        <option value="HotStamping">Datador Hot Stamping (Fita térmica)</option>
-                                        <option value="InkjetTIJ">Datador Inkjet de Cartucho (TIJ acoplado no cabeçote)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- 10. TERMOENCOLHÍVEIS & SELAMENTO EM L -->
-                            <div id="group-shrink" class="conditional-group" style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border-left: 3px solid var(--primary); margin-bottom: 15px;">
-                                <h5 style="font-size: 0.75rem; color: var(--primary); margin-bottom: 10px; text-transform: uppercase;">10. Termoencolhíveis & Selamento em L</h5>
-                                
-                                <div class="form-group" style="margin-bottom: 12px;">
-                                    <label for="prj-shrink-subtype">Sub-tipo de Equipamento*</label>
-                                    <select id="prj-shrink-subtype" class="form-control" onchange="toggleShrinkSubtypes(); runSkuSuggestionEngine();">
-                                        <option value="Seladora_L">Seladora em L Manual/Semiautomática</option>
-                                        <option value="Seladora_L_Continua">Seladora em L Contínua</option>
-                                        <option value="Tunel_Encolhimento">Túnel de Encolhimento Isolado</option>
-                                    </select>
-                                </div>
-
-                                <!-- Sub-grupo: Seladora em L / Semiautomática ou Contínua -->
-                                <div id="sub-group-seladora-l" style="display: none; margin-top: 10px;">
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                        <div class="form-group">
-                                            <label for="prj-shrink-bar-length">Comprimento da Barra de Selagem (mm)*</label>
-                                            <input type="number" id="prj-shrink-bar-length" class="form-control" placeholder="Ex: 500" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-shrink-bar-width">Largura da Barra de Selagem (mm)*</label>
-                                            <input type="number" id="prj-shrink-bar-width" class="form-control" placeholder="Ex: 400" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                    </div>
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                        <div class="form-group">
-                                            <label for="prj-shrink-film-sealer">Tipo de Filme Requerido*</label>
-                                            <select id="prj-shrink-film-sealer" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                <option value="Poliolefínico">Poliolefínico (Mais comum / Macio)</option>
-                                                <option value="PVC">PVC (Encolhimento rápido / Rígido)</option>
-                                                <option value="PE">PE (Polietileno / Fardos pesados)</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-shrink-sealing-speed">Velocidade de Selagem (ciclos/min)</label>
-                                            <input type="number" id="prj-shrink-sealing-speed" class="form-control" placeholder="Ex: 15" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                    </div>
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label for="prj-shrink-l-drive">Acionamento da Barra L*</label>
-                                        <select id="prj-shrink-l-drive" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Manual">Manual por Alavanca</option>
-                                            <option value="Pneumatico">Pneumático Semiautomático (Sensor/Botão/Pedal)</option>
-                                            <option value="Automatico">Automático por Sensor de Barreira Fotoelétrica</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <!-- Sub-grupo: Túnel de Encolhimento -->
-                                <div id="sub-group-tunel-shrink" style="display: none; margin-top: 10px;">
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                        <div class="form-group">
-                                            <label for="prj-shrink-film">Tipo de Filme Termoencolhível*</label>
-                                            <select id="prj-shrink-film" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                <option value="Poliolefínico">Poliolefínico (Sanitário / Resistente)</option>
-                                                <option value="PVC">PVC (Encolhimento rápido / Leve)</option>
-                                                <option value="PE">PE (Polietileno pesado / Caixas / Fardos)</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-shrink-pkg-dims">Dimensões Máx. do Pacote (LxAxC mm)*</label>
-                                            <input type="text" id="prj-shrink-pkg-dims" class="form-control" placeholder="Ex: 300x200x400 mm" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                    </div>
-                                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                                        <div class="form-group">
-                                            <label for="prj-shrink-temp">Temperatura Túnel (°C)</label>
-                                            <input type="text" id="prj-shrink-temp" class="form-control" placeholder="Ex: 180°C" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-shrink-speed">Velocidade Esteira (m/min)</label>
-                                            <input type="text" id="prj-shrink-speed" class="form-control" placeholder="Ex: 12 m/min" oninput="runSkuSuggestionEngine()">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="prj-shrink-rollers">Tipo de Esteira do Túnel*</label>
-                                            <select id="prj-shrink-rollers" class="form-control" onchange="runSkuSuggestionEngine()">
-                                                <option value="Roletes de Silicone">Roletes Revestidos em Silicone</option>
-                                                <option value="Malha Metálica">Malha Metálica (Pacotes pesados)</option>
-                                                <option value="Teflon">Esteira de Teflon (Produtos leves)</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="form-group" style="margin-top: 10px; margin-bottom: 0;">
-                                        <label for="prj-shrink-tunnel-type">Tipo de Aquecimento do Túnel*</label>
-                                        <select id="prj-shrink-tunnel-type" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Eletrico">Elétrico por Resistências Aletadas</option>
-                                            <option value="Vapor">Vapor (Sleeve termoencolhível / Vasilhas)</option>
-                                            <option value="Hibrido">Híbrido (Resistência + Injeção de Vapor)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 11. FINAL DE LINHA & PALETIZAÇÃO -->
-                            <div id="group-final-linha" class="conditional-group" style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border-left: 3px solid var(--primary); margin-bottom: 15px;">
-                                <h5 style="font-size: 0.75rem; color: var(--primary); margin-bottom: 10px; text-transform: uppercase;">11. Final de Linha & Paletização</h5>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                    <div class="form-group">
-                                        <label for="prj-final-pallet">Paletização Robotizada (Garras/Sucção)*</label>
-                                        <select id="prj-final-pallet" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Nao">Não se aplica</option>
-                                            <option value="Vacuo">Paletização com Garra de Vácuo/Sucção</option>
-                                            <option value="Mecanica">Paletização com Garra Mecânica Customizada</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-final-box">Formadora / Fechadora de Caixas*</label>
-                                        <select id="prj-final-box" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Nao">Não se aplica</option>
-                                            <option value="Fita">Fechadora com Fita Adesiva</option>
-                                            <option value="HotMelt">Fechadora com Cola Hot Melt (Premium)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                                    <div class="form-group">
-                                        <label for="prj-final-strapping">Exige Arqueadora de Caixas?*</label>
-                                        <select id="prj-final-strapping" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Nao">Não</option>
-                                            <option value="Sim">Sim (Arqueamento com fita plástica)</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-final-inspect">Sistema de Rejeito Dinâmico por Peso*</label>
-                                        <select id="prj-final-inspect" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Nao">Não exige</option>
-                                            <option value="Peso">Rejeito por Balança de Peso Dinâmico</option>
-                                            <option value="Visao">Rejeito por Visão Computacional (Câmera)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 12. PROJETOS ESPECIAIS & CUSTOMIZAÇÕES PERSONNALITÉ -->
-                            <div id="group-projetos-especiais" class="conditional-group" style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border-left: 3px solid var(--primary); margin-bottom: 15px;">
-                                <h5 style="font-size: 0.75rem; color: var(--primary); margin-bottom: 10px; text-transform: uppercase;">12. Projetos Especiais Tecfag Personnalité</h5>
-                                <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 15px; margin-bottom: 10px;">
-                                    <div class="form-group">
-                                        <label for="prj-especial-memo">Memorial Descritivo do Processo*</label>
-                                        <textarea id="prj-especial-memo" class="form-control" style="height: 45px; resize: vertical;" placeholder="Descreva o fluxograma do processo desejado..." oninput="runSkuSuggestionEngine()"></textarea>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prj-especial-integration">Nível de Integração Requerido*</label>
-                                        <select id="prj-especial-integration" class="form-control" onchange="runSkuSuggestionEngine()">
-                                            <option value="Isolada">Máquina Isolada (Stand-alone)</option>
-                                            <option value="Integrada">Integração em Linha Existente</option>
-                                            <option value="Turnkey">Linha Completa Turn-key (Turno Inteiro)</option>
-                                        </select>
-                                    </div>
+                            <!-- Vídeo / Fotos do Produto em Ação (Geral) -->
+                            <div style="margin-top: 15px; margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px;">
+                                <h4 style="font-size: 0.78rem; color: var(--primary); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">Mídia do Produto</h4>
+                                <div class="form-group" style="margin-bottom: 15px;">
+                                    <label for="prj-media-files">Vídeo / Fotos do Produto em Ação (Dica de Ouro)*</label>
+                                    <input type="file" id="prj-media-files" class="form-control" multiple style="background-color: #0b0f19; font-size: 0.8rem;" accept="video/*,image/*" onchange="handleMediaFilesChange(this)">
+                                    <small style="display: block; margin-top: 4px; color: var(--text-secondary); font-size: 0.7rem;">Um vídeo de 15s gravado do celular mostrando viscosidade, fluidez, empedramento, etc., resolve quase todas as dúvidas da Engenharia.</small>
+                                    <div id="media-files-list" style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px;"></div>
                                 </div>
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label for="prj-especial-files">Upload de Layouts Industriais / Memorial (DWG, PDF, JPG)</label>
@@ -2799,7 +2072,6 @@
                                     <div id="especial-files-list" style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px;"></div>
                                 </div>
                             </div>
-
                             <!-- FIM DOS GRUPOS CONDICIONAIS -->
 
                             <!-- SEÇÃO UNIFICADA: INFRAESTRUTURA & REGULAMENTOS -->
@@ -5629,10 +4901,13 @@
             productVariations = [];
             variationFiles = {};
             especialFilesList = [];
+            mediaFilesList = [];
             const varContainer = document.getElementById('variations-container');
             if (varContainer) varContainer.innerHTML = '';
             const espFilesListEl = document.getElementById('especial-files-list');
             if (espFilesListEl) espFilesListEl.innerHTML = '';
+            const mediaFilesListEl = document.getElementById('media-files-list');
+            if (mediaFilesListEl) mediaFilesListEl.innerHTML = '';
             addVariationRow(); // Adiciona uma variação vazia inicial
 
             // Reseta a visibilidade dos campos específicos e o HUD de sugestão
@@ -5840,6 +5115,204 @@
             codeInput.value = finalCode;
         }
 
+        // Variável global para armazenar o esquema de requisitos dinâmicos
+        let requisitosSchema = [];
+
+        async function loadRequisitosSchema() {
+            try {
+                const res = await fetch('/api/requisitos');
+                if (res.ok) {
+                    requisitosSchema = await res.json();
+                    console.log('Requisitos schema loaded successfully:', requisitosSchema.length);
+                } else {
+                    console.error('Failed to load requisitos schema, server returned status:', res.status);
+                }
+            } catch (err) {
+                console.error('Error fetching requirements schema:', err);
+            }
+        }
+
+        // Alterna a visibilidade dos campos específicos de acordo com o segmento selecionado
+        function updateSegmentFields() {
+            const segmentEl = document.getElementById('prj-intake-segment');
+            if (!segmentEl) return;
+            const segment = segmentEl.value;
+            const container = document.getElementById('dynamic-segment-fields-container');
+            const grid = document.getElementById('dynamic-fields-grid');
+            const title = document.getElementById('dynamic-segment-title');
+
+            if (!segment) {
+                if (container) container.style.display = 'none';
+                return;
+            }
+
+            if (grid) grid.innerHTML = '';
+            
+            // Encontra o prefixo numérico correspondente (ex: "1.")
+            const mapping = {
+                "MISTURADORES": "1.",
+                "ENCAPSULADORAS": "2.",
+                "GOMAS": "3.",
+                "DOSAGEM_SEMIAUTOMATICA": "4.",
+                "DOSAGEM_EMPACOTAMENTO": "5.",
+                "ENVASE": "6.",
+                "FECHAMENTO_TAMPAGEM": "7.",
+                "VACUO_TERMOFORMADORAS": "8.",
+                "ROTULADORAS": "9.",
+                "TERMOENCOLHIVEL": "10.",
+                "FINAL_LINHA": "11.",
+                "PROJETOS_ESPECIAIS": "12."
+            };
+            const prefix = mapping[segment];
+            if (!prefix) {
+                if (container) container.style.display = 'none';
+                return;
+            }
+
+            // Filtra os campos do segmento atual
+            const fields = requisitosSchema.filter(f => f.segmento.startsWith(prefix));
+            if (fields.length === 0) {
+                if (container) container.style.display = 'none';
+                return;
+            }
+
+            // Define o título do segmento
+            if (title) title.innerText = fields[0].segmento;
+
+            // Legacy IDs para manter compatibilidade com runSkuSuggestionEngine
+            const legacyIds = {
+                "Sub-tipo de Equipamento*": "prj-mistura-subtype",
+                "Formato da Embalagem*": "prj-dosagem-bag-style",
+                "Tipo de Solda/Selagem*": "prj-dosagem-sealing-type",
+                "Tipo de Datador Requerido*": "prj-dosagem-printer",
+                "Sensibilidade do Produto à Queda*": "prj-dosagem-sensitivity",
+                "Tipo de Envasadora Automática*": "prj-envase-type",
+                "Ciclo de Higienização*": "prj-envase-cip-sip",
+                "Geometria do Frasco*": "prj-envase-bottle-shape",
+                "Sub-tipo de Linha*": "prj-encapsulamento-subtype",
+                "Sub-tipo de Fechamento*": "prj-fechamento-subtype",
+                "Sub-tipo Termoencolhível*": "prj-shrink-subtype"
+            };
+
+            // Renderiza cada campo
+            fields.forEach(field => {
+                const isRequired = field.campo.endsWith('*');
+                const fieldLabel = field.campo;
+                
+                // Define o ID do elemento
+                let elementId = legacyIds[fieldLabel];
+                if (!elementId) {
+                    const slug = field.campo.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+                    elementId = `prj-dynamic-${slug}`;
+                }
+
+                // Criar form-group
+                const group = document.createElement('div');
+                group.className = 'form-group dynamic-field-group';
+                group.setAttribute('data-category', field.subtipo);
+                group.style.marginBottom = '12px';
+
+                const label = document.createElement('label');
+                label.setAttribute('for', elementId);
+                label.innerText = fieldLabel;
+                group.appendChild(label);
+
+                let inputEl;
+
+                if (field.tipo.includes('Seleção') || field.tipo.includes('Select')) {
+                    inputEl = document.createElement('select');
+                    inputEl.id = elementId;
+                    inputEl.className = 'form-control';
+                    inputEl.setAttribute('data-field-name', fieldLabel);
+                    if (isRequired) inputEl.required = true;
+
+                    // Opções
+                    const rawOptions = field.opcoes.split(';');
+                    rawOptions.forEach(optText => {
+                        const optClean = optText.trim();
+                        if (!optClean) return;
+                        const opt = document.createElement('option');
+                        opt.value = optClean;
+                        opt.innerText = optClean;
+                        inputEl.appendChild(opt);
+                    });
+
+                    // Se for o seletor de sub-tipo, adiciona o evento de mudança
+                    if (fieldLabel.includes('Sub-tipo')) {
+                        inputEl.addEventListener('change', () => {
+                            toggleDynamicSubtypes(inputEl.value);
+                            runSkuSuggestionEngine();
+                        });
+                    } else {
+                        inputEl.addEventListener('change', runSkuSuggestionEngine);
+                    }
+
+                } else {
+                    inputEl = document.createElement('input');
+                    inputEl.id = elementId;
+                    inputEl.className = 'form-control';
+                    inputEl.setAttribute('data-field-name', fieldLabel);
+                    if (isRequired) inputEl.required = true;
+
+                    if (field.tipo.includes('Número') || field.tipo.includes('number')) {
+                        inputEl.type = 'number';
+                    } else {
+                        inputEl.type = 'text';
+                    }
+                    
+                    inputEl.placeholder = field.justificativa ? `Ex: ${field.justificativa.substring(0, 45)}` : '';
+                    inputEl.addEventListener('input', runSkuSuggestionEngine);
+                }
+
+                group.appendChild(inputEl);
+                if (grid) grid.appendChild(group);
+            });
+
+            if (container) container.style.display = 'block';
+
+            // Executa a filtragem inicial de sub-tipos (se houver seletor de sub-tipo)
+            if (grid) {
+                const subtypeSelector = grid.querySelector('select[id$="subtype"]');
+                if (subtypeSelector) {
+                    toggleDynamicSubtypes(subtypeSelector.value);
+                } else {
+                    toggleDynamicSubtypes('');
+                }
+            }
+        }
+
+        function toggleDynamicSubtypes(selectedValue) {
+            const groups = document.querySelectorAll('#dynamic-fields-grid .dynamic-field-group');
+            groups.forEach(group => {
+                const category = group.getAttribute('data-category');
+                
+                // Se a categoria é um seletor composto (ex: Misturadores / Moinhos) ou "Geral", sempre mostra
+                if (!category || category.includes('/') || category.toLowerCase() === 'geral') {
+                    group.style.display = 'block';
+                    const input = group.querySelector('input, select');
+                    if (input) input.disabled = false;
+                } else {
+                    // Se o selectedValue faz parte ou é igual ao nome da categoria, mostra
+                    const normalizedCategory = category.toLowerCase().trim();
+                    const normalizedValue = selectedValue.toLowerCase().trim();
+                    
+                    if (normalizedValue && (normalizedCategory.includes(normalizedValue) || normalizedValue.includes(normalizedCategory))) {
+                        group.style.display = 'block';
+                        const input = group.querySelector('input, select');
+                        if (input) input.disabled = false;
+                    } else if (selectedValue === '') {
+                        group.style.display = 'block';
+                        const input = group.querySelector('input, select');
+                        if (input) input.disabled = false;
+                    } else {
+                        group.style.display = 'none';
+                        const input = group.querySelector('input, select');
+                        if (input) input.disabled = true;
+                    }
+                }
+            });
+        }
+
         // Reseta os campos numéricos de duração com os padrões travados (7, 51, 59, 15 dias)
         function resetDaysFields() {
             const f1 = document.getElementById('prj-days-fase1');
@@ -5853,49 +5326,7 @@
             if (f4) f4.value = 15;
         }
 
-        // Alterna a visibilidade dos campos específicos de acordo com o segmento selecionado
-        function updateSegmentFields() {
-            const segment = document.getElementById('prj-intake-segment').value;
-            
-            // Oculta todos os grupos
-            const groups = document.querySelectorAll('.conditional-group');
-            groups.forEach(g => {
-                g.style.display = 'none';
-            });
-            
-            // Exibe o grupo correspondente
-            if (segment === 'MISTURADORES') {
-                document.getElementById('group-mistura').style.display = 'block';
-                toggleMisturaSubtypes();
-            } else if (segment === 'ENCAPSULADORAS') {
-                document.getElementById('group-softgel').style.display = 'block';
-                toggleEncapsulamentoSubtypes();
-            } else if (segment === 'GOMAS') {
-                document.getElementById('group-gummy').style.display = 'block';
-            } else if (segment === 'DOSAGEM_SEMIAUTOMATICA') {
-                document.getElementById('group-dosagem-semi').style.display = 'block';
-            } else if (segment === 'DOSAGEM_EMPACOTAMENTO') {
-                document.getElementById('group-dosagem-automatica').style.display = 'block';
-            } else if (segment === 'ENVASE') {
-                document.getElementById('group-envase').style.display = 'block';
-            } else if (segment === 'FECHAMENTO_TAMPAGEM') {
-                document.getElementById('group-fechamento').style.display = 'block';
-                toggleFechamentoSubtypes();
-            } else if (segment === 'VACUO_TERMOFORMADORAS') {
-                document.getElementById('group-vacuo').style.display = 'block';
-            } else if (segment === 'ROTULADORAS') {
-                document.getElementById('group-rotulagem').style.display = 'block';
-            } else if (segment === 'TERMOENCOLHIVEL') {
-                document.getElementById('group-shrink').style.display = 'block';
-                toggleShrinkSubtypes();
-            } else if (segment === 'FINAL_LINHA') {
-                document.getElementById('group-final-linha').style.display = 'block';
-            } else if (segment === 'PROJETOS_ESPECIAIS') {
-                document.getElementById('group-projetos-especiais').style.display = 'block';
-            }
-        }
-
-        // Toggles de Sub-tipos nos Segmentos
+        // Toggles de Sub-tipos nos Segmentos (Mantidos para compatibilidade legada se necessário)
         function toggleMisturaSubtypes() {
             const sub = document.getElementById('prj-mistura-subtype');
             if (!sub) return;
@@ -6102,6 +5533,46 @@
         function removeEspecialFile(index) {
             especialFilesList.splice(index, 1);
             renderEspecialFilesList();
+        }
+
+        // Variável global para armazenar mídias de produto
+        let mediaFilesList = [];
+
+        function handleMediaFilesChange(input) {
+            for (let i = 0; i < input.files.length; i++) {
+                mediaFilesList.push(input.files[i]);
+            }
+            input.value = ''; // Limpa para permitir clique repetido
+            renderMediaFilesList();
+        }
+
+        function renderMediaFilesList() {
+            const listContainer = document.getElementById('media-files-list');
+            if (!listContainer) return;
+            listContainer.innerHTML = '';
+            
+            mediaFilesList.forEach((file, index) => {
+                const fileDiv = document.createElement('div');
+                fileDiv.style.display = 'flex';
+                fileDiv.style.alignItems = 'center';
+                fileDiv.style.justifyContent = 'space-between';
+                fileDiv.style.fontSize = '0.68rem';
+                fileDiv.style.color = 'var(--text-primary)';
+                fileDiv.style.padding = '4px 6px';
+                fileDiv.style.background = 'rgba(255,255,255,0.03)';
+                fileDiv.style.border = '1px solid rgba(255,255,255,0.05)';
+                fileDiv.style.borderRadius = '4px';
+                fileDiv.innerHTML = `
+                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%;">🎬 ${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
+                    <button type="button" onclick="removeMediaFile(${index})" style="background: transparent; border: none; color: #ef4444; cursor: pointer; padding: 0 4px; font-weight: bold; font-size: 0.72rem;">✕</button>
+                `;
+                listContainer.appendChild(fileDiv);
+            });
+        }
+
+        function removeMediaFile(index) {
+            mediaFilesList.splice(index, 1);
+            renderMediaFilesList();
         }
 
         // Alterar automaticamente o tipo de solda ao selecionar formato Stick
@@ -6447,124 +5918,14 @@
 
         function getSegmentParametersFromDOM(segment) {
             const params = {};
-            const getVal = (id) => {
-                const el = document.getElementById(id);
-                return el ? el.value : '';
-            };
-
-            if (segment === 'MISTURADORES') {
-                params.subtype = getVal('prj-mistura-subtype');
-                if (params.subtype === 'Moinho') {
-                    params.moinhoGranInit = getVal('prj-moinho-gran-init');
-                    params.moinhoGranAlvo = getVal('prj-moinho-gran-alvo');
-                    params.moinhoDureza = getVal('prj-moinho-dureza');
-                    params.moinhoPeneira = getVal('prj-moinho-peneira');
-                } else {
-                    params.misturaDensity = getVal('prj-mistura-density');
-                    params.misturaVolumeTotal = getVal('prj-mistura-volume-total');
-                    params.misturaVolumeUtil = getVal('prj-mistura-volume-util');
-                    params.misturaCycleTime = getVal('prj-mistura-cycle-time');
-                    params.misturaDischarge = getVal('prj-mistura-discharge');
-                    params.misturaAbrasive = getVal('prj-mistura-abrasive');
+            const inputs = document.querySelectorAll('#dynamic-fields-grid input, #dynamic-fields-grid select');
+            inputs.forEach(input => {
+                if (input.disabled) return;
+                const fieldName = input.getAttribute('data-field-name');
+                if (fieldName) {
+                    params[fieldName] = input.value;
                 }
-            } else if (segment === 'ENCAPSULADORAS') {
-                params.subtype = getVal('prj-encapsulamento-subtype');
-                if (params.subtype === 'Contadores') {
-                    params.countDest = getVal('prj-softgel-count-dest');
-                    params.countChannels = getVal('prj-softgel-count-channels');
-                    params.countGargalo = getVal('prj-softgel-count-gargalo');
-                    params.countAltura = getVal('prj-softgel-count-altura');
-                    params.countRejeicao = getVal('prj-softgel-count-rejeicao');
-                    params.countElevador = getVal('prj-softgel-count-elevador');
-                    params.countEmpacotadora = getVal('prj-softgel-count-empacotadora');
-                    params.countDustSensor = getVal('prj-softgel-count-dust-sensor');
-                    params.countSolidShape = getVal('prj-softgel-count-solid-shape');
-                } else {
-                    params.softgelCapsuleSize = getVal('prj-softgel-capsule-size');
-                    params.softgelViscosity = getVal('prj-softgel-viscosity');
-                    params.softgelTemp = getVal('prj-softgel-temp');
-                    params.softgelHumidity = getVal('prj-softgel-humidity');
-                }
-            } else if (segment === 'GOMAS') {
-                params.gummyProductivity = getVal('prj-gummy-productivity');
-                params.gummyAgent = getVal('prj-gummy-agent');
-                params.gummyColors = getVal('prj-gummy-colors');
-                params.gummyMolds = getVal('prj-gummy-molds');
-                params.gummyKettle = getVal('prj-gummy-kettle');
-            } else if (segment === 'DOSAGEM_SEMIAUTOMATICA') {
-                params.semiType = getVal('prj-semi-type');
-                params.semiPrecision = getVal('prj-semi-precision');
-                params.semiPrinciple = getVal('prj-semi-principle');
-                params.semiVolume = getVal('prj-semi-volume');
-                params.semiProductChars = getVal('prj-semi-product-chars');
-            } else if (segment === 'DOSAGEM_EMPACOTAMENTO') {
-                params.dosagemBagStyle = getVal('prj-dosagem-bag-style');
-                params.dosagemFilmWidth = getVal('prj-dosagem-film-width');
-                params.dosagemSealingType = getVal('prj-dosagem-sealing-type');
-                params.dosagemPrinter = getVal('prj-dosagem-printer');
-                params.dosagemSensitivity = getVal('prj-dosagem-sensitivity');
-            } else if (segment === 'ENVASE') {
-                params.envaseViscosity = getVal('prj-envase-viscosity');
-                params.envaseTemp = getVal('prj-envase-temp');
-                params.envaseNozzlesCount = getVal('prj-envase-nozzles-count');
-                params.envaseDriveType = getVal('prj-envase-drive-type');
-                params.envaseCipSip = getVal('prj-envase-cip-sip');
-                params.envaseNozzle = getVal('prj-envase-nozzle');
-                params.envaseBottleShape = getVal('prj-envase-bottle-shape');
-            } else if (segment === 'FECHAMENTO_TAMPAGEM') {
-                params.subtype = getVal('prj-fechamento-subtype');
-                if (params.subtype === 'Rosqueadora') {
-                    params.rosqueadoraCapType = getVal('prj-rosqueadora-cap-type');
-                    params.rosqueadoraTorque = getVal('prj-rosqueadora-torque');
-                    params.rosqueadoraFeeder = getVal('prj-rosqueadora-feeder');
-                } else {
-                    params.inducaoDiameter = getVal('prj-inducao-diameter');
-                    params.inducaoMaterial = getVal('prj-inducao-material');
-                    params.inducaoFoilType = getVal('prj-inducao-foil-type');
-                    params.inducaoPowerSpeed = getVal('prj-inducao-power-speed');
-                    params.inducaoSensor = getVal('prj-inducao-sensor');
-                }
-            } else if (segment === 'VACUO_TERMOFORMADORAS') {
-                params.vacuoLevel = getVal('prj-vacuo-level');
-                params.vacuoMap = getVal('prj-vacuo-map');
-                params.vacuoBarSize = getVal('prj-vacuo-bar-size');
-                params.vacuoCycles = getVal('prj-vacuo-cycles');
-                params.vacuoDepth = getVal('prj-vacuo-depth');
-                params.vacuoPumpType = getVal('prj-vacuo-pump-type');
-                params.vacuoPumpCapacity = getVal('prj-vacuo-pump-capacity');
-            } else if (segment === 'ROTULADORAS') {
-                params.rotulagemType = getVal('prj-rotulagem-type');
-                params.rotulagemShape = getVal('prj-rotulagem-shape');
-                params.rotulagemLabelType = getVal('prj-rotulagem-label-type');
-                params.rotulagemPosition = getVal('prj-rotulagem-position');
-                params.rotulagemTransparentSensor = getVal('prj-rotulagem-transparent-sensor');
-                params.rotulagemPrinter = getVal('prj-rotulagem-printer');
-            } else if (segment === 'TERMOENCOLHIVEL') {
-                params.subtype = getVal('prj-shrink-subtype');
-                if (params.subtype === 'Seladora_L' || params.subtype === 'Seladora_L_Continua') {
-                    params.shrinkBarLength = getVal('prj-shrink-bar-length');
-                    params.shrinkBarWidth = getVal('prj-shrink-bar-width');
-                    params.shrinkFilmSealer = getVal('prj-shrink-film-sealer');
-                    params.shrinkSealingSpeed = getVal('prj-shrink-sealing-speed');
-                    params.shrinkLDrive = getVal('prj-shrink-l-drive');
-                } else {
-                    params.shrinkFilm = getVal('prj-shrink-film');
-                    params.shrinkPkgDims = getVal('prj-shrink-pkg-dims');
-                    params.shrinkTemp = getVal('prj-shrink-temp');
-                    params.shrinkSpeed = getVal('prj-shrink-speed');
-                    params.shrinkRollers = getVal('prj-shrink-rollers');
-                    params.shrinkTunnelType = getVal('prj-shrink-tunnel-type');
-                }
-            } else if (segment === 'FINAL_LINHA') {
-                params.finalPallet = getVal('prj-final-pallet');
-                params.finalBox = getVal('prj-final-box');
-                params.finalStrapping = getVal('prj-final-strapping');
-                params.finalInspect = getVal('prj-final-inspect');
-            } else if (segment === 'PROJETOS_ESPECIAIS') {
-                params.especialMemo = getVal('prj-especial-memo');
-                params.especialIntegration = getVal('prj-especial-integration');
-            }
-
+            });
             return params;
         }
 
@@ -6758,6 +6119,21 @@
                         }
                     }
 
+                    const mediaFilesData = [];
+                    if (mediaFilesList && mediaFilesList.length > 0) {
+                        for (const file of mediaFilesList) {
+                            try {
+                                const uploadRes = await uploadFileHelper(file, code, 'diagnostico');
+                                mediaFilesData.push({
+                                    fileName: file.name,
+                                    filePath: uploadRes.fileData
+                                });
+                            } catch (uploadErr) {
+                                console.error('[INTAKE UPLOAD] Erro nas mídias de produto:', uploadErr);
+                            }
+                        }
+                    }
+
                     const segment = document.getElementById('prj-intake-segment').value;
                     const tension = document.getElementById('prj-infra-tension').value;
                     const frequency = '60Hz';
@@ -6809,6 +6185,7 @@
                         infra,
                         variations: variationsData,
                         especialFiles: especialFilesData,
+                        mediaFiles: mediaFilesData,
                         observations,
                         legacyText
                     };
@@ -7492,6 +6869,36 @@
                                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; background: rgba(59, 130, 246, 0.04); border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.1);">
                                     <span style="font-size: 0.7rem; color: var(--text-primary);">📎 ${att.fileName}</span>
                                     <a href="${att.filePath}" target="_blank" style="color: var(--primary); font-size: 0.68rem; font-weight: bold; text-decoration: none;">Download</a>
+                                </div>
+                            `;
+                        });
+                        html += `</div></div>`;
+                    }
+
+                    // Mídias do Produto em Ação
+                    if (parsed.mediaFiles && parsed.mediaFiles.length > 0) {
+                        html += `
+                            <div>
+                                <div style="font-size: 0.68rem; color: #ef4444; font-weight: bold; text-transform: uppercase; margin-bottom: 6px; border-bottom: 1px solid rgba(239, 68, 68, 0.2); padding-bottom: 2px; letter-spacing: 0.5px;">🎬 Mídias do Produto em Ação</div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px;">
+                        `;
+                        parsed.mediaFiles.forEach(att => {
+                            const isImg = att.fileName.match(/\.(jpeg|jpg|gif|png|webp)$/i);
+                            const isVideo = att.fileName.match(/\.(mp4|webm|ogg|mov)$/i);
+                            
+                            html += `
+                                <div style="padding: 6px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 6px; display: flex; flex-direction: column; gap: 6px;">
+                                    <div style="font-size: 0.68rem; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">🎥 ${att.fileName}</div>
+                            `;
+                            
+                            if (isImg) {
+                                html += `<img src="${att.filePath}" style="width: 100%; max-height: 120px; object-fit: cover; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);" />`;
+                            } else if (isVideo) {
+                                html += `<video src="${att.filePath}" controls style="width: 100%; max-height: 120px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);"></video>`;
+                            }
+                            
+                            html += `
+                                    <a href="${att.filePath}" target="_blank" style="color: #ef4444; font-size: 0.65rem; text-decoration: underline; font-weight: bold;">Ver em tela cheia</a>
                                 </div>
                             `;
                         });
@@ -9683,87 +9090,90 @@
             const playbooks = {
                 MISTURADORES: `
                     <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
-                    • Qual é a <strong>densidade aparente</strong> do produto (g/cm³)? (Crucial para dimensionar o motor).<br>
-                    • O produto é <strong>abrasivo</strong>? (Se sim, requer soldas especiais ou Inox 316L).<br>
+                    • Qual é o <strong>peso de 1 Litro do produto solto</strong> (para calcular a densidade)?<br>
                     • Qual a capacidade em <strong>litros úteis</strong> desejada por batelada (não o peso total)?<br>
-                    • A descarga deve ser por válvula borboleta manual ou pneumática?
+                    • Qual o nível de umidade ou presença de óleos/líquidos (altera torque do motor)?<br>
+                    • O produto empedra/forma grumos? (Se sim, requer choppers intensificadores).<br>
+                    • A descarga deve ser por válvula borboleta manual/pneumática ou guilhotina?
                 `,
                 ENCAPSULADORAS: `
                     <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
-                    • Qual é o <strong>formato e tamanho</strong> das cápsulas (ex: 00, 0, 1, 2, 3, 4)?<br>
-                    • Deseja contar cápsulas ou envasar em frascos/cartuchos?<br>
-                    • Para softgel: qual é a viscosidade e temperatura de envase do líquido interno?<br>
-                    • Exige elevador de alimentação de cápsulas automático ou abastecimento manual?
+                    • Qual é o <strong>formato e tamanho</strong> das cápsulas (ex: 00, 0, 1)?<br>
+                    • As cápsulas são de origem animal (gelatina) ou vegetal (HPMC)? (Influencia estática).<br>
+                    • Para comprimidos/contadores: a cápsula/comprimido é translúcido ou opaco? (Exige sensor especial).<br>
+                    • O ambiente possui controle de umidade ativa por HVAC? (Cápsulas colam em alta umidade).
                 `,
                 GOMAS: `
                     <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
-                    • Qual o <strong>agente gelificante</strong> utilizado? (Pectina ou Gelatina? Pectina requer cozimento rápido).<br>
-                    • Quantas <strong>cores ou sabores</strong> diferentes serão dosados na mesma linha?<br>
-                    • Qual é o formato/geometria 3D das gomas? (Necessário para desenhar os moldes).<br>
-                    • A linha exige túnel de resfriamento contínuo acoplado?
+                    • Qual o <strong>agente gelificante</strong>? (Pectina requer cocção rápida; gelatina exige túnel longo).<br>
+                    • A receita já está validada ou é formulação inicial de laboratório?<br>
+                    • Haverá adição de ingredientes termossensíveis (vitaminas, ativos)? (Exige mistura em linha).<br>
+                    • Qual o brix (sólidos) e formato 3D do molde desejado (bear, coração, personalizado)?
                 `,
                 DOSAGEM_SEMIAUTOMATICA: `
                     <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
-                    • Qual o <strong>tipo de produto</strong>? (Pó fino que levanta poeira, grão, ou líquido pastoso?).<br>
-                    • Qual a <strong>faixa de peso/volume</strong> que deseja dosar? (Ex: 10g a 100g, ou 1kg a 5kg?).<br>
-                    • O produto gruda ou é úmido? (Produtos pastosos exigem pistão pneumático aquecido).<br>
-                    • O acionamento deve ser por pedal físico ou sensor óptico de aproximação?
+                    • Qual a <strong>faixa de peso/volume</strong> que deseja dosar? (Ex: 50g a 500g).<br>
+                    • Qual a consistência do produto? (Semelhante a água/óleo, xampu/mel, ou pasta de amendoim?).<br>
+                    • O produto gera espuma sob agitação? (Se sim, exige bicos mergulhantes).<br>
+                    • Qual a <strong>variação de peso máxima aceitável</strong> (tolerância de perda)?<br>
+                    • A embalagem é rígida (pote) ou flexível (saco que exige prendedor pneumático)?
                 `,
                 DOSAGEM_EMPACOTAMENTO: `
                     <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
-                    • Qual é o <strong>formato do saquinho</strong>? (Almofada, 4 soldas, Sanfonado, Stand-up Pouch ou Stick?).<br>
-                    • Qual a <strong>largura da bobina</strong> de filme que pretende usar?<br>
-                    • O produto será dosado por balança de cabeçotes (grãos/pequenos sólidos) ou rosca sem-fim (pós)?<br>
-                    • O filme plástico é impresso (requer fotocélula de leitura) ou transparente?
+                    • <strong>Qual o estado físico do produto? (Línguido, pastoso, pó ou grãos?).</strong> [CRÍTICO]<br>
+                    • Quais as <strong>dimensões finais da embalagem cheia</strong> (largura x altura em mm)?<br>
+                    • Qual o formato: Almofada, Sanfonado, Stand-up Pouch, Flow Pack ou Stick?<br>
+                    • A arte do filme tem fotocélula (marca preta) ou é liso/transparente?<br>
+                    • Qual o tipo de solda (lisa, estriada, 3 ou 4 soldas) e velocidade (ppm) desejada?
                 `,
                 ENVASE: `
                     <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
-                    • Qual é a <strong>viscosidade do líquido</strong>? (Semelhante a água, óleo denso ou mel pastoso?).<br>
-                    • O envase será feito a <strong>quente</strong>? (Líquidos quentes exigem mangueiras e bicos térmicos).<br>
-                    • Qual o diâmetro do gargalo e altura dos frascos?<br>
-                    • O bico de envase precisa ser de mergulho (para evitar formação de espuma no produto)?
+                    • Qual a <strong>viscosidade do produto</strong> e a temperatura de envase? (Dosar quente exige Viton/Teflon).<br>
+                    • Há **presença de sólidos ou pedaços** (ex: polpa com sementes)? (Exige válvula rotativa servo).<br>
+                    • O frasco vazio é estável ou **tomba com facilidade** (ex: bisnagas)? (Se sim, exige pucks/berços).<br>
+                    • O gargalo é muito fino? Qual o diâmetro? (Bicos muito finos limitam a vazão).
                 `,
                 FECHAMENTO_TAMPAGEM: `
                     <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
-                    • Como é a <strong>tampa</strong>? (Rosca plástica comum, tampa com rosca metálica, snap-on de pressão?).<br>
-                    • Qual o diâmetro interno do gargalo para o selo de indução de alumínio?<br>
-                    • Exige alimentador automático de tampas ou posicionamento manual?<br>
-                    • Há necessidade de sensor para rejeitar frascos sem selo de alumínio na linha?
+                    • Como é a <strong>tampa</strong>? (Rosca simples, flip-top, gatilho spray ou pump?).<br>
+                    • Tampas com gatilho/pescador longo exigem alimentação manual ou robô inseridor.<br>
+                    • Qual o torque requerido (ajuste magnético ou controle rastreável por servo motor)?<br>
+                    • Para indução: o selo de alumínio já vem embutido na tampa? Qual o diâmetro?
                 `,
                 VACUO_TERMOFORMADORAS: `
                     <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
-                    • O produto exige injeção de <strong>gás (MAP)</strong> para estender a validade?<br>
-                    • Qual a altura/profundidade útil máxima do produto dentro da embalagem?<br>
-                    • Qual é o comprimento da barra de selagem necessária para acomodar o saco?<br>
-                    • É câmara de campana dupla (maior produtividade) ou termoformadora automática contínua?
+                    • **Há líquido livre ou caldo no produto?** (Líquidos fervem no vácuo e exigem filtros/bases inclinadas).<br>
+                    • O produto exige injeção de <strong>gás (MAP)</strong>? (Nitrogênio/CO2).<br>
+                    • Quais as dimensões máximas do produto (comprimento, largura, altura)?<br>
+                    • Qual o tipo de saco e espessura? (Sacos grossos exigem barra de selagem bi-ativa).
                 `,
                 ROTULADORAS: `
                     <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
-                    • O frasco é <strong>cilíndrico</strong> (rotulagem envolvente) ou <strong>plano/oval</strong> (frente e verso)?<br>
-                    • O rótulo é autoadesivo em bobina ou termoencolhível (sleeve)?<br>
-                    • O rótulo é transparente? (Requer sensor óptico capacitivo especial de leitura).<br>
-                    • Deseja datador acoplado na rotuladora para imprimir lote/validade?
+                    • O frasco é cônico? (Frascos cônicos exigem cabeçote dispensador inclinável).<br>
+                    • O frasco entra **seco e limpo** ou sai úmido/suado do envase? (Umidade exige faca de ar para secar).<br>
+                    • O rótulo é transparente? (Requer sensor óptico ultrassônico/capacitivo especial).<br>
+                    • Qual a altura do rótulo e o **sentido de desenrolamento** acordado com a gráfica?
                 `,
                 TERMOENCOLHIVEL: `
                     <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
-                    • Qual é o <strong>tipo de filme</strong> usado? (PVC, poliolefina POF ou polietileno PE?).<br>
-                    • Quais as dimensões máximas do pacote (Largo x Alto x Comprido)?<br>
-                    • O túnel de encolhimento deve ter roletes giratórios de silicone ou esteira metálica de malha?<br>
-                    • A seladora em L deve ser pneumática automática ou acionamento manual?
+                    • O produto é sensível ao calor? (Produtos sensíveis exigem túnel de infravermelho rápido).<br>
+                    • O produto é muito leve (ex: caixinhas vazias)? (Leves exigem esteira superior de roletes).<br>
+                    • Qual o tipo de filme usado? (PE Grosso exige alta caloria e roletes metálicos; POF/PVC usam silicone).<br>
+                    • A selagem em L deve ser por alavanca manual, pneumática ou barreira automática?
                 `,
                 FINAL_LINHA: `
                     <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
-                    • Qual o peso máximo da caixa fechada?<br>
-                    • O fechamento das caixas deve ser com fita adesiva comum ou cola hot melt?<br>
-                    • A paletização exige braço robótico de coordenadas ou robô articulado de 6 eixos?<br>
-                    • O cliente exige arqueadora automática integrada para segurança do transporte?
+                    • Qual a **qualidade do papelão** das caixas (virgem rígido vs reciclado mole que trava formadoras)?<br>
+                    • O fechamento é por fita adesiva comum ou cola quente Hotmelt?<br>
+                    • Qual a altura máxima do palete montado (limitado pelo caminhão de transporte)?<br>
+                    • Qual o mosaico/layout de paletização desejado? (Define se usará garra mecânica ou ventosas).
                 `,
                 PROJETOS_ESPECIAIS: `
                     <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
-                    • Qual é o <strong>objetivo principal da customização</strong>? (Aumentar velocidade, integrar CLP Siemens/Allen Bradley, ou espaço físico restrito?).<br>
-                    • Quais são as principais restrições técnicas do processo?<br>
-                    • O projeto exige algum tipo de integração de dados com ERP do cliente (Indústria 4.0)?<br>
-                    • Qual o cronograma esperado para desenvolvimento do protótipo?
+                    • Qual o ambiente da fábrica? (Alimentício, químico, farmacêutico estéril ou área classificada EX?).<br>
+                    • Qual o CLP de preferência? (Siemens, Rockwell/Allen Bradley ou WEG?).<br>
+                    • Qual a tensão trifásica no local (220V, 380V ou 440V)?<br>
+                    • O cliente possui compressor com rede de ar comprimido com capacidade disponível?
                 `
             };
 
@@ -10100,6 +9510,7 @@
         window.onload = function() {
             startLoginBgCarousel();
             startTelemetryTicker();
+            loadRequisitosSchema();
             
             // Inicializar cotações de câmbio
             fetchExchangeRates();

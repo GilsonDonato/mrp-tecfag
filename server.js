@@ -969,6 +969,16 @@ app.get('/api/cnpj/:cnpj', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/requisitos - Retorna a lista de perguntas e campos técnicos por segmento
+app.get('/api/requisitos', (req, res) => {
+    try {
+        const fileContent = fs.readFileSync(path.join(__dirname, 'data', 'requisitos.json'), 'utf8');
+        res.json(JSON.parse(fileContent));
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao carregar requisitos: ' + err.message });
+    }
+});
+
 // GET /api/cambio - Proxy para consulta de cotações cambiais (AwesomeAPI)
 app.get('/api/cambio', async (req, res) => {
     try {
