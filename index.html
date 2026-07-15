@@ -7280,7 +7280,7 @@
 
             // Lógica de Visibilidade Condicional e Auto-check de Pronta Entrega
             const isLocalStock = (project.equipment_origin === 'Pronta Entrega (Estoque Local)');
-            const importSteps = ['producao', 'embarque', 'fedex', 'desembaraco'];
+            const importSteps = ['pagamento', 'producao', 'embarque', 'fedex', 'desembaraco'];
             if (isLocalStock) {
                 importSteps.forEach(k => {
                     project.checklist[k] = true;
@@ -7950,7 +7950,7 @@
                 for (const k of Object.keys(itemPhases)) {
                     if (itemPhases[k] < currentItemPhase) {
                         if (!project.checklist[k]) {
-                            const isImportTask = ['producao', 'embarque', 'fedex', 'desembaraco'].includes(k);
+                            const isImportTask = ['pagamento', 'producao', 'embarque', 'fedex', 'desembaraco'].includes(k);
                             if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && isImportTask) {
                                 continue;
                             }
@@ -7964,7 +7964,7 @@
                 for (const k of Object.keys(itemPhases)) {
                     if (itemPhases[k] > currentItemPhase) {
                         if (project.checklist[k]) {
-                            const isImportTask = ['producao', 'embarque', 'fedex', 'desembaraco'].includes(k);
+                            const isImportTask = ['pagamento', 'producao', 'embarque', 'fedex', 'desembaraco'].includes(k);
                             if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && isImportTask) {
                                 continue;
                             }
