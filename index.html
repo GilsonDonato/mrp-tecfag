@@ -456,8 +456,7 @@
         /* KANBAN BOARD */
         .kanban-board {
             display: grid;
-            grid-auto-flow: column;
-            grid-auto-columns: minmax(0, 1fr);
+            grid-template-columns: repeat(6, 1fr);
             gap: 14px;
             align-items: start;
         }
@@ -1891,57 +1890,35 @@
             </div>
 
             <!-- Pipeline Board -->
-            <div class="crm-filter-container" style="margin-bottom: 15px; margin-top: 15px; max-width: 480px;">
-                <span class="crm-filter-title">🔍 Filtrar Funil</span>
-                <button class="crm-filter-btn active" id="crm-filter-all" onclick="applyCrmColumnFilter('all')">Mostrar Tudo</button>
-                <button class="crm-filter-btn" id="crm-filter-sales" onclick="applyCrmColumnFilter('sales')">Apenas Vendas (CRM)</button>
-                <button class="crm-filter-btn" id="crm-filter-prod" onclick="applyCrmColumnFilter('prod')">Apenas Produção (MRP)</button>
-            </div>
             <div class="kanban-board" id="kanban-board-wrapper">
-                <!-- Coluna 1: Prospecção -->
-                <div class="kanban-column crm-col" id="col-fase1">
+                <!-- Coluna 1: Vendas / Diagnóstico -->
+                <div class="kanban-column" id="col-fase1">
                     <div class="column-header" style="--column-color: var(--color-fase1)">
-                        <h3>1. Prospecção</h3>
+                        <h3>1. Vendas</h3>
                         <span class="column-counter" id="count-fase1">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase1"></div>
                 </div>
-                <!-- Coluna 7: Proposta -->
-                <div class="kanban-column crm-col" id="col-fase7">
-                    <div class="column-header" style="--column-color: var(--primary)">
-                        <h3>2. Proposta</h3>
-                        <span class="column-counter" id="count-fase7">0</span>
-                    </div>
-                    <div class="column-cards" id="cards-fase7"></div>
-                </div>
-                <!-- Coluna 8: Contrato -->
-                <div class="kanban-column crm-col" id="col-fase8">
-                    <div class="column-header" style="--column-color: var(--purple)">
-                        <h3>3. Contrato</h3>
-                        <span class="column-counter" id="count-fase8">0</span>
-                    </div>
-                    <div class="column-cards" id="cards-fase8"></div>
-                </div>
-                <!-- Coluna 2: Compras & Importação -->
-                <div class="kanban-column mrp-col" id="col-fase2">
+                <!-- Coluna 2: Importação -->
+                <div class="kanban-column" id="col-fase2">
                     <div class="column-header" style="--column-color: var(--color-fase2)">
-                        <h3>4. Compras & Imp.</h3>
+                        <h3>2. Importação</h3>
                         <span class="column-counter" id="count-fase2">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase2"></div>
                 </div>
-                <!-- Coluna 3: Oficina & Recebimento -->
-                <div class="kanban-column mrp-col" id="col-fase3">
+                <!-- Coluna 3: Oficina -->
+                <div class="kanban-column" id="col-fase3">
                     <div class="column-header" style="--column-color: var(--color-fase3)">
-                        <h3>5. Oficina & Prep.</h3>
+                        <h3>3. Oficina</h3>
                         <span class="column-counter" id="count-fase3">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase3"></div>
                 </div>
                 <!-- Coluna 4: Instalação / SAT -->
-                <div class="kanban-column mrp-col" id="col-fase4">
+                <div class="kanban-column" id="col-fase4">
                     <div class="column-header" style="--column-color: var(--color-fase4)">
-                        <h3>6. Instalação & SAT</h3>
+                        <h3>4. Instalação & SAT</h3>
                         <span class="column-counter" id="count-fase4">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase4"></div>
@@ -1949,7 +1926,7 @@
                 <!-- Coluna 5: Concluído -->
                 <div class="kanban-column" id="col-fase5">
                     <div class="column-header" style="--column-color: var(--color-fase5)">
-                        <h3>7. Concluído</h3>
+                        <h3>5. Concluído</h3>
                         <span class="column-counter" id="count-fase5">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase5"></div>
@@ -1957,7 +1934,7 @@
                 <!-- Coluna 6: Cancelado -->
                 <div class="kanban-column" id="col-fase6">
                     <div class="column-header" style="--column-color: var(--color-fase6)">
-                        <h3>8. Cancelado</h3>
+                        <h3>6. Cancelado</h3>
                         <span class="column-counter" id="count-fase6">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase6"></div>
