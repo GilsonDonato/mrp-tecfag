@@ -2045,6 +2045,7 @@
                                         <option value="TERMOENCOLHIVEL">10. Termoencolhíveis, Selamento em L & Bundling (Seladoras L, Enfardadoras, Túneis)</option>
                                         <option value="FINAL_LINHA">11. Final de Linha & Paletização (Formadoras, Fechadoras Caixas, Robôs)</option>
                                         <option value="PROJETOS_ESPECIAIS">12. Projetos Especiais & Customizações Personnalité (Engenharia sob Medida)</option>
+                                        <option value="SELADORAS_CONTINUAS">13. Seladoras Contínuas (Horizontal/Vertical, Datador Rolo de Tinta/Inkjet)</option>
                                     </select>
                                 </div>
                             </div>
@@ -5255,7 +5256,8 @@
                 "ROTULADORAS": "9.",
                 "TERMOENCOLHIVEL": "10.",
                 "FINAL_LINHA": "11.",
-                "PROJETOS_ESPECIAIS": "12."
+                "PROJETOS_ESPECIAIS": "12.",
+                "SELADORAS_CONTINUAS": "13."
             };
             const prefix = mapping[segment];
             if (!prefix) {
@@ -5749,6 +5751,9 @@
                 hudBox.style.borderColor = 'var(--primary)';
                 return;
             }
+
+            const params = getSegmentParametersFromDOM(segment);
+            const getSegmentParameterValue = (fieldName) => params[fieldName] || '';
             
             // Fatores Globais de Engenharia Customizada
             const tension = document.getElementById('prj-infra-tension').value;
@@ -6049,6 +6054,41 @@
             } else if (segment === 'PROJETOS_ESPECIAIS') {
                 isCustom = true;
                 customReasons.push('Projetos especiais Tecfag Personnalité exigem projeto de engenharia, memorial e automação 100% sob medida');
+            } else if (segment === 'SELADORAS_CONTINUAS') {
+                const subtype = getSegmentParameterValue("Sub-tipo de Seladora*");
+                const datador = getSegmentParameterValue("Tipo de Datador Integrado*");
+                const carga = parseFloat(getSegmentParameterValue("Carga Máxima da Esteira (kg)*") || "0");
+                
+                if (carga > 5) {
+                    isCustom = true;
+                    customReasons.push(`Carga elevada na esteira (${carga} kg) exige esteiras reforçadas com motoredutores pesados (Heavy Duty)`);
+                    suggestedSku = 'FRL360/600 (Seladora Contínua Heavy Duty)';
+                    defaultSkuDetails = 'Indicada para sacos pesados (ração, grãos, produtos químicos de 5kg a 20kg).';
+                } else if (datador === 'Inkjet TIJ (Jato de Tinta Industrial)') {
+                    isCustom = true;
+                    customReasons.push('Impressora Inkjet TIJ integrada de alta definição (exige suportes de precisão, fotocélula de disparo e sincronizador)');
+                    suggestedSku = 'FRP-770 (Seladora Contínua Inteligente com Inkjet)';
+                    defaultSkuDetails = 'Seladora premium com datador jato de tinta de alta qualidade de caracteres.';
+                } else {
+                    if (subtype === 'Vertical (Líquidos/Pós)') {
+                        suggestedSku = 'FR-770II (Seladora Contínua Vertical)';
+                        defaultSkuDetails = 'Modelo vertical de mesa ideal para pós, grãos ou líquidos que necessitam ficar de pé.';
+                    } else if (subtype === 'Suporte de Chão (Pedestal)') {
+                        suggestedSku = 'FR-770III (Seladora Contínua com Suporte/Pedestal)';
+                        defaultSkuDetails = 'Equipamento de chão com rodas e ajuste de altura para operação em pé.';
+                    } else if (subtype === 'Horizontal (Mesa)') {
+                        if (datador === 'Rolo de Tinta Térmica (Ink Roller)') {
+                            suggestedSku = 'FRM-810 (Seladora Contínua com Rolo de Tinta)';
+                            defaultSkuDetails = 'Modelo horizontal de mesa com datador rápido por termotransferência.';
+                        } else {
+                            suggestedSku = 'FR-770I (Seladora Contínua Horizontal Padrão)';
+                            defaultSkuDetails = 'Modelo clássico horizontal de mesa para selagem rápida e contínua de sacos plásticos de até 3kg.';
+                        }
+                    } else {
+                        suggestedSku = 'FR-770I (Seladora Contínua Horizontal)';
+                        defaultSkuDetails = 'Modelo padrão de catálogo para selagem contínua.';
+                    }
+                }
             }
             
             if (isCustom) {
