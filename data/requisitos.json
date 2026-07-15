@@ -1044,6 +1044,60 @@
     "justificativa": "Motores elétricos e inversores de frequência precisam vir configurados de fábrica para a voltagem correta."
   },
   {
+    "segmento": "13. Seladoras Contínuas",
+    "subtipo": "Seladoras / Esteira",
+    "campo": "Sub-tipo de Seladora*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Horizontal (Mesa); Vertical (Líquidos/Pós); Suporte de Chão (Pedestal); Heavy Duty (Carga Pesada)",
+    "origem": "Proposto Novo",
+    "justificativa": "Define o tipo físico de construção da seladora."
+  },
+  {
+    "segmento": "13. Seladoras Contínuas",
+    "subtipo": "Seladoras / Esteira",
+    "campo": "Tipo de Datador Integrado*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Sem Datador; Relevo (Embossing); Rolo de Tinta Térmica (Ink Roller); Inkjet TIJ (Jato de Tinta Industrial); Gravação a Laser UV (355 nm) de Estado Sólido",
+    "origem": "Proposto Novo",
+    "justificativa": "Define o tipo de codificação de data e lote na selagem."
+  },
+  {
+    "segmento": "13. Seladoras Contínuas",
+    "subtipo": "Seladoras / Esteira",
+    "campo": "Velocidade de Selagem Alvo (m/min)*",
+    "tipo": "Número",
+    "opcoes": "-",
+    "origem": "Proposto Novo",
+    "justificativa": "Metros por minuto da esteira contínua."
+  },
+  {
+    "segmento": "13. Seladoras Contínuas",
+    "subtipo": "Seladoras / Esteira",
+    "campo": "Carga Máxima da Esteira (kg)*",
+    "tipo": "Número",
+    "opcoes": "-",
+    "origem": "Proposto Novo",
+    "justificativa": "Peso máximo do pacote na esteira para evitar quebra de engrenagens ou motor."
+  },
+  {
+    "segmento": "13. Seladoras Contínuas",
+    "subtipo": "Seladoras / Esteira",
+    "campo": "Tipo de Filme/Embalagem*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "PE (Polietileno); PP (Polipropileno); Laminados/Alumínio; Papel Kraft/Plástico; Outros",
+    "origem": "Proposto Novo",
+    "justificativa": "Determina o tipo de material e a caloria necessária para a solda."
+  },
+  {
+    "segmento": "13. Seladoras Contínuas",
+    "subtipo": "Seladoras / Esteira",
+    "campo": "Espessura Média do Filme (mm)*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Fino (0.02 - 0.08 mm); Médio (0.08 - 0.20 mm); Grosso/Pesado (0.20 - 0.50 mm)",
+    "origem": "Proposto Novo",
+    "justificativa": "Espessuras maiores exigem resistências mais potentes ou menor velocidade de esteira."
+  },
+  {
     "segmento": "Geral (Todos os Projetos)",
     "subtipo": "Engenharia Base",
     "campo": "Regime de Trabalho (Fadiga/Turnos)*",
