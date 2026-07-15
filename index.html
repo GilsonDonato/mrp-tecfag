@@ -2020,24 +2020,33 @@
                         <div style="margin-top: 15px; margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-color); border-radius: 8px;">
                             <h4 style="font-size: 0.78rem; color: var(--primary); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">Diagnóstico Técnico & Necessidade de Engenharia</h4>
                             
-                            <!-- Seleção do Segmento Principal -->
-                            <div class="form-group" style="margin-bottom: 15px;">
-                                <label for="prj-intake-segment">Segmento de Equipamento Principal*</label>
-                                <select id="prj-intake-segment" class="form-control" required onchange="updateSegmentFields(); runSkuSuggestionEngine(); updateSalesPlaybook(this.value);" style="border: 1px solid var(--primary); background: rgba(59, 130, 246, 0.03);">
-                                    <option value="" disabled selected>Selecione o segmento principal...</option>
-                                    <option value="MISTURADORES">1. Processamento e Mistura (Misturadores Ribbon Blender / V / Moinhos)</option>
-                                    <option value="ENCAPSULADORAS">2. Encapsulamento & Linhas Farmacêuticas (Softgel / Duras / Contadores)</option>
-                                    <option value="GOMAS">3. Fabricação de Gomas & Balas Gummy (Cabeçotes, Moldes 3D e Túneis)</option>
-                                    <option value="DOSAGEM_SEMIAUTOMATICA">4. Dosagem e Pesagem Semiautomática (Rosca, Pistão, Balança Caneca)</option>
-                                    <option value="DOSAGEM_EMPACOTAMENTO">5. Empacotamento Automático (VFFS / Flow Pack / Balança Cabeçotes)</option>
-                                    <option value="ENVASE">6. Envasadoras Automáticas de Líquidos/Pastosos (Linhas de Envase)</option>
-                                    <option value="FECHAMENTO_TAMPAGEM">7. Sistemas de Fechamento & Tampagem (Rosqueadoras, Indução)</option>
-                                    <option value="VACUO_TERMOFORMADORAS">8. Seladoras a Vácuo & Termoformadoras (Campana, Bandeja, MAP)</option>
-                                    <option value="ROTULADORAS">9. Rotuladoras & Etiquetadoras (Lineares/Rotativas Autoadesivas/Sleeve)</option>
-                                    <option value="TERMOENCOLHIVEL">10. Termoencolhíveis, Selamento em L & Bundling (Seladoras L, Enfardadoras, Túneis)</option>
-                                    <option value="FINAL_LINHA">11. Final de Linha & Paletização (Formadoras, Fechadoras Caixas, Robôs)</option>
-                                    <option value="PROJETOS_ESPECIAIS">12. Projetos Especiais & Customizações Personnalité (Engenharia sob Medida)</option>
-                                </select>
+                            <!-- Origem do Equipamento & Seleção do Segmento Principal -->
+                            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 15px; margin-bottom: 15px;">
+                                <div class="form-group">
+                                    <label for="prj-intake-origin">Origem do Equipamento*</label>
+                                    <select id="prj-intake-origin" class="form-control" required style="border: 1px solid var(--primary); background: rgba(59, 130, 246, 0.03);">
+                                        <option value="Importação" selected>Importação</option>
+                                        <option value="Pronta Entrega (Estoque Local)">Pronta Entrega (Estoque Local)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="prj-intake-segment">Segmento de Equipamento Principal*</label>
+                                    <select id="prj-intake-segment" class="form-control" required onchange="updateSegmentFields(); runSkuSuggestionEngine(); updateSalesPlaybook(this.value);" style="border: 1px solid var(--primary); background: rgba(59, 130, 246, 0.03);">
+                                        <option value="" disabled selected>Selecione o segmento principal...</option>
+                                        <option value="MISTURADORES">1. Processamento e Mistura (Misturadores Ribbon Blender / V / Moinhos)</option>
+                                        <option value="ENCAPSULADORAS">2. Encapsulamento & Linhas Farmacêuticas (Softgel / Duras / Contadores)</option>
+                                        <option value="GOMAS">3. Fabricação de Gomas & Balas Gummy (Cabeçotes, Moldes 3D e Túneis)</option>
+                                        <option value="DOSAGEM_SEMIAUTOMATICA">4. Dosagem e Pesagem Semiautomática (Rosca, Pistão, Balança Caneca)</option>
+                                        <option value="DOSAGEM_EMPACOTAMENTO">5. Empacotamento Automático (VFFS / Flow Pack / Balança Cabeçotes)</option>
+                                        <option value="ENVASE">6. Envasadoras Automáticas de Líquidos/Pastosos (Linhas de Envase)</option>
+                                        <option value="FECHAMENTO_TAMPAGEM">7. Sistemas de Fechamento & Tampagem (Rosqueadoras, Indução)</option>
+                                        <option value="VACUO_TERMOFORMADORAS">8. Seladoras a Vácuo & Termoformadoras (Campana, Bandeja, MAP)</option>
+                                        <option value="ROTULADORAS">9. Rotuladoras & Etiquetadoras (Lineares/Rotativas Autoadesivas/Sleeve)</option>
+                                        <option value="TERMOENCOLHIVEL">10. Termoencolhíveis, Selamento em L & Bundling (Seladoras L, Enfardadoras, Túneis)</option>
+                                        <option value="FINAL_LINHA">11. Final de Linha & Paletização (Formadoras, Fechadoras Caixas, Robôs)</option>
+                                        <option value="PROJETOS_ESPECIAIS">12. Projetos Especiais & Customizações Personnalité (Engenharia sob Medida)</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <!-- Sales Playbook / Guia de Atendimento do Vendedor -->
@@ -2801,6 +2810,7 @@
                             <div style="display: flex; border-bottom: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.02); overflow: hidden;">
                                 <button id="modal-tab-btn-contato" onclick="switchModalSubTab('contato')" style="flex: 1; padding: 12px; background: none; border: none; color: var(--primary); font-weight: bold; font-size: 0.82rem; cursor: pointer; border-bottom: 2px solid var(--primary); transition: all 0.3s;">📞 Contato & Escopo</button>
                                 <button id="modal-tab-btn-receita" onclick="switchModalSubTab('receita')" style="flex: 1; padding: 12px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.82rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s;">🏛️ Dossiê Receita Federal</button>
+                                <button id="modal-tab-btn-handover" onclick="switchModalSubTab('handover')" style="flex: 1; padding: 12px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.82rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s;">🚚 Handover & Expedição</button>
                             </div>
                             
                             <div style="padding: 15px;">
@@ -2888,6 +2898,37 @@
                                         <h5 style="color: var(--primary); margin-bottom: 8px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">Atividades Secundárias (CNAEs)</h5>
                                         <div id="modal-rec-cnaes-secundarios" style="background-color: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.78rem; line-height: 1.5; color: #cbd5e1; max-height: 120px; overflow-y: auto;">
                                             <!-- Preenchido via JS -->
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- SUB-TAB 3: Handover e Expedição -->
+                                <div id="modal-subtab-handover" style="display: none;">
+                                    <h5 style="color: var(--primary); margin-bottom: 10px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">Especificações Técnicas de Engenharia (Somente Leitura)</h5>
+                                    
+                                    <div id="handover-specs-container" style="margin-bottom: 20px; background: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); max-height: 250px; overflow-y: auto;">
+                                        <!-- Preenchido via JS -->
+                                    </div>
+                                    
+                                    <!-- Checklist de Conformidade da Oficina -->
+                                    <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); padding: 15px; border-radius: 8px; margin-top: 15px;">
+                                        <h5 style="color: #10b981; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Validação e Liberação de Expedição</h5>
+                                        <p style="font-size: 0.76rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 15px;">
+                                            O técnico encarregado da preparação deve testar fisicamente a máquina e certificar-se de que cada componente, CLP, tensão e customização atende exatamente às especificações de engenharia acima.
+                                        </p>
+                                        
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <input type="checkbox" id="handover-compliance-check" style="width: 18px; height: 18px; cursor: pointer; accent-color: #10b981;">
+                                            <label for="handover-compliance-check" style="font-size: 0.8rem; font-weight: 700; color: #cbd5e1; cursor: pointer; user-select: none;">
+                                                Confirmo que preparei e testei a máquina física exatamente conforme todas as especificações de engenharia exigidas acima.
+                                            </label>
+                                        </div>
+                                        
+                                        <div style="margin-top: 15px; display: flex; align-items: center; gap: 12px;">
+                                            <button id="btn-save-handover" class="btn" style="background: #10b981; border-color: #10b981; color: #fff; font-weight: bold; font-size: 0.76rem; padding: 8px 16px; border-radius: 6px; cursor: pointer;" onclick="saveHandoverSignature()">
+                                                ✍️ Assinar e Liberar Equipamento
+                                            </button>
+                                            <span id="handover-status-badge" style="font-size: 0.72rem; font-weight: bold;"></span>
                                         </div>
                                     </div>
                                 </div>
@@ -3349,6 +3390,28 @@
                     responseData = { success: true };
                 } else if (url.includes('/unlock')) {
                     responseData = { success: true };
+                } else if (url.includes('/handover')) {
+                    const code = decodeURIComponent(urlParts[urlParts.length - 2]);
+                    const { signed } = JSON.parse(options.body);
+                    const rawProjects = getLocalProjects();
+                    const index = rawProjects.findIndex(p => p.code === code);
+                    if (index !== -1) {
+                        const signedVal = signed ? 1 : 0;
+                        rawProjects[index].handover_signed = signedVal;
+                        setLocalProjects(rawProjects);
+                        responseData = { success: true, handover_signed: signedVal };
+                        
+                        // Adicionar ao log local
+                        const logs = getLocalLogs();
+                        const statusText = signedVal ? 'assinado e liberado' : 'desassinado';
+                        const logMsg = `<strong>[HANDOVER]</strong> O técnico <code>${authenticatedUser.username}</code> marcou o projeto <code>${code}</code> como <strong>${statusText}</strong> para expedição.`;
+                        logs.unshift({ timestamp: new Date().toISOString(), color: signedVal ? 'green' : 'yellow', text: logMsg });
+                        setLocalLogs(logs);
+                    } else {
+                        isErrorResponse = true;
+                        errorStatus = 404;
+                        responseData = { error: 'Projeto não encontrado!' };
+                    }
                 } else if (url.startsWith('/api/projects')) {
                     let projects = getLocalProjects();
                     projects = projects.map(p => {
@@ -4865,31 +4928,41 @@
         function switchModalSubTab(tab) {
             const btnContato = document.getElementById('modal-tab-btn-contato');
             const btnReceita = document.getElementById('modal-tab-btn-receita');
+            const btnHandover = document.getElementById('modal-tab-btn-handover');
             const tabContato = document.getElementById('modal-subtab-contato');
             const tabReceita = document.getElementById('modal-subtab-receita');
+            const tabHandover = document.getElementById('modal-subtab-handover');
+            
+            if (tabContato) tabContato.style.display = 'none';
+            if (tabReceita) tabReceita.style.display = 'none';
+            if (tabHandover) tabHandover.style.display = 'none';
+            
+            [btnContato, btnReceita, btnHandover].forEach(btn => {
+                if (btn) {
+                    btn.style.color = 'var(--text-secondary)';
+                    btn.style.borderBottomColor = 'transparent';
+                }
+            });
             
             if (tab === 'contato') {
                 if (tabContato) tabContato.style.display = 'block';
-                if (tabReceita) tabReceita.style.display = 'none';
                 if (btnContato) {
                     btnContato.style.color = 'var(--primary)';
                     btnContato.style.borderBottomColor = 'var(--primary)';
                 }
-                if (btnReceita) {
-                    btnReceita.style.color = 'var(--text-secondary)';
-                    btnReceita.style.borderBottomColor = 'transparent';
-                }
-            } else {
-                if (tabContato) tabContato.style.display = 'none';
+            } else if (tab === 'receita') {
                 if (tabReceita) tabReceita.style.display = 'block';
-                if (btnContato) {
-                    btnContato.style.color = 'var(--text-secondary)';
-                    btnContato.style.borderBottomColor = 'transparent';
-                }
                 if (btnReceita) {
                     btnReceita.style.color = 'var(--primary)';
                     btnReceita.style.borderBottomColor = 'var(--primary)';
                 }
+            } else if (tab === 'handover') {
+                if (tabHandover) tabHandover.style.display = 'block';
+                if (btnHandover) {
+                    btnHandover.style.color = 'var(--primary)';
+                    btnHandover.style.borderBottomColor = 'var(--primary)';
+                }
+                populateHandoverTab();
             }
         }
 
@@ -6272,11 +6345,14 @@
                     const sku = machines.map(m => m.sku).join(', ');
                     const userStr = localStorage.getItem('tecfag_user');
                     const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
+                    const equipmentOrigin = document.getElementById('prj-intake-origin').value || 'Importação';
 
                     const newProject = {
                         code,
                         client,
                         contact: contactName,
+                        equipment_origin: equipmentOrigin,
+                        handover_signed: 0,
                         cnpj,
                         contact_phone: contactPhone,
                         contact_email: contactEmail,
@@ -7200,6 +7276,19 @@
 
             document.getElementById('modal-autoprint-trigger-msg').style.display = 'none';
 
+            // Lógica de Visibilidade Condicional e Auto-check de Pronta Entrega
+            const isLocalStock = (project.equipment_origin === 'Pronta Entrega (Estoque Local)');
+            const importSteps = ['producao', 'embarque', 'fedex', 'desembaraco'];
+            if (isLocalStock) {
+                importSteps.forEach(k => {
+                    project.checklist[k] = true;
+                    if (!project.checklist[k + '_user']) {
+                        project.checklist[k + '_user'] = 'Sistema';
+                        project.checklist[k + '_date'] = new Date().toISOString();
+                    }
+                });
+            }
+
             // Highlight tasks and sync UI
             const role = getBottleneckRole(project);
             
@@ -7225,6 +7314,14 @@
                     } else {
                         el.classList.remove('active-role-task');
                     }
+                }
+            });
+
+            // Ocultar passos de importação se for Pronta Entrega
+            importSteps.forEach(key => {
+                const el = document.getElementById(`chk-${key}`);
+                if (el) {
+                    el.style.display = isLocalStock ? 'none' : 'flex';
                 }
             });
 
@@ -7512,6 +7609,235 @@
             document.getElementById('lightbox-preview').classList.remove('active');
         }
 
+        // Preenche a aba de Handover com dados técnicos somente leitura
+        function populateHandoverTab() {
+            const project = state.projects.find(p => p.code === activeProjectCode);
+            if (!project) return;
+            
+            const specsContainer = document.getElementById('handover-specs-container');
+            const checkCompliance = document.getElementById('handover-compliance-check');
+            const btnSave = document.getElementById('btn-save-handover');
+            const statusBadge = document.getElementById('handover-status-badge');
+            
+            if (!specsContainer) return;
+            
+            if (project.diagnostico) {
+                let parsed = null;
+                try {
+                    if (project.diagnostico.trim().startsWith('{')) {
+                        parsed = JSON.parse(project.diagnostico);
+                    }
+                } catch (e) {
+                    parsed = null;
+                }
+                
+                if (parsed && parsed.isStructured) {
+                    let html = `
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.76rem; color: #cbd5e1;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid rgba(59, 130, 246, 0.4); text-align: left;">
+                                    <th style="padding: 6px; color: var(--primary);">Parâmetro Técnico</th>
+                                    <th style="padding: 6px; color: var(--primary);">Especificado pela Engenharia</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(59, 130, 246, 0.02);">
+                                    <td style="padding: 6px; font-weight: bold;">Origem do Equipamento</td>
+                                    <td style="padding: 6px; color: #38bdf8; font-weight: bold;">${project.equipment_origin || 'Importação'}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(59, 130, 246, 0.02);">
+                                    <td style="padding: 6px; font-weight: bold;">Segmento Principal</td>
+                                    <td style="padding: 6px; font-weight: bold;">${parsed.segment}</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(59, 130, 246, 0.02);">
+                                    <td style="padding: 6px; font-weight: bold;">Modelo Recomendado (SKU)</td>
+                                    <td style="padding: 6px; color: #4ade80; font-weight: bold;">${parsed.skuSugestaoResult}</td>
+                                </tr>
+                    `;
+                    
+                    const translateParamKey = (k) => {
+                        const dict = {
+                            subtype: 'Sub-tipo de Máquina',
+                            density: 'Densidade Aparente',
+                            volumeTotal: 'Volume Total Requerido',
+                            volumeUtil: 'Volume Útil Requerido',
+                            cycleTime: 'Tempo de Ciclo Estimado',
+                            discharge: 'Tipo de Descarga',
+                            abrasive: 'Grau de Abrasividade',
+                            moinhoGranInit: 'Granulometria Inicial',
+                            moinhoGranAlvo: 'Granulometria Alvo',
+                            moinhoDureza: 'Dureza do Produto',
+                            moinhoPeneira: 'Diâmetro da Peneira',
+                            capsuleSize: 'Tamanho da Cápsula',
+                            viscosity: 'Viscosidade',
+                            temp: 'Temperatura de Envase',
+                            humidity: 'Umidade da Sala',
+                            countDest: 'Destino da Contagem',
+                            countChannels: 'Número de Canais',
+                            countGargalo: 'Diâmetro Gargalo Frasco',
+                            countAltura: 'Altura do Frasco',
+                            countRejeicao: 'Sistema de Rejeição',
+                            countElevador: 'Exige Elevador de Abastecimento',
+                            countEmpacotadora: 'Alimentará Empacotadora',
+                            countDustSensor: 'Exige Coletor/Sensor de Pó',
+                            countSolidShape: 'Geometria do Sólido',
+                            productivity: 'Produtividade Alvo',
+                            agent: 'Agente Gelificante',
+                            colors: 'Número de Cores/Sabores',
+                            molds: 'Geometria dos Moldes',
+                            tunnel: 'Túnel de Resfriamento/Desmolde',
+                            gummyKettle: 'Caldeirão de Preparo',
+                            semiType: 'Acionamento do Dosador',
+                            semiPrecision: 'Precisão Requerida',
+                            semiPrinciple: 'Princípio de Dosagem',
+                            semiVolume: 'Faixa de Dosagem',
+                            semiProductChars: 'Características do Produto',
+                            bagStyle: 'Formato da Embalagem',
+                            filmWidth: 'Largura Máxima do Filme/Bobina',
+                            dosagemSealingType: 'Tipo de Solda/Selagem',
+                            printer: 'Tipo de Datador',
+                            sensitivity: 'Sensibilidade do Produto',
+                            envaseViscosity: 'Viscosidade do Produto',
+                            envaseTemp: 'Temperatura de Envase',
+                            envaseNozzlesCount: 'Quantidade de Bicos',
+                            envaseDriveType: 'Acionamento dos Bicos',
+                            cipSip: 'Ciclo CIP/SIP',
+                            nozzle: 'Tipo de Bico de Envase',
+                            bottleShape: 'Formato e Geometria do Frasco',
+                            inducaoDiameter: 'Diâmetro Interno Gargalo',
+                            inducaoMaterial: 'Material do Frasco',
+                            inducaoFoilType: 'Tipo de Selo (Foil)',
+                            inducaoPowerSpeed: 'Potência/Velocidade',
+                            rotuloApp: 'Aplicação do Rótulo',
+                            rotuloType: 'Tipo de Rótulo',
+                            rotuloSensor: 'Tipo de Sensor',
+                            vacuoKpa: 'Nível de Vácuo (kPa)',
+                            vacuoGasFlush: 'Injeção de Gás (MAP)',
+                            vacuoSealingBars: 'Barras de Selagem',
+                            termoFormingDepth: 'Profundidade da Termoformagem',
+                            finalType: 'Tipo de Equipamento Final',
+                            finalTapingType: 'Fechamento de Caixa',
+                            finalPalletizerLayers: 'Camadas de Paletização',
+                            finalSafetyDoors: 'Portas de Segurança',
+                            tension: 'Tensão Elétrica',
+                            frequency: 'Frequência',
+                            pressure: 'Pressão de Ar',
+                            airConsumption: 'Consumo de Ar',
+                            airDryer: 'Secador de Ar Requerido',
+                            classifiedArea: 'Exige Área Classificada',
+                            cleaning: 'Procedimento Limpeza',
+                            envTemp: 'Temperatura Ambiente',
+                            spaceLimit: 'Restrição de Espaço'
+                        };
+                        return dict[k] || k;
+                    };
+                    
+                    if (parsed.parameters) {
+                        Object.keys(parsed.parameters).forEach(k => {
+                            const val = parsed.parameters[k];
+                            if (val !== undefined && val !== '') {
+                                html += `
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                                        <td style="padding: 6px; font-weight: 500; color: #94a3b8;">${translateParamKey(k)}</td>
+                                        <td style="padding: 6px; color: #f1f5f9;">${val}</td>
+                                    </tr>
+                                `;
+                            }
+                        });
+                    }
+                    
+                    if (parsed.infra) {
+                        html += `
+                            <tr style="border-bottom: 1px solid rgba(59, 130, 246, 0.2); background: rgba(59, 130, 246, 0.05);">
+                                <td colspan="2" style="padding: 6px; font-weight: bold; color: var(--primary); font-size: 0.7rem; text-transform: uppercase;">Infraestrutura & Regulamentação</td>
+                            </tr>
+                        `;
+                        Object.keys(parsed.infra).forEach(k => {
+                            const val = parsed.infra[k];
+                            if (val !== undefined && val !== '') {
+                                html += `
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                                        <td style="padding: 6px; font-weight: 500; color: #94a3b8;">${translateParamKey(k)}</td>
+                                        <td style="padding: 6px; color: #f1f5f9;">${val}</td>
+                                    </tr>
+                                `;
+                            }
+                        });
+                    }
+                    
+                    html += `
+                            </tbody>
+                        </table>
+                    `;
+                    specsContainer.innerHTML = html;
+                } else {
+                    specsContainer.innerHTML = `<div style="color: var(--text-secondary); text-align: center; font-style: italic;">Diagnóstico técnico não disponível no formato estruturado. Texto legado:<br><pre style="white-space: pre-wrap; font-size: 0.72rem; text-align: left; margin-top: 10px; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px;">${project.diagnostico}</pre></div>`;
+                }
+            } else {
+                specsContainer.innerHTML = `<div style="color: var(--text-secondary); text-align: center; font-style: italic;">Nenhum requisito de engenharia cadastrado.</div>`;
+            }
+            
+            const signed = project.handover_signed === 1;
+            checkCompliance.checked = signed;
+            
+            const isAuthorizedTech = (currentRole === 'ALL' || currentRole === 'TECNICO' || currentRole === 'GERENTE');
+            
+            if (!isAuthorizedTech) {
+                checkCompliance.disabled = true;
+                btnSave.disabled = true;
+                btnSave.style.opacity = '0.5';
+                btnSave.style.pointerEvents = 'none';
+                statusBadge.innerHTML = `<span style="color: #ef4444;">⚠️ Apenas técnicos autorizados podem liberar.</span>`;
+            } else {
+                checkCompliance.disabled = false;
+                btnSave.disabled = false;
+                btnSave.style.opacity = '1';
+                btnSave.style.pointerEvents = 'auto';
+                if (signed) {
+                    statusBadge.innerHTML = `<span style="color: #10b981;">✓ EQUIPAMENTO LIBERADO PARA TRANSPORTE</span>`;
+                } else {
+                    statusBadge.innerHTML = `<span style="color: #eab308;">⏳ Aguardando assinatura técnica</span>`;
+                }
+            }
+        }
+
+        // Salva a assinatura de handover do técnico
+        async function saveHandoverSignature() {
+            const project = state.projects.find(p => p.code === activeProjectCode);
+            if (!project) return;
+            
+            const checkCompliance = document.getElementById('handover-compliance-check');
+            if (!checkCompliance) return;
+            
+            const isChecked = checkCompliance.checked;
+            
+            try {
+                const response = await fetch(`/api/projects/${project.code}/handover`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ signed: isChecked })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    project.handover_signed = result.handover_signed;
+                    
+                    if (isChecked) {
+                        alert("✨ Handover assinado com sucesso!\nO equipamento foi liberado para faturamento e expedição.");
+                    } else {
+                        alert("Assinatura de Handover removida. O equipamento está bloqueado novamente.");
+                    }
+                    
+                    await loadProjectsDB();
+                    populateHandoverTab();
+                } else {
+                    alert(`Erro ao salvar assinatura: ${result.error}`);
+                }
+            } catch (err) {
+                alert(`Erro na comunicação com o servidor: ${err.message}`);
+            }
+        }
+
         function handleSerialInputInModal() {
             const project = state.projects.find(p => p.code === activeProjectCode);
             if (!project) return;
@@ -7564,6 +7890,15 @@
             const project = state.projects.find(p => p.code === activeProjectCode);
             if (!project) return;
 
+            // Trava de Segurança: impede concluir etapas finais se o técnico não assinou o Handover
+            const currentlyChecked = el.classList.contains('checked');
+            if (!currentlyChecked && (key === 'logistica_saida' || key === 'startup' || key === 'sat')) {
+                if (!project.handover_signed || project.handover_signed === 0) {
+                    alert("⚠️ AÇÃO BLOQUEADA:\nA máquina física ainda não foi inspecionada e liberada pela Assistência Técnica.\n\nPor favor, peça ao técnico responsável para assinar o checklist físico na aba 'Handover & Expedição' do projeto.");
+                    return;
+                }
+            }
+
             const taskRoleMap = {
                 diagnostico: "VENDAS", customizacao: "ENGENHARIA", aprovacao: "VENDAS",
                 cotacao: "ENGENHARIA", fluxograma: "ENGENHARIA", contrato: "VENDAS", planta_baixa: "ENGENHARIA",
@@ -7590,7 +7925,6 @@
             const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
 
             // 3. Verificar se está tentando desmarcar (editar) uma ação executada por outro usuário
-            const currentlyChecked = el.classList.contains('checked');
             if (currentlyChecked) {
                 const completedByUser = project.checklist[key + '_user'];
                 if (completedByUser && completedByUser !== currentUser && currentRole !== 'ALL' && currentRole !== 'GERENTE') {
@@ -7614,6 +7948,10 @@
                 for (const k of Object.keys(itemPhases)) {
                     if (itemPhases[k] < currentItemPhase) {
                         if (!project.checklist[k]) {
+                            const isImportTask = ['producao', 'embarque', 'fedex', 'desembaraco'].includes(k);
+                            if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && isImportTask) {
+                                continue;
+                            }
                             alert(`Atenção: Não é permitido iniciar as etapas da Fase ${currentItemPhase} se as etapas das fases anteriores ainda não foram totalmente concluídas.`);
                             return;
                         }
@@ -7624,6 +7962,10 @@
                 for (const k of Object.keys(itemPhases)) {
                     if (itemPhases[k] > currentItemPhase) {
                         if (project.checklist[k]) {
+                            const isImportTask = ['producao', 'embarque', 'fedex', 'desembaraco'].includes(k);
+                            if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && isImportTask) {
+                                continue;
+                            }
                             alert(`Atenção: Não é permitido reabrir uma etapa da Fase ${currentItemPhase} se existem etapas concluídas nas fases seguintes (Fase ${itemPhases[k]} em diante). Primeiro desmarque as etapas das fases seguintes.`);
                             return;
                         }

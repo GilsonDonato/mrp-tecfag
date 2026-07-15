@@ -1,0 +1,749 @@
+const fs = require('fs');
+
+const fields = [
+    // 1. Processamento e Mistura
+    {
+        segmento: "1. Processamento e Mistura",
+        subtipo: "Misturadores / Moinhos",
+        campo: "Sub-tipo de Equipamento*",
+        tipo: "Seleção (Select)",
+        opcoes: "Misturador; Moinho",
+        origem: "Atual",
+        justificativa: "Define a subseção de perguntas a exibir no formulário."
+    },
+    {
+        segmento: "1. Processamento e Mistura",
+        subtipo: "Misturadores",
+        campo: "Densidade Aparente do Produto (g/cm³)*",
+        tipo: "Texto / Número",
+        opcoes: "-",
+        origem: "Atual",
+        justificativa: "Crucial para calcular a massa do lote (Volume útil x Densidade) e evitar queima do motor."
+    },
+    {
+        segmento: "1. Processamento e Mistura",
+        subtipo: "Misturadores",
+        campo: "Capacidade Total (Litros)*",
+        tipo: "Número",
+        opcoes: "-",
+        origem: "Atual",
+        justificativa: "Capacidade máxima geométrica do vaso do misturador."
+    },
+    {
+        segmento: "1. Processamento e Mistura",
+        subtipo: "Misturadores",
+        campo: "Volume Útil de Trabalho (Litros)*",
+        tipo: "Número",
+        opcoes: "-",
+        origem: "Atual",
+        justificativa: "Volume máximo recomendado para garantir homogeneização perfeita do produto."
+    },
+    {
+        segmento: "1. Processamento e Mistura",
+        subtipo: "Misturadores",
+        campo: "Tempo Estimado de Ciclo (Minutos)",
+        tipo: "Texto / Número",
+        opcoes: "-",
+        origem: "Atual",
+        justificativa: "Produtividade esperada pelo cliente."
+    },
+    {
+        segmento: "1. Processamento e Mistura",
+        subtipo: "Misturadores",
+        campo: "Tipo de Descarga Requerida*",
+        tipo: "Seleção (Select)",
+        opcoes: "Válvula Borboleta Manual; Válvula Borboleta Pneumática; Válvula Guilhotina/Slide; Válvula Rotativa Sanitária",
+        origem: "Atual",
+        justificativa: "Influencia a automação e acoplamento a sistemas de transporte de pó."
+    },
+    {
+        segmento: "1. Processamento e Mistura",
+        subtipo: "Misturadores",
+        campo: "Nível de Abrasividade/Corrosividade*",
+        tipo: "Seleção (Select)",
+        opcoes: "Baixo (Pó comum, açúcar, grãos secos); Médio (Abrasão moderada, sal); Alto / Crítico (Altamente corrosivo)",
+        origem: "Atual",
+        justificativa: "Determina o tipo de revestimento e espessura das chapas do misturador."
+    },
+    {
+        segmento: "1. Processamento e Mistura",
+        subtipo: "Misturadores",
+        campo: "Umidade / Presença de Líquidos (%)",
+        tipo: "Número",
+        opcoes: "-",
+        origem: "Proposto Novo",
+        justificativa: "Pós úmidos ou com adição de óleos alteram drasticamente o torque exigido (exige motorredutor mais potente)."
+    },
+    {
+        segmento: "1. Processamento e Mistura",
+        subtipo: "Misturadores",
+        campo: "Material de Construção do Equipamento",
+        tipo: "Seleção (Select)",
+        opcoes: "Aço Inox 304 (Padrão); Aço Inox 316L (Farma/Altamente corrosivo); Aço Carbono (Industrial comum)",
+        origem: "Proposto Novo",
+        justificativa: "Define o custo e a compatibilidade química com os insumos do cliente."
+    },
+    {
+        segmento: "1. Processamento e Mistura",
+        subtipo: "Misturadores",
+        campo: "Requisito de Camisa Dupla",
+        tipo: "Seleção (Select)",
+        opcoes: "Não exige; Aquecimento Elétrico (Resistência); Aquecimento por Vapor/Óleo; Resfriamento por Água Gelada",
+        origem: "Proposto Novo",
+        justificativa: "Define se o misturador precisa de parede dupla para controlar temperatura durante o processo."
+    },
+    {
+        segmento: "1. Processamento e Mistura",
+        subtipo: "Misturadores",
+        campo: "Altura Máxima Disponível de Pé-Direito (mm)",
+        tipo: "Número",
+        opcoes: "-",
+        origem: "Proposto Novo",
+        justificativa: "Misturadores grandes com tampas abertas exigem muito espaço vertical na fábrica."
+    },
+    {
+        segmento: "1. Processamento e Mistura",
+        subtipo: "Moinhos",
+        campo: "Granulometria Inicial (mm)*",
+        tipo: "Texto",
+        opcoes: "-",
+        origem: "Atual",
+        justificativa: "Evita entupimento no bocal de alimentação do moinho."
+    },
+    {
+        segmento: "1. Processamento e Mistura",
+        subtipo: "Moinhos",
+        campo: "Micronização Alvo (mesh/mm)*",
+        tipo: "Texto",
+        opcoes: "-",
+        origem: "Atual",
+        justificativa: "Define a velocidade do martelo/rotor e o tipo de elemento moedor."
+    },
+    {
+        segmento: "1. Processamento e Mistura",
+        subtipo: "Moinhos",
+        campo: "Dureza / Abrasividade do Material*",
+        tipo: "Seleção (Select)",
+        opcoes: "Baixa (Produtos leves); Média (Grãos secos, sementes); Alta (Minerais)",
+        origem: "Atual",
+        justificativa: "Moinhos para minerais exigem martelos com revestimento especial de carboneto de tungstênio."
+    },
+    {
+        segmento: "1. Processamento e Mistura",
+        subtipo: "Moinhos",
+        campo: "Tipo de Peneira*",
+        tipo: "Seleção (Select)",
+        opcoes: "Furos Redondos Padrão; Furos Cônicos (Anti-entupimento); Malha Tecida (Ultra fina)",
+        origem: "Atual",
+        justificativa: "Define a retenção mecânica do pó."
+    },
+
+    // 2. Encapsulamento & Farmacêutica
+    {
+        segmento: "2. Encapsulamento & Farmacêutica",
+        subtipo: "Softgel / Duras / Contadores",
+        campo: "Sub-tipo de Linha*",
+        tipo: "Seleção (Select)",
+        opcoes: "Encapsuladora de Gelatina Dura / Softgel; Contadores de Comprimidos/Cápsulas",
+        origem: "Atual",
+        justificativa: "Tabela de inputs dinâmicos do segmento."
+    },
+    {
+        segmento: "2. Encapsulamento & Farmacêutica",
+        subtipo: "Cápsula Dura",
+        campo: "Formato/Tamanho da Cápsula Dura*",
+        tipo: "Seleção (Select)",
+        opcoes: "Nº 00 (Grande); Nº 0 (Padrão); Nº 1 (Médio); Nº 2 (Pequeno); Nº 3 (Muito pequeno); Nº 4 (Micro); Customizado / Sob Encomenda",
+        origem: "Atual",
+        justificativa: "Define os blocos de ferramentais de enchimento da máquina."
+    },
+    {
+        segmento: "2. Encapsulamento & Farmacêutica",
+        subtipo: "Softgel",
+        campo: "Modelo Softgel (Formato/Tamanho)*",
+        tipo: "Seleção (Select)",
+        opcoes: "Oval 3; Oval 7.5; Oblong 10; Oblong 20; Round 5; Outro formato personalizado",
+        origem: "Atual",
+        justificativa: "Define o desenho e gravação dos rolos moldes (dies) sob encomenda."
+    },
+    {
+        segmento: "2. Encapsulamento & Farmacêutica",
+        subtipo: "Softgel",
+        campo: "Características do Produto de Preenchimento*",
+        tipo: "Seleção (Select)",
+        opcoes: "Líquido Oleoso (Padrão); Pastoso / Alta Viscosidade; Suspensão (Particulados/Decantação); Altamente Termossensível",
+        origem: "Atual",
+        justificativa: "Suspensões ou pastosos exigem funil com agitador aquecido para manter o fluxo constante."
+    },
+    {
+        segmento: "2. Encapsulamento & Farmacêutica",
+        subtipo: "Contadores",
+        campo: "Destino da Contagem*",
+        tipo: "Seleção (Select)",
+        opcoes: "Frascos / Potes Plásticos ou Vidro; Sacos / Stand-up Pouch / Envelopes",
+        origem: "Atual",
+        justificativa: "Muda a arquitetura física (funil de frascos vs bico de envelopamento)."
+    },
+    {
+        segmento: "2. Encapsulamento & Farmacêutica",
+        subtipo: "Contadores",
+        campo: "Diâmetro de Boca do Pote (mm)*",
+        tipo: "Texto",
+        opcoes: "-",
+        origem: "Atual",
+        justificativa: "Determina o diâmetro dos funis distribuidores de contagem (para não travar ou derramar)."
+    },
+    {
+        segmento: "2. Encapsulamento & Farmacêutica",
+        subtipo: "Contadores",
+        campo: "Altura Máxima do Pote (mm)*",
+        tipo: "Texto",
+        opcoes: "-",
+        origem: "Atual",
+        justificativa: "Sincroniza o curso de subida/descida do bico pneumático de contagem."
+    },
+    {
+        segmento: "2. Encapsulamento & Farmacêutica",
+        subtipo: "Contadores",
+        campo: "Dimensão da Embalagem Flexível (L x A)*",
+        tipo: "Texto",
+        opcoes: "-",
+        origem: "Atual",
+        justificativa: "Usado para dimensionar o funil de transição para o saco."
+    },
+    {
+        segmento: "2. Encapsulamento & Farmacêutica",
+        subtipo: "Geral",
+        campo: "Velocidade de Produção Alvo (Cápsulas/min)",
+        tipo: "Número",
+        opcoes: "-",
+        origem: "Proposto Novo",
+        justificativa: "Determina a quantidade de furos e canais de dosagem necessários na engenharia."
+    },
+    {
+        segmento: "2. Encapsulamento & Farmacêutica",
+        subtipo: "Geral",
+        campo: "Controle Climático da Sala (HVAC)",
+        tipo: "Seleção (Select)",
+        opcoes: "Não tem controle; Sala climatizada apenas (temp); Sala limpa estéril com controle de umidade ativa (<30% UR)",
+        origem: "Proposto Novo",
+        justificativa: "Gelatina e pós higroscópicos colam ou derretem se o ambiente não for desumidificado por HVAC industrial."
+    },
+
+    // 3. Fabricação de Gomas & Balas Gummy
+    {
+        segmento: "3. Fabricação de Gomas & Balas Gummy",
+        subtipo: "Gummy",
+        campo: "Tipo de Matéria-Prima Principal*",
+        tipo: "Seleção (Select)",
+        opcoes: "Pectina (Origem vegetal - rápida gelificação); Gelatina (Origem animal - maior rigidez/tempo resfriamento); Carragena / Outros amidos",
+        origem: "Atual",
+        justificativa: "Define o tempo de resfriamento e o tipo de cozinha de cocção e dosadora."
+    },
+    {
+        segmento: "3. Fabricação de Gomas & Balas Gummy",
+        subtipo: "Gummy",
+        campo: "Capacidade de Produção Alvo (kg/h)*",
+        tipo: "Seleção (Select)",
+        opcoes: "Até 50 kg/h (Pequena escala / Lab); Até 150 kg/h (Escala média); Até 300 kg/h (Escala industrial); Acima de 300 kg/h (Alta performance)",
+        origem: "Atual",
+        justificativa: "Dimensiona o tamanho da panela/cozinha de cocção e largura da esteira do túnel."
+    },
+    {
+        segmento: "3. Fabricação de Gomas & Balas Gummy",
+        subtipo: "Gummy",
+        campo: "Geometria e Molde 3D Requerido*",
+        tipo: "Seleção (Select)",
+        opcoes: "Ursinho Clássico (Gummy Bear); Amora / Redonda Estriada; Coração / Geométrico; Formato personalizado (Exige projeto CAD/CNC)",
+        origem: "Atual",
+        justificativa: "Para projetos customizados, exige desenvolvimento de molde de metal por usinagem CNC CNC/CAD."
+    },
+    {
+        segmento: "3. Fabricação de Gomas & Balas Gummy",
+        subtipo: "Gummy",
+        campo: "Sistema de Resfriamento Requerido*",
+        tipo: "Seleção (Select)",
+        opcoes: "Túnel de Resfriamento Contínuo com Esteira; Câmara Fria Estática (Bandejas)",
+        origem: "Atual",
+        justificativa: "O túnel contínuo automatiza o processo; a câmara fria exige processo em bateladas com mão de obra."
+    },
+    {
+        segmento: "3. Fabricação de Gomas & Balas Gummy",
+        subtipo: "Gummy",
+        campo: "Teor de Sólidos / Brix do Xarope",
+        tipo: "Texto",
+        opcoes: "-",
+        origem: "Proposto Novo",
+        justificativa: "Determina a taxa de evaporação de água na cozinha (dimensionamento dos tanques e misturadores)."
+    },
+    {
+        segmento: "3. Fabricação de Gomas & Balas Gummy",
+        subtipo: "Gummy",
+        campo: "Método de Desmolde",
+        tipo: "Seleção (Select)",
+        opcoes: "Pulverização de Óleo de Desmolde (Mais limpo); Banho de Amido (Mogul Clássico)",
+        origem: "Proposto Novo",
+        justificativa: "Gomas de gelatina/pectina em moldes de metal exigem lubrificação ativa com óleo pneumático."
+    },
+
+    // 4. Dosagem e Pesagem Semiautomática
+    {
+        segmento: "4. Dosagem e Pesagem Semiautomática",
+        subtipo: "Dosadores Semi",
+        campo: "Tipo de Alimentador/Dosador*",
+        tipo: "Seleção (Select)",
+        opcoes: "Rosca Sem Fim (Pós densos, farináceos); Pistão Pneumático (Líquidos viscosos, cremes, géis); Balança de Caneca Vibratória (Granulados, grãos, petiscos)",
+        origem: "Atual",
+        justificativa: "Determina o princípio físico de dosagem."
+    },
+    {
+        segmento: "4. Dosagem e Pesagem Semiautomática",
+        subtipo: "Dosadores Semi",
+        campo: "Faixa de Peso/Volume de Envase*",
+        tipo: "Seleção (Select)",
+        opcoes: "De 5g a 50g; De 50g a 500g; De 500g a 2000g; De 2kg a 5kg",
+        origem: "Atual",
+        justificativa: "Define o diâmetro da rosca ou o diâmetro da camisa do pistão para garantir precisão."
+    },
+    {
+        segmento: "4. Dosagem e Pesagem Semiautomática",
+        subtipo: "Dosadores Semi",
+        campo: "Viscosidade / Fluidez do Produto*",
+        tipo: "Seleção (Select)",
+        opcoes: "Fluidez semelhante a água/óleo; Cremoso, pastoso, mel; Extremamente denso (Exige funil aquecido/misturador)",
+        origem: "Atual",
+        justificativa: "Produtos muito viscosos exigem válvulas corta-gota especiais e aquecimento no funil."
+    },
+    {
+        segmento: "4. Dosagem e Pesagem Semiautomática",
+        subtipo: "Dosadores Semi",
+        campo: "Características Físicas do Produto*",
+        tipo: "Seleção (Select)",
+        opcoes: "Pó seco / Fluidez livre; Aderente / Pegajoso; Higroscópico (Absorve umidade / Empedra)",
+        origem: "Atual",
+        justificativa: "Pós pegajosos exigem raspadores mecânicos no funil de alimentação."
+    },
+    {
+        segmento: "4. Dosagem e Pesagem Semiautomática",
+        subtipo: "Dosadores Semi",
+        campo: "Precisão Tolerável Requerida (±g)",
+        tipo: "Texto",
+        opcoes: "-",
+        origem: "Proposto Novo",
+        justificativa: "Balancinhas eletrônicas ou dosadores industriais de alta precisão."
+    },
+    {
+        segmento: "4. Dosagem e Pesagem Semiautomática",
+        subtipo: "Dosadores Semi",
+        campo: "Temperatura do Produto no Envase (°C)",
+        tipo: "Número",
+        opcoes: "-",
+        origem: "Proposto Novo",
+        justificativa: "Dosar quente altera a viscosidade e dilata vedações mecânicas (exige juntas de Teflon e aço inoxidável especial)."
+    },
+
+    // 5. Empacotamento Automático
+    {
+        segmento: "5. Empacotamento Automático",
+        subtipo: "Empacotadoras VFFS / Flow Pack / Stick",
+        campo: "Formato da Embalagem*",
+        tipo: "Seleção (Select)",
+        opcoes: "VFFS Vertical Almofada / Travesseiro; VFFS Vertical Sanfonado / Fundo Chato; Stand-up Pouch (Pré-formado ou com Zíper); Flow Pack Horizontal; Sachê tipo Stick",
+        origem: "Atual",
+        justificativa: "Define a arquitetura física (VFFS vs Flowpack vs Stick)."
+    },
+    {
+        segmento: "5. Empacotamento Automático",
+        subtipo: "Empacotadoras",
+        campo: "Largura Máx Bobina Filme*",
+        tipo: "Seleção (Select)",
+        opcoes: "Até 320 mm (Pequeno porte); Até 420 mm (Médio porte); Até 520 mm (Grande porte); Acima de 520 mm (Super dimensionado)",
+        origem: "Atual",
+        justificativa: "Define o tamanho dos mordentes seladores horizontais e do colarinho formador."
+    },
+    {
+        segmento: "5. Empacotamento Automático",
+        subtipo: "Empacotadoras",
+        campo: "Tipo de Solda/Selagem*",
+        tipo: "Seleção (Select)",
+        opcoes: "Solda Lisa (PE simples); Solda Estriada (Laminados / Barreira); 3 Soldas (Almofada / 3 Soldas Laterais / Flow Pack); 4 Soldas Laterais (Quad-seal); Solda Fria (Cold Seal); De acordo com projeto do cliente",
+        origem: "Atual",
+        justificativa: "Define o recartilhado / frisos dos mordentes e temperatura do controle PID."
+    },
+    {
+        segmento: "5. Empacotamento Automático",
+        subtipo: "Empacotadoras",
+        campo: "Tipo de Datador Requerido*",
+        tipo: "Seleção (Select)",
+        opcoes: "Hot Stamping (Fita térmica simples); Inkjet Integrado; Termotransferência (TTO - Dados variáveis/barras); Não exige datador",
+        origem: "Atual",
+        justificativa: "Exige suportes de montagem e CLP programado para sincronizar o avanço da película."
+    },
+    {
+        segmento: "5. Empacotamento Automático",
+        subtipo: "Empacotadoras",
+        campo: "Sensibilidade do Produto à Queda*",
+        tipo: "Seleção (Select)",
+        opcoes: "Resistente (Grãos, feijão, arroz, parafusos); Média (Biscoitos, snacks, torradas); Altíssima (Requer calhas inclinadas de baixa queda)",
+        origem: "Atual",
+        justificativa: "Produtos frágeis exigem calhas inclinadas de baixa queda e mordentes especiais."
+    },
+    {
+        segmento: "5. Empacotamento Automático",
+        subtipo: "Empacotadoras",
+        campo: "Composição e Espessura da Bobina de Filme",
+        tipo: "Texto",
+        opcoes: "-",
+        origem: "Proposto Novo",
+        justificativa: "Filmes de PE puro exigem selagem com impulso e resfriamento ativo, enquanto BOPP/Alumínio usam resistência contínua."
+    },
+    {
+        segmento: "5. Empacotamento Automático",
+        subtipo: "Empacotadoras",
+        campo: "Velocidade Requerida de Produção (Pacotes/minuto - ppm)",
+        tipo: "Número",
+        opcoes: "-",
+        origem: "Proposto Novo",
+        justificativa: "Velocidades acima de 50 ppm exigem tracionamento de filme por correias a vácuo e mordentes com acionamento por servomotor."
+    },
+
+    // 6. Envasadoras Automáticas
+    {
+        segmento: "6. Envasadoras Automáticas de Líquidos/Pastosos",
+        subtipo: "Linhas de Envase",
+        campo: "Tipo de Envasadora Automática*",
+        tipo: "Seleção (Select)",
+        opcoes: "Pistão Volumétrico (Pastosos e Alta Viscosidade); Gravidade por Temporização (Líquidos Finos); Ponderal por Célula de Carga (Precisão Industrial/Química)",
+        origem: "Atual",
+        justificativa: "Dimensiona a precisão e vazão mecânica da linha."
+    },
+    {
+        segmento: "6. Envasadoras Automáticas",
+        subtipo: "Linhas de Envase",
+        campo: "Ciclo de Higienização*",
+        tipo: "Seleção (Select)",
+        opcoes: "Desmontagem Manual e Limpeza Convencional; Ciclo CIP/SIP Automático (Tubulações farmacêuticas/clamp)",
+        origem: "Atual",
+        justificativa: "CIP/SIP exige atuadores pneumáticos e coletores de retorno acoplados à máquina."
+    },
+    {
+        segmento: "6. Envasadoras Automáticas",
+        subtipo: "Linhas de Envase",
+        campo: "Geometria do Frasco*",
+        tipo: "Seleção (Select)",
+        opcoes: "Cadrão Cilíndrico (Estável); Retangular ou Quadrado; Irregular / Instável (Exige pucks de fixação)",
+        origem: "Atual",
+        justificativa: "Frascos instáveis exigem esteiras com guias reguláveis especiais ou berços de fixação ('pucks')."
+    },
+    {
+        segmento: "6. Envasadoras Automáticas",
+        subtipo: "Linhas de Envase",
+        campo: "Diâmetro Interno do Gargalo (mm)",
+        tipo: "Número",
+        opcoes: "-",
+        origem: "Proposto Novo",
+        justificativa: "Define o diâmetro dos bicos de envase. Bicos muito finos reduzem a velocidade da máquina."
+    },
+    {
+        segmento: "6. Envasadoras Automáticas",
+        subtipo: "Linhas de Envase",
+        campo: "Presença de Sólidos/Pedaços no Produto",
+        tipo: "Seleção (Select)",
+        opcoes: "Não tem sólidos (Líquido homogêneo); Sim, contém pedaços menores de 3mm; Sim, contém pedaços maiores (Ex: polpa fruta)",
+        origem: "Proposto Novo",
+        justificativa: "Pedaços obstruem válvulas normais de bico, exigindo pistões com passagem plena e válvulas rotativas servo-controladas."
+    },
+
+    // 7. Sistemas de Fechamento & Tampagem
+    {
+        segmento: "7. Sistemas de Fechamento & Tampagem",
+        subtipo: "Rosqueadoras / Indução",
+        campo: "Sub-tipo de Fechamento*",
+        tipo: "Seleção (Select)",
+        opcoes: "Seladoras de Selo de Alumínio por Indução; Rosqueadoras Automáticas (Gatilho/Roscada)",
+        origem: "Atual",
+        justificativa: "Separação lógica dos equipamentos do segmento."
+    },
+    {
+        segmento: "7. Sistemas de Fechamento & Tampagem",
+        subtipo: "Indução",
+        campo: "Largura Máxima do Selo de Alumínio (mm)*",
+        tipo: "Seleção (Select)",
+        opcoes: "Até 50 mm; Até 80 mm; Até 120 mm; Acima de 120 mm",
+        origem: "Atual",
+        justificativa: "Determina o tamanho da bobina/cabeçote indutor do túnel."
+    },
+    {
+        segmento: "7. Sistemas de Fechamento & Tampagem",
+        subtipo: "Indução",
+        campo: "Sistema de Resfriamento da Cabeça*",
+        tipo: "Seleção (Select)",
+        opcoes: "Refrigeração a Ar (Baixa/Média velocidade); Refrigeração a Água Chiller (Alta velocidade/Industrial)",
+        origem: "Atual",
+        justificativa: "Indutoras de alta velocidade geram calor crítico, exigindo chiller d'água ativo integrado."
+    },
+    {
+        segmento: "7. Sistemas de Fechamento & Tampagem",
+        subtipo: "Rosqueadora",
+        campo: "Tipo de Tampa*",
+        tipo: "Seleção (Select)",
+        opcoes: "Tampa Roscada Comum (Plástica/Metálica); Tampa com Gatilho / Borrifadora (Spray); Tampa com Válvula Pump (Sabonete/Loção); Tampa Flip-Top / Pressão",
+        origem: "Atual",
+        justificativa: "Tampas de gatilho ou pump exigem alimentação por elevador e inserção manual ou garra robótica."
+    },
+    {
+        segmento: "7. Sistemas de Fechamento & Tampagem",
+        subtipo: "Rosqueadora",
+        campo: "Torque Requerido (Nm)*",
+        tipo: "Seleção (Select)",
+        opcoes: "Ajuste Magnético Padrão (Leve a Médio); Servo Motorizado (Alto torque controlado / Rastreável)",
+        origem: "Atual",
+        justificativa: "Servo motores fornecem laudo do torque de rosqueamento (exigência farmacêutica/cosmética)."
+    },
+    {
+        segmento: "7. Sistemas de Fechamento & Tampagem",
+        subtipo: "Rosqueadora",
+        campo: "Passo da Rosca e Altura da Tampa (mm)",
+        tipo: "Texto",
+        opcoes: "-",
+        origem: "Proposto Novo",
+        justificativa: "Define os mordentes rotativos de rosqueamento para não mastigar a tampa plástica."
+    },
+
+    // 8. Seladoras a Vácuo & MAP
+    {
+        segmento: "8. Seladoras a Vácuo & Termoformadoras",
+        subtipo: "Campana / Termoformadora",
+        campo: "Tipo de Seladora a Vácuo*",
+        tipo: "Seleção (Select)",
+        opcoes: "Seladora de Campana (Câmara); Termoformadora Industrial Automática (Bobinas de filme); Seladora de Bandejas com Atmosfera Modificada (MAP)",
+        origem: "Atual",
+        justificativa: "Diferencia o tipo físico de envase."
+    },
+    {
+        segmento: "8. Seladoras a Vácuo & MAP",
+        subtipo: "Campana / Termoformadora",
+        campo: "Injeção de Gás (MAP) Requerida?*",
+        tipo: "Seleção (Select)",
+        opcoes: "Não (Apenas Vácuo Padrão); Sim (Atmosfera Modificada - Nitrogênio/CO2)",
+        origem: "Atual",
+        justificativa: "Exige válvulas dosadoras e conexões para cilindros de gás inerte."
+    },
+    {
+        segmento: "8. Seladoras a Vácuo & MAP",
+        subtipo: "Campana / Termoformadora",
+        campo: "Tipo de Barra de Selagem*",
+        tipo: "Seleção (Select)",
+        opcoes: "Simples costura de selagem; Dupla barra de selagem (Segurança extra); Bi-ativa (Aquecimento inferior e superior para sacos grossos)",
+        origem: "Atual",
+        justificativa: "Sacos grossos laminados de alta barreira exigem selagem bi-ativa para não vazar."
+    },
+    {
+        segmento: "8. Seladoras a Vácuo & MAP",
+        subtipo: "Campana / Termoformadora",
+        campo: "Dimensões Máximas do Produto a Embalar (C x L x A - mm)",
+        tipo: "Texto",
+        opcoes: "-",
+        origem: "Proposto Novo",
+        justificativa: "Define a profundidade da campana ou o passo/profundidade de termoformação."
+    },
+
+    // 9. Rotuladoras & Etiquetadoras
+    {
+        segmento: "9. Rotuladoras & Etiquetadoras",
+        subtipo: "Lineares / Sleeve",
+        campo: "Tipo de Rotuladora*",
+        tipo: "Seleção (Select)",
+        opcoes: "Linear Autoadesiva (Padrão para frascos planos/cilíndricos); Rotativa Autoadesiva (Altíssima velocidade, múltiplos rótulos); Aplicadora de Rótulo Sleeve (Termoencolhível com Túnel)",
+        origem: "Atual",
+        justificativa: "Define a estrutura mecânica (linear vs carrossel rotativo)."
+    },
+    {
+        segmento: "9. Rotuladoras & Etiquetadoras",
+        subtipo: "Lineares / Sleeve",
+        campo: "Posicionamento do Rótulo*",
+        tipo: "Seleção (Select)",
+        opcoes: "Cilíndrico Envolvente (Envolve todo o frasco); Frente e Verso Simultâneos (Frascos planos/ovais); Plano Superior (Tampas, caixas); Lacre de Segurança em L (Tampas)",
+        origem: "Atual",
+        justificativa: "Define a quantidade de cabeçotes dispensadores (1 ou 2) e se usará sistema de prensa superior."
+    },
+    {
+        segmento: "9. Rotuladoras & Etiquetadoras",
+        subtipo: "Lineares / Sleeve",
+        campo: "Sensor de Rótulo Requerido*",
+        tipo: "Seleção (Select)",
+        opcoes: "Rótulo Opaco Padrão (Sensor fotoelétrico comum); Rótulo Transparente/BOPP (Sensor ultrassônico especial)",
+        origem: "Atual",
+        justificativa: "Sensores ópticos comuns atravessam rótulos transparentes sem ler; exige sensor capacitivo/ultrassônico."
+    },
+    {
+        segmento: "9. Rotuladoras & Etiquetadoras",
+        subtipo: "Lineares / Sleeve",
+        campo: "Altura Máxima do Rótulo (mm)",
+        tipo: "Número",
+        opcoes: "-",
+        origem: "Proposto Novo",
+        justificativa: "Define a largura do cabeçote dispensador (ex: placa de 100mm, 150mm ou 200mm)."
+    },
+    {
+        segmento: "9. Rotuladoras & Etiquetadoras",
+        subtipo: "Lineares / Sleeve",
+        campo: "Sentido de Desenrolamento da Bobina",
+        tipo: "Seleção (Select)",
+        opcoes: "Esquerda para Direita (Padrão); Direita para Esquerda (Invertido)",
+        origem: "Proposto Novo",
+        justificativa: "Alinhamento essencial com a gráfica que imprime os rótulos do cliente para evitar rótulos invertidos."
+    },
+
+    // 10. Termoencolhíveis & L
+    {
+        segmento: "10. Termoencolhíveis & Selamento em L",
+        subtipo: "Seladoras L / Túneis",
+        campo: "Sub-tipo Termoencolhível*",
+        tipo: "Seleção (Select)",
+        opcoes: "Seladora em L Semiautomática / Pneumática; Seladora em L Contínua Automática; Túnel de Encolhimento Elétrico; Túnel de Encolhimento a Vapor (Rótulos Sleeve)",
+        origem: "Atual",
+        justificativa: "Configuração do equipamento."
+    },
+    {
+        segmento: "10. Termoencolhíveis & L",
+        subtipo: "Seladoras L / Túneis",
+        campo: "Dimensão da Área de Selagem (C x L)*",
+        tipo: "Texto",
+        opcoes: "-",
+        origem: "Atual",
+        justificativa: "Define o comprimento do barramento de corte em L."
+    },
+    {
+        segmento: "10. Termoencolhíveis & L",
+        subtipo: "Seladoras L / Túneis",
+        campo: "Produtividade Requerida (ppm)*",
+        tipo: "Texto",
+        opcoes: "-",
+        origem: "Atual",
+        justificativa: "Paces por minuto (ppm) determinam a automação do sistema."
+    },
+    {
+        segmento: "10. Termoencolhíveis & L",
+        subtipo: "Seladoras L / Túneis",
+        campo: "Dimensões Internas da Janela de Entrada (L x A)*",
+        tipo: "Texto",
+        opcoes: "-",
+        origem: "Atual",
+        justificativa: "Janela interna do túnel de encolhimento para passagem livre da embalagem."
+    },
+    {
+        segmento: "10. Termoencolhíveis & L",
+        subtipo: "Seladoras L / Túneis",
+        campo: "Tipo de Resistência/Aquecimento*",
+        tipo: "Seleção (Select)",
+        opcoes: "Resistências Elétricas Blindadas Aletadas; Lâmpadas Infravermelho (Rápido aquecimento/resfriamento); Gerador de Vapor Direto (Indicado para Sleeve e frascos cheios)",
+        origem: "Atual",
+        justificativa: "Túneis a vapor são ideais para frascos cheios ou inflamáveis, evitando queima do insumo."
+    },
+    {
+        segmento: "10. Termoencolhíveis & L",
+        subtipo: "Seladoras L / Túneis",
+        campo: "Tipo de Filme Termoencolhível",
+        tipo: "Seleção (Select)",
+        opcoes: "PVC (Alta transparência, mais rígido); POF / Poliolefínico (Alimentício comum, flexível); PE / Polietileno (Fardos de água/refrigerante, encolhimento grosso)",
+        origem: "Proposto Novo",
+        justificativa: "Filmes de PE exigem túneis de alta caloria com fluxo forçado de ar e roletes de metal."
+    },
+
+    // 11. Final de Linha
+    {
+        segmento: "11. Final de Linha & Paletização",
+        subtipo: "Armação / Fechamento / Esteiras",
+        campo: "Equipamento Final de Linha*",
+        tipo: "Seleção (Select)",
+        opcoes: "Formadora de Caixas de Papelão Automática; Fechadora de Caixas de Papelão (Fita adesiva / Hotmelt); Paletizadora Automática (Envolvedora de filme stretch); Esteiras de Acúmulo e Curvas de Distribuição",
+        origem: "Atual",
+        justificativa: "Configuração do equipamento."
+    },
+    {
+        segmento: "11. Final de Linha",
+        subtipo: "Armação / Fechamento / Esteiras",
+        campo: "Tipo de Fechamento da Caixa*",
+        tipo: "Seleção (Select)",
+        opcoes: "Fita Adesiva Plástica Comum; Cola Quente Hotmelt (Selagem estrutural de segurança)",
+        origem: "Atual",
+        justificativa: "Hotmelt exige reservatório de cola quente e mangueiras aplicadoras controladas por CLP."
+    },
+    {
+        segmento: "11. Final de Linha",
+        subtipo: "Armação / Fechamento / Esteiras",
+        campo: "Dimensões Máximas da Caixa (C x L x A)*",
+        tipo: "Texto",
+        opcoes: "-",
+        origem: "Atual",
+        justificativa: "Define os limites de abertura dos guias de caixas e magazines de papelão."
+    },
+    {
+        segmento: "11. Final de Linha",
+        subtipo: "Paletização",
+        campo: "Layout / Padrão de Paletização (Mosaico)",
+        tipo: "Texto",
+        opcoes: "-",
+        origem: "Proposto Novo",
+        justificativa: "Define o projeto da garra mecânica (garra por ventosas vs garra pneumática lateral)."
+    },
+
+    // 12. Projetos Especiais
+    {
+        segmento: "12. Projetos Especiais & Customizações",
+        subtipo: "Engenharia sob Medida",
+        campo: "Nível de Customização Requerido*",
+        tipo: "Seleção (Select)",
+        opcoes: "Adaptação de máquina padrão (Alteração de calhas/funis); Retrofit / Upgrade tecnológico (Sensores, CLP, IHM novos); Projeto do Zero (Desenho mecânico CAD e desenvolvimento de IHM dedicado)",
+        origem: "Atual",
+        justificativa: "Calcula o multiplicador de horas de engenharia e risco de projeto."
+    },
+    {
+        segmento: "12. Projetos Especiais",
+        subtipo: "Engenharia sob Medida",
+        campo: "Setor de Aplicação / Ambiente*",
+        tipo: "Seleção (Select)",
+        opcoes: "Alimentício Sanitário (Inox 304, acabamento polido); Farmacêutico Estéril (Inox 316L, solda sanitária orbital, relatórios de validação); Químico Industrial (Materiais anticorrosivos, vedações especiais); Área Classificada ATEX (À prova de explosão)",
+        origem: "Atual",
+        justificativa: "Ambiências estéreis ou explosivas alteram o custo de todos os sensores e certificações elétricas."
+    },
+    {
+        segmento: "12. Projetos Especiais",
+        subtipo: "Engenharia sob Medida",
+        campo: "CLP de Preferência do Cliente",
+        tipo: "Seleção (Select)",
+        opcoes: "Sem preferência (Padrão Tecfag); Siemens (Altamente exigido por multinacionais); Allen Bradley / Rockwell; WEG",
+        origem: "Proposto Novo",
+        justificativa: "Muitas multinacionais barram a entrada de máquinas com CLP padrão, exigindo estritamente Siemens ou Allen Bradley."
+    },
+    {
+        segmento: "12. Projetos Especiais",
+        subtipo: "Engenharia sob Medida",
+        campo: "Tensão de Alimentação do Cliente",
+        tipo: "Seleção (Select)",
+        opcoes: "220V Bifásico / Trifásico; 380V Trifásico; 440V Trifásico",
+        origem: "Proposto Novo",
+        justificativa: "Motores elétricos e inversores de frequência precisam vir configurados de fábrica para a voltagem correta."
+    }
+];
+
+// Helper to escape CSV values (wrap in quotes, escape existing quotes)
+function escapeCSV(val) {
+    if (val === null || val === undefined) return '';
+    let str = val.toString().replace(/"/g, '""');
+    return `"${str}"`;
+}
+
+// Build CSV with UTF-8 BOM
+let csvContent = '\uFEFF';
+const headers = ["Segmento", "Sub-Tipo / Categoria", "Nome do Campo", "Tipo de Campo (Input/Select)", "Opções Sugeridas (Separadas por Semicolon)", "Origem do Campo (Atual/Proposto)", "Justificativa de Engenharia"];
+csvContent += headers.map(escapeCSV).join(';') + '\r\n';
+
+fields.forEach(f => {
+    const line = [f.segmento, f.subtipo, f.campo, f.tipo, f.opcoes, f.origem, f.justificativa];
+    csvContent += line.map(escapeCSV).join(';') + '\r\n';
+});
+
+fs.writeFileSync('Requisitos_Engenharia_por_Segmento.csv', csvContent, 'utf8');
+console.log("Planilha reestruturada com sucesso!");

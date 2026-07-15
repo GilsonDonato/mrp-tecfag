@@ -113,7 +113,9 @@ function initializeDatabase() {
             lastUpdate TEXT,
             motivoPerda TEXT,
             machines TEXT,   -- Salvo como String JSON
-            website TEXT
+            website TEXT,
+            equipment_origin TEXT DEFAULT 'Importação',
+            handover_signed INTEGER DEFAULT 0
         )`);
 
         // Executar migração de colunas para bancos existentes
@@ -125,6 +127,8 @@ function initializeDatabase() {
         db.run("ALTER TABLE projects ADD COLUMN cnae_descricao TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN receita_data TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN website TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN equipment_origin TEXT DEFAULT 'Importação'", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN handover_signed INTEGER DEFAULT 0", (err) => {});
 
         // Tabela de Logs de Auditoria
         db.run(`CREATE TABLE IF NOT EXISTS logs (
@@ -4651,7 +4655,7 @@ Responda APENAS com o objeto JSON puramente, sem formatação markdown de códig
 
 // POST /api/projects - Cria um novo projeto com receita_data
 app.post('/api/projects', async (req, res) => {
-    const { code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, machines, cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, receita_data, website } = req.body;
+    const { code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, machines, cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, receita_data, website, equipment_origin } = req.body;
     
     if (!code || !client || !sku || !pm || !cnpj) {
         return res.status(400).json({ error: 'Os campos Código, Cliente, CNPJ, SKU e Gerente (PM) são obrigatórios.' });
@@ -4666,8 +4670,9 @@ app.post('/api/projects', async (req, res) => {
         const sql = `INSERT INTO projects (
             code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, 
             checklist, prazos, faseEntryDate, lastUpdate, motivoPerda, machines,
-            cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, receita_data, website
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+            cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, receita_data, website,
+            equipment_origin, handover_signed
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`;
 
         await dbRun(sql, [
             code,
@@ -4692,7 +4697,8 @@ app.post('/api/projects', async (req, res) => {
             cnae_codigo || '',
             cnae_descricao || '',
             receita_data ? (typeof receita_data === 'string' ? receita_data : JSON.stringify(receita_data)) : '{}',
-            website || ''
+            website || '',
+            equipment_origin || 'Importação'
         ]);
 
         sendWebhookNotification('CREATE', { code, client, pm, sku });
@@ -4704,7 +4710,7 @@ app.post('/api/projects', async (req, res) => {
 
 // PUT /api/projects/:code - Atualiza dados do projeto
 app.put('/api/projects/:code', async (req, res) => {
-    const { serial, route, fase, checklist, prazos, lastUpdate, motivoPerda, tech, machines } = req.body;
+    const { serial, route, fase, checklist, prazos, lastUpdate, motivoPerda, tech, machines, equipment_origin, handover_signed } = req.body;
     const { code } = req.params;
 
     try {
@@ -4723,7 +4729,9 @@ app.put('/api/projects/:code', async (req, res) => {
             prazos = ?, 
             lastUpdate = ?, 
             motivoPerda = ?,
-            machines = ?`;
+            machines = ?,
+            equipment_origin = ?,
+            handover_signed = ?`;
             
         const params = [
             serial !== undefined ? serial : oldProject.serial,
@@ -4733,7 +4741,9 @@ app.put('/api/projects/:code', async (req, res) => {
             prazos ? JSON.stringify(prazos) : oldProject.prazos,
             lastUpdate || new Date().toISOString(),
             motivoPerda !== undefined ? motivoPerda : oldProject.motivoPerda,
-            machines ? JSON.stringify(machines) : oldProject.machines
+            machines ? JSON.stringify(machines) : oldProject.machines,
+            equipment_origin !== undefined ? equipment_origin : oldProject.equipment_origin,
+            handover_signed !== undefined ? parseInt(handover_signed) : oldProject.handover_signed
         ];
 
         // Se o técnico foi enviado para atualização
@@ -4766,6 +4776,42 @@ app.put('/api/projects/:code', async (req, res) => {
         res.json({ success: true, message: 'Projeto atualizado com sucesso!' });
     } catch (err) {
         res.status(500).json({ error: 'Erro ao atualizar projeto: ' + err.message });
+    }
+});
+
+// POST /api/projects/:code/handover - Registra a assinatura de handover do técnico (ALL ou TECNICO)
+app.post('/api/projects/:code/handover', authenticateToken, async (req, res) => {
+    const { code } = req.params;
+    const { signed } = req.body;
+    
+    if (req.user.role !== 'ALL' && req.user.role !== 'TECNICO') {
+        return res.status(403).json({ error: 'Acesso negado. Apenas técnicos ou administradores podem assinar o handover.' });
+    }
+    
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) {
+            return res.status(404).json({ error: 'Projeto não encontrado.' });
+        }
+        
+        const signedVal = signed ? 1 : 0;
+        await dbRun('UPDATE projects SET handover_signed = ?, lastUpdate = ? WHERE code = ?', [
+            signedVal,
+            new Date().toISOString(),
+            code
+        ]);
+        
+        const statusText = signedVal ? 'assinado e liberado' : 'desassinado';
+        const logMsg = `<strong>[HANDOVER]</strong> O técnico <code>${req.user.username}</code> marcou o projeto <code>${code}</code> como <strong>${statusText}</strong> para expedição.`;
+        await dbRun('INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)', [
+            new Date().toISOString(),
+            signedVal ? 'green' : 'yellow',
+            logMsg
+        ]);
+        
+        res.json({ success: true, message: `Handover ${statusText} com sucesso.`, handover_signed: signedVal });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao processar assinatura de handover: ' + err.message });
     }
 });
 
