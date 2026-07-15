@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview: Tecfag MRP II + CRM Integrado</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #070a13;
+            --bg-card: rgba(15, 23, 42, 0.45);
+            --bg-modal: #0d1326;
+            --border-color: rgba(255, 255, 255, 0.06);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --primary: #0284c7;
+            --primary-glow: rgba(2, 132, 199, 0.25);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.2);
+            --warning: #f97316;
+            --danger: #ef4444;
+            --purple: #d946ef;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            padding: 20px;
+        }
+
+        /* Background grid effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 30px 30px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+        }
+
+        .logo-section h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-section p {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* Navigation Tabs & Filters */
+        .controls-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            padding: 4px;
+            border-radius: 8px;
+            gap: 4px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: var(--text-primary);
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        .quick-filters {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(2, 132, 199, 0.05);
+            border: 1px solid rgba(2, 132, 199, 0.15);
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .filter-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            padding: 0 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn.active {
+            background: rgba(2, 132, 199, 0.2);
+            color: #38bdf8;
+            border: 1px solid rgba(2, 132, 199, 0.3);
+        }
+
+        /* Kanban Board View */
+        .board-view {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 15px;
+            align-items: flex-start;
+            transition: all 0.3s ease;
+        }
+
+        .board-column {
+            background: rgba(15, 23, 42, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px;
+            min-height: 500px;
+            transition: all 0.3s ease;
+        }
+
+        .board-column.hidden {
+            display: none;
+        }
+
+        .column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .column-title {
+            font-size: 0.76rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .column-badge {
+            background: rgba(255, 255, 255, 0.05);
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        /* Card styles */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(2, 132, 199, 0.4);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .card.alert-danger {
+            border-left: 4px solid var(--danger);
+        }
+
+        .card.alert-warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .card-code {
+            font-size: 0.74rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .card-client {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.68rem;
+            color: var(--text-secondary);
+            border-top: 1px dashed var(--border-color);
+            padding-top: 6px;
+            margin-top: 8px;
+        }
+
+        .card-seller {
+            font-weight: 600;
+            color: #38bdf8;
+        }
+
+        .alert-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(239, 68, 68, 0.12);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 6px;
+        }
+
+        /* Modal Details */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(2, 4, 8, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-container {
+            background: var(--bg-modal);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--danger);
+        }
+
+        .modal-body {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 20px;
+        }
+
+        .modal-title-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* Modal forms & details */
+        .detail-group {
+            margin-bottom: 15px;
+        }
+
+        .detail-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+
+        /* Timeline Mural of Notes */
+        .timeline-section {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .timeline-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--success);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+            padding-bottom: 6px;
+            margin-bottom: 5px;
+        }
+
+        .note-input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .note-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 0.78rem;
+            resize: none;
+            height: 60px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .note-input:focus {
+            border-color: var(--success);
+        }
+
+        .add-note-btn {
+            align-self: flex-end;
+            background: var(--success);
+            color: #ffffff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .add-note-btn:hover {
+            background: #059669;
+        }
+
+        .notes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 250px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .note-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .note-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .note-user {
+            color: #38bdf8;
+            font-weight: 700;
+        }
+
+        /* Dashboard View */
+        .dashboard-view {
+            display: none;
+        }
+
+        .dashboard-view.active {
+            display: block;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .metric-title {
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-primary);
+        }
+
+        .metric-sub {
+            font-size: 0.72rem;
+            color: var(--success);
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr;
+            gap: 25px;
+        }
+
+        .chart-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .chart-header {
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Mock charts representation */
+        .ranking-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 0.78rem;
+        }
+
+        .ranking-bar-container {
+            flex-grow: 1;
+            margin: 0 15px;
+            background: rgba(255, 255, 255, 0.05);
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .ranking-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, #38bdf8 100%);
+            border-radius: 5px;
+        }
+
+        .warning-row {
+            background: rgba(239, 68, 68, 0.06);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.76rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="logo-section">
+                <h1>TECFAG MRP II & CRM</h1>
+                <p>Preview da Solução Comercial & Rastreabilidade de Engenharia</p>
+            </div>
+            
+            <div class="nav-tabs">
+                <button class="tab-btn active" onclick="switchMainTab('kanban')">📋 Quadro Kanban (CRM/MRP)</button>
+                <button class="tab-btn" onclick="switchMainTab('dashboard')">📊 Relatórios CRM (Gerente)</button>
+            </div>
+        </header>
+
+        <!-- Controls (Only shown for Kanban) -->
+        <div class="controls-row" id="board-controls">
+            <h2 style="font-size: 1.1rem; font-family: 'Outfit';">Fluxo de Projetos</h2>
+            
+            <div class="quick-filters">
+                <span class="filter-title">🔍 Filtrar Colunas</span>
+                <button class="filter-btn active" onclick="applyQuickFilter('all', this)">Mostrar Tudo</button>
+                <button class="filter-btn" onclick="applyQuickFilter('crm', this)">Apenas Vendas (CRM)</button>
+                <button class="filter-btn" onclick="applyQuickFilter('mrp', this)">Apenas Execução (MRP)</button>
+            </div>
+        </div>
+
+        <!-- BOARD VIEW -->
+        <div class="board-view" id="kanban-board-container">
+            <!-- 1. Prospecção -->
+            <div class="board-column crm-col" id="col-1">
+                <div class="column-header">
+                    <span class="column-title" style="color: #38bdf8;"><span>📍</span>1. Prospecção</span>
+                    <span class="column-badge" id="badge-col-1">2</span>
+                </div>
+                <div class="column-body" id="body-col-1">
+                    <!-- Cards populated via JS -->
+                </div>
+            </div>
+
+            <!-- 2. Proposta -->
+            <div class="board-column crm-col" id="col-2">
+                <div class="column-header">
+                    <span class="column-title" style="color: #0284c7;"><span>📄</span>2. Proposta</span>
+                    <span class="column-badge" id="badge-col-2">1</span>
+                </div>
+                <div class="column-body" id="body-col-2">
+                    <!-- Cards -->
+                </div>
+            </div>
+
+            <!-- 3. Fechamento -->
+            <div class="board-column crm-col" id="col-3">
+                <div class="column-header">
+                    <span class="column-title" style="color: #a855f7;"><span>✍️</span>3. Contrato</span>
+                    <span class="column-badge" id="badge-col-3">1</span>
+                </div>
+                <div class="column-body" id="body-col-3">
+                    <!-- Cards -->
+                </div>
+            </div>
+
+            <!-- 4. Compras -->
+            <div class="board-column mrp-col" id="col-4">
+                <div class="column-header">
+                    <span class="column-title" style="color: #eab308;"><span>🚢</span>4. Compras</span>
+                    <span class="column-badge" id="badge-col-4">1</span>
+                </div>
+                <div class="column-body" id="body-col-4">
+                    <!-- Cards -->
+                </div>
+            </div>
+
+            <!-- 5. Oficina -->
+            <div class="board-column mrp-col" id="col-5">
+                <div class="column-header">
+                    <span class="column-title" style="color: #f97316;"><span>🔧</span>5. Oficina</span>
+                    <span class="column-badge" id="badge-col-5">1</span>
+                </div>
+                <div class="column-body" id="body-col-5">
+                    <!-- Cards -->
+                </div>
+            </div>
+
+            <!-- 6. Entrega -->
+            <div class="board-column mrp-col" id="col-6">
+                <div class="column-header">
+                    <span class="column-title" style="color: #ec4899;"><span>🚚</span>6. Entrega & SAT</span>
+                    <span class="column-badge" id="badge-col-6">1</span>
+                </div>
+                <div class="column-body" id="body-col-6">
+                    <!-- Cards -->
+                </div>
+            </div>
+
+            <!-- 7. Concluído -->
+            <div class="board-column mrp-col" id="col-7">
+                <div class="column-header">
+                    <span class="column-title" style="color: #10b981;"><span>✅</span>7. Concluído</span>
+                    <span class="column-badge" id="badge-col-7">1</span>
+                </div>
+                <div class="column-body" id="body-col-7">
+                    <!-- Cards -->
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD CRM VIEW -->
+        <div class="dashboard-view" id="dashboard-container">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-title">Novos Leads (Mês)</div>
+                    <div class="metric-value">14</div>
+                    <div class="metric-sub">▲ 16.7% vs mês anterior</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Propostas Enviadas</div>
+                    <div class="metric-value">9</div>
+                    <div class="metric-sub" style="color: #f97316;">Em andamento</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Contratos Fechados</div>
+                    <div class="metric-value">5</div>
+                    <div class="metric-sub">Taxa de Conversão: 35.7%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Leads com Contato Expirado</div>
+                    <div class="metric-value" style="color: #ef4444;">2</div>
+                    <div class="metric-sub" style="color: #ef4444;">⚠️ Requer atenção imediata</div>
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <!-- Ranking de Vendas por Vendedor -->
+                <div class="chart-box">
+                    <div class="chart-header">
+                        <span>Ranking de Fechamento Comercial</span>
+                        <span style="font-size: 0.7rem; color: var(--text-secondary);">Mês Vigente</span>
+                    </div>
+                    
+                    <div class="ranking-row">
+                        <span style="width: 80px; font-weight: 700;">vendas1</span>
+                        <div class="ranking-bar-container">
+                            <div class="ranking-bar" style="width: 85%;"></div>
+                        </div>
+                        <span style="font-weight: 700;">R$ 185.000</span>
+                    </div>
+                    <div class="ranking-row">
+                        <span style="width: 80px; font-weight: 700;">vendas2</span>
+                        <div class="ranking-bar-container">
+                            <div class="ranking-bar" style="width: 60%;"></div>
+                        </div>
+                        <span style="font-weight: 700;">R$ 130.000</span>
+                    </div>
+                    <div class="ranking-row">
+                        <span style="width: 80px; font-weight: 700;">vendas3</span>
+                        <div class="ranking-bar-container">
+                            <div class="ranking-bar" style="width: 40%;"></div>
+                        </div>
+                        <span style="font-weight: 700;">R$ 85.000</span>
+                    </div>
+                    <div class="ranking-row">
+                        <span style="width: 80px; font-weight: 700;">vendas4</span>
+                        <div class="ranking-bar-container">
+                            <div class="ranking-bar" style="width: 15%;"></div>
+                        </div>
+                        <span style="font-weight: 700;">R$ 32.000</span>
+                    </div>
+                </div>
+
+                <!-- Leads sem contato (Negligência) -->
+                <div class="chart-box">
+                    <div class="chart-header">
+                        <span style="color: #ef4444;">Alerta de Inatividade Comercial</span>
+                        <span style="font-size: 0.65rem; background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 2px 6px; border-radius: 4px;">Prazos Estourados</span>
+                    </div>
+                    
+                    <div class="warning-row">
+                        <div>
+                            <strong>Metalúrgica Alfa S/A</strong><br>
+                            <span style="color: var(--text-secondary); font-size: 0.7rem;">Etapa: Proposta Comercial</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <span class="card-seller">vendas4</span><br>
+                            <strong style="color: #ef4444;">Parado há 6 dias</strong>
+                        </div>
+                    </div>
+
+                    <div class="warning-row">
+                        <div>
+                            <strong>Laticínios Sul-Minas</strong><br>
+                            <span style="color: var(--text-secondary); font-size: 0.7rem;">Etapa: Qualificação de Lead</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <span class="card-seller">vendas2</span><br>
+                            <strong style="color: #ef4444;">Parado há 4 dias</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETAILS -->
+    <div class="modal-overlay" id="detail-modal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div>
+                    <h3 id="modal-project-code" style="font-family: 'Outfit'; color: var(--primary);">PRJTEC000000002</h3>
+                    <div class="modal-title-desc" id="modal-client-name">Cliente: Indústria de Bebidas Glória Ltda</div>
+                </div>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <!-- Coluna 1: Dados do Projeto -->
+                <div>
+                    <div class="detail-group">
+                        <div class="detail-label">Gerente de Projetos (PM)</div>
+                        <div class="detail-value" id="modal-pm">Fernando</div>
+                    </div>
+                    <div class="detail-group">
+                        <div class="detail-label">Contato no Cliente</div>
+                        <div class="detail-value" id="modal-contact">Carlos Silva (11) 99999-9999</div>
+                    </div>
+                    <div class="detail-group">
+                        <div class="detail-label">Segmento Técnico</div>
+                        <div class="detail-value" id="modal-segment">Seladoras Contínuas</div>
+                    </div>
+                    <div class="detail-group">
+                        <div class="detail-label">Modelo Indicado (SKU)</div>
+                        <div class="detail-value" id="modal-sku" style="color: var(--success); font-weight: 700;">FR-770I (Seladora Contínua Horizontal)</div>
+                    </div>
+                    <div class="detail-group">
+                        <div class="detail-label">Origem Física</div>
+                        <div class="detail-value" id="modal-origin">Pronta Entrega (Estoque Local)</div>
+                    </div>
+                </div>
+
+                <!-- Coluna 2: Mural de Notas (Mural de Notas) -->
+                <div class="timeline-section">
+                    <div class="timeline-title">💬 Histórico de Negociação</div>
+                    
+                    <div class="note-input-container">
+                        <textarea class="note-input" id="new-note-text" placeholder="Digite aqui o resumo da conversa ou follow-up com o cliente..."></textarea>
+                        <button class="add-note-btn" onclick="addNote()">Adicionar Nota</button>
+                    </div>
+
+                    <div class="notes-list" id="modal-notes-list">
+                        <!-- Notas inseridas dinamicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // MOCK DATA
+        let projects = [
+            { code: 'PRJTEC000000001', client: 'Laticínios Sul-Minas', pm: 'Fernando', seller: 'vendas2', contact: 'Renato - (35) 98888-8888', segment: 'MISTURADORES', sku: 'MX-RIBBON-200', origin: 'Importação', column: 1, notes: [
+                { user: 'vendas2', date: '14/07/2026 10:15', text: 'Cliente demonstrou interesse no misturador Ribbon Blender de 200L. Solicitou orçamento rápido.' }
+            ], alertDays: 4 },
+            { code: 'PRJTEC000000002', client: 'Indústria de Bebidas Glória', pm: 'Fernando', seller: 'vendas1', contact: 'Carlos - (11) 99999-9999', segment: 'SELADORAS_CONTINUAS', sku: 'FR-770I', origin: 'Pronta Entrega (Estoque Local)', column: 1, notes: [], alertDays: 0 },
+            { code: 'PRJTEC000000003', client: 'Metalúrgica Alfa S/A', pm: 'Roberto', seller: 'vendas4', contact: 'Fábio - (19) 97777-7777', segment: 'FINAL_LINHA', sku: 'FINAL-LINE-STD', origin: 'Importação', column: 2, notes: [
+                { user: 'vendas4', date: '09/07/2026 15:30', text: 'Proposta de fechadora de caixas enviada. Cliente achou o preço alto, negociando desconto.' }
+            ], alertDays: 6 },
+            { code: 'PRJTEC000000004', client: 'Farmacêutica PharmaGold', pm: 'Fernando', seller: 'vendas3', contact: 'Dr. Marcos - (21) 96666-6666', segment: 'ENCAPSULADORAS', sku: 'CAP-SOFTGEL-10', origin: 'Importação', column: 3, notes: [
+                { user: 'vendas3', date: '14/07/2026 09:00', text: 'Minuta de contrato enviada para aprovação jurídica do cliente. Previsão de assinatura esta semana.' }
+            ], alertDays: 0 },
+            { code: 'PRJTEC000000005', client: 'Química Industrial Solvax', pm: 'Roberto', seller: 'vendas1', contact: 'Regina - (11) 95555-5555', segment: 'ENVASE', sku: 'ENV-LIG-AUTO-4', origin: 'Importação', column: 4, notes: [
+                { user: 'vendas1', date: '10/07/2026 11:20', text: 'Contrato assinado e sinal financeiro pago. Liberado para o setor de Compras fazer pedido de importação.' }
+            ], alertDays: 0 },
+            { code: 'PRJTEC000000006', client: 'Guloseimas Divertidas Ltda', pm: 'Fernando', seller: 'vendas2', contact: 'Amanda - (15) 94444-4444', segment: 'GOMAS', sku: 'GUMMY-LINE-150', origin: 'Pronta Entrega (Estoque Local)', column: 5, notes: [
+                { user: 'vendas2', date: '11/07/2026 16:45', text: 'Máquina no estoque. Liberado para oficina da Tecfag iniciar a preparação física e vistoria de engenharia.' }
+            ], alertDays: 0 },
+            { code: 'PRJTEC000000007', client: 'Nutrição Animal DogCroc', pm: 'Roberto', seller: 'vendas4', contact: 'Julio - (41) 93333-3333', segment: 'DOSAGEM_SEMIAUTOMATICA', sku: 'DOS-VOL-SEMI', origin: 'Pronta Entrega (Estoque Local)', column: 6, notes: [], alertDays: 0 },
+            { code: 'PRJTEC000000008', client: 'Cosméticos BelaVida', pm: 'Fernando', seller: 'vendas1', contact: 'Renata - (11) 92222-2222', segment: 'FECHAMENTO_TAMPAGEM', sku: 'ROSQ-AUTO-LINEAR', origin: 'Pronta Entrega (Estoque Local)', column: 7, notes: [], alertDays: 0 }
+        ];
+
+        let activeProjectCode = null;
+
+        // Render board
+        function renderBoard() {
+            // Clear columns
+            for (let i = 1; i <= 7; i++) {
+                document.getElementById(`body-col-${i}`).innerHTML = '';
+            }
+
+            // Fill cards
+            projects.forEach(p => {
+                const colBody = document.getElementById(`body-col-${p.column}`);
+                if (!colBody) return;
+
+                const card = document.createElement('div');
+                card.className = `card ${p.alertDays > 0 ? (p.alertDays >= 5 ? 'alert-danger' : 'alert-warning') : ''}`;
+                card.onclick = () => openModal(p.code);
+
+                let alertBadgeHtml = '';
+                if (p.alertDays > 0) {
+                    alertBadgeHtml = `<div class="alert-badge">⚠️ Parado há ${p.alertDays} dias</div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="card-code">${p.code}</div>
+                    <div class="card-client">${p.client}</div>
+                    <div style="font-size: 0.72rem; color: var(--text-secondary);">${p.sku}</div>
+                    ${alertBadgeHtml}
+                    <div class="card-meta">
+                        <span class="card-seller">${p.seller}</span>
+                        <span>${p.origin === 'Importação' ? '🚢 IMP' : '📦 EST'}</span>
+                    </div>
+                `;
+                colBody.appendChild(card);
+            });
+
+            // Update badges counts
+            for (let i = 1; i <= 7; i++) {
+                const count = projects.filter(p => p.column === i).length;
+                document.getElementById(`badge-col-${i}`).innerText = count;
+            }
+        }
+
+        // Apply column filter
+        function applyQuickFilter(type, btn) {
+            // Remove active classes
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const columns = document.querySelectorAll('.board-column');
+            columns.forEach(col => {
+                const colId = parseInt(col.id.replace('col-', ''));
+                if (type === 'crm') {
+                    // Show columns 1, 2, 3 and Concluído (7)
+                    if (colId <= 3 || colId === 7) {
+                        col.classList.remove('hidden');
+                    } else {
+                        col.classList.add('hidden');
+                    }
+                } else if (type === 'mrp') {
+                    // Show columns 4, 5, 6, 7
+                    if (colId >= 4) {
+                        col.classList.remove('hidden');
+                    } else {
+                        col.classList.add('hidden');
+                    }
+                } else {
+                    // Show all
+                    col.classList.remove('hidden');
+                }
+            });
+
+            // Adjust grid template columns
+            const visibleCount = Array.from(columns).filter(col => !col.classList.contains('hidden')).length;
+            document.getElementById('kanban-board-container').style.gridTemplateColumns = `repeat(${visibleCount}, 1fr)`;
+        }
+
+        // Switch Main Nav Tabs
+        function switchMainTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (tab === 'dashboard') {
+                document.getElementById('board-controls').style.display = 'none';
+                document.getElementById('kanban-board-container').style.display = 'none';
+                document.getElementById('dashboard-container').classList.add('active');
+            } else {
+                document.getElementById('board-controls').style.display = 'flex';
+                document.getElementById('kanban-board-container').style.display = 'grid';
+                document.getElementById('dashboard-container').classList.remove('active');
+                renderBoard();
+            }
+        }
+
+        // Open Modal
+        function openModal(code) {
+            const project = projects.find(p => p.code === code);
+            if (!project) return;
+
+            activeProjectCode = code;
+            document.getElementById('modal-project-code').innerText = project.code;
+            document.getElementById('modal-client-name').innerText = `Cliente: ${project.client}`;
+            document.getElementById('modal-pm').innerText = project.pm;
+            document.getElementById('modal-contact').innerText = project.contact;
+            document.getElementById('modal-segment').innerText = project.segment.replace(/_/g, ' ');
+            document.getElementById('modal-sku').innerText = project.sku;
+            document.getElementById('modal-origin').innerText = project.origin;
+
+            // Clear input
+            document.getElementById('new-note-text').value = '';
+
+            // Load notes
+            renderNotes(project.notes);
+
+            document.getElementById('detail-modal').classList.add('active');
+        }
+
+        // Close Modal
+        function closeModal() {
+            document.getElementById('detail-modal').classList.remove('active');
+            activeProjectCode = null;
+        }
+
+        // Render notes timeline
+        function renderNotes(notes) {
+            const list = document.getElementById('modal-notes-list');
+            list.innerHTML = '';
+
+            if (!notes || notes.length === 0) {
+                list.innerHTML = `<div style="text-align: center; color: var(--text-secondary); font-size: 0.72rem; font-style: italic; padding: 15px 0;">Nenhuma nota de negociação cadastrada ainda.</div>`;
+                return;
+            }
+
+            // Order by date descending
+            const sorted = [...notes].reverse();
+
+            sorted.forEach(note => {
+                const item = document.createElement('div');
+                item.className = 'note-item';
+                item.innerHTML = `
+                    <div class="note-meta">
+                        <span class="note-user">${note.user}</span>
+                        <span>${note.date}</span>
+                    </div>
+                    <div>${note.text}</div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        // Add Note
+        function addNote() {
+            const input = document.getElementById('new-note-text');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const project = projects.find(p => p.code === activeProjectCode);
+            if (!project) return;
+
+            const dateStr = new Date().toLocaleString('pt-BR', { hour12: false }).substring(0, 16);
+            project.notes.push({
+                user: 'admin', // Simula o usuário logado
+                date: dateStr,
+                text: text
+            });
+
+            // Reseta contador de alertas ao interagir
+            project.alertDays = 0;
+
+            input.value = '';
+            renderNotes(project.notes);
+            renderBoard();
+        }
+
+        // Initial render
+        renderBoard();
+    </script>
+</body>
+</html>
