@@ -5196,6 +5196,28 @@
             }
         }
 
+        function getFriendlyUserName(username) {
+            if (!username) return 'S/V';
+            const u = username.toLowerCase().trim();
+            if (u === 'admin') return 'Admin';
+            if (u === 'vendas' || u === 'vendas14@tecfag.com.br') return 'Diana';
+            if (u === 'vendas1' || u === 'vendas21@tecfag.com.br') return 'Alex';
+            if (u === 'vendas2' || u === 'vendas4@tecfag.com.br') return 'Jhordan';
+            if (u === 'vendas3' || u === 'vendas17@tecfag.com.br') return 'Nardeli';
+            if (u === 'vendas4' || u === 'vendas19@tecfag.com.br') return 'Lucas';
+            if (u === 'gerente') return 'Gerente';
+            if (u === 'gerente_comercial') return 'Comercial';
+            if (u === 'joao.lanza') return 'J. Lanza';
+            if (u === 'engenharia') return 'Engenharia';
+            if (u === 'compras') return 'Compras';
+            if (u === 'estoque') return 'Estoque';
+            if (u === 'tecnico') return 'Técnico';
+            if (u === 'vendas6' || u === 'vendas6@tecfag.com.br') return 'Patricia';
+            if (u === 'suporte2' || u === 'suporte2@tecfag.com.br') return 'Tarcisio';
+            if (u === 'heilio' || u === 'assistencia6@tecfag.com.br') return 'Heilio';
+            return username;
+        }
+
         // Geração Automática de Código Único de Projeto
         async function generateProjectCode() {
             const codeInput = document.getElementById('prj-code');
@@ -6636,17 +6658,7 @@
                 
                 let cardCreator = 'S/V';
                 if (project.checklist && project.checklist.diagnostico_user) {
-                    const u = project.checklist.diagnostico_user;
-                    if (u === 'admin') cardCreator = 'Admin';
-                    else if (u === 'vendas') cardCreator = 'Vendas';
-                    else if (u === 'gerente') cardCreator = 'Gerente';
-                    else if (u === 'gerente_comercial') cardCreator = 'Comercial';
-                    else if (u === 'joao.lanza') cardCreator = 'J.Lanza';
-                    else if (u === 'engenharia') cardCreator = 'Engenharia';
-                    else if (u === 'compras') cardCreator = 'Compras';
-                    else if (u === 'estoque') cardCreator = 'Estoque';
-                    else if (u === 'tecnico') cardCreator = 'Técnico';
-                    else cardCreator = u;
+                    cardCreator = getFriendlyUserName(project.checklist.diagnostico_user);
                 }
 
                 const editingUser = state.activeLocks ? state.activeLocks[project.code] : null;
@@ -6841,16 +6853,7 @@
             
             let creator = '-';
             if (project.checklist && project.checklist.diagnostico_user) {
-                creator = project.checklist.diagnostico_user;
-                if (creator === 'admin') creator = 'Administrador';
-                else if (creator === 'vendas') creator = 'Eng. Vendas';
-                else if (creator === 'gerente') creator = 'Gerente de Projetos';
-                else if (creator === 'gerente_comercial') creator = 'Gerente Comercial';
-                else if (creator === 'joao.lanza') creator = 'João Lanza';
-                else if (creator === 'engenharia') creator = 'Engenharia';
-                else if (creator === 'compras') creator = 'Importação/Compras';
-                else if (creator === 'estoque') creator = 'Estoque/PCP';
-                else if (creator === 'tecnico') creator = 'Técnico';
+                creator = getFriendlyUserName(project.checklist.diagnostico_user);
             }
             
             document.getElementById('modal-project-subtitle').innerText = `Gerente: ${project.pm} | Vendedor: ${creator} | Técnico: ${project.tech}`;
