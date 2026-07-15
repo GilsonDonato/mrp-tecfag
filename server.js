@@ -4794,6 +4794,67 @@ app.delete('/api/projects/:code', async (req, res) => {
 });
 
 // ==========================================
+// ENDPOINTS PARA GERENCIAMENTO DE CONCORRÊNCIA (LOCKS)
+// ==========================================
+
+const projectLocks = new Map(); // key: code, value: { username: string, expiresAt: number }
+
+// Limpador automático de travas expiradas a cada 10 segundos
+setInterval(() => {
+    const now = Date.now();
+    for (const [code, lock] of projectLocks.entries()) {
+        if (lock.expiresAt < now) {
+            projectLocks.delete(code);
+        }
+    }
+}, 10000);
+
+// POST /api/projects/:code/lock - Adquire ou renova uma trava de edição de projeto
+app.post('/api/projects/:code/lock', (req, res) => {
+    const { code } = req.params;
+    const username = req.user.username;
+    const now = Date.now();
+
+    const currentLock = projectLocks.get(code);
+    if (currentLock && currentLock.expiresAt > now && currentLock.username !== username) {
+        return res.json({ success: false, lockedBy: currentLock.username });
+    }
+
+    // Lease de 15 segundos
+    projectLocks.set(code, {
+        username: username,
+        expiresAt: now + 15000
+    });
+
+    res.json({ success: true });
+});
+
+// POST /api/projects/:code/unlock - Libera a trava de edição de um projeto
+app.post('/api/projects/:code/unlock', (req, res) => {
+    const { code } = req.params;
+    const username = req.user.username;
+
+    const currentLock = projectLocks.get(code);
+    if (currentLock && currentLock.username === username) {
+        projectLocks.delete(code);
+    }
+
+    res.json({ success: true });
+});
+
+// GET /api/projects/locks/active - Retorna todas as travas ativas no momento
+app.get('/api/projects/locks/active', (req, res) => {
+    const now = Date.now();
+    const activeLocks = {};
+    for (const [code, lock] of projectLocks.entries()) {
+        if (lock.expiresAt > now) {
+            activeLocks[code] = lock.username;
+        }
+    }
+    res.json(activeLocks);
+});
+
+// ==========================================
 // ENDPOINTS DA API DE LOGS DE AUDITORIA
 // ==========================================
 

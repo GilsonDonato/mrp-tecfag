@@ -3343,6 +3343,12 @@
                             delayedProjects
                         };
                     }
+                } else if (url.includes('/locks/active')) {
+                    responseData = {};
+                } else if (url.includes('/lock')) {
+                    responseData = { success: true };
+                } else if (url.includes('/unlock')) {
+                    responseData = { success: true };
                 } else if (url.startsWith('/api/projects')) {
                     let projects = getLocalProjects();
                     projects = projects.map(p => {
@@ -4213,11 +4219,13 @@
         // Database State
         let state = {
             projects: [],
-            logs: []
+            logs: [],
+            activeLocks: {}
         };
 
         let currentRole = "ALL"; 
         let activeProjectCode = null;
+        let lockHeartbeatInterval = null;
         let isSubmitting = false;
         let projectToMarkLost = null;
         let currentCnpjReceitaData = null;
@@ -4279,10 +4287,17 @@
 
         // Load Database from Server APIs
         function loadProjectsDB() {
-            fetch('/api/projects')
-                .then(res => res.json())
-                .then(async projects => {
-                    state.projects = projects;
+            const fetchLocks = window.location.protocol !== 'file:'
+                ? fetch('/api/projects/locks/active').then(res => res.json()).catch(err => ({}))
+                : Promise.resolve({});
+
+            fetchLocks.then(locks => {
+                state.activeLocks = locks || {};
+
+                fetch('/api/projects')
+                    .then(res => res.json())
+                    .then(async projects => {
+                        state.projects = projects;
                     
                     // Migração automática de projetos locais do LocalStorage para o Banco SQLite do servidor
                     if (projects.length === 0) {
@@ -4343,6 +4358,7 @@
                     populateTagProjectSelectors();
                 })
                 .catch(err => console.error('Erro ao carregar projetos do servidor:', err));
+            });
 
             loadLogsFromAPI();
         }
@@ -6491,6 +6507,7 @@
                     else cardCreator = u;
                 }
 
+                const editingUser = state.activeLocks ? state.activeLocks[project.code] : null;
                 const card = document.createElement('div');
                 
                 let extraClass = "";
@@ -6504,7 +6521,14 @@
                 card.innerHTML = `
                     <div class="project-card-header">
                         <span class="project-client-name">${project.client}</span>
-                        <span class="project-code-badge">${project.code}</span>
+                        ${editingUser ? `
+                            <span class="project-code-badge" style="background-color: #ef4444; color: white; display: inline-flex; align-items: center; gap: 3.5px; border: 1px solid rgba(239, 68, 68, 0.4); padding: 2px 6px; font-size: 0.65rem; text-transform: capitalize;" title="Edição bloqueada por: ${editingUser}">
+                                <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink: 0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                <span>${editingUser.split('@')[0].split('.')[0]}</span>
+                            </span>
+                        ` : `
+                            <span class="project-code-badge">${project.code}</span>
+                        `}
                     </div>
                     <div class="project-card-body">
                         <div class="project-responsible-box">
@@ -6599,9 +6623,20 @@
                 const progress = calculateProjectProgress(p);
                 const date = p.lastUpdate ? new Date(p.lastUpdate).toLocaleDateString() : '-';
                 const bottleneck = getBottleneckRole(p);
+                const editingUser = state.activeLocks ? state.activeLocks[p.code] : null;
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td style="font-weight: 700; color: var(--primary);">${p.code}</td>
+                    <td style="font-weight: 700; color: var(--primary);">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span>${p.code}</span>
+                            ${editingUser ? `
+                                <span style="background-color: #ef4444; color: white; display: inline-flex; align-items: center; gap: 3.5px; border: 1px solid rgba(239, 68, 68, 0.4); padding: 1px 5px; font-size: 0.6rem; border-radius: 4px; font-weight: bold; text-transform: capitalize; line-height: 1;" title="Edição bloqueada por: ${editingUser}">
+                                    <svg viewBox="0 0 24 24" width="8" height="8" fill="none" stroke="currentColor" stroke-width="3" style="flex-shrink: 0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                    <span>${editingUser.split('@')[0].split('.')[0]}</span>
+                                </span>
+                            ` : ''}
+                        </div>
+                    </td>
                     <td style="font-weight: 600;">${p.client}</td>
                     <td><code>${p.sku}</code></td>
                     <td>
@@ -6630,11 +6665,35 @@
         }
 
         // Active project details in modal
-        function openProjectModal(code) {
+        async function openProjectModal(code) {
             const project = state.projects.find(p => p.code === code);
             if (!project) return;
 
+            // Tenta obter a trava de concorrência com o servidor
+            try {
+                const response = await fetch(`/api/projects/${code}/lock`, { method: 'POST' });
+                const result = await response.json();
+                if (!result.success) {
+                    alert(`⚠️ CONFLITO DE EDIÇÃO:\nEste projeto está aberto/sendo editado pelo engenheiro/usuário "${result.lockedBy}" no momento.\n\nPara evitar que suas alterações sejam sobrescritas, a abertura deste projeto foi bloqueada temporariamente.`);
+                    return;
+                }
+            } catch (err) {
+                console.error('[LOCK ERROR] Falha ao verificar trava de concorrência:', err);
+            }
+
             activeProjectCode = code;
+
+            // Inicia o batimento cardíaco (heartbeat) para renovar a trava a cada 10 segundos
+            if (lockHeartbeatInterval) clearInterval(lockHeartbeatInterval);
+            lockHeartbeatInterval = setInterval(async () => {
+                if (activeProjectCode === code) {
+                    try {
+                        await fetch(`/api/projects/${code}/lock`, { method: 'POST' });
+                    } catch (e) {
+                        console.error('Falha ao enviar heartbeat de trava:', e);
+                    }
+                }
+            }, 10000);
 
             document.getElementById('modal-project-title').innerText = `${project.code} - ${project.client}`;
             
@@ -7483,6 +7542,16 @@
         }
 
         function closeProjectModal() {
+            if (lockHeartbeatInterval) {
+                clearInterval(lockHeartbeatInterval);
+                lockHeartbeatInterval = null;
+            }
+            if (activeProjectCode) {
+                const codeToUnlock = activeProjectCode;
+                fetch(`/api/projects/${codeToUnlock}/unlock`, { method: 'POST' }).catch(err => {
+                    console.error('Erro ao liberar trava:', err);
+                });
+            }
             document.getElementById('project-detail-modal').classList.remove('active');
             activeProjectCode = null;
         }
@@ -9577,6 +9646,14 @@
             // Inicializar monitoramento de espaço em disco
             fetchSystemStorage();
             setInterval(fetchSystemStorage, 10 * 60 * 1000);
+
+            // Sincronismo periódico do banco de dados e travas ativas a cada 12 segundos
+            setInterval(() => {
+                const token = localStorage.getItem('tecfag_session_token');
+                if (token && document.visibilityState === 'visible') {
+                    loadProjectsDB();
+                }
+            }, 12000);
 
             initIndexedDB().then(() => {
                 initializeSession();
