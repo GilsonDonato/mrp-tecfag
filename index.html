@@ -6059,11 +6059,14 @@
                 const datador = getSegmentParameterValue("Tipo de Datador Integrado*");
                 const carga = parseFloat(getSegmentParameterValue("Carga Máxima da Esteira (kg)*") || "0");
                 
-                if (carga > 5) {
+                if (carga > 5 && datador !== 'Gravação a Laser UV (355 nm) de Estado Sólido') {
                     isCustom = true;
                     customReasons.push(`Carga elevada na esteira (${carga} kg) exige esteiras reforçadas com motoredutores pesados (Heavy Duty)`);
                     suggestedSku = 'FRL360/600 (Seladora Contínua Heavy Duty)';
                     defaultSkuDetails = 'Indicada para sacos pesados (ração, grãos, produtos químicos de 5kg a 20kg).';
+                } else if (datador === 'Gravação a Laser UV (355 nm) de Estado Sólido') {
+                    suggestedSku = 'FRW-1120W (Seladora Contínua com Impressão a Laser UV)';
+                    defaultSkuDetails = 'Equipamento premium de alta performance com gravação definitiva a laser UV de 355 nm (sem custo de consumíveis, inclinação ajustável e chiller industrial CWUL-05 integrado).';
                 } else if (datador === 'Inkjet TIJ (Jato de Tinta Industrial)') {
                     isCustom = true;
                     customReasons.push('Impressora Inkjet TIJ integrada de alta definição (exige suportes de precisão, fotocélula de disparo e sincronizador)');
