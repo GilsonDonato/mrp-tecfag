@@ -3153,7 +3153,8 @@
                     users = [];
                 }
                 const adminUser = Array.isArray(users) && users.find(u => u.username === 'admin');
-                const needsReset = !adminUser || adminUser.password !== 'adm@tecfag99';
+                const heilioUser = Array.isArray(users) && users.find(u => u.username === 'heilio');
+                const needsReset = !adminUser || adminUser.password !== 'adm@tecfag99' || !heilioUser;
                 if (needsReset) {
                     users = [
                         { username: 'admin', password: 'adm@tecfag99', role: 'ALL' },
@@ -3168,7 +3169,9 @@
                         { username: 'vendas1', password: 'vend@tecfag02', role: 'VENDAS' },
                         { username: 'vendas2', password: 'vend@tecfag03', role: 'VENDAS' },
                         { username: 'vendas3', password: 'vend@tecfag04', role: 'VENDAS' },
-                        { username: 'vendas4', password: 'vend@tecfag05', role: 'VENDAS' }
+                        { username: 'vendas4', password: 'vend@tecfag05', role: 'VENDAS' },
+                        { username: 'heilio', password: 'heilio#tecfag99', role: 'ALL' },
+                        { username: 'assistencia6@tecfag.com.br', password: 'heilio#tecfag99', role: 'ALL' }
                     ];
                     localStorage.setItem('tecfag_users', JSON.stringify(users));
                 }

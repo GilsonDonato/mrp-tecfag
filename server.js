@@ -230,7 +230,9 @@ function seedDefaultUsers() {
         { username: 'vendas1', password: 'vend@tecfag02', role: 'VENDAS' },
         { username: 'vendas2', password: 'vend@tecfag03', role: 'VENDAS' },
         { username: 'vendas3', password: 'vend@tecfag04', role: 'VENDAS' },
-        { username: 'vendas4', password: 'vend@tecfag05', role: 'VENDAS' }
+        { username: 'vendas4', password: 'vend@tecfag05', role: 'VENDAS' },
+        { username: 'heilio', password: 'heilio#tecfag99', role: 'ALL' },
+        { username: 'assistencia6@tecfag.com.br', password: 'heilio#tecfag99', role: 'ALL' }
     ];
 
     defaultUsers.forEach((u) => {
