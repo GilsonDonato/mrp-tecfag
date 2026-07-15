@@ -548,7 +548,7 @@ async function sendPhaseChangeEmail(project, oldFase, newFase) {
 app.get('/api/projects', async (req, res) => {
     try {
         const rows = await dbAll('SELECT * FROM projects');
-        const formatted = rows.map(p => {
+        let formatted = rows.map(p => {
             let machinesParsed = [];
             try {
                 machinesParsed = p.machines ? JSON.parse(p.machines) : [];
@@ -563,6 +563,15 @@ app.get('/api/projects', async (req, res) => {
                 machines: machinesParsed
             };
         });
+
+        // Filtrar por vendedor se o usuário logado tiver a role VENDAS (exceto vendas6)
+        if (req.user && req.user.role === 'VENDAS' && req.user.username !== 'vendas6' && req.user.username !== 'vendas6@tecfag.com.br') {
+            formatted = formatted.filter(p => {
+                const creator = p.checklist ? p.checklist.diagnostico_user : null;
+                return creator === req.user.username;
+            });
+        }
+
         res.json(formatted);
     } catch (err) {
         res.status(500).json({ error: 'Erro ao listar projetos: ' + err.message });
@@ -586,6 +595,15 @@ app.get('/api/projects/:code', async (req, res) => {
         project.checklist = project.checklist ? JSON.parse(project.checklist) : {};
         project.prazos = project.prazos ? JSON.parse(project.prazos) : {};
         project.machines = machinesParsed;
+
+        // Restrição de vendedor para rota individual
+        if (req.user && req.user.role === 'VENDAS' && req.user.username !== 'vendas6' && req.user.username !== 'vendas6@tecfag.com.br') {
+            const creator = project.checklist ? project.checklist.diagnostico_user : null;
+            if (creator !== req.user.username) {
+                return res.status(403).json({ error: 'Acesso negado: Você não tem permissão para visualizar este projeto.' });
+            }
+        }
+
         res.json(project);
     } catch (err) {
         res.status(500).json({ error: 'Erro ao buscar projeto: ' + err.message });
@@ -4719,6 +4737,18 @@ app.put('/api/projects/:code', async (req, res) => {
         const oldProject = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
         if (!oldProject) {
             return res.status(404).json({ error: 'Projeto não encontrado.' });
+        }
+
+        // Restrição de vendedor para edição
+        if (req.user && req.user.role === 'VENDAS' && req.user.username !== 'vendas6' && req.user.username !== 'vendas6@tecfag.com.br') {
+            let oldChecklist = {};
+            try {
+                oldChecklist = oldProject.checklist ? JSON.parse(oldProject.checklist) : {};
+            } catch (e) {}
+            const creator = oldChecklist ? oldChecklist.diagnostico_user : null;
+            if (creator !== req.user.username) {
+                return res.status(403).json({ error: 'Acesso negado: Você não tem permissão para editar este projeto.' });
+            }
         }
 
         const oldFase = oldProject.fase;
