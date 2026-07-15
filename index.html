@@ -6804,7 +6804,7 @@
             const countFase = (f) => state.projects.filter(p => p.fase === f).length;
 
             // KPIs superiores consolidados
-            document.getElementById('kpi-fase1').innerText = countFase(1) + countFase(7) + countFase(8);
+            document.getElementById('kpi-fase1').innerText = countFase(1);
             document.getElementById('kpi-fase2').innerText = countFase(2);
             document.getElementById('kpi-fase3').innerText = countFase(3);
             document.getElementById('kpi-fase4').innerText = countFase(4);
@@ -6813,8 +6813,6 @@
 
             // Contadores de colunas individuais
             document.getElementById('count-fase1').innerText = countFase(1);
-            document.getElementById('count-fase7').innerText = countFase(7);
-            document.getElementById('count-fase8').innerText = countFase(8);
             document.getElementById('count-fase2').innerText = countFase(2);
             document.getElementById('count-fase3').innerText = countFase(3);
             document.getElementById('count-fase4').innerText = countFase(4);
