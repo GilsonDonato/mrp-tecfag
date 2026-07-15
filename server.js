@@ -5014,7 +5014,7 @@ app.post('/api/attachments', upload.single('file'), async (req, res) => {
             }
         }
 
-        await dbRun(`INSERT INTO attachments (
+        const runResult = await dbRun(`INSERT INTO attachments (
             projectCode, phase, fileName, fileType, filePath, dateAdded
         ) VALUES (?, ?, ?, ?, ?, ?)`, [
             projectCode,
@@ -5025,7 +5025,7 @@ app.post('/api/attachments', upload.single('file'), async (req, res) => {
             new Date().toISOString()
         ]);
 
-        const newRecord = await dbGet('SELECT * FROM attachments WHERE projectCode = ? AND phase = ?', [projectCode, phase]);
+        const newRecord = await dbGet('SELECT * FROM attachments WHERE id = ?', [runResult.lastID]);
         
         // Formatar filePath como URL absoluta para download
         res.status(201).json({
