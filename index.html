@@ -456,7 +456,8 @@
         /* KANBAN BOARD */
         .kanban-board {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(0, 1fr);
             gap: 14px;
             align-items: start;
         }
@@ -1544,6 +1545,53 @@
                 transform: translate(var(--tx), var(--ty)) scale(0.2);
             }
         }
+
+        @keyframes crm-pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        .crm-pulse {
+            animation: crm-pulse 1.8s infinite;
+        }
+        .kanban-column.hidden {
+            display: none !important;
+        }
+        .crm-filter-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(2, 132, 199, 0.05);
+            border: 1px solid rgba(2, 132, 199, 0.15);
+            padding: 4px;
+            border-radius: 8px;
+            margin-left: auto;
+        }
+        .crm-filter-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            padding: 0 10px;
+            letter-spacing: 0.5px;
+        }
+        .crm-filter-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+        .crm-filter-btn.active {
+            background: rgba(2, 132, 199, 0.2);
+            color: #38bdf8;
+            border: 1px solid rgba(2, 132, 199, 0.3);
+        }
     </style>
 </head>
 <body class="not-logged-in">
@@ -1843,51 +1891,73 @@
             </div>
 
             <!-- Pipeline Board -->
-            <div class="kanban-board">
-                <!-- Coluna 1 -->
-                <div class="kanban-column" id="col-fase1">
+            <div class="crm-filter-container" style="margin-bottom: 15px; margin-top: 15px; max-width: 480px;">
+                <span class="crm-filter-title">🔍 Filtrar Funil</span>
+                <button class="crm-filter-btn active" id="crm-filter-all" onclick="applyCrmColumnFilter('all')">Mostrar Tudo</button>
+                <button class="crm-filter-btn" id="crm-filter-sales" onclick="applyCrmColumnFilter('sales')">Apenas Vendas (CRM)</button>
+                <button class="crm-filter-btn" id="crm-filter-prod" onclick="applyCrmColumnFilter('prod')">Apenas Produção (MRP)</button>
+            </div>
+            <div class="kanban-board" id="kanban-board-wrapper">
+                <!-- Coluna 1: Prospecção -->
+                <div class="kanban-column crm-col" id="col-fase1">
                     <div class="column-header" style="--column-color: var(--color-fase1)">
-                        <h3>1. Escopo & Venda</h3>
+                        <h3>1. Prospecção</h3>
                         <span class="column-counter" id="count-fase1">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase1"></div>
                 </div>
-                <!-- Coluna 2 -->
-                <div class="kanban-column" id="col-fase2">
+                <!-- Coluna 7: Proposta -->
+                <div class="kanban-column crm-col" id="col-fase7">
+                    <div class="column-header" style="--column-color: var(--primary)">
+                        <h3>2. Proposta</h3>
+                        <span class="column-counter" id="count-fase7">0</span>
+                    </div>
+                    <div class="column-cards" id="cards-fase7"></div>
+                </div>
+                <!-- Coluna 8: Contrato -->
+                <div class="kanban-column crm-col" id="col-fase8">
+                    <div class="column-header" style="--column-color: var(--purple)">
+                        <h3>3. Contrato</h3>
+                        <span class="column-counter" id="count-fase8">0</span>
+                    </div>
+                    <div class="column-cards" id="cards-fase8"></div>
+                </div>
+                <!-- Coluna 2: Compras & Importação -->
+                <div class="kanban-column mrp-col" id="col-fase2">
                     <div class="column-header" style="--column-color: var(--color-fase2)">
-                        <h3>2. Compras & Imp.</h3>
+                        <h3>4. Compras & Imp.</h3>
                         <span class="column-counter" id="count-fase2">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase2"></div>
                 </div>
-                <!-- Coluna 3 -->
-                <div class="kanban-column" id="col-fase3">
+                <!-- Coluna 3: Oficina & Recebimento -->
+                <div class="kanban-column mrp-col" id="col-fase3">
                     <div class="column-header" style="--column-color: var(--color-fase3)">
-                        <h3>3. Recebimento</h3>
+                        <h3>5. Oficina & Prep.</h3>
                         <span class="column-counter" id="count-fase3">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase3"></div>
                 </div>
-                <!-- Coluna 4 -->
-                <div class="kanban-column" id="col-fase4">
+                <!-- Coluna 4: Instalação / SAT -->
+                <div class="kanban-column mrp-col" id="col-fase4">
                     <div class="column-header" style="--column-color: var(--color-fase4)">
-                        <h3>4. Instalação / SAT</h3>
+                        <h3>6. Instalação & SAT</h3>
                         <span class="column-counter" id="count-fase4">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase4"></div>
                 </div>
-                <!-- Coluna 5 -->
+                <!-- Coluna 5: Concluído -->
                 <div class="kanban-column" id="col-fase5">
                     <div class="column-header" style="--column-color: var(--color-fase5)">
-                        <h3>5. Concluído</h3>
+                        <h3>7. Concluído</h3>
                         <span class="column-counter" id="count-fase5">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase5"></div>
                 </div>
-                <!-- Coluna 6 -->
+                <!-- Coluna 6: Cancelado -->
                 <div class="kanban-column" id="col-fase6">
                     <div class="column-header" style="--column-color: var(--color-fase6)">
-                        <h3>6. Cancelado</h3>
+                        <h3>8. Cancelado</h3>
                         <span class="column-counter" id="count-fase6">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase6"></div>
@@ -1963,6 +2033,25 @@
                             <div class="form-group">
                                 <label for="prj-pm">Gerente de Projetos Alocado (Tecfag)*</label>
                                 <input type="text" id="prj-pm" class="form-control" value="Fernando" required>
+                            </div>
+                        </div>
+
+                        <!-- CRM Fields: Valor Estimado e Origem -->
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label for="prj-crm-value">Valor Estimado do Negócio (R$)</label>
+                                <input type="number" id="prj-crm-value" class="form-control" placeholder="Ex: 45000.00" step="0.01">
+                            </div>
+                            <div class="form-group">
+                                <label for="prj-crm-source">Origem do Lead / Oportunidade</label>
+                                <select id="prj-crm-source" class="form-control">
+                                    <option value="WhatsApp Tecfag (Entrada passiva)">WhatsApp Tecfag (Entrada passiva)</option>
+                                    <option value="Google (SEO/Orgânico)">Google (SEO/Orgânico)</option>
+                                    <option value="Anúncio Pago (Google/Meta)">Anúncio Pago (Google/Meta)</option>
+                                    <option value="Indicação de Cliente">Indicação de Cliente</option>
+                                    <option value="Outbound / Prospecção Ativa (Lista Fria)">Outbound / Prospecção Ativa (Lista Fria)</option>
+                                    <option value="Feira Industrial / Eventos">Feira Industrial / Eventos</option>
+                                </select>
                             </div>
                         </div>
 
@@ -2473,6 +2562,63 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Painel de Vendas & CRM (Visível para ALL e GERENTE) -->
+                <div id="crm-metrics-panel" style="display: none; flex-direction: column; gap: 20px; border-top: 1px dashed var(--border-color); padding-top: 25px; margin-top: 10px;">
+                    <h3 style="color: var(--primary); font-size: 1.1rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 5px;">📊 Dashboard de Vendas & CRM</h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                        <div style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; display: flex; align-items: center; gap: 15px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                            <div style="width: 46px; height: 46px; border-radius: 10px; background: rgba(56, 189, 248, 0.1); display: flex; align-items: center; justify-content: center; color: #38bdf8;">
+                                <span style="font-size: 1.2rem; font-weight: bold;">R$</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Valor Total do Pipeline</span>
+                                <span style="font-size: 1.6rem; font-weight: 800; color: #38bdf8;" id="crm-total-value">R$ 0,00</span>
+                            </div>
+                        </div>
+                        <div style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; display: flex; align-items: center; gap: 15px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                            <div style="width: 46px; height: 46px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; color: #10b981;">
+                                <span style="font-size: 1.2rem; font-weight: bold;">📈</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Faturamento Convertido (Este Mês)</span>
+                                <span style="font-size: 1.6rem; font-weight: 800; color: #10b981;" id="crm-won-value">R$ 0,00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+                        <!-- Ranking de Vendedores -->
+                        <div style="flex: 1; min-width: 320px; background: var(--card-bg); border: 1px solid var(--border-color); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                            <h4 style="font-size: 0.9rem; font-weight: 800; color: var(--text-primary); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.5px;">🏆 Performance de Vendedores (Por Conversão)</h4>
+                            <div style="display: flex; flex-direction: column; gap: 12px;" id="crm-sellers-ranking">
+                                <!-- Preenchido dinamicamente via JS -->
+                            </div>
+                        </div>
+
+                        <!-- Fila de Negligência -->
+                        <div style="flex: 2; min-width: 480px; background: var(--card-bg); border: 1px solid var(--border-color); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                            <h4 style="font-size: 0.9rem; font-weight: 800; color: var(--text-primary); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.5px; color: #ef4444;">🚨 Fila de Negligência (Leads com Atraso de Contato)</h4>
+                            <div style="max-height: 280px; overflow-y: auto;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                                    <thead>
+                                        <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary); text-align: left;">
+                                            <th style="padding: 10px 5px; font-weight: 700;">Projeto</th>
+                                            <th style="padding: 10px 5px; font-weight: 700;">Cliente</th>
+                                            <th style="padding: 10px 5px; font-weight: 700;">Fase CRM</th>
+                                            <th style="padding: 10px 5px; font-weight: 700;">Vendedor</th>
+                                            <th style="padding: 10px 5px; font-weight: 700; text-align: center; color: #ef4444;">Inatividade</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="crm-negligence-table-body">
+                                        <!-- Preenchido dinamicamente via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -2808,10 +2954,11 @@
 
                         <!-- DOSSIER DO CLIENTE E ESCOPO (ABAS) -->
                         <div class="detail-card" style="margin-bottom: 20px; padding: 0; overflow: hidden;">
-                            <div style="display: flex; border-bottom: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.02); overflow: hidden;">
-                                <button id="modal-tab-btn-contato" onclick="switchModalSubTab('contato')" style="flex: 1; padding: 12px; background: none; border: none; color: var(--primary); font-weight: bold; font-size: 0.82rem; cursor: pointer; border-bottom: 2px solid var(--primary); transition: all 0.3s;">📞 Contato & Escopo</button>
-                                <button id="modal-tab-btn-receita" onclick="switchModalSubTab('receita')" style="flex: 1; padding: 12px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.82rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s;">🏛️ Dossiê Receita Federal</button>
-                                <button id="modal-tab-btn-handover" onclick="switchModalSubTab('handover')" style="flex: 1; padding: 12px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.82rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s;">🚚 Handover & Expedição</button>
+                            <div style="display: flex; border-bottom: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.02); overflow-x: auto; white-space: nowrap;">
+                                <button id="modal-tab-btn-contato" onclick="switchModalSubTab('contato')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--primary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid var(--primary); transition: all 0.3s; white-space: nowrap;">📞 Contato & Escopo</button>
+                                <button id="modal-tab-btn-receita" onclick="switchModalSubTab('receita')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">🏛️ Dossiê Receita</button>
+                                <button id="modal-tab-btn-handover" onclick="switchModalSubTab('handover')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">🚚 Handover & Exp.</button>
+                                <button id="modal-tab-btn-chat" onclick="switchModalSubTab('chat')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">💬 Chat & Mural</button>
                             </div>
                             
                             <div style="padding: 15px;">
@@ -2846,6 +2993,14 @@
                                         <tr>
                                             <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">CNAE Fiscal:</td>
                                             <td style="padding: 6px 0;" id="modal-desc-cnae">-</td>
+                                        </tr>
+                                        <tr style="border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">Valor do Deal:</td>
+                                            <td style="padding: 6px 0; font-weight: bold; color: #38bdf8;" id="modal-desc-crm-value">-</td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">Origem Lead:</td>
+                                            <td style="padding: 6px 0;" id="modal-desc-crm-source">-</td>
                                         </tr>
                                     </table>
                                     
@@ -2931,6 +3086,26 @@
                                             </button>
                                             <span id="handover-status-badge" style="font-size: 0.72rem; font-weight: bold;"></span>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <!-- SUB-TAB 4: Chat & Mural do Projeto -->
+                                <div id="modal-subtab-chat" style="display: none;">
+                                    <h5 style="color: var(--success); margin-bottom: 10px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">💬 Discussão Interna e Mural de Vendas</h5>
+                                    <p style="font-size: 0.76rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 15px;">
+                                        Use este mural para deixar avisos, dúvidas técnicas ou follow-ups sobre este projeto. O vendedor será notificado no Kanban quando houver uma nova mensagem.
+                                    </p>
+                                    
+                                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                                        <textarea id="modal-chat-input" class="form-control" style="height: 70px; resize: none; background: rgba(0,0,0,0.3); border-color: var(--border-color); color: var(--text-primary); font-size: 0.8rem;" placeholder="Digite aqui a sua pergunta ou anotação comercial..."></textarea>
+                                        <button class="btn" style="background: var(--success); border-color: var(--success); color: #fff; align-self: flex-end; font-size: 0.74rem; font-weight: bold; cursor: pointer;" onclick="addModalChatMessage()">
+                                            Adicionar Comentário
+                                        </button>
+                                    </div>
+                                    
+                                    <h5 style="color: var(--primary); font-size: 0.78rem; text-transform: uppercase; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; margin-bottom: 10px;">Linha do Tempo de Interações</h5>
+                                    <div id="modal-chat-messages-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.1); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                                        <!-- Preenchido via JS -->
                                     </div>
                                 </div>
                             </div>
@@ -4451,36 +4626,40 @@
                 document.getElementById('metrics-delayed-count').innerText = data.delayedCount;
                 document.getElementById('metrics-lost').innerText = data.totalLost;
 
-                // Gráfico de Distribuição por Fase
+                // Gráfico de Distribuição por Fase (8 Fases)
                 const chartArea = document.getElementById('metrics-fase-chart');
                 chartArea.innerHTML = "";
 
                 const phaseLabels = {
-                    1: 'Fase 1: Vendas',
-                    2: 'Fase 2: Importação',
-                    3: 'Fase 3: Recebimento',
-                    4: 'Fase 4: Instalação',
-                    5: 'Concluído (SAT)',
-                    6: 'Cancelados / Perdas'
+                    1: '1. Prospecção',
+                    7: '2. Proposta',
+                    8: '3. Contrato',
+                    2: '4. Compras & Imp.',
+                    3: '5. Oficina & Prep.',
+                    4: '6. Instalação & SAT',
+                    5: '7. Concluído',
+                    6: '8. Cancelado'
                 };
 
                 const phaseColors = {
-                    1: '#0ea5e9',
-                    2: '#a855f7',
-                    3: '#f59e0b',
-                    4: '#3b82f6',
-                    5: '#10b981',
-                    6: '#64748b'
+                    1: 'var(--color-fase1)',
+                    7: 'var(--primary)',
+                    8: 'var(--purple)',
+                    2: 'var(--color-fase2)',
+                    3: 'var(--color-fase3)',
+                    4: 'var(--color-fase4)',
+                    5: 'var(--color-fase5)',
+                    6: 'var(--color-fase6)'
                 };
 
-                // Calcular o valor máximo para percentual das barras
+                const chartPhases = [1, 7, 8, 2, 3, 4, 5, 6];
                 let maxVal = 0;
-                for (let f = 1; f <= 6; f++) {
+                chartPhases.forEach(f => {
                     const count = data.faseDistribution[f] || 0;
                     if (count > maxVal) maxVal = count;
-                }
+                });
 
-                for (let f = 1; f <= 6; f++) {
+                chartPhases.forEach(f => {
                     const count = data.faseDistribution[f] || 0;
                     const percent = maxVal > 0 ? (count / maxVal) * 100 : 0;
                     
@@ -4491,12 +4670,12 @@
                                 <span style="color: var(--text-primary); font-weight: 700;">${count}</span>
                             </div>
                             <div style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; overflow: hidden;">
-                                <div style="width: ${percent}%; height: 100%; background: ${phaseColors[f]}; border-radius: 4px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                                <div style="width: ${percent}%; height: 100%; background: ${phaseColors[f] || 'var(--primary)'}; border-radius: 4px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);"></div>
                             </div>
                         </div>
                     `;
                     chartArea.insertAdjacentHTML('beforeend', barHtml);
-                }
+                });
 
                 // Preencher Tabela de Gargalos
                 const gargaloBadge = document.getElementById('metrics-gargalo-badge');
@@ -4520,21 +4699,22 @@
                     gargaloBadge.style.background = "rgba(239, 68, 68, 0.1)";
                     gargaloBadge.style.color = "#ef4444";
 
-                    // Sort by delayDays descending (worst delay first)
                     const sortedGargalos = [...data.delayedProjects].sort((a, b) => b.delayDays - a.delayDays);
 
                     sortedGargalos.forEach(g => {
                         const phaseLabelsBrief = {
-                            1: 'Vendas',
+                            1: 'Prospecção',
+                            7: 'Proposta',
+                            8: 'Contrato',
                             2: 'Importação',
-                            3: 'Recebimento',
+                            3: 'Oficina',
                             4: 'Instalação'
                         };
                         const rowHtml = `
                             <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-primary);">
                                 <td style="padding: 12px 5px; font-weight: 700;"><code>${g.code}</code></td>
                                 <td style="padding: 12px 5px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${g.client}</td>
-                                <td style="padding: 12px 5px;"><span style="font-size: 0.7rem; background: rgba(255, 255, 255, 0.05); padding: 3px 6px; border-radius: 4px;">Fase ${g.fase} (${phaseLabelsBrief[g.fase]})</span></td>
+                                <td style="padding: 12px 5px;"><span style="font-size: 0.7rem; background: rgba(255, 255, 255, 0.05); padding: 3px 6px; border-radius: 4px;">Fase ${g.fase} (${phaseLabelsBrief[g.fase] || 'Outra'})</span></td>
                                 <td style="padding: 12px 5px; text-align: center; font-weight: 600;">${g.daysInPhase}d</td>
                                 <td style="padding: 12px 5px; text-align: center;"><span style="color: #ef4444; font-weight: 700; background: rgba(239, 68, 68, 0.08); padding: 2px 6px; border-radius: 4px;">+${g.delayDays}d</span></td>
                                 <td style="padding: 12px 5px;"><span style="font-weight: 600; color: #f97316;">${g.responsible}</span></td>
@@ -4542,6 +4722,74 @@
                         `;
                         tableBody.insertAdjacentHTML('beforeend', rowHtml);
                     });
+                }
+
+                // Renderizar Métricas de Vendas & CRM
+                const crmPanel = document.getElementById('crm-metrics-panel');
+                if (crmPanel) {
+                    if (currentRole === 'ALL' || currentRole === 'GERENTE') {
+                        crmPanel.style.display = 'flex';
+                        
+                        // Atualizar Cards
+                        document.getElementById('crm-total-value').innerText = `R$ ${parseFloat(data.crmTotalValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                        document.getElementById('crm-won-value').innerText = `R$ ${parseFloat(data.crmWonValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                        
+                        // Ranking de Vendedores
+                        const rankingContainer = document.getElementById('crm-sellers-ranking');
+                        rankingContainer.innerHTML = "";
+                        if (!data.sellersRanking || data.sellersRanking.length === 0) {
+                            rankingContainer.innerHTML = `<div style="text-align:center; padding:15px; font-size:0.8rem; color:var(--text-secondary);">Nenhuma conversão registrada este mês.</div>`;
+                        } else {
+                            // Find highest totalValue for progress bars
+                            const maxSellerVal = Math.max(...data.sellersRanking.map(s => s.totalValue || 0), 1);
+                            data.sellersRanking.forEach((s, idx) => {
+                                const friendlyName = getFriendlyUserName(s.seller);
+                                const percent = (s.totalValue / maxSellerVal) * 100;
+                                const sellerHtml = `
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <div style="display: flex; justify-content: space-between; font-size: 0.78rem; font-weight: 600;">
+                                            <span>${idx + 1}. <strong>${friendlyName}</strong> (${s.count} vendas)</span>
+                                            <span style="color: #10b981; font-weight: 700;">R$ ${parseFloat(s.totalValue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div style="width: 100%; height: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 3px; overflow: hidden;">
+                                            <div style="width: ${percent}%; height: 100%; background: #10b981; border-radius: 3px;"></div>
+                                        </div>
+                                    </div>
+                                `;
+                                rankingContainer.insertAdjacentHTML('beforeend', sellerHtml);
+                            });
+                        }
+
+                        // Fila de Negligência
+                        const negligenceTbody = document.getElementById('crm-negligence-table-body');
+                        negligenceTbody.innerHTML = "";
+                        if (!data.negligenceList || data.negligenceList.length === 0) {
+                            negligenceTbody.innerHTML = `
+                                <tr>
+                                    <td colspan="5" style="text-align: center; color: #10b981; padding: 30px 10px; font-weight: bold;">
+                                        ✅ Todos os leads estão com o follow-up em dia!
+                                    </td>
+                                </tr>
+                            `;
+                        } else {
+                            data.negligenceList.sort((a,b) => b.inactiveDays - a.inactiveDays).forEach(n => {
+                                const friendlySeller = getFriendlyUserName(n.seller);
+                                const phasesBrief = { 1: 'Prospecção', 7: 'Proposta', 8: 'Contrato' };
+                                const rowHtml = `
+                                    <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-primary);">
+                                        <td style="padding: 10px 5px; font-weight: 700;"><code>${n.code}</code></td>
+                                        <td style="padding: 10px 5px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${n.client}</td>
+                                        <td style="padding: 10px 5px;"><span style="font-size: 0.7rem; background: rgba(255,255,255,0.05); padding: 3px 6px; border-radius: 4px;">${phasesBrief[n.fase] || 'Outra'}</span></td>
+                                        <td style="padding: 10px 5px; font-weight: 600;">${friendlySeller}</td>
+                                        <td style="padding: 10px 5px; text-align: center;"><span style="color: #ef4444; font-weight: 700; background: rgba(239, 68, 68, 0.08); padding: 2px 6px; border-radius: 4px;">${n.inactiveDays} dias parado</span></td>
+                                    </tr>
+                                `;
+                                negligenceTbody.insertAdjacentHTML('beforeend', rowHtml);
+                            });
+                        }
+                    } else {
+                        crmPanel.style.display = 'none';
+                    }
                 }
             })
             .catch(err => console.error('Erro ao buscar métricas:', err));
@@ -4874,6 +5122,32 @@
             title.innerText = `Você possui ${count} projeto(s) aguardando sua ação em ${roleNames[currentRole]}`;
         }
 
+        function applyCrmColumnFilter(type) {
+            document.querySelectorAll('.crm-filter-btn').forEach(btn => btn.classList.remove('active'));
+            if (type === 'all') document.getElementById('crm-filter-all').classList.add('active');
+            if (type === 'sales') document.getElementById('crm-filter-sales').classList.add('active');
+            if (type === 'prod') document.getElementById('crm-filter-prod').classList.add('active');
+
+            const columns = document.querySelectorAll('#kanban-board-wrapper .kanban-column');
+            columns.forEach(col => {
+                if (type === 'sales') {
+                    if (col.classList.contains('crm-col') || col.id === 'col-fase5' || col.id === 'col-fase6') {
+                        col.classList.remove('hidden');
+                    } else {
+                        col.classList.add('hidden');
+                    }
+                } else if (type === 'prod') {
+                    if (col.classList.contains('mrp-col') || col.id === 'col-fase5' || col.id === 'col-fase6') {
+                        col.classList.remove('hidden');
+                    } else {
+                        col.classList.add('hidden');
+                    }
+                } else {
+                    col.classList.remove('hidden');
+                }
+            });
+        }
+
         // Tab switcher
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -4934,15 +5208,18 @@
             const btnContato = document.getElementById('modal-tab-btn-contato');
             const btnReceita = document.getElementById('modal-tab-btn-receita');
             const btnHandover = document.getElementById('modal-tab-btn-handover');
+            const btnChat = document.getElementById('modal-tab-btn-chat');
             const tabContato = document.getElementById('modal-subtab-contato');
             const tabReceita = document.getElementById('modal-subtab-receita');
             const tabHandover = document.getElementById('modal-subtab-handover');
+            const tabChat = document.getElementById('modal-subtab-chat');
             
             if (tabContato) tabContato.style.display = 'none';
             if (tabReceita) tabReceita.style.display = 'none';
             if (tabHandover) tabHandover.style.display = 'none';
+            if (tabChat) tabChat.style.display = 'none';
             
-            [btnContato, btnReceita, btnHandover].forEach(btn => {
+            [btnContato, btnReceita, btnHandover, btnChat].forEach(btn => {
                 if (btn) {
                     btn.style.color = 'var(--text-secondary)';
                     btn.style.borderBottomColor = 'transparent';
@@ -4968,6 +5245,13 @@
                     btnHandover.style.borderBottomColor = 'var(--primary)';
                 }
                 populateHandoverTab();
+            } else if (tab === 'chat') {
+                if (tabChat) tabChat.style.display = 'block';
+                if (btnChat) {
+                    btnChat.style.color = 'var(--primary)';
+                    btnChat.style.borderBottomColor = 'var(--primary)';
+                }
+                loadModalComments();
             }
         }
 
@@ -6435,6 +6719,9 @@
                     const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
                     const equipmentOrigin = document.getElementById('prj-intake-origin').value || 'Importação';
 
+                    const crmValue = parseFloat(document.getElementById('prj-crm-value').value || "0");
+                    const crmSource = document.getElementById('prj-crm-source').value || "";
+
                     const newProject = {
                         code,
                         client,
@@ -6453,9 +6740,9 @@
                         tech,
                         serial: '-',
                         route: '-',
-                        fase: 1, // Vendas
+                        fase: 1, // Prospecção & Qualificação
                         checklist: {
-                            diagnostico: true,
+                            diagnostico: segment !== "" ? true : false,
                             diagnostico_user: currentUser,
                             diagnostico_date: new Date().toISOString(),
                             customizacao: false, aprovacao: false, cotacao: false, 
@@ -6468,7 +6755,11 @@
                         faseEntryDate: new Date().toISOString(),
                         lastUpdate: new Date().toISOString(),
                         machines,
-                        website
+                        website,
+                        crm_value: crmValue,
+                        crm_source: crmSource,
+                        crm_last_comment_user: '',
+                        crm_last_interaction_date: new Date().toISOString()
                     };
 
                     if (submitBtn) {
@@ -6535,14 +6826,18 @@
         function updateKPIs() {
             const countFase = (f) => state.projects.filter(p => p.fase === f).length;
 
-            document.getElementById('kpi-fase1').innerText = countFase(1);
+            // KPIs superiores consolidados
+            document.getElementById('kpi-fase1').innerText = countFase(1) + countFase(7) + countFase(8);
             document.getElementById('kpi-fase2').innerText = countFase(2);
             document.getElementById('kpi-fase3').innerText = countFase(3);
             document.getElementById('kpi-fase4').innerText = countFase(4);
             document.getElementById('kpi-fase5').innerText = countFase(5);
             document.getElementById('kpi-fase6').innerText = countFase(6);
 
+            // Contadores de colunas individuais
             document.getElementById('count-fase1').innerText = countFase(1);
+            document.getElementById('count-fase7').innerText = countFase(7);
+            document.getElementById('count-fase8').innerText = countFase(8);
             document.getElementById('count-fase2').innerText = countFase(2);
             document.getElementById('count-fase3').innerText = countFase(3);
             document.getElementById('count-fase4').innerText = countFase(4);
@@ -6596,9 +6891,11 @@
 
         // Kanban Board columns
         function renderKanban() {
-            for (let i = 1; i <= 6; i++) {
-                document.getElementById(`cards-fase${i}`).innerHTML = '';
-            }
+            const phasesList = [1, 7, 8, 2, 3, 4, 5, 6];
+            phasesList.forEach(i => {
+                const el = document.getElementById(`cards-fase${i}`);
+                if (el) el.innerHTML = '';
+            });
 
             if (state.projects.length === 0) {
                 document.getElementById('cards-fase1').innerHTML = `<p style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 20px;">Nenhum projeto cadastrado.</p>`;
@@ -6613,14 +6910,14 @@
                 const hasWarning = checkCriticalWarning(project);
 
                 let responsibleText = "";
-                if (bottleneck === "VENDAS") responsibleText = "Eng. Vendas";
-                if (bottleneck === "ENGENHARIA") responsibleText = "Engenharia";
-                if (bottleneck === "COMPRAS") responsibleText = "Importação";
-                if (bottleneck === "ESTOQUE") responsibleText = "Estoquista";
-                if (bottleneck === "TECNICO") responsibleText = "Técnico";
-                if (bottleneck === "GERENTE") responsibleText = "Proj. Manager";
-                if (bottleneck === "CONCLUIDO") responsibleText = "Finalizado";
-                if (bottleneck === "PERDIDO") responsibleText = "Cancelado";
+                if (project.fase === 1) responsibleText = "Prospecção";
+                else if (project.fase === 7) responsibleText = "Proposta";
+                else if (project.fase === 8) responsibleText = "Contrato";
+                else if (project.fase === 2) responsibleText = "Importação";
+                else if (project.fase === 3) responsibleText = "Oficina";
+                else if (project.fase === 4) responsibleText = "Expedição/SAT";
+                else if (project.fase === 5) responsibleText = "Finalizado";
+                else if (project.fase === 6) responsibleText = "Cancelado";
 
                 // Prazos do Kanban
                 let deadlineStr = "-";
@@ -6661,6 +6958,52 @@
                     cardCreator = getFriendlyUserName(project.checklist.diagnostico_user);
                 }
 
+                // Indicadores de CRM
+                let crmAlertHtml = "";
+                let commentBadgeHtml = "";
+                let valHtml = "";
+                
+                if ([1, 7, 8].includes(project.fase)) {
+                    const lastInteraction = project.crm_last_interaction_date || project.lastUpdate || project.faseEntryDate;
+                    if (lastInteraction) {
+                        const diffTime = Math.abs(new Date() - new Date(lastInteraction));
+                        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                        let limitDays = 3;
+                        if (project.fase === 7) limitDays = 5;
+                        if (project.fase === 8) limitDays = 7;
+                        
+                        if (diffDays >= limitDays) {
+                            crmAlertHtml = `
+                                <div class="crm-alert-badge" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-top: 5px; display: inline-flex; align-items: center; gap: 4px;">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    Sem contato há ${diffDays}d
+                                </div>
+                            `;
+                        }
+                    }
+                    if (project.crm_value) {
+                        valHtml = `
+                            <div style="font-size: 0.72rem; color: #38bdf8; font-weight: 700; margin-top: 4px;">
+                                Val: R$ ${parseFloat(project.crm_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </div>
+                        `;
+                    }
+                }
+
+                const userStr = localStorage.getItem('tecfag_user');
+                const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
+                const isCreator = project.checklist && project.checklist.diagnostico_user === currentUser;
+                if (project.crm_last_comment_user && project.crm_last_comment_user !== (project.checklist ? project.checklist.diagnostico_user : '')) {
+                    if (isCreator || currentRole === 'ALL' || currentRole === 'GERENTE') {
+                        commentBadgeHtml = `
+                            <div class="crm-message-badge crm-pulse" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-top: 5px; display: inline-flex; align-items: center; gap: 4px;">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                Dúvida Pendente
+                            </div>
+                        `;
+                    }
+                }
+
                 const editingUser = state.activeLocks ? state.activeLocks[project.code] : null;
                 const card = document.createElement('div');
                 
@@ -6669,7 +7012,11 @@
                     extraClass = "project-card-lost";
                 }
                 card.className = `project-card ${isMyBottleneck ? 'highlighted-role' : ''} ${extraClass}`;
-                card.style.setProperty('--phase-color', `var(--color-fase${project.fase})`);
+                
+                let phaseColorVar = `--color-fase${project.fase}`;
+                if (project.fase === 7) phaseColorVar = `--primary`;
+                if (project.fase === 8) phaseColorVar = `--purple`;
+                card.style.setProperty('--phase-color', `var(${phaseColorVar})`);
                 card.onclick = () => openProjectModal(project.code);
 
                 card.innerHTML = `
@@ -6686,10 +7033,10 @@
                     </div>
                     <div class="project-card-body">
                         <div class="project-responsible-box">
-                            <span>Resp. Atual:</span>
+                            <span>Fase Atual:</span>
                             <span class="responsible-label">${responsibleText}</span>
                         </div>
-                        ${(project.fase !== 5 && project.fase !== 6) ? `
+                        ${(project.fase !== 5 && project.fase !== 6 && project.fase !== 7 && project.fase !== 8) ? `
                             <div class="project-deadline-box ${deadlineClass}">
                                 <span>Prazo Fase:</span>
                                 <strong>${deadlineStr}${deadlineLabel}</strong>
@@ -6701,7 +7048,10 @@
                                 <strong style="font-size: 0.72rem; word-break: break-word;">${project.motivoPerda || 'Não informado'}</strong>
                             </div>
                         ` : ''}
-                        <div class="progress-bar-wrapper">
+                        ${valHtml}
+                        ${crmAlertHtml}
+                        ${commentBadgeHtml}
+                        <div class="progress-bar-wrapper" style="margin-top: 10px;">
                             <div class="progress-bar-label">
                                 <span>Progresso</span>
                                 <strong>${progress}%</strong>
@@ -6728,7 +7078,8 @@
                     </div>
                 `;
 
-                document.getElementById(`cards-fase${project.fase}`).appendChild(card);
+                const colEl = document.getElementById(`cards-fase${project.fase}`);
+                if (colEl) colEl.appendChild(card);
             });
         }
 
@@ -6888,6 +7239,10 @@
                 cnaeText = `${project.cnae_codigo} ${project.cnae_descricao ? '- ' + project.cnae_descricao : ''}`;
             }
             document.getElementById('modal-desc-cnae').innerText = cnaeText;
+
+            const val = parseFloat(project.crm_value || 0);
+            document.getElementById('modal-desc-crm-value').innerText = val > 0 ? `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'Não definido';
+            document.getElementById('modal-desc-crm-source').innerText = project.crm_source || 'Não especificado';
 
             if (project.diagnostico) {
                 let parsed = null;
@@ -7676,6 +8031,88 @@
 
         function closeLightbox() {
             document.getElementById('lightbox-preview').classList.remove('active');
+        }
+
+        async function loadModalComments() {
+            const container = document.getElementById('modal-chat-messages-container');
+            if (!container) return;
+            container.innerHTML = `<div style="text-align:center; padding: 10px; color:var(--text-secondary); font-size:0.8rem;">Carregando mensagens...</div>`;
+            
+            try {
+                const res = await fetch(`/api/projects/${activeProjectCode}/comments`);
+                if (!res.ok) throw new Error('Erro HTTP ao buscar comentários');
+                const comments = await res.json();
+                
+                container.innerHTML = '';
+                if (comments.length === 0) {
+                    container.innerHTML = `<div style="text-align:center; padding: 20px; color:var(--text-secondary); font-size:0.8rem;">Nenhum comentário ou aviso registrado ainda. Seja o primeiro!</div>`;
+                    return;
+                }
+                
+                comments.forEach(c => {
+                    const div = document.createElement('div');
+                    div.style.background = 'rgba(255,255,255,0.03)';
+                    div.style.border = '1px solid rgba(255,255,255,0.05)';
+                    div.style.padding = '8px 10px';
+                    div.style.borderRadius = '5px';
+                    div.style.fontSize = '0.78rem';
+                    div.style.lineHeight = '1.4';
+                    
+                    const date = new Date(c.dateAdded).toLocaleString('pt-BR');
+                    const friendlyAuthor = getFriendlyUserName(c.user);
+                    
+                    div.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px; font-size:0.7rem; color:var(--text-secondary);">
+                            <strong style="color:var(--primary);">${friendlyAuthor}</strong>
+                            <span>${date}</span>
+                        </div>
+                        <div style="color:#e2e8f0; white-space:pre-wrap; word-break:break-word;">${c.message}</div>
+                    `;
+                    container.appendChild(div);
+                });
+                
+                container.scrollTop = container.scrollHeight;
+            } catch (err) {
+                container.innerHTML = `<div style="color:#ef4444; font-size:0.8rem; text-align:center;">Erro ao carregar histórico: ${err.message}</div>`;
+            }
+        }
+
+        async function addModalChatMessage() {
+            const input = document.getElementById('modal-chat-input');
+            if (!input) return;
+            const message = input.value.trim();
+            if (!message) {
+                alert('Por favor, digite alguma mensagem.');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/projects/${activeProjectCode}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Erro ao salvar comentário');
+                }
+                
+                input.value = '';
+                await loadModalComments();
+                
+                const projectIdx = state.projects.findIndex(p => p.code === activeProjectCode);
+                if (projectIdx !== -1) {
+                    const userStr = localStorage.getItem('tecfag_user');
+                    const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
+                    state.projects[projectIdx].crm_last_comment_user = currentUser;
+                    state.projects[projectIdx].crm_last_interaction_date = new Date().toISOString();
+                    state.projects[projectIdx].lastUpdate = new Date().toISOString();
+                    renderKanban();
+                }
+            } catch (err) {
+                alert('Erro ao enviar mensagem: ' + err.message);
+            }
         }
 
         // Preenche a aba de Handover com dados técnicos somente leitura

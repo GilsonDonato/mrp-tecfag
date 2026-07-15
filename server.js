@@ -129,6 +129,22 @@ function initializeDatabase() {
         db.run("ALTER TABLE projects ADD COLUMN website TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN equipment_origin TEXT DEFAULT 'Importação'", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN handover_signed INTEGER DEFAULT 0", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN crm_value REAL DEFAULT 0.0", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN crm_source TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN crm_lost_reason TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN crm_task_title TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN crm_task_date TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN crm_last_comment_user TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN crm_last_interaction_date TEXT", (err) => {});
+
+        // Tabela de Comentários / Discussão (Timeline do Card)
+        db.run(`CREATE TABLE IF NOT EXISTS comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            projectCode TEXT NOT NULL,
+            user TEXT NOT NULL,
+            message TEXT NOT NULL,
+            dateAdded TEXT NOT NULL
+        )`);
 
         // Tabela de Logs de Auditoria
         db.run(`CREATE TABLE IF NOT EXISTS logs (
@@ -629,6 +645,47 @@ app.get('/api/projects/:code', async (req, res) => {
     }
 });
 
+// GET /api/projects/:code/comments - Retorna todos os comentários de um projeto
+app.get('/api/projects/:code/comments', async (req, res) => {
+    try {
+        const comments = await dbAll('SELECT * FROM comments WHERE projectCode = ? ORDER BY id ASC', [req.params.code]);
+        res.json(comments);
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao carregar comentários: ' + err.message });
+    }
+});
+
+// POST /api/projects/:code/comments - Adiciona um novo comentário
+app.post('/api/projects/:code/comments', async (req, res) => {
+    const { code } = req.params;
+    const { message } = req.body;
+    const user = req.user ? req.user.username : 'Sistema';
+
+    if (!message || message.trim() === '') {
+        return res.status(400).json({ error: 'A mensagem do comentário é obrigatória.' });
+    }
+
+    try {
+        const timestamp = new Date().toISOString();
+        await dbRun(`INSERT INTO comments (projectCode, user, message, dateAdded) VALUES (?, ?, ?, ?)`, [
+            code,
+            user,
+            message.trim(),
+            timestamp
+        ]);
+
+        await dbRun(`UPDATE projects SET crm_last_comment_user = ?, crm_last_interaction_date = ? WHERE code = ?`, [
+            user,
+            timestamp,
+            code
+        ]);
+
+        res.status(201).json({ success: true, user, dateAdded: timestamp, message: message.trim() });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao salvar comentário: ' + err.message });
+    }
+});
+
 // Função auxiliar para enviar notificações por Webhook
 async function sendWebhookNotification(event, details) {
     const webhookUrl = process.env.WEBHOOK_URL;
@@ -680,34 +737,78 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
     }
 
     try {
-        const projects = await dbAll('SELECT code, client, pm, sku, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate FROM projects');
+        const projects = await dbAll('SELECT code, client, pm, sku, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, crm_value, crm_source, crm_lost_reason, crm_last_comment_user, crm_last_interaction_date FROM projects');
         
         let totalActive = 0;
         let totalFinished = 0;
         let totalLost = 0;
         let delayedCount = 0;
         
-        const faseDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+        const faseDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0 };
         const delayedProjects = [];
+
+        // CRM Stats
+        let crmTotalValue = 0;
+        let crmWonValue = 0;
+        const sellersMap = {};
+        const negligenceList = [];
 
         projects.forEach(p => {
             const fase = parseInt(p.fase) || 1;
             faseDistribution[fase] = (faseDistribution[fase] || 0) + 1;
 
+            let checklistObj = {};
+            try {
+                checklistObj = p.checklist ? JSON.parse(p.checklist) : {};
+            } catch(e) {}
+            
+            const seller = checklistObj.diagnostico_user || 'admin';
+            const value = parseFloat(p.crm_value) || 0;
+
             if (fase === 5) {
                 totalFinished++;
+                crmWonValue += value;
+                
+                // Track seller wins
+                if (!sellersMap[seller]) sellersMap[seller] = { seller, totalValue: 0, count: 0 };
+                sellersMap[seller].totalValue += value;
+                sellersMap[seller].count += 1;
             } else if (fase === 6) {
                 totalLost++;
             } else {
                 totalActive++;
+
+                if ([1, 7, 8].includes(fase)) {
+                    crmTotalValue += value;
+
+                    // Check Negligence
+                    const lastInteraction = p.crm_last_interaction_date || p.lastUpdate || p.faseEntryDate;
+                    if (lastInteraction) {
+                        const diffTime = Math.abs(new Date() - new Date(lastInteraction));
+                        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                        let limitDays = 3;
+                        if (fase === 7) limitDays = 5;
+                        if (fase === 8) limitDays = 7;
+                        
+                        if (diffDays >= limitDays) {
+                            negligenceList.push({
+                                code: p.code,
+                                client: p.client,
+                                fase: fase,
+                                seller: seller,
+                                inactiveDays: diffDays
+                            });
+                        }
+                    }
+                }
 
                 let prazosObj = {};
                 try {
                     prazosObj = p.prazos ? JSON.parse(p.prazos) : {};
                 } catch(e) {}
 
-                const defaults = { 1: 7, 2: 51, 3: 59, 4: 15 };
-                const deadlineDays = prazosObj[`fase${fase}`] !== undefined ? parseInt(prazosObj[`fase${fase}`]) : defaults[fase];
+                const defaults = { 1: 7, 2: 51, 3: 59, 4: 15, 7: 10, 8: 15 };
+                const deadlineDays = prazosObj[`fase${fase}`] !== undefined ? parseInt(prazosObj[`fase${fase}`]) : (defaults[fase] || 7);
                 
                 const entryDateStr = p.faseEntryDate || p.lastUpdate || new Date().toISOString();
                 const daysInPhase = Math.floor((new Date() - new Date(entryDateStr)) / (24 * 60 * 60 * 1000));
@@ -717,6 +818,8 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
                     
                     const phaseResponsible = {
                         1: 'Vendas / Engenharia',
+                        7: 'Comercial (Proposta)',
+                        8: 'Comercial (Contrato)',
                         2: 'Compras',
                         3: 'Estoque',
                         4: 'Técnico'
@@ -736,13 +839,19 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
             }
         });
 
+        const sellersRanking = Object.values(sellersMap).sort((a, b) => b.totalValue - a.totalValue);
+
         res.json({
             totalActive,
             totalFinished,
             totalLost,
             delayedCount,
             faseDistribution,
-            delayedProjects
+            delayedProjects,
+            crmTotalValue,
+            crmWonValue,
+            sellersRanking,
+            negligenceList
         });
     } catch (err) {
         res.status(500).json({ error: 'Erro ao compilar métricas: ' + err.message });
@@ -4694,7 +4803,12 @@ Responda APENAS com o objeto JSON puramente, sem formatação markdown de códig
 
 // POST /api/projects - Cria um novo projeto com receita_data
 app.post('/api/projects', async (req, res) => {
-    const { code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, machines, cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, receita_data, website, equipment_origin } = req.body;
+    const { 
+        code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, 
+        faseEntryDate, lastUpdate, machines, cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, 
+        receita_data, website, equipment_origin,
+        crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date
+    } = req.body;
     
     if (!code || !client || !sku || !pm || !cnpj) {
         return res.status(400).json({ error: 'Os campos Código, Cliente, CNPJ, SKU e Gerente (PM) são obrigatórios.' });
@@ -4710,8 +4824,9 @@ app.post('/api/projects', async (req, res) => {
             code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, 
             checklist, prazos, faseEntryDate, lastUpdate, motivoPerda, machines,
             cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, receita_data, website,
-            equipment_origin, handover_signed
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`;
+            equipment_origin, handover_signed,
+            crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)`;
 
         await dbRun(sql, [
             code,
@@ -4737,7 +4852,14 @@ app.post('/api/projects', async (req, res) => {
             cnae_descricao || '',
             receita_data ? (typeof receita_data === 'string' ? receita_data : JSON.stringify(receita_data)) : '{}',
             website || '',
-            equipment_origin || 'Importação'
+            equipment_origin || 'Importação',
+            crm_value !== undefined ? parseFloat(crm_value) : 0.0,
+            crm_source || '',
+            crm_lost_reason || '',
+            crm_task_title || '',
+            crm_task_date || '',
+            crm_last_comment_user || '',
+            crm_last_interaction_date || new Date().toISOString()
         ]);
 
         sendWebhookNotification('CREATE', { code, client, pm, sku });
@@ -4749,7 +4871,10 @@ app.post('/api/projects', async (req, res) => {
 
 // PUT /api/projects/:code - Atualiza dados do projeto
 app.put('/api/projects/:code', async (req, res) => {
-    const { serial, route, fase, checklist, prazos, lastUpdate, motivoPerda, tech, machines, equipment_origin, handover_signed } = req.body;
+    const { 
+        serial, route, fase, checklist, prazos, lastUpdate, motivoPerda, tech, machines, equipment_origin, handover_signed,
+        crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date
+    } = req.body;
     const { code } = req.params;
 
     try {
@@ -4782,7 +4907,14 @@ app.put('/api/projects/:code', async (req, res) => {
             motivoPerda = ?,
             machines = ?,
             equipment_origin = ?,
-            handover_signed = ?`;
+            handover_signed = ?,
+            crm_value = ?,
+            crm_source = ?,
+            crm_lost_reason = ?,
+            crm_task_title = ?,
+            crm_task_date = ?,
+            crm_last_comment_user = ?,
+            crm_last_interaction_date = ?`;
             
         const params = [
             serial !== undefined ? serial : oldProject.serial,
@@ -4794,7 +4926,14 @@ app.put('/api/projects/:code', async (req, res) => {
             motivoPerda !== undefined ? motivoPerda : oldProject.motivoPerda,
             machines ? JSON.stringify(machines) : oldProject.machines,
             equipment_origin !== undefined ? equipment_origin : oldProject.equipment_origin,
-            handover_signed !== undefined ? parseInt(handover_signed) : oldProject.handover_signed
+            handover_signed !== undefined ? parseInt(handover_signed) : oldProject.handover_signed,
+            crm_value !== undefined ? parseFloat(crm_value) : oldProject.crm_value,
+            crm_source !== undefined ? crm_source : oldProject.crm_source,
+            crm_lost_reason !== undefined ? crm_lost_reason : oldProject.crm_lost_reason,
+            crm_task_title !== undefined ? crm_task_title : oldProject.crm_task_title,
+            crm_task_date !== undefined ? crm_task_date : oldProject.crm_task_date,
+            crm_last_comment_user !== undefined ? crm_last_comment_user : oldProject.crm_last_comment_user,
+            crm_last_interaction_date !== undefined ? crm_last_interaction_date : oldProject.crm_last_interaction_date
         ];
 
         // Se o técnico foi enviado para atualização
