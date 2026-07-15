@@ -578,6 +578,23 @@ app.get('/api/projects', async (req, res) => {
     }
 });
 
+// GET /api/projects/next-code - Gera o próximo código de projeto globalmente único
+app.get('/api/projects/next-code', async (req, res) => {
+    try {
+        const rows = await dbAll('SELECT code FROM projects');
+        let counter = 1;
+        let finalCode = `PRJTEC${String(counter).padStart(9, '0')}`;
+        const codes = new Set(rows.map(r => r.code));
+        while (codes.has(finalCode)) {
+            counter++;
+            finalCode = `PRJTEC${String(counter).padStart(9, '0')}`;
+        }
+        res.json({ nextCode: finalCode });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao gerar próximo código: ' + err.message });
+    }
+});
+
 // GET /api/projects/:code - Retorna um projeto específico
 app.get('/api/projects/:code', async (req, res) => {
     try {

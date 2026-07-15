@@ -5195,18 +5195,37 @@
         }
 
         // Geração Automática de Código Único de Projeto
-        function generateProjectCode() {
+        async function generateProjectCode() {
             const codeInput = document.getElementById('prj-code');
             if (!codeInput) return;
             
-            // Garante unicidade gerando sequencial PRJTEC000000001, 000000002...
+            codeInput.value = "Gerando código...";
+            
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                const res = await fetch('/api/projects/next-code', { headers });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.nextCode) {
+                        codeInput.value = data.nextCode;
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error("Erro ao obter código sequencial do servidor:", e);
+            }
+
+            // Fallback local caso caia a rede/API
             let counter = 1;
             let finalCode = `PRJTEC${String(counter).padStart(9, '0')}`;
             while (state.projects.some(p => p && p.code === finalCode)) {
                 counter++;
                 finalCode = `PRJTEC${String(counter).padStart(9, '0')}`;
             }
-            
             codeInput.value = finalCode;
         }
 
