@@ -8451,27 +8451,21 @@
             ];
 
             phases.forEach(ph => {
-                checklistHtml += `
-                    <div class="phase-section">
-                        <h3>${ph.title}</h3>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th style="width: 50%;">Etapa</th>
-                                    <th style="width: 15%; text-align: center;">Status</th>
-                                    <th style="width: 20%;">Quem marcou</th>
-                                    <th style="width: 15%; text-align: center;">Data</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-
+                let sectionHtml = '';
+                let itemsCount = 0;
+                
                 ph.items.forEach(item => {
+                    const isImportTask = ['pagamento', 'producao', 'embarque', 'fedex', 'desembaraco'].includes(item);
+                    if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && isImportTask) {
+                        return; // Pular exibição das tarefas de importação em pronta entrega
+                    }
+                    itemsCount++;
+
                     const isChecked = project.checklist && project.checklist[item];
                     const checker = (project.checklist && project.checklist[item + '_user']) || '-';
                     const date = (project.checklist && project.checklist[item + '_date']) ? new Date(project.checklist[item + '_date']).toLocaleDateString() : '-';
 
-                    checklistHtml += `
+                    sectionHtml += `
                         <tr>
                             <td>${checklistLabels[item] || item}</td>
                             <td class="status-cell ${isChecked ? 'status-done' : 'status-pending'}">
@@ -8483,12 +8477,265 @@
                     `;
                 });
 
-                checklistHtml += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
+                if (itemsCount > 0) {
+                    checklistHtml += `
+                        <div class="phase-section">
+                            <h3>${ph.title}</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50%;">Etapa</th>
+                                        <th style="width: 15%; text-align: center;">Status</th>
+                                        <th style="width: 20%;">Quem marcou</th>
+                                        <th style="width: 15%; text-align: center;">Data</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${sectionHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
             });
+
+            // Build technical specs HTML
+            let specsHtml = '';
+            if (project.diagnostico) {
+                let parsed = null;
+                try {
+                    if (project.diagnostico.trim().startsWith('{')) {
+                        parsed = JSON.parse(project.diagnostico);
+                    }
+                } catch (e) {
+                    parsed = null;
+                }
+
+                if (parsed && parsed.isStructured) {
+                    let paramsRows = '';
+                    const translateParamKey = (k) => {
+                        const dict = {
+                            subtype: 'Sub-tipo de Máquina',
+                            density: 'Densidade Aparente',
+                            volumeTotal: 'Volume Total Requerido',
+                            volumeUtil: 'Volume Útil Requerido',
+                            cycleTime: 'Tempo de Ciclo Estimado',
+                            discharge: 'Tipo de Descarga',
+                            abrasive: 'Grau de Abrasividade',
+                            moinhoGranInit: 'Granulometria Inicial',
+                            moinhoGranAlvo: 'Granulometria Alvo',
+                            moinhoDureza: 'Dureza do Produto',
+                            moinhoPeneira: 'Diâmetro da Peneira',
+                            capsuleSize: 'Tamanho da Cápsula',
+                            viscosity: 'Viscosidade',
+                            temp: 'Temperatura de Envase',
+                            humidity: 'Umidade da Sala',
+                            countDest: 'Destino da Contagem',
+                            countChannels: 'Número de Canais',
+                            countGargalo: 'Diâmetro Gargalo Frasco',
+                            countAltura: 'Altura do Frasco',
+                            countRejeicao: 'Sistema de Rejeição',
+                            countElevador: 'Exige Elevador de Abastecimento',
+                            countEmpacotadora: 'Alimentará Empacotadora',
+                            countDustSensor: 'Exige Coletor/Sensor de Pó',
+                            countSolidShape: 'Geometria do Sólido',
+                            productivity: 'Produtividade Alvo',
+                            agent: 'Agente Gelificante',
+                            colors: 'Número de Cores/Sabores',
+                            molds: 'Geometria dos Moldes',
+                            tunnel: 'Túnel de Resfriamento/Desmolde',
+                            gummyKettle: 'Caldeirão de Preparo',
+                            semiType: 'Acionamento do Dosador',
+                            semiPrecision: 'Precisão Requerida',
+                            semiPrinciple: 'Princípio de Dosagem',
+                            semiVolume: 'Faixa de Dosagem',
+                            semiProductChars: 'Características do Produto',
+                            bagStyle: 'Formato da Embalagem',
+                            filmWidth: 'Largura Máxima do Filme/Bobina',
+                            dosagemSealingType: 'Tipo de Solda/Selagem',
+                            printer: 'Tipo de Datador',
+                            sensitivity: 'Sensibilidade do Produto',
+                            envaseViscosity: 'Viscosidade do Produto',
+                            envaseTemp: 'Temperatura de Envase',
+                            envaseNozzlesCount: 'Quantidade de Bicos',
+                            envaseDriveType: 'Acionamento dos Bicos',
+                            cipSip: 'Ciclo CIP/SIP',
+                            nozzle: 'Tipo de Bico de Envase',
+                            bottleShape: 'Formato e Geometria do Frasco',
+                            inducaoDiameter: 'Diâmetro Interno Gargalo',
+                            inducaoMaterial: 'Material do Frasco',
+                            inducaoFoilType: 'Tipo de Selo (Foil)',
+                            inducaoPowerSpeed: 'Potência/Velocidade',
+                            rotuloApp: 'Aplicação do Rótulo',
+                            rotuloType: 'Tipo de Rótulo',
+                            rotuloSensor: 'Tipo de Sensor',
+                            vacuoKpa: 'Nível de Vácuo (kPa)',
+                            vacuoGasFlush: 'Injeção de Gás (MAP)',
+                            vacuoSealingBars: 'Barras de Selagem',
+                            termoFormingDepth: 'Profundidade da Termoformagem',
+                            finalType: 'Tipo de Equipamento Final',
+                            finalTapingType: 'Fechamento de Caixa',
+                            finalPalletizerLayers: 'Camadas de Paletização',
+                            finalSafetyDoors: 'Portas de Segurança',
+                            tension: 'Tensão Elétrica',
+                            frequency: 'Frequência',
+                            pressure: 'Pressão de Ar',
+                            airConsumption: 'Consumo de Ar',
+                            airDryer: 'Secador de Ar Requerido',
+                            classifiedArea: 'Exige Área Classificada',
+                            cleaning: 'Procedimento Limpeza',
+                            envTemp: 'Temperatura Ambiente',
+                            spaceLimit: 'Restrição de Espaço'
+                        };
+                        return dict[k] || k;
+                    };
+
+                    if (parsed.parameters) {
+                        Object.keys(parsed.parameters).forEach(k => {
+                            const val = parsed.parameters[k];
+                            if (val !== undefined && val !== '') {
+                                paramsRows += `
+                                    <tr>
+                                        <td><strong>${translateParamKey(k)}</strong></td>
+                                        <td>${val}</td>
+                                    </tr>
+                                `;
+                            }
+                        });
+                    }
+
+                    let infraRows = '';
+                    if (parsed.infra) {
+                        Object.keys(parsed.infra).forEach(k => {
+                            const val = parsed.infra[k];
+                            if (val !== undefined && val !== '') {
+                                infraRows += `
+                                    <tr>
+                                        <td><strong>${translateParamKey(k)}</strong></td>
+                                        <td>${val}</td>
+                                    </tr>
+                                `;
+                            }
+                        });
+                    }
+
+                    let variationsHtml = '';
+                    if (parsed.variations && parsed.variations.length > 0) {
+                        variationsHtml += `
+                            <h4 style="font-size: 11px; text-transform: uppercase; color: #495057; margin-top: 15px; margin-bottom: 5px;">Família de Embalagens / Formatos</h4>
+                            <table style="margin-bottom: 15px;">
+                                <thead>
+                                    <tr>
+                                        <th>Formato</th>
+                                        <th>Altura (mm)</th>
+                                        <th>Largura/Diâmetro (mm)</th>
+                                        <th>Gargalo (mm)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+                        parsed.variations.forEach((v, idx) => {
+                            variationsHtml += `
+                                <tr>
+                                    <td><strong>#${idx + 1} - ${v.name || '-'}</strong></td>
+                                    <td>${v.height || '-'}</td>
+                                    <td>${v.width || '-'}</td>
+                                    <td>${v.gargalo || '-'}</td>
+                                </tr>
+                            `;
+                        });
+                        variationsHtml += `
+                                </tbody>
+                            </table>
+                        `;
+                    }
+
+                    let observationsHtml = '';
+                    if (parsed.observations) {
+                        observationsHtml = `
+                            <h4 style="font-size: 11px; text-transform: uppercase; color: #495057; margin-top: 15px; margin-bottom: 5px;">Observações Técnicas</h4>
+                            <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; border-radius: 4px; font-size: 11px; white-space: pre-wrap; margin-bottom: 15px;">${parsed.observations}</div>
+                        `;
+                    }
+
+                    specsHtml = `
+                        <div class="phase-section">
+                            <h3>Especificações Técnicas de Engenharia</h3>
+                            <table style="margin-bottom: 15px;">
+                                <thead>
+                                    <tr style="background-color: #0056b3; color: #ffffff;">
+                                        <th style="width: 40%; background-color: #0056b3; color: #ffffff;">Especificação Geral</th>
+                                        <th style="width: 60%; background-color: #0056b3; color: #ffffff;">Requisito Configurado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Origem do Equipamento</strong></td>
+                                        <td><span style="font-weight: bold; color: #0056b3;">${project.equipment_origin || 'Importação'}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Segmento Principal</strong></td>
+                                        <td>${parsed.segment || '-'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Modelo Recomendado (SKU)</strong></td>
+                                        <td><span style="font-weight: bold; color: #2b8a3e;">${parsed.skuSugestaoResult || '-'}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Status de Liberação Física (Handover)</strong></td>
+                                        <td>
+                                            ${project.handover_signed === 1 
+                                                ? '<span style="font-weight: bold; color: #2b8a3e;">✓ LIBERADO PELA ASSISTÊNCIA TÉCNICA</span>' 
+                                                : '<span style="font-weight: bold; color: #d946ef;">⏳ AGUARDANDO ASSINATURA TÉCNICA</span>'
+                                            }
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            ${paramsRows ? `
+                            <h4 style="font-size: 11px; text-transform: uppercase; color: #495057; margin-top: 15px; margin-bottom: 5px;">Parâmetros Técnicos Requeridos</h4>
+                            <table style="margin-bottom: 15px;">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50%;">Parâmetro</th>
+                                        <th style="width: 50%;">Especificado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${paramsRows}
+                                </tbody>
+                            </table>
+                            ` : ''}
+
+                            ${infraRows ? `
+                            <h4 style="font-size: 11px; text-transform: uppercase; color: #495057; margin-top: 15px; margin-bottom: 5px;">Infraestrutura & Regulamentação</h4>
+                            <table style="margin-bottom: 15px;">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50%;">Parâmetro de Infraestrutura</th>
+                                        <th style="width: 50%;">Especificado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${infraRows}
+                                </tbody>
+                            </table>
+                            ` : ''}
+
+                            ${variationsHtml}
+                            ${observationsHtml}
+                        </div>
+                    `;
+                } else {
+                    specsHtml = `
+                        <div class="phase-section">
+                            <h3>Diagnóstico Técnico de Engenharia (Legado)</h3>
+                            <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; border-radius: 4px; font-size: 11px; white-space: pre-wrap; margin-bottom: 15px;">${project.diagnostico}</div>
+                        </div>
+                    `;
+                }
+            }
 
             // Machines table HTML
             let machinesHtml = '';
@@ -8675,6 +8922,7 @@
                         </div>
                     </div>
 
+                    ${specsHtml}
                     ${machinesHtml}
                     ${checklistHtml}
 
