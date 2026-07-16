@@ -5393,13 +5393,14 @@ Com base nestes dados, você deve gerar:
    - Solução Proposta (Equipamentos recomendados e dimensionamento)
    - Parâmetros Críticos de Validação para a Oficina (o que o técnico deve simular fisicamente na oficina)
    - Infraestrutura e Limitações de Campo
-2. Uma lista de perguntas de validação técnica que estão faltando nas informações do vendedor. Foco especial em:
-   - Quantidade de formatos de frascos/tampas
-   - Dimensões exatas e quantidade de formatos de rótulos
-   - Características específicas do pó (higroscópico, explosivo, fino, granulado) ou líquido (densidade, temperatura, viscosidade, corrosão)
-   - Necessidade exata de produção horária
-   - Quantidade de turnos de trabalho da máquina (SLA de desgaste)
-   - Outras restrições de infraestrutura física/elétrica/pneumática no galpão.
+2. Uma lista de perguntas de validação técnica que estão faltando nas informações do vendedor. 
+
+REGRA CRÍTICA PARA AS PERGUNTAS:
+- As perguntas devem ser ESTRITAMENTE relevantes para o tipo de máquina em questão. 
+- NUNCA pergunte sobre dimensões de rótulos se o projeto for de uma seladora/empacotadora.
+- NUNCA pergunte sobre viscosidade de líquidos se o projeto for de uma empacotadora de pós ou sólidos.
+- NUNCA peça formatos de potes ou tampas se a máquina for uma seladora contínua de sacos.
+- Se o vendedor já forneceu todas as informações cruciais para o funcionamento seguro desta máquina, deixe o array "perguntasFaltantes" totalmente vazio [].
 
 Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres extras ou marcações de markdown fora do JSON):
 {
@@ -5565,20 +5566,21 @@ Descrição e Diagnóstico: "${diagnostico || ''}"
 Outros Parâmetros: ${JSON.stringify(extraParams || {})}
 
 Determine se este escopo é suficiente para prosseguir com segurança para a montagem/oficina.
-Avalie especificamente:
-1. Se for dosadora/envasadora: precisamos saber viscosidade (baixa, média, alta), temperatura de envase, presença de sólidos ou acidez.
-2. Se for empacotadora/seladora: precisamos saber tamanho do sachê, bobina de filme (largura máxima), tipo de solda.
-3. Se for encapsuladora Softgel ou gomas: precisamos saber tamanho de cápsula, tipo de gelificante (pectina, gelatina), controle de umidade/temperatura.
-4. Se for rotuladora: precisamos saber diâmetro do frasco, dimensões e variedade de rótulos.
-5. Em todos os casos: precisamos de tensão elétrica (ex: 220V Trifásico), pressão pneumática, velocidade horária/minuto requerida.
+
+REGRA CRÍTICA DE RELEVÂNCIA:
+- Você deve avaliar APENAS as regras que façam sentido técnico para o segmento selecionado: "${segment}".
+- Se o projeto for sobre dosadoras/envasadoras (líquidos/pós), avalie se a viscosidade do líquido ou granulometria do pó foi descrita. 
+- Se for empacotadora/seladora, avalie se a largura da bobina ou tamanho do sachê foi informado.
+- Se for rotuladora, avalie se dimensões do rótulo e quantidade de formatos foram descritos.
+- NUNCA peça características de rótulos para projetos de dosadoras, ou viscosidade de líquidos para seladoras de sólidos. Se um item não pertence ao segmento selecionado, considere-o como Satisfeito/Não aplicável.
 
 Dê uma nota de Completude de Escopo (0 a 100).
-A nota deve ser calculada assim:
-- Se não tem viscosidade/característica do produto em dosadoras: desconte 30 pontos.
-- Se não tem formatos/tampas em tampadoras/rotuladoras: desconte 20 pontos.
-- Se não tem largura da bobina ou dimensões em empacotadoras: desconte 20 pontos.
-- Se não tem a produção alvo (velocidade): desconte 15 pontos.
-- Se não tem a utilidade (tensão elétrica): desconte 10 pontos.
+A nota deve ser calculada descontando pontos apenas para itens faltantes RELEVANTES para o segmento:
+- Se for envasadora/dosadora e não tem viscosidade/tipo de produto: desconte 35 pontos.
+- Se for rotuladora e não tem formatos/tampas ou rótulos: desconte 35 pontos.
+- Se for empacotadora e não tem largura da bobina/sachê: desconte 35 pontos.
+- Se não tem a produção alvo (velocidade) em qualquer segmento: desconte 20 pontos.
+- Se não tem a tensão elétrica (utilidade) em qualquer segmento: desconte 15 pontos.
 
 Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres extras, explicações ou marcações de markdown fora do JSON):
 {
