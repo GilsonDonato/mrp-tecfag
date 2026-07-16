@@ -2958,6 +2958,21 @@
 
 
 
+                        <!-- IDENTIFICAÇÃO FÍSICA (QR CODE) -->
+                        <div class="detail-card" style="margin-bottom: 20px; display: flex; align-items: center; gap: 15px;">
+                            <div id="modal-project-qrcode" style="background: white; padding: 8px; border-radius: 8px; width: 106px; height: 106px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                                <!-- Imagem QR Code gerada dinamicamente -->
+                            </div>
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                                <h4 style="color: var(--primary); margin: 0; font-size: 0.9rem;">Etiqueta de Identificação Física</h4>
+                                <p style="font-size: 0.72rem; color: var(--text-secondary); margin: 0; line-height: 1.3;">Aponte a câmera do celular/tablet para este QR Code para abrir o card de inspeção e assinar o Handover de forma imediata.</p>
+                                <button type="button" onclick="printProjectQRCode()" style="background: rgba(14, 165, 233, 0.1); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.2); padding: 5px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; width: fit-content; transition: background 0.2s;">
+                                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                                    Imprimir Etiqueta QR
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- DOSSIER DO CLIENTE E ESCOPO (ABAS) -->
                         <div class="detail-card" style="margin-bottom: 20px; padding: 0; overflow: hidden;">
                             <div style="display: flex; border-bottom: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.02); overflow-x: auto; white-space: nowrap;">
@@ -4727,6 +4742,15 @@
                     renderKanban();
                     renderProjectsTable();
                     populateTagProjectSelectors();
+
+                    // Rastreabilidade por QR Code: abrir modal automaticamente se houver parâmetro 'project' na URL
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const directPrj = urlParams.get('project');
+                    if (directPrj) {
+                        const newUrl = window.location.pathname;
+                        window.history.replaceState({}, document.title, newUrl);
+                        openProjectModal(directPrj);
+                    }
                 })
                 .catch(err => console.error('Erro ao carregar projetos do servidor:', err));
             });
@@ -7392,6 +7416,13 @@
             
             document.getElementById('modal-project-subtitle').innerText = `Gerente: ${project.pm} | Vendedor: ${creator} | Técnico: ${project.tech}`;
             
+            // Gerar imagem do QR Code
+            const qrContainer = document.getElementById('modal-project-qrcode');
+            if (qrContainer) {
+                const qrUrl = `${window.location.origin}/?project=${project.code}`;
+                qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(qrUrl)}" alt="QR Code" style="width: 90px; height: 90px; display: block;" />`;
+            }
+
             // Reseta para a aba de contato
             switchModalSubTab('contato');
 
@@ -8554,6 +8585,104 @@
             } else {
                 msgBox.style.display = 'none';
             }
+        }
+
+        // Função para abrir e imprimir etiqueta QR Code de identificação física do equipamento
+        function printProjectQRCode() {
+            if (!activeProjectCode) return;
+            const project = state.projects.find(p => p.code === activeProjectCode);
+            if (!project) return;
+
+            const qrUrl = `${window.location.origin}/?project=${project.code}`;
+            const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrUrl)}`;
+
+            const printWindow = window.open('', '_blank', 'width=600,height=600');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Imprimir Etiqueta - ${project.code}</title>
+                    <style>
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100vh;
+                            margin: 0;
+                            background: white;
+                            color: black;
+                            text-align: center;
+                        }
+                        .label-card {
+                            border: 3px solid #000;
+                            padding: 20px;
+                            border-radius: 15px;
+                            width: 320px;
+                            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                        }
+                        .header {
+                            font-size: 1.2rem;
+                            font-weight: 800;
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                            margin-bottom: 5px;
+                            border-bottom: 2px solid #000;
+                            padding-bottom: 5px;
+                        }
+                        .code {
+                            font-family: monospace;
+                            font-size: 1.5rem;
+                            font-weight: bold;
+                            margin: 15px 0;
+                            background: #eee;
+                            padding: 5px 10px;
+                            border-radius: 5px;
+                            display: inline-block;
+                        }
+                        .qr-img {
+                            width: 180px;
+                            height: 180px;
+                            margin: 10px 0;
+                        }
+                        .client {
+                            font-size: 0.95rem;
+                            font-weight: bold;
+                            margin-top: 10px;
+                        }
+                        .footer {
+                            font-size: 0.7rem;
+                            color: #555;
+                            margin-top: 15px;
+                            border-top: 1px dashed #000;
+                            padding-top: 5px;
+                        }
+                        @media print {
+                            body { height: auto; }
+                            .label-card { box-shadow: none; border: 3px solid #000; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="label-card">
+                        <div class="header">Tecfag MRP - Rastreio</div>
+                        <div class="code">${project.code}</div>
+                        <img class="qr-img" src="${qrImgUrl}" alt="QR Code" />
+                        <div class="client">CLIENTE: ${project.client}</div>
+                        <div class="footer">Gerado automaticamente em ${new Date().toLocaleDateString('pt-BR')}</div>
+                    </div>
+                    <script>
+                        window.onload = function() {
+                            setTimeout(() => {
+                                window.print();
+                                window.close();
+                            }, 500);
+                        }
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
         }
 
         function closeProjectModal() {
