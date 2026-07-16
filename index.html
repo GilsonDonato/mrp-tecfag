@@ -1889,6 +1889,23 @@
                 </div>
             </div>
 
+            <!-- Filtro de Vendedores -->
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; background: rgba(23, 29, 44, 0.5); border: 1px solid var(--border-color); padding: 12px 18px; border-radius: 8px; width: fit-content; backdrop-filter: blur(8px);">
+                <span style="font-size: 0.76rem; font-weight: bold; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Filtrar por Vendedor:
+                </span>
+                <select id="kanban-seller-filter" onchange="filterKanbanBySeller(this.value)" style="background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; font-weight: bold; cursor: pointer; outline: none; transition: border-color 0.2s;">
+                    <option value="all">👥 Todos os Vendedores</option>
+                    <option value="vendas">Diana (vendas)</option>
+                    <option value="vendas1">Alex (vendas1)</option>
+                    <option value="vendas2">Jhordan (vendas2)</option>
+                    <option value="vendas3">Nardeli (vendas3)</option>
+                    <option value="vendas4">Lucas (vendas4)</option>
+                    <option value="vendas6">Patricia (vendas6)</option>
+                </select>
+            </div>
+
             <!-- Pipeline Board -->
             <div class="kanban-board" id="kanban-board-wrapper">
                 <!-- Coluna 1: Vendas / Diagnóstico -->
@@ -4444,8 +4461,15 @@
         };
 
         let currentRole = "ALL"; 
+        let activeSellerFilter = "all";
         let activeProjectCode = null;
         let lockHeartbeatInterval = null;
+
+        function filterKanbanBySeller(val) {
+            activeSellerFilter = val;
+            updateKPIs();
+            renderKanban();
+        }
         let isSubmitting = false;
         let projectToMarkLost = null;
         let currentCnpjReceitaData = null;
@@ -6801,7 +6825,15 @@
 
         // KPIs
         function updateKPIs() {
-            const countFase = (f) => state.projects.filter(p => p.fase === f).length;
+            let filteredPrjs = state.projects;
+            if (activeSellerFilter !== 'all') {
+                filteredPrjs = filteredPrjs.filter(p => {
+                    const creator = p.checklist ? p.checklist.diagnostico_user : null;
+                    return creator === activeSellerFilter;
+                });
+            }
+
+            const countFase = (f) => filteredPrjs.filter(p => p.fase === f).length;
 
             // KPIs superiores consolidados
             document.getElementById('kpi-fase1').innerText = countFase(1);
@@ -6872,12 +6904,23 @@
                 if (el) el.innerHTML = '';
             });
 
-            if (state.projects.length === 0) {
-                document.getElementById('cards-fase1').innerHTML = `<p style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 20px;">Nenhum projeto cadastrado.</p>`;
+            let filteredProjects = state.projects;
+            if (activeSellerFilter !== 'all') {
+                filteredProjects = filteredProjects.filter(p => {
+                    const creator = p.checklist ? p.checklist.diagnostico_user : null;
+                    return creator === activeSellerFilter;
+                });
+            }
+
+            if (filteredProjects.length === 0) {
+                const noPrjCol = document.getElementById('cards-fase1');
+                if (noPrjCol) {
+                    noPrjCol.innerHTML = `<p style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; padding: 20px;">Nenhum projeto encontrado para o filtro selecionado.</p>`;
+                }
                 return;
             }
 
-            state.projects.forEach(project => {
+            filteredProjects.forEach(project => {
                 const bottleneck = getBottleneckRole(project);
                 const isMyBottleneck = currentRole !== 'ALL' && bottleneck === currentRole;
 
