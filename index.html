@@ -2557,6 +2557,18 @@
                     </div>
                 </div>
 
+                <!-- Tempo de Ciclo / Lead Time por Fase -->
+                <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-top: 10px;">
+                    <div style="flex: 1; min-width: 320px; background: var(--card-bg); border: 1px solid var(--border-color); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                        <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--text-primary); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+                            ⏱️ Lead Time Médio por Fase (Dias de Permanência)
+                        </h4>
+                        <div style="display: flex; flex-direction: column; gap: 15px;" id="metrics-leadtime-chart">
+                            <!-- Barras de tempo médio preenchidas dinamicamente -->
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Painel de Vendas & CRM (Visível para ALL e GERENTE) -->
                 <div id="crm-metrics-panel" style="display: none; flex-direction: column; gap: 20px; border-top: 1px dashed var(--border-color); padding-top: 25px; margin-top: 10px;">
                     <h3 style="color: var(--primary); font-size: 1.1rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 5px;">📊 Dashboard de Vendas & CRM</h3>
@@ -4627,25 +4639,21 @@
                 document.getElementById('metrics-delayed-count').innerText = data.delayedCount;
                 document.getElementById('metrics-lost').innerText = data.totalLost;
 
-                // Gráfico de Distribuição por Fase (8 Fases)
+                // Gráfico de Distribuição por Fase (6 Fases)
                 const chartArea = document.getElementById('metrics-fase-chart');
                 chartArea.innerHTML = "";
 
                 const phaseLabels = {
-                    1: '1. Prospecção',
-                    7: '2. Proposta',
-                    8: '3. Contrato',
-                    2: '4. Compras & Imp.',
-                    3: '5. Oficina & Prep.',
-                    4: '6. Instalação & SAT',
-                    5: '7. Concluído',
-                    6: '8. Cancelado'
+                    1: '1. Vendas',
+                    2: '2. Importação',
+                    3: '3. Oficina',
+                    4: '4. Instalação & SAT',
+                    5: '5. Concluído',
+                    6: '6. Cancelado'
                 };
 
                 const phaseColors = {
                     1: 'var(--color-fase1)',
-                    7: 'var(--primary)',
-                    8: 'var(--purple)',
                     2: 'var(--color-fase2)',
                     3: 'var(--color-fase3)',
                     4: 'var(--color-fase4)',
@@ -4653,7 +4661,7 @@
                     6: 'var(--color-fase6)'
                 };
 
-                const chartPhases = [1, 7, 8, 2, 3, 4, 5, 6];
+                const chartPhases = [1, 2, 3, 4, 5, 6];
                 let maxVal = 0;
                 chartPhases.forEach(f => {
                     const count = data.faseDistribution[f] || 0;
@@ -4791,6 +4799,48 @@
                     } else {
                         crmPanel.style.display = 'none';
                     }
+                }
+                // Renderizar Métricas de Lead Time (Tempo de Ciclo)
+                const leadtimeChart = document.getElementById('metrics-leadtime-chart');
+                if (leadtimeChart) {
+                    leadtimeChart.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 15px; font-size: 0.8rem;">Carregando tempos médios...</div>`;
+                    fetch('/api/metrics/lead-time', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                    .then(res => res.json())
+                    .then(ltData => {
+                        leadtimeChart.innerHTML = "";
+                        if (ltData.error || !Array.isArray(ltData) || ltData.length === 0) {
+                            leadtimeChart.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 15px; font-size: 0.8rem;">Sem dados históricos de transições suficientes.</div>`;
+                            return;
+                        }
+                        const maxAvgDays = Math.max(...ltData.map(d => d.avgDays || 0), 1);
+                        const phaseColorsLT = {
+                            1: 'var(--color-fase1)',
+                            2: 'var(--color-fase2)',
+                            3: 'var(--color-fase3)',
+                            4: 'var(--color-fase4)'
+                        };
+                        ltData.forEach(item => {
+                            const percent = (item.avgDays / maxAvgDays) * 100;
+                            const barHtml = `
+                                <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.76rem; font-weight: 600; color: var(--text-secondary);">
+                                        <span>Fase ${item.fase}. <strong>${item.nome}</strong> (${item.count} projetos monitorados)</span>
+                                        <span style="color: var(--text-primary); font-weight: 700;">${item.avgDays} dias em média</span>
+                                    </div>
+                                    <div style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; overflow: hidden;">
+                                        <div style="width: ${percent}%; height: 100%; background: ${phaseColorsLT[item.fase] || 'var(--primary)'}; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                            `;
+                            leadtimeChart.insertAdjacentHTML('beforeend', barHtml);
+                        });
+                    })
+                    .catch(err => {
+                        console.error('Erro ao buscar lead time:', err);
+                        leadtimeChart.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 15px; font-size: 0.8rem;">Erro ao carregar tempos médios.</div>`;
+                    });
                 }
             })
             .catch(err => console.error('Erro ao buscar métricas:', err));

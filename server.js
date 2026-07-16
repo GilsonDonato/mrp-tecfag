@@ -180,6 +180,16 @@ function initializeDatabase() {
             username TEXT NOT NULL,
             expires_at TEXT NOT NULL,
             FOREIGN KEY(username) REFERENCES users(username) ON DELETE CASCADE
+         )`);
+
+        // Tabela de Histórico de Mudança de Fase para Lead Time
+        db.run(`CREATE TABLE IF NOT EXISTS project_phase_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            projectCode TEXT NOT NULL,
+            fase INTEGER NOT NULL,
+            entryDate TEXT NOT NULL,
+            exitDate TEXT,
+            durationDays REAL
         )`);
 
         // Tabela de Recursos de Fornecedores (Catálogos e Cotações)
@@ -912,6 +922,64 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ error: 'Erro ao compilar métricas: ' + err.message });
+    }
+});
+
+// GET /api/metrics/lead-time - Retorna a média de dias que os projetos passam em cada fase (Lead Time)
+app.get('/api/metrics/lead-time', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'ALL' && req.user.role !== 'GERENTE' && req.user.role !== 'DIRETOR') {
+        return res.status(403).json({ error: 'Acesso negado: Apenas a gerência ou diretoria podem visualizar métricas de tempo.' });
+    }
+
+    try {
+        // Obter as durações históricas concluídas do histórico
+        const history = await dbAll('SELECT fase, durationDays FROM project_phase_history WHERE durationDays IS NOT NULL');
+        
+        // Obter projetos ativos para somar o tempo em andamento
+        const activeProjects = await dbAll('SELECT code, fase, faseEntryDate FROM projects WHERE fase NOT IN (5, 6)');
+        
+        const phaseNomes = {
+            1: 'Vendas & Diagnóstico',
+            2: 'Importação',
+            3: 'Oficina',
+            4: 'Instalação & SAT'
+        };
+
+        const sums = { 1: 0, 2: 0, 3: 0, 4: 0 };
+        const counts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+
+        // Somar tempos das transições passadas finalizadas
+        history.forEach(h => {
+            if (sums[h.fase] !== undefined) {
+                sums[h.fase] += parseFloat(h.durationDays) || 0;
+                counts[h.fase] += 1;
+            }
+        });
+
+        // Somar tempo em andamento das fases dos projetos que estão parados nelas no momento
+        activeProjects.forEach(p => {
+            if (sums[p.fase] !== undefined && p.faseEntryDate) {
+                const diffTime = Math.abs(new Date() - new Date(p.faseEntryDate));
+                const partialDays = diffTime / (1000 * 60 * 60 * 24);
+                sums[p.fase] += partialDays;
+                counts[p.fase] += 1;
+            }
+        });
+
+        const leadTimes = [];
+        for (let f = 1; f <= 4; f++) {
+            const avg = counts[f] > 0 ? parseFloat((sums[f] / counts[f]).toFixed(1)) : 0.0;
+            leadTimes.push({
+                fase: f,
+                nome: phaseNomes[f],
+                avgDays: avg,
+                count: counts[f]
+            });
+        }
+
+        res.json(leadTimes);
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao calcular tempos médios: ' + err.message });
     }
 });
 
@@ -4919,6 +4987,15 @@ app.post('/api/projects', async (req, res) => {
             crm_last_interaction_date || new Date().toISOString()
         ]);
 
+        // Registrar entrada da primeira fase no histórico
+        const initFase = fase || 1;
+        const initEntryDate = faseEntryDate || new Date().toISOString();
+        await dbRun('INSERT INTO project_phase_history (projectCode, fase, entryDate) VALUES (?, ?, ?)', [
+            code,
+            initFase,
+            initEntryDate
+        ]);
+
         sendWebhookNotification('CREATE', { code, client, pm, sku });
         res.status(201).json({ success: true, message: 'Projeto inserido com sucesso!' });
     } catch (err) {
@@ -4953,6 +5030,10 @@ app.put('/api/projects/:code', async (req, res) => {
         }
 
         const oldFase = oldProject.fase;
+        let newFaseEntryDate = oldProject.faseEntryDate || new Date().toISOString();
+        if (fase !== undefined && parseInt(fase) !== parseInt(oldFase)) {
+            newFaseEntryDate = new Date().toISOString();
+        }
         
         let sql = `UPDATE projects SET 
             serial = ?, 
@@ -4971,7 +5052,8 @@ app.put('/api/projects/:code', async (req, res) => {
             crm_task_title = ?,
             crm_task_date = ?,
             crm_last_comment_user = ?,
-            crm_last_interaction_date = ?`;
+            crm_last_interaction_date = ?,
+            faseEntryDate = ?`;
             
         const params = [
             serial !== undefined ? serial : oldProject.serial,
@@ -4990,7 +5072,8 @@ app.put('/api/projects/:code', async (req, res) => {
             crm_task_title !== undefined ? crm_task_title : oldProject.crm_task_title,
             crm_task_date !== undefined ? crm_task_date : oldProject.crm_task_date,
             crm_last_comment_user !== undefined ? crm_last_comment_user : oldProject.crm_last_comment_user,
-            crm_last_interaction_date !== undefined ? crm_last_interaction_date : oldProject.crm_last_interaction_date
+            crm_last_interaction_date !== undefined ? crm_last_interaction_date : oldProject.crm_last_interaction_date,
+            newFaseEntryDate
         ];
 
         // Se o técnico foi enviado para atualização
@@ -5007,6 +5090,26 @@ app.put('/api/projects/:code', async (req, res) => {
         // Obter projeto atualizado para mandar por e-mail se a fase mudou
         const updatedProject = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
         if (fase !== undefined && parseInt(fase) !== parseInt(oldFase)) {
+            const exitDate = new Date().toISOString();
+            // Registrar saída da fase anterior no histórico
+            const prevRecord = await dbGet('SELECT entryDate FROM project_phase_history WHERE projectCode = ? AND fase = ? AND exitDate IS NULL', [code, oldFase]);
+            if (prevRecord) {
+                const diffTime = Math.abs(new Date(exitDate) - new Date(prevRecord.entryDate));
+                const durationDays = parseFloat((diffTime / (1000 * 60 * 60 * 24)).toFixed(2));
+                await dbRun('UPDATE project_phase_history SET exitDate = ?, durationDays = ? WHERE projectCode = ? AND fase = ? AND exitDate IS NULL', [
+                    exitDate,
+                    durationDays,
+                    code,
+                    oldFase
+                ]);
+            }
+            // Registrar entrada na nova fase no histórico
+            await dbRun('INSERT INTO project_phase_history (projectCode, fase, entryDate) VALUES (?, ?, ?)', [
+                code,
+                fase,
+                exitDate
+            ]);
+
             // Disparar e-mail de notificação de forma assíncrona (sem travar a resposta HTTP)
             sendPhaseChangeEmail(updatedProject, oldFase, fase);
 
