@@ -8529,8 +8529,6 @@
             document.getElementById('lightbox-preview').classList.add('active');
         }
 
-        }
-
         function closeLightbox() {
             document.getElementById('lightbox-preview').classList.remove('active');
         }
@@ -8633,10 +8631,10 @@
             }
             
             const printWindow = window.open('', '_blank');
-            printWindow.document.write(\`
+            printWindow.document.write(`
                 <html>
                 <head>
-                    <title>Tecfag - Estudo de Caso (\${activeProjectCode})</title>
+                    <title>Tecfag - Estudo de Caso (${activeProjectCode})</title>
                     <style>
                         body {
                             font-family: Arial, sans-serif;
@@ -8695,12 +8693,12 @@
                         <div class="logo-area">TECFAG</div>
                         <div class="title-area">
                             <strong>Estudo de Caso & Escopo Técnico</strong><br>
-                            Projeto: \${activeProjectCode}
+                            Projeto: ${activeProjectCode}
                         </div>
                     </div>
                     
                     <div>
-                        \${renderMarkdownToHTML(currentCaseStudyMD).replace(/var\\(--primary\\)/g, '#0056b3').replace(/#ffffff/g, '#000000')}
+                        ${renderMarkdownToHTML(currentCaseStudyMD).replace(/var\(--primary\)/g, '#0056b3').replace(/#ffffff/g, '#000000')}
                     </div>
                     
                     <div class="footer">
@@ -8714,7 +8712,7 @@
                     </script>
                 </body>
                 </html>
-            \`);
+            `);
             printWindow.document.close();
         }
 
