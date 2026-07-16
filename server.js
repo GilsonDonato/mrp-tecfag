@@ -136,6 +136,7 @@ function initializeDatabase() {
         db.run("ALTER TABLE projects ADD COLUMN crm_task_date TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN crm_last_comment_user TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN crm_last_interaction_date TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN setup_specs TEXT", (err) => {});
 
         // Tabela de Comentários / Discussão (Timeline do Card)
         db.run(`CREATE TABLE IF NOT EXISTS comments (
@@ -654,6 +655,7 @@ app.get('/api/projects', async (req, res) => {
                 ...p,
                 checklist: p.checklist ? JSON.parse(p.checklist) : {},
                 prazos: p.prazos ? JSON.parse(p.prazos) : {},
+                setup_specs: p.setup_specs ? JSON.parse(p.setup_specs) : {},
                 machines: machinesParsed
             };
         });
@@ -705,6 +707,7 @@ app.get('/api/projects/:code', async (req, res) => {
         }
         project.checklist = project.checklist ? JSON.parse(project.checklist) : {};
         project.prazos = project.prazos ? JSON.parse(project.prazos) : {};
+        project.setup_specs = project.setup_specs ? JSON.parse(project.setup_specs) : {};
         project.machines = machinesParsed;
 
         // Restrição de vendedor para rota individual
@@ -5086,7 +5089,8 @@ app.post('/api/projects', async (req, res) => {
 app.put('/api/projects/:code', async (req, res) => {
     const { 
         serial, route, fase, checklist, prazos, lastUpdate, motivoPerda, tech, machines, equipment_origin, handover_signed,
-        crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date
+        crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date,
+        setup_specs
     } = req.body;
     const { code } = req.params;
 
@@ -5147,6 +5151,23 @@ app.put('/api/projects/:code', async (req, res) => {
                 }
             }
         }
+        if (setup_specs) {
+            let oldSpecs = {};
+            try { oldSpecs = oldProject.setup_specs ? JSON.parse(oldProject.setup_specs) : {}; } catch(e){}
+            const specLabels = {
+                frasco_tamanho: 'Tamanho/Tipo do Frasco',
+                tampa_tamanho: 'Tamanho/Tipo da Tampa',
+                espaco_disponivel: 'Espaço Físico / Sentido da Esteira',
+                tensao_eletrica: 'Tensão Elétrica Requerida',
+                ar_comprimido: 'Pressão Pneumática do Cliente',
+                obs_startup: 'Notas Especiais de Setup'
+            };
+            for (const key of Object.keys(specLabels)) {
+                if (setup_specs[key] !== undefined && setup_specs[key] !== oldSpecs[key]) {
+                    await recordAuditLog(code, auditUser, `Alterou o parâmetro "${specLabels[key]}" de "${oldSpecs[key] || '-'}" para "${setup_specs[key] || '-'}"`);
+                }
+            }
+        }
         // ------------------------------------------
         
         let sql = `UPDATE projects SET 
@@ -5167,7 +5188,8 @@ app.put('/api/projects/:code', async (req, res) => {
             crm_task_date = ?,
             crm_last_comment_user = ?,
             crm_last_interaction_date = ?,
-            faseEntryDate = ?`;
+            faseEntryDate = ?,
+            setup_specs = ?`;
             
         const params = [
             serial !== undefined ? serial : oldProject.serial,
@@ -5187,7 +5209,8 @@ app.put('/api/projects/:code', async (req, res) => {
             crm_task_date !== undefined ? crm_task_date : oldProject.crm_task_date,
             crm_last_comment_user !== undefined ? crm_last_comment_user : oldProject.crm_last_comment_user,
             crm_last_interaction_date !== undefined ? crm_last_interaction_date : oldProject.crm_last_interaction_date,
-            newFaseEntryDate
+            newFaseEntryDate,
+            setup_specs ? JSON.stringify(setup_specs) : oldProject.setup_specs
         ];
 
         // Se o técnico foi enviado para atualização

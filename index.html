@@ -2789,7 +2789,18 @@
                     <div class="detail-card" style="background-color: var(--bg-base); border-color: var(--border-color);">
                         <h4 style="margin-bottom: 20px; color: var(--primary);">Passos e Controles das Fases</h4>
                         
-                        <!-- Fase 1 -->
+                        <!-- ALERTA DE PRÉ-REQUISITOS TÉCNICOS E SETUP -->
+                        <div id="modal-setup-specs-alert" style="display: none; background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.3); color: #ffedd5; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.8rem;">
+                            <div style="font-weight: bold; font-size: 0.85rem; color: #f97316; display: flex; align-items: center; gap: 6px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                🚨 ATENÇÃO DO TÉCNICO (Requisitos de Start-up / Setup)
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; line-height: 1.4;" id="modal-setup-specs-alert-grid">
+                                <!-- Preenchido via JS -->
+                            </div>
+                            <div style="border-top: 1px dashed rgba(249, 115, 22, 0.3); padding-top: 8px; color: #fdba74; line-height: 1.4;" id="modal-setup-specs-alert-obs">
+                                <!-- Notas adicionais -->
+                            </div>
+                        </div>
                         <div class="checklist-group" style="--group-color: var(--color-fase1)">
                             <div class="checklist-group-title">Fase 1: Engenharia de Vendas e Escopo</div>
                             <div class="checklist-items">
@@ -2970,6 +2981,44 @@
                                     <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                                     Imprimir Etiqueta QR
                                 </button>
+                            </div>
+                        </div>
+
+                        <!-- PARÂMETROS DE SETUP E CAMPO (PRE-REQUISITOS OFICINA) -->
+                        <div class="detail-card" style="margin-bottom: 20px;">
+                            <h4 style="color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; font-size: 0.9rem;">
+                                ⚙️ Parâmetros de Setup & Campo
+                            </h4>
+                            <p style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.3;">
+                                Preencha estes pré-requisitos para orientar o teste físico na oficina e evitar surpresas no start-up.
+                            </p>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <div>
+                                    <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">1. Tamanho do Frasco / Recipiente</label>
+                                    <input type="text" class="form-control" id="modal-spec-frasco" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Diâmetro 60mm, Altura 180mm">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">2. Tamanho/Tipo da Tampa</label>
+                                    <input type="text" class="form-control" id="modal-spec-tampa" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Tampa Flip-Top 28mm, Plástica">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">3. Espaço Físico & Sentido da Esteira</label>
+                                    <input type="text" class="form-control" id="modal-spec-espaco" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Sentido E->D, Espaço Máx 1.5m">
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">4. Tensão (V)</label>
+                                        <input type="text" class="form-control" id="modal-spec-tensao" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: 220V Trifásico">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">5. Pressão Ar (bar)</label>
+                                        <input type="text" class="form-control" id="modal-spec-ar" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: 6 bar">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">6. Notas de Setup / Start-up</label>
+                                    <textarea class="form-control" id="modal-spec-obs" style="font-size: 0.78rem; padding: 6px; height: 50px; resize: none; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Exige sensor de frasco transparente..."></textarea>
+                                </div>
                             </div>
                         </div>
 
@@ -7484,6 +7533,40 @@
                 qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(qrUrl)}" alt="QR Code" style="width: 90px; height: 90px; display: block;" />`;
             }
 
+            // Carregar setup_specs nos campos de input do modal
+            const specs = project.setup_specs || {};
+            document.getElementById('modal-spec-frasco').value = specs.frasco_tamanho || '';
+            document.getElementById('modal-spec-tampa').value = specs.tampa_tamanho || '';
+            document.getElementById('modal-spec-espaco').value = specs.espaco_disponivel || '';
+            document.getElementById('modal-spec-tensao').value = specs.tensao_eletrica || '';
+            document.getElementById('modal-spec-ar').value = specs.ar_comprimido || '';
+            document.getElementById('modal-spec-obs').value = specs.obs_startup || '';
+
+            // Atualizar o Alerta de Pré-Requisitos do Técnico
+            const specAlert = document.getElementById('modal-setup-specs-alert');
+            const specGrid = document.getElementById('modal-setup-specs-alert-grid');
+            const specObs = document.getElementById('modal-setup-specs-alert-obs');
+            if (specAlert && specGrid && specObs) {
+                const hasSpecs = specs.frasco_tamanho || specs.tampa_tamanho || specs.espaco_disponivel || specs.tensao_eletrica || specs.ar_comprimido || specs.obs_startup;
+                if (hasSpecs) {
+                    specAlert.style.display = 'block';
+                    specGrid.innerHTML = `
+                        <div><strong>🧴 Frasco:</strong> ${specs.frasco_tamanho || '-'}</div>
+                        <div><strong>🔴 Tampa:</strong> ${specs.tampa_tamanho || '-'}</div>
+                        <div><strong>📏 Espaço/Layout:</strong> ${specs.espaco_disponivel || '-'}</div>
+                        <div><strong>⚡ Elétrica/Pneumática:</strong> ${specs.tensao_eletrica || '-'} (${specs.ar_comprimido || '-'} bar)</div>
+                    `;
+                    if (specs.obs_startup) {
+                        specObs.style.display = 'block';
+                        specObs.innerHTML = `<strong>⚠️ Observações de Start-up:</strong> ${specs.obs_startup}`;
+                    } else {
+                        specObs.style.display = 'none';
+                    }
+                } else {
+                    specAlert.style.display = 'none';
+                }
+            }
+
             // Reseta para a aba de contato
             switchModalSubTab('contato');
 
@@ -9087,13 +9170,23 @@
                 }
             }
 
+            const setupSpecs = {
+                frasco_tamanho: document.getElementById('modal-spec-frasco').value.trim(),
+                tampa_tamanho: document.getElementById('modal-spec-tampa').value.trim(),
+                espaco_disponivel: document.getElementById('modal-spec-espaco').value.trim(),
+                tensao_eletrica: document.getElementById('modal-spec-tensao').value.trim(),
+                ar_comprimido: document.getElementById('modal-spec-ar').value.trim(),
+                obs_startup: document.getElementById('modal-spec-obs').value.trim()
+            };
+
             const updateBody = {
                 serial: projectSerial,
                 route: projectRoute,
                 fase: finalFase,
                 checklist: updatedChecklist,
                 lastUpdate: new Date().toISOString(),
-                machines: updatedMachines
+                machines: updatedMachines,
+                setup_specs: setupSpecs
             };
 
             fetch(`/api/projects/${project.code}`, {
