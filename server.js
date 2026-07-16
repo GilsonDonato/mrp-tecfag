@@ -5476,6 +5476,162 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres e
     }
 });
 
+// Helper de validação local de rascunhos (Fallback)
+function localValidationFallback(segment, diagnostico, extraParams) {
+    const missing = [];
+    const satisfied = [];
+    let score = 100;
+    
+    const diagLower = (diagnostico || '').toLowerCase();
+    
+    // Regra de Produção Alvo
+    if (!extraParams.velocidade && !diagLower.includes('peças') && !diagLower.includes('batidas') && !diagLower.includes('por min') && !diagLower.includes('produção') && !diagLower.includes('hora')) {
+        missing.push("Qual a produtividade horária ou por minuto esperada?");
+        score -= 20;
+    } else {
+        satisfied.push("Produtividade / velocidade alvo especificada");
+    }
+    
+    // Regra de Utilidade (Tensão)
+    if (!extraParams.tensao && !diagLower.includes('volt') && !diagLower.includes('220v') && !diagLower.includes('380v')) {
+        missing.push("Qual a tensão elétrica disponível na fábrica (220V/380V)?");
+        score -= 15;
+    } else {
+        satisfied.push("Tensão elétrica informada");
+    }
+    
+    // Regras por Segmento
+    const isEnvasadora = segment === "ENVASADORA" || segment === "DOSADORA" || segment === "6" || segment === "4" || diagLower.includes('envas') || diagLower.includes('dosad');
+    const isRotuladora = segment === "ROTULADORA" || segment === "9" || diagLower.includes('rotul') || diagLower.includes('etiquet');
+    const isEmpacotadora = segment === "EMPACOTADORA" || segment === "5" || diagLower.includes('empacot') || diagLower.includes('sachê');
+    
+    if (isEnvasadora) {
+        if (!diagLower.includes('viscos') && !diagLower.includes('líquid') && !diagLower.includes('pastos') && !diagLower.includes('densidad') && !diagLower.includes('pó') && !diagLower.includes('grão')) {
+            missing.push("Como é a viscosidade do líquido ou o comportamento do pó?");
+            score -= 30;
+        } else {
+            satisfied.push("Características de viscosidade/fluidez descritas");
+        }
+    }
+    
+    if (isRotuladora) {
+        if (!diagLower.includes('dimens') && !diagLower.includes('rótulo') && !diagLower.includes('largura') && !diagLower.includes('altura') && !diagLower.includes('tamanho')) {
+            missing.push("Quais as dimensões exatas e formatos dos rótulos?");
+            score -= 30;
+        } else {
+            satisfied.push("Dimensões básicas de rótulo informadas");
+        }
+        if (!diagLower.includes('frasco') && !diagLower.includes('garrafa') && !diagLower.includes('pote') && !diagLower.includes('modelo')) {
+            missing.push("Quantos formatos de frascos serão rotulados?");
+            score -= 20;
+        } else {
+            satisfied.push("Modelos de frascos informados");
+        }
+    }
+    
+    if (isEmpacotadora) {
+        if (!diagLower.includes('bobina') && !diagLower.includes('filme') && !diagLower.includes('largura') && !diagLower.includes('plástic')) {
+            missing.push("Qual a largura máxima da bobina do filme ou dimensões do sachê?");
+            score -= 30;
+        } else {
+            satisfied.push("Especificação de largura da bobina/sachê informada");
+        }
+    }
+    
+    if (score < 0) score = 0;
+    let color = "red";
+    if (score >= 80) color = "green";
+    else if (score >= 50) color = "yellow";
+    
+    return { score, color, missing, satisfied };
+}
+
+// POST /api/projects/validate-draft - Validação de rascunho de escopo técnico em tempo real
+app.post('/api/projects/validate-draft', authenticateToken, async (req, res) => {
+    const { segment, diagnostico, extraParams } = req.body;
+    
+    try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        let result = null;
+        
+        if (apiKey && apiKey.trim() !== '') {
+            try {
+                const prompt = `
+Você é o Engenheiro de Aplicações Sênior da Tecfag, com conhecimento profundo de automação industrial, linhas de embalagens, dosagem, encapsulamento Softgel, fabricação de gomas/balas gummy e reologia (viscosidade, fluidez, densidade, comportamento reológico e abrasividade dos materiais).
+
+Analise o rascunho de informações inserido pelo vendedor para um novo projeto:
+Segmento Selecionado: ${segment || 'Não informado'}
+Descrição e Diagnóstico: "${diagnostico || ''}"
+Outros Parâmetros: ${JSON.stringify(extraParams || {})}
+
+Determine se este escopo é suficiente para prosseguir com segurança para a montagem/oficina.
+Avalie especificamente:
+1. Se for dosadora/envasadora: precisamos saber viscosidade (baixa, média, alta), temperatura de envase, presença de sólidos ou acidez.
+2. Se for empacotadora/seladora: precisamos saber tamanho do sachê, bobina de filme (largura máxima), tipo de solda.
+3. Se for encapsuladora Softgel ou gomas: precisamos saber tamanho de cápsula, tipo de gelificante (pectina, gelatina), controle de umidade/temperatura.
+4. Se for rotuladora: precisamos saber diâmetro do frasco, dimensões e variedade de rótulos.
+5. Em todos os casos: precisamos de tensão elétrica (ex: 220V Trifásico), pressão pneumática, velocidade horária/minuto requerida.
+
+Dê uma nota de Completude de Escopo (0 a 100).
+A nota deve ser calculada assim:
+- Se não tem viscosidade/característica do produto em dosadoras: desconte 30 pontos.
+- Se não tem formatos/tampas em tampadoras/rotuladoras: desconte 20 pontos.
+- Se não tem largura da bobina ou dimensões em empacotadoras: desconte 20 pontos.
+- Se não tem a produção alvo (velocidade): desconte 15 pontos.
+- Se não tem a utilidade (tensão elétrica): desconte 10 pontos.
+
+Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres extras, explicações ou marcações de markdown fora do JSON):
+{
+  "score": 75,
+  "color": "yellow", // "red" para score < 50, "yellow" para 50 <= score < 80, "green" para score >= 80
+  "missing": ["Pergunta 1?", "Pergunta 2?"],
+  "satisfied": ["Parâmetro informado 1", "Parâmetro informado 2"]
+}
+`;
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { responseMimeType: "application/json" }
+                };
+                
+                const response = await fetch(geminiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
+                        const rawText = data.candidates[0].content.parts[0].text;
+                        result = JSON.parse(rawText);
+                    }
+                } else {
+                    const errText = await response.text();
+                    console.error(`[GEMINI DRAFT VALIDATE ERROR] Status ${response.status}: ${errText}`);
+                }
+            } catch (e) {
+                console.error("Falha ao validar rascunho via Gemini:", e);
+            }
+        }
+        
+        if (!result) {
+            result = localValidationFallback(segment, diagnostico, extraParams);
+        }
+        
+        res.json({
+            success: true,
+            score: result.score,
+            color: result.color,
+            missing: result.missing,
+            satisfied: result.satisfied
+        });
+        
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao validar rascunho: ' + err.message });
+    }
+});
+
 // DELETE /api/projects/:code - Deleta permanentemente um projeto
 app.delete('/api/projects/:code', async (req, res) => {
     const { code } = req.params;
