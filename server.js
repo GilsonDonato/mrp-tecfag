@@ -442,6 +442,26 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Mapeamento de usuários para e-mails institucionais correspondentes
+function getUserEmail(username) {
+    if (!username) return null;
+    const u = username.toLowerCase().trim();
+    if (u === 'vendas' || u === 'vendas14@tecfag.com.br') return 'vendas14@tecfag.com.br';
+    if (u === 'vendas1' || u === 'vendas21@tecfag.com.br') return 'vendas21@tecfag.com.br';
+    if (u === 'vendas2' || u === 'vendas4@tecfag.com.br') return 'vendas4@tecfag.com.br';
+    if (u === 'vendas3' || u === 'vendas17@tecfag.com.br') return 'vendas17@tecfag.com.br';
+    if (u === 'vendas4' || u === 'vendas19@tecfag.com.br') return 'vendas19@tecfag.com.br';
+    if (u === 'vendas6' || u === 'vendas6@tecfag.com.br') return 'vendas6@tecfag.com.br';
+    if (u === 'suporte2' || u === 'suporte2@tecfag.com.br') return 'suporte2@tecfag.com.br';
+    if (u === 'heilio' || u === 'assistencia6@tecfag.com.br') return 'assistencia6@tecfag.com.br';
+    if (u === 'admin') return process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br';
+    if (u === 'gerente') return process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br';
+    if (u === 'gerente_comercial') return 'projetos@grupo.tecfag.com.br';
+    if (u === 'joao.lanza') return 'projetos@grupo.tecfag.com.br';
+    if (u.includes('@')) return u;
+    return null;
+}
+
 // Configuração e envio de e-mails via Nodemailer (SMTP)
 async function sendPhaseChangeEmail(project, oldFase, newFase) {
     // Se não há dados do SMTP no .env, ignorar silenciosamente
@@ -468,11 +488,48 @@ async function sendPhaseChangeEmail(project, oldFase, newFase) {
         6: process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br'
     };
 
-    const destEmail = destMap[newFase] || process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br';
+    // Extrair o criador (vendedor) do card de dentro da estrutura do checklist
+    let creatorUsername = null;
+    try {
+        const checklistObj = project.checklist ? (typeof project.checklist === 'string' ? JSON.parse(project.checklist) : project.checklist) : {};
+        creatorUsername = checklistObj.diagnostico_user;
+    } catch (e) {
+        console.error('[E-mail Notificação] Erro ao extrair criador do card:', e.message);
+    }
+
+    // Criar um Set único para destinatários
+    const recipients = new Set();
+
+    // 1. Sempre enviar para Admin e Gerentes (Acesso Total / PM)
     const pmEmail = process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br';
+    if (pmEmail) {
+        pmEmail.split(',').forEach(email => {
+            const clean = email.trim();
+            if (clean) recipients.add(clean);
+        });
+    }
+
+    // 2. Adicionar o destinatário padrão da Fase Destino (exceto se for Fase 1 Vendas, onde não enviaremos a todos os vendedores)
+    if (newFase !== 1) {
+        const targetEmail = destMap[newFase];
+        if (targetEmail) {
+            targetEmail.split(',').forEach(email => {
+                const clean = email.trim();
+                if (clean) recipients.add(clean);
+            });
+        }
+    }
+
+    // 3. Adicionar especificamente o e-mail do vendedor que abriu o card
+    const creatorEmail = getUserEmail(creatorUsername);
+    if (creatorEmail) {
+        recipients.add(creatorEmail);
+    }
+
+    const destEmail = Array.from(recipients).join(', ');
 
     if (!destEmail) {
-        console.log(`[E-mail Notificação] Destinatário para Fase ${newFase} não cadastrado nas variáveis de ambiente.`);
+        console.log(`[E-mail Notificação] Nenhum destinatário resolvido para Fase ${newFase}.`);
         return;
     }
 
