@@ -5426,6 +5426,9 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres e
                         result = JSON.parse(rawText);
                         usedAI = true;
                     }
+                } else {
+                    const errText = await response.text();
+                    console.error(`[GEMINI API ERROR] Status ${response.status}: ${errText}`);
                 }
             } catch (e) {
                 console.error("Falha ao chamar API do Gemini, usando fallback local:", e);
