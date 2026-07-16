@@ -5441,6 +5441,8 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres e
         
         // Postar perguntas faltantes automaticamente no Chat/Mural
         if (result.perguntasFaltantes && result.perguntasFaltantes.length > 0) {
+            let addedNewComment = false;
+            const timestamp = new Date().toISOString();
             for (const pergunta of result.perguntasFaltantes) {
                 const exists = await dbGet('SELECT id FROM comments WHERE projectCode = ? AND user = ? AND message = ?', [code, 'Sistema Tecfag (IA)', pergunta]);
                 if (!exists) {
@@ -5448,9 +5450,17 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres e
                         code,
                         'Sistema Tecfag (IA)',
                         pergunta,
-                        new Date().toISOString()
+                        timestamp
                     ]);
+                    addedNewComment = true;
                 }
+            }
+            if (addedNewComment) {
+                await dbRun('UPDATE projects SET crm_last_comment_user = ?, crm_last_interaction_date = ? WHERE code = ?', [
+                    'Sistema Tecfag (IA)',
+                    timestamp,
+                    code
+                ]);
             }
         }
         
