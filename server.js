@@ -5466,6 +5466,19 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres e
     }
 });
 
+// GET /api/test-models - Rota temporária para depurar quais modelos estão disponíveis na API Key
+app.get('/api/test-models', async (req, res) => {
+    try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) return res.json({ error: 'Nenhuma chave de API configurada.' });
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // DELETE /api/projects/:code - Deleta permanentemente um projeto
 app.delete('/api/projects/:code', async (req, res) => {
     const { code } = req.params;
