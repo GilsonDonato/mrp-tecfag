@@ -5407,7 +5407,7 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres e
   "perguntasFaltantes": ["Pergunta 1?", "Pergunta 2?"]
 }
 `;
-                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
                 const payload = {
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: { responseMimeType: "application/json" }
@@ -5463,19 +5463,6 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres e
         
     } catch (err) {
         res.status(500).json({ error: 'Erro ao gerar estudo de caso: ' + err.message });
-    }
-});
-
-// GET /api/test-models - Rota temporária para depurar quais modelos estão disponíveis na API Key
-app.get('/api/test-models', async (req, res) => {
-    try {
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) return res.json({ error: 'Nenhuma chave de API configurada.' });
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        const data = await response.json();
-        res.json(data);
-    } catch (e) {
-        res.status(500).json({ error: e.message });
     }
 });
 
