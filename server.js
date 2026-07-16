@@ -154,6 +154,15 @@ function initializeDatabase() {
             text TEXT NOT NULL
         )`);
 
+        // Tabela de Auditoria por Card
+        db.run(`CREATE TABLE IF NOT EXISTS project_audit_trail (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            projectCode TEXT NOT NULL,
+            user TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            action TEXT NOT NULL
+        )`);
+
         // Tabela de Anexos
         db.run(`CREATE TABLE IF NOT EXISTS attachments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -712,6 +721,16 @@ app.get('/api/projects/:code', async (req, res) => {
     }
 });
 
+// GET /api/projects/:code/audit - Retorna o histórico de auditoria de um card
+app.get('/api/projects/:code/audit', authenticateToken, async (req, res) => {
+    try {
+        const rows = await dbAll('SELECT user, timestamp, action FROM project_audit_trail WHERE projectCode = ? ORDER BY timestamp DESC', [req.params.code]);
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao buscar histórico de auditoria: ' + err.message });
+    }
+});
+
 // GET /api/projects/:code/comments - Retorna todos os comentários de um projeto
 app.get('/api/projects/:code/comments', async (req, res) => {
     try {
@@ -1023,6 +1042,20 @@ function broadcastNotification(event, data) {
             sseClients.delete(client);
         }
     });
+}
+
+// Gravar log de auditoria do card no SQLite
+async function recordAuditLog(projectCode, user, action) {
+    try {
+        await dbRun('INSERT INTO project_audit_trail (projectCode, user, timestamp, action) VALUES (?, ?, ?, ?)', [
+            projectCode,
+            user || 'Sistema',
+            new Date().toISOString(),
+            action
+        ]);
+    } catch (e) {
+        console.error('[AUDIT ERROR] Falha ao registrar log de auditoria:', e);
+    }
 }
 
 // Função auxiliar para extrair o site corporativo com base no domínio do e-mail da empresa
@@ -5038,6 +5071,10 @@ app.post('/api/projects', async (req, res) => {
             initEntryDate
         ]);
 
+        // Registrar log de auditoria inicial
+        const auditUser = req.user ? req.user.username : 'Desconhecido';
+        await recordAuditLog(code, auditUser, `Criou o projeto para o cliente "${client}" (SKU: ${sku})`);
+
         sendWebhookNotification('CREATE', { code, client, pm, sku });
         res.status(201).json({ success: true, message: 'Projeto inserido com sucesso!' });
     } catch (err) {
@@ -5076,6 +5113,41 @@ app.put('/api/projects/:code', async (req, res) => {
         if (fase !== undefined && parseInt(fase) !== parseInt(oldFase)) {
             newFaseEntryDate = new Date().toISOString();
         }
+
+        // --- SISTEMA DE AUDITORIA DE ALTERAÇÕES ---
+        const auditUser = req.user ? req.user.username : 'Desconhecido';
+        if (serial !== undefined && serial !== oldProject.serial) {
+            await recordAuditLog(code, auditUser, `Alterou o Nº de Série de "${oldProject.serial || '-'}" para "${serial || '-'}"`);
+        }
+        if (route !== undefined && route !== oldProject.route) {
+            await recordAuditLog(code, auditUser, `Alterou a Rota de "${oldProject.route || '-'}" para "${route || '-'}"`);
+        }
+        if (fase !== undefined && parseInt(fase) !== parseInt(oldFase)) {
+            const faseNomesBrief = { 1: 'Vendas', 2: 'Importação', 3: 'Oficina', 4: 'Instalação & SAT', 5: 'Concluído', 6: 'Cancelado' };
+            await recordAuditLog(code, auditUser, `Mudou o projeto da fase "${faseNomesBrief[oldFase] || oldFase}" para "${faseNomesBrief[fase] || fase}"`);
+        }
+        if (tech !== undefined && tech !== oldProject.tech) {
+            await recordAuditLog(code, auditUser, `Alterou o Técnico Responsável de "${oldProject.tech || '-'}" para "${tech || '-'}"`);
+        }
+        if (equipment_origin !== undefined && equipment_origin !== oldProject.equipment_origin) {
+            await recordAuditLog(code, auditUser, `Alterou a Origem do Equipamento de "${oldProject.equipment_origin || '-'}" para "${equipment_origin || '-'}"`);
+        }
+        if (handover_signed !== undefined && parseInt(handover_signed) !== parseInt(oldProject.handover_signed)) {
+            const signedStatus = parseInt(handover_signed) === 1 ? 'Assinado' : 'Desassinado';
+            await recordAuditLog(code, auditUser, `Alterou o status do Handover para "${signedStatus}"`);
+        }
+        if (checklist) {
+            let oldChk = {};
+            try { oldChk = oldProject.checklist ? JSON.parse(oldProject.checklist) : {}; } catch(e){}
+            for (const key of Object.keys(checklist)) {
+                if (checklist[key] !== oldChk[key]) {
+                    const statusText = checklist[key] ? 'Concluído/Sim' : 'Pendente/Não';
+                    const keyLabel = key.replace(/_/g, ' ');
+                    await recordAuditLog(code, auditUser, `Alterou item do checklist "${keyLabel}" para "${statusText}"`);
+                }
+            }
+        }
+        // ------------------------------------------
         
         let sql = `UPDATE projects SET 
             serial = ?, 

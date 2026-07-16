@@ -2980,6 +2980,7 @@
                                 <button id="modal-tab-btn-receita" onclick="switchModalSubTab('receita')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">🏛️ Dossiê Receita</button>
                                 <button id="modal-tab-btn-handover" onclick="switchModalSubTab('handover')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">🚚 Handover & Exp.</button>
                                 <button id="modal-tab-btn-chat" onclick="switchModalSubTab('chat')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">💬 Chat & Mural</button>
+                                <button id="modal-tab-btn-audit" onclick="switchModalSubTab('audit')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">📝 Auditoria</button>
                             </div>
                             
                             <div style="padding: 15px;">
@@ -3126,6 +3127,17 @@
                                     
                                     <h5 style="color: var(--primary); font-size: 0.78rem; text-transform: uppercase; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; margin-bottom: 10px;">Linha do Tempo de Interações</h5>
                                     <div id="modal-chat-messages-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.1); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                                        <!-- Preenchido via JS -->
+                                    </div>
+                                </div>
+
+                                <!-- SUB-TAB 5: Linha do Tempo de Auditoria do Card -->
+                                <div id="modal-subtab-audit" style="display: none;">
+                                    <h5 style="color: var(--primary); margin-bottom: 10px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">📝 Ficha de Auditoria do Card</h5>
+                                    <p style="font-size: 0.76rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 15px;">
+                                        Histórico completo de alterações realizadas neste card (quem, quando e o que foi alterado).
+                                    </p>
+                                    <div id="modal-audit-timeline-container" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.1); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.76rem; color: var(--text-primary);">
                                         <!-- Preenchido via JS -->
                                     </div>
                                 </div>
@@ -5399,17 +5411,20 @@
             const btnReceita = document.getElementById('modal-tab-btn-receita');
             const btnHandover = document.getElementById('modal-tab-btn-handover');
             const btnChat = document.getElementById('modal-tab-btn-chat');
+            const btnAudit = document.getElementById('modal-tab-btn-audit');
             const tabContato = document.getElementById('modal-subtab-contato');
             const tabReceita = document.getElementById('modal-subtab-receita');
             const tabHandover = document.getElementById('modal-subtab-handover');
             const tabChat = document.getElementById('modal-subtab-chat');
+            const tabAudit = document.getElementById('modal-subtab-audit');
             
             if (tabContato) tabContato.style.display = 'none';
             if (tabReceita) tabReceita.style.display = 'none';
             if (tabHandover) tabHandover.style.display = 'none';
             if (tabChat) tabChat.style.display = 'none';
+            if (tabAudit) tabAudit.style.display = 'none';
             
-            [btnContato, btnReceita, btnHandover, btnChat].forEach(btn => {
+            [btnContato, btnReceita, btnHandover, btnChat, btnAudit].forEach(btn => {
                 if (btn) {
                     btn.style.color = 'var(--text-secondary)';
                     btn.style.borderBottomColor = 'transparent';
@@ -5442,7 +5457,53 @@
                     btnChat.style.borderBottomColor = 'var(--primary)';
                 }
                 loadModalComments();
+            } else if (tab === 'audit') {
+                if (tabAudit) tabAudit.style.display = 'block';
+                if (btnAudit) {
+                    btnAudit.style.color = 'var(--primary)';
+                    btnAudit.style.borderBottomColor = 'var(--primary)';
+                }
+                loadModalAuditTrail();
             }
+        }
+
+        function loadModalAuditTrail() {
+            const container = document.getElementById('modal-audit-timeline-container');
+            if (!container) return;
+            container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 10px;">Carregando histórico...</div>';
+            
+            const token = localStorage.getItem('tecfag_session_token');
+            fetch(`/api/projects/${activeProjectCode}/audit`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            .then(res => res.json())
+            .then(data => {
+                container.innerHTML = '';
+                if (!Array.isArray(data) || data.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 15px;">Sem registros de alterações neste card.</div>';
+                    return;
+                }
+                data.forEach(item => {
+                    const dateStr = new Date(item.timestamp).toLocaleString('pt-BR');
+                    const entryHtml = `
+                        <div style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 3px;">
+                                <span>👤 <strong>${getFriendlyUserName(item.user)}</strong></span>
+                                <span>📅 ${dateStr}</span>
+                            </div>
+                            <div style="color: var(--text-primary); padding-left: 14px; position: relative;">
+                                <span style="position: absolute; left: 0; top: 0; color: var(--primary);">•</span>
+                                ${item.action}
+                            </div>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', entryHtml);
+                });
+            })
+            .catch(err => {
+                console.error('Erro ao carregar histórico de auditoria:', err);
+                container.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 10px;">Erro ao carregar auditoria.</div>';
+            });
         }
 
         function handleFormReset() {
