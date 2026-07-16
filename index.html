@@ -3820,9 +3820,123 @@
             });
         }
 
+        // ==========================================
+        // SISTEMA DE NOTIFICAÇÕES EM TEMPO REAL (SSE)
+        // ==========================================
+        let sseSource = null;
+
+        function connectRealTimeNotifications() {
+            if (window.location.protocol === 'file:') return;
+            
+            if (sseSource) {
+                sseSource.close();
+            }
+
+            sseSource = new EventSource('/api/notifications/stream');
+
+            sseSource.addEventListener('COMMENT_ADDED', (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    const currentUser = JSON.parse(localStorage.getItem('tecfag_user') || '{}');
+                    if (data.user === currentUser.username) return;
+
+                    showIhmToast(`💬 Novo comentário no projeto <strong>${data.code}</strong> por <strong>${getFriendlyUserName(data.user)}</strong>:<br>"${data.message.substring(0, 50)}${data.message.length > 50 ? '...' : ''}"`, 'info');
+                    
+                    loadProjectsDB();
+                } catch(err) {
+                    console.error('[SSE] Erro no processamento de comentário:', err);
+                }
+            });
+
+            sseSource.addEventListener('PHASE_CHANGED', (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    const currentUser = JSON.parse(localStorage.getItem('tecfag_user') || '{}');
+                    if (data.user === currentUser.username) return;
+
+                    const faseNomesBrief = {
+                        1: 'Vendas',
+                        2: 'Importação',
+                        3: 'Oficina',
+                        4: 'Instalação & SAT',
+                        5: 'Concluído',
+                        6: 'Cancelado'
+                    };
+
+                    showIhmToast(`📢 Projeto <strong>${data.code}</strong> (${data.client}) avançou para a etapa <strong>${faseNomesBrief[data.newFase]}</strong> por <strong>${getFriendlyUserName(data.user)}</strong>!`, 'success');
+                    
+                    loadProjectsDB();
+                } catch(err) {
+                    console.error('[SSE] Erro no processamento de fase:', err);
+                }
+            });
+        }
+
+        function showIhmToast(message, type = 'info') {
+            let container = document.getElementById('ihm-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'ihm-toast-container';
+                container.style = "position: fixed; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 99999; max-width: 380px; pointer-events: none;";
+                document.body.appendChild(container);
+            }
+
+            const toast = document.createElement('div');
+            const borderCol = type === 'success' ? '#10b981' : (type === 'error' ? '#ef4444' : '#0ea5e9');
+            
+            toast.style = `
+                background: rgba(15, 22, 39, 0.92);
+                border-left: 4px solid ${borderCol};
+                border-top: 1px solid var(--border-color);
+                border-right: 1px solid var(--border-color);
+                border-bottom: 1px solid var(--border-color);
+                color: var(--text-primary);
+                padding: 12px 18px;
+                border-radius: 8px;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+                backdrop-filter: blur(12px);
+                font-size: 0.8rem;
+                font-weight: 600;
+                line-height: 1.4;
+                opacity: 0;
+                transform: translateY(-20px);
+                transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+                pointer-events: auto;
+                position: relative;
+                overflow: hidden;
+            `;
+
+            toast.innerHTML = `
+                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 6px 100%; pointer-events: none; opacity: 0.4;"></div>
+                <div style="display: flex; align-items: flex-start; gap: 10px;">
+                    <div style="font-size: 1.1rem; color: ${borderCol}; margin-top: -1px;">
+                        ${type === 'success' ? '⚡' : '🔔'}
+                    </div>
+                    <div style="flex: 1; z-index: 1;">${message}</div>
+                    <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.1rem; padding: 0 0 0 5px; margin-top: -5px; font-weight: bold; outline: none; transition: color 0.2s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">×</button>
+                </div>
+            `;
+
+            container.appendChild(toast);
+            toast.offsetHeight;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-15px)';
+                setTimeout(() => toast.remove(), 350);
+            }, 6000);
+        }
+
         function handleLogout() {
             const token = localStorage.getItem('tecfag_session_token');
             
+            if (sseSource) {
+                sseSource.close();
+                sseSource = null;
+            }
+
             localStorage.removeItem('tecfag_session_token');
             localStorage.removeItem('tecfag_user');
             document.body.classList.add('not-logged-in');
@@ -4459,6 +4573,7 @@
                 updateKPIs();
                 updateRolePanel();
                 handleFormReset();
+                connectRealTimeNotifications();
             } catch (e) {
                 console.error(e);
                 handleLogout();

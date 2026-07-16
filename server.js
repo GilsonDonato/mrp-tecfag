@@ -747,6 +747,14 @@ app.post('/api/projects/:code/comments', async (req, res) => {
             code
         ]);
 
+        // Disparar notificação em tempo real via SSE
+        broadcastNotification('COMMENT_ADDED', {
+            code,
+            user,
+            message: message.trim(),
+            dateAdded: timestamp
+        });
+
         res.status(201).json({ success: true, user, dateAdded: timestamp, message: message.trim() });
     } catch (err) {
         res.status(500).json({ error: 'Erro ao salvar comentário: ' + err.message });
@@ -982,6 +990,40 @@ app.get('/api/metrics/lead-time', authenticateToken, async (req, res) => {
         res.status(500).json({ error: 'Erro ao calcular tempos médios: ' + err.message });
     }
 });
+
+// Clientes SSE ativos para notificações em tempo real
+const sseClients = new Set();
+
+// GET /api/notifications/stream - Server-Sent Events (SSE) para notificações em tempo real
+app.get('/api/notifications/stream', (req, res) => {
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
+    });
+
+    res.write('retry: 5000\n\n');
+
+    const client = { res };
+    sseClients.add(client);
+
+    req.on('close', () => {
+        sseClients.delete(client);
+    });
+});
+
+// Disparar uma notificação SSE em tempo real para todos os clientes ativos
+function broadcastNotification(event, data) {
+    const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+    sseClients.forEach(client => {
+        try {
+            client.res.write(payload);
+        } catch (e) {
+            sseClients.delete(client);
+        }
+    });
+}
 
 // Função auxiliar para extrair o site corporativo com base no domínio do e-mail da empresa
 function extractWebsite(email) {
@@ -5115,6 +5157,15 @@ app.put('/api/projects/:code', async (req, res) => {
 
             // Disparar webhook
             sendWebhookNotification('PHASE_CHANGE', {
+                code,
+                client: updatedProject.client,
+                oldFase,
+                newFase: fase,
+                user: req.user ? req.user.username : 'Desconhecido'
+            });
+
+            // Disparar notificação em tempo real via SSE
+            broadcastNotification('PHASE_CHANGED', {
                 code,
                 client: updatedProject.client,
                 oldFase,
