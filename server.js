@@ -5311,6 +5311,158 @@ app.post('/api/projects/:code/handover', authenticateToken, async (req, res) => 
     }
 });
 
+// Helper para gerar o estudo de caso localmente (Fallback)
+function generateLocalFallbackStudy(project) {
+    let diagText = "";
+    try {
+        if (project.diagnostico && project.diagnostico.trim().startsWith('{')) {
+            const parsed = JSON.parse(project.diagnostico);
+            diagText = parsed.segment || "Equipamento Industrial Tecfag";
+        } else {
+            diagText = project.diagnostico || "Máquina Tecfag";
+        }
+    } catch(e) {
+        diagText = project.diagnostico || "";
+    }
+
+    const markdown = `
+# Estudo de Caso & Escopo Técnico
+**Código do Projeto:** ${project.code}
+**Cliente:** ${project.client}
+**Data de Emissão:** ${new Date().toLocaleDateString('pt-BR')}
+
+---
+
+### 1. Resumo do Desafio Comercial
+Projeto iniciado pelo gerente ${project.pm} para atender a demanda descrita no diagnóstico técnico.
+*   **Segmento/Linha de Produto:** ${diagText}
+*   **SKU de Referência:** ${project.sku || '-'}
+
+### 2. Solução Recomendada & Dimensionamento
+O projeto passará pelas fases de engenharia e produção física para validação do modelo de máquina Tecfag especificado. 
+*   **Técnico Responsável:** ${project.tech || 'Não definido'}
+*   **Número de Série:** ${project.serial || '-'}
+*   **Roteamento Físico de Destino:** ${project.route || '-'}
+
+### 3. Diretrizes de Validação Física (Oficina)
+1.  **Testes de Insumos:** Confirmar correspondência dos gabaritos físicos com as amostras enviadas pelo cliente.
+2.  **Verificação Elétrica:** Ajustar painel para a tensão de alimentação acordada.
+3.  **Inspeção de Segurança:** Garantir integridade de acionamentos e proteções contra acidentes (NR12).
+
+---
+*Nota: Este é um escopo gerado localmente devido à ausência de chave de inteligência artificial.*
+    `;
+    
+    return {
+        estudoCaso: markdown,
+        perguntasFaltantes: [
+            "Quantos modelos de frascos/tampas diferentes serão utilizados?",
+            "Quais as dimensões e formatos exatos dos rótulos / filmes plásticos?",
+            "Qual a produtividade horária esperada e em quantos turnos a máquina irá operar?"
+        ]
+    };
+}
+
+// POST /api/projects/:code/generate-case-study - Gera o Estudo de Caso e valida escopo via Gemini ou Fallback
+app.post('/api/projects/:code/generate-case-study', authenticateToken, async (req, res) => {
+    const { code } = req.params;
+    
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) {
+            return res.status(404).json({ error: 'Projeto não encontrado.' });
+        }
+        
+        const apiKey = process.env.GEMINI_API_KEY;
+        let result = null;
+        let usedAI = false;
+        
+        if (apiKey && apiKey.trim() !== '') {
+            try {
+                const prompt = `
+Você é o Engenheiro de Aplicação Sênior da Tecfag, especialista em projetar, validar e instalar linhas de máquinas industriais de embalagem (seladoras, rotuladoras, dosadoras, termoformadoras, envolvedoras, empacotadoras).
+
+Analise os dados abaixo do Diagnóstico Técnico inserido pelo vendedor:
+Projeto: ${project.code} - Cliente: ${project.client}
+Produto/Insumos informados: ${project.diagnostico}
+Especificações de Campo atuais: ${project.setup_specs || '{}'}
+
+Com base nestes dados, você deve gerar:
+1. Um documento de "Estudo de Caso & Escopo Técnico" formatado em Markdown premium para ser impresso em PDF. O documento deve ter:
+   - Resumo do Projeto (Desafio do cliente)
+   - Solução Proposta (Equipamentos recomendados e dimensionamento)
+   - Parâmetros Críticos de Validação para a Oficina (o que o técnico deve simular fisicamente na oficina)
+   - Infraestrutura e Limitações de Campo
+2. Uma lista de perguntas de validação técnica que estão faltando nas informações do vendedor. Foco especial em:
+   - Quantidade de formatos de frascos/tampas
+   - Dimensões exatas e quantidade de formatos de rótulos
+   - Características específicas do pó (higroscópico, explosivo, fino, granulado) ou líquido (densidade, temperatura, viscosidade, corrosão)
+   - Necessidade exata de produção horária
+   - Quantidade de turnos de trabalho da máquina (SLA de desgaste)
+   - Outras restrições de infraestrutura física/elétrica/pneumática no galpão.
+
+Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres extras ou marcações de markdown fora do JSON):
+{
+  "estudoCaso": "Texto do estudo de caso formatado em markdown com cabeçalhos, marcadores e tabelas",
+  "perguntasFaltantes": ["Pergunta 1?", "Pergunta 2?"]
+}
+`;
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { responseMimeType: "application/json" }
+                };
+                
+                const response = await fetch(geminiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
+                        const rawText = data.candidates[0].content.parts[0].text;
+                        result = JSON.parse(rawText);
+                        usedAI = true;
+                    }
+                }
+            } catch (e) {
+                console.error("Falha ao chamar API do Gemini, usando fallback local:", e);
+            }
+        }
+        
+        if (!result) {
+            result = generateLocalFallbackStudy(project);
+        }
+        
+        // Postar perguntas faltantes automaticamente no Chat/Mural
+        if (result.perguntasFaltantes && result.perguntasFaltantes.length > 0) {
+            for (const pergunta of result.perguntasFaltantes) {
+                const exists = await dbGet('SELECT id FROM comments WHERE projectCode = ? AND user = ? AND message = ?', [code, 'Sistema Tecfag (IA)', pergunta]);
+                if (!exists) {
+                    await dbRun('INSERT INTO comments (projectCode, user, message, dateAdded) VALUES (?, ?, ?, ?)', [
+                        code,
+                        'Sistema Tecfag (IA)',
+                        pergunta,
+                        new Date().toISOString()
+                    ]);
+                }
+            }
+        }
+        
+        res.json({
+            success: true,
+            usedAI,
+            estudoCaso: result.estudoCaso,
+            perguntasFaltantes: result.perguntasFaltantes
+        });
+        
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao gerar estudo de caso: ' + err.message });
+    }
+});
+
 // DELETE /api/projects/:code - Deleta permanentemente um projeto
 app.delete('/api/projects/:code', async (req, res) => {
     const { code } = req.params;

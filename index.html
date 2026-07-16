@@ -3026,8 +3026,9 @@
                         <div class="detail-card" style="margin-bottom: 20px; padding: 0; overflow: hidden;">
                             <div style="display: flex; border-bottom: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.02); overflow-x: auto; white-space: nowrap;">
                                 <button id="modal-tab-btn-contato" onclick="switchModalSubTab('contato')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--primary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid var(--primary); transition: all 0.3s; white-space: nowrap;">📞 Contato & Escopo</button>
+                                <button id="modal-tab-btn-estudo" onclick="switchModalSubTab('estudo')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">📄 Estudo de Caso</button>
                                 <button id="modal-tab-btn-receita" onclick="switchModalSubTab('receita')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">🏛️ Dossiê Receita</button>
-                                <button id="modal-tab-btn-handover" onclick="switchModalSubTab('handover')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">🚚 Handover & Exp.</button>
+                                <button id="modal-tab-btn-handover" onclick="switchModalSubTab('handover')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">🚚 Handover</button>
                                 <button id="modal-tab-btn-chat" onclick="switchModalSubTab('chat')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">💬 Chat & Mural</button>
                                 <button id="modal-tab-btn-audit" onclick="switchModalSubTab('audit')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">📝 Auditoria</button>
                             </div>
@@ -3077,6 +3078,27 @@
                                     
                                     <h5 style="color: var(--primary); margin-bottom: 10px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">Diagnóstico de Automação Requerida</h5>
                                     <p id="modal-desc-diagnostico" style="font-size: 0.82rem; line-height: 1.5; color: #cbd5e1; background-color: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); white-space: pre-wrap; margin: 0;"></p>
+                                </div>
+                                
+                                <!-- SUB-TAB: Estudo de Caso & Escopo com IA -->
+                                <div id="modal-subtab-estudo" style="display: none;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px;">
+                                        <h5 style="color: var(--primary); margin: 0; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">📄 Estudo de Caso & Memorial Descritivo</h5>
+                                        <div style="display: flex; gap: 8px;">
+                                            <button type="button" onclick="generateCaseStudyWithAI()" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                                                Atualizar via IA
+                                            </button>
+                                            <button type="button" onclick="printCaseStudy()" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                                                Imprimir PDF
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="modal-estudo-status" style="margin-bottom: 12px; font-size: 0.72rem; display: none;"></div>
+                                    <div id="modal-estudo-content" style="font-size: 0.8rem; line-height: 1.6; color: #cbd5e1; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 20px; border-radius: 8px; max-height: 380px; overflow-y: auto; font-family: system-ui, sans-serif;">
+                                        <!-- Preenchido via JS (Markdown renderizado ou HTML) -->
+                                    </div>
                                 </div>
                                 
                                 <!-- SUB-TAB 2: Dossiê Receita Federal -->
@@ -5457,23 +5479,26 @@
 
         function switchModalSubTab(tab) {
             const btnContato = document.getElementById('modal-tab-btn-contato');
+            const btnEstudo = document.getElementById('modal-tab-btn-estudo');
             const btnReceita = document.getElementById('modal-tab-btn-receita');
             const btnHandover = document.getElementById('modal-tab-btn-handover');
             const btnChat = document.getElementById('modal-tab-btn-chat');
             const btnAudit = document.getElementById('modal-tab-btn-audit');
             const tabContato = document.getElementById('modal-subtab-contato');
+            const tabEstudo = document.getElementById('modal-subtab-estudo');
             const tabReceita = document.getElementById('modal-subtab-receita');
             const tabHandover = document.getElementById('modal-subtab-handover');
             const tabChat = document.getElementById('modal-subtab-chat');
             const tabAudit = document.getElementById('modal-subtab-audit');
             
             if (tabContato) tabContato.style.display = 'none';
+            if (tabEstudo) tabEstudo.style.display = 'none';
             if (tabReceita) tabReceita.style.display = 'none';
             if (tabHandover) tabHandover.style.display = 'none';
             if (tabChat) tabChat.style.display = 'none';
             if (tabAudit) tabAudit.style.display = 'none';
             
-            [btnContato, btnReceita, btnHandover, btnChat, btnAudit].forEach(btn => {
+            [btnContato, btnEstudo, btnReceita, btnHandover, btnChat, btnAudit].forEach(btn => {
                 if (btn) {
                     btn.style.color = 'var(--text-secondary)';
                     btn.style.borderBottomColor = 'transparent';
@@ -5486,6 +5511,13 @@
                     btnContato.style.color = 'var(--primary)';
                     btnContato.style.borderBottomColor = 'var(--primary)';
                 }
+            } else if (tab === 'estudo') {
+                if (tabEstudo) tabEstudo.style.display = 'block';
+                if (btnEstudo) {
+                    btnEstudo.style.color = 'var(--primary)';
+                    btnEstudo.style.borderBottomColor = 'var(--primary)';
+                }
+                loadCaseStudy();
             } else if (tab === 'receita') {
                 if (tabReceita) tabReceita.style.display = 'block';
                 if (btnReceita) {
@@ -7587,6 +7619,7 @@
 
         // Active project details in modal
         async function openProjectModal(code) {
+            currentCaseStudyMD = ''; // Limpa cache anterior
             const project = state.projects.find(p => p.code === code);
             if (!project) return;
 
@@ -8496,8 +8529,193 @@
             document.getElementById('lightbox-preview').classList.add('active');
         }
 
+        }
+
         function closeLightbox() {
             document.getElementById('lightbox-preview').classList.remove('active');
+        }
+
+        // Estudo de Caso & Validador de Escopo com IA
+        let currentCaseStudyMD = '';
+
+        function renderMarkdownToHTML(md) {
+            if (!md) return '<div style="color: var(--text-secondary);">Sem conteúdo. Clique em "Atualizar via IA" para gerar.</div>';
+            let html = md;
+            
+            // Títulos
+            html = html.replace(/^# (.*$)/gim, '<h2 style="color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-top: 20px; font-size: 1.2rem;">$1</h2>');
+            html = html.replace(/^## (.*$)/gim, '<h3 style="color: #60a5fa; margin-top: 15px; font-size: 1.05rem;">$1</h3>');
+            html = html.replace(/^### (.*$)/gim, '<h4 style="color: #34d399; margin-top: 12px; font-size: 0.95rem;">$1</h4>');
+            
+            // Negrito
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #ffffff;">$1</strong>');
+            
+            // Linhas Horizontais
+            html = html.replace(/^\s*---\s*$/gim, '<hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 15px 0;" />');
+            
+            // Itálico
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            // Listas
+            html = html.replace(/^\s*-\s*(.*$)/gim, '<li style="margin-left: 15px; margin-bottom: 6px; list-style-type: square;">$1</li>');
+            
+            // Quebras de linha para parágrafos
+            html = html.split('\n\n').map(p => {
+                const trimmed = p.trim();
+                if (trimmed.startsWith('<h') || trimmed.startsWith('<li') || trimmed.startsWith('<hr')) return p;
+                return `<p style="margin-bottom: 10px;">${p.replace(/\n/g, '<br>')}</p>`;
+            }).join('\n');
+            
+            return html;
+        }
+
+        async function loadCaseStudy() {
+            const contentDiv = document.getElementById('modal-estudo-content');
+            if (!contentDiv) return;
+            
+            // Se já tiver carregado nessa sessão de modal, apenas exibe
+            if (currentCaseStudyMD) {
+                contentDiv.innerHTML = renderMarkdownToHTML(currentCaseStudyMD);
+                return;
+            }
+            
+            contentDiv.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 30px;"><br>Analisando dados do projeto e gerando escopo técnico...</div>`;
+            
+            // Disparar geração (híbrido)
+            generateCaseStudyWithAI(true);
+        }
+
+        async function generateCaseStudyWithAI(silent = false) {
+            const contentDiv = document.getElementById('modal-estudo-content');
+            const statusDiv = document.getElementById('modal-estudo-status');
+            
+            if (!silent) {
+                contentDiv.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 30px;"><br>Processando com inteligência artificial...</div>`;
+            }
+            
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const response = await fetch(`/api/projects/${activeProjectCode}/generate-case-study`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                if (data.error) {
+                    contentDiv.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 20px;">Erro ao gerar escopo: ${data.error}</div>`;
+                    return;
+                }
+                
+                currentCaseStudyMD = data.estudoCaso;
+                contentDiv.innerHTML = renderMarkdownToHTML(currentCaseStudyMD);
+                
+                if (statusDiv) {
+                    statusDiv.style.display = 'block';
+                    if (data.usedAI) {
+                        statusDiv.innerHTML = `<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: bold; display: inline-flex; align-items: center; gap: 4px;">✨ Escopo Analisado via Gemini AI</span>`;
+                    } else {
+                        statusDiv.innerHTML = `<span style="background: rgba(249, 115, 22, 0.15); color: #f97316; padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(249, 115, 22, 0.3); font-weight: bold; display: inline-flex; align-items: center; gap: 4px;">⚠️ Escopo gerado localmente (Fallback)</span>`;
+                    }
+                }
+            } catch(e) {
+                console.error("Erro na geração de estudo de caso:", e);
+                contentDiv.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 20px;">Falha de comunicação com o servidor.</div>`;
+            }
+        }
+
+        function printCaseStudy() {
+            if (!currentCaseStudyMD) {
+                alert('Carregue o Estudo de Caso antes de tentar imprimir.');
+                return;
+            }
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(\`
+                <html>
+                <head>
+                    <title>Tecfag - Estudo de Caso (\${activeProjectCode})</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            color: #333;
+                            line-height: 1.6;
+                            padding: 40px;
+                        }
+                        .header {
+                            border-bottom: 2px solid #0056b3;
+                            padding-bottom: 20px;
+                            margin-bottom: 30px;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        }
+                        .logo-area {
+                            font-size: 24px;
+                            font-weight: bold;
+                            color: #0056b3;
+                        }
+                        .title-area {
+                            text-align: right;
+                            font-size: 14px;
+                            color: #666;
+                        }
+                        h1, h2, h3, h4 {
+                            color: #0056b3;
+                        }
+                        h2 {
+                            border-bottom: 1px solid #ddd;
+                            padding-bottom: 5px;
+                            margin-top: 30px;
+                        }
+                        strong {
+                            color: #000;
+                        }
+                        li {
+                            margin-bottom: 8px;
+                        }
+                        .footer {
+                            margin-top: 50px;
+                            border-top: 1px solid #ddd;
+                            padding-top: 10px;
+                            font-size: 11px;
+                            color: #777;
+                            text-align: center;
+                        }
+                        @media print {
+                            body { padding: 0; }
+                            button { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="logo-area">TECFAG</div>
+                        <div class="title-area">
+                            <strong>Estudo de Caso & Escopo Técnico</strong><br>
+                            Projeto: \${activeProjectCode}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        \${renderMarkdownToHTML(currentCaseStudyMD).replace(/var\\(--primary\\)/g, '#0056b3').replace(/#ffffff/g, '#000000')}
+                    </div>
+                    
+                    <div class="footer">
+                        TECFAG - Soluções em Embalagens e Automação Industrial | Gerado automaticamente via Tecfag MRP II.
+                    </div>
+                    
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                        };
+                    </script>
+                </body>
+                </html>
+            \`);
+            printWindow.document.close();
         }
 
         async function loadModalComments() {
