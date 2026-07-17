@@ -5650,11 +5650,16 @@ DIRETRIZES DE ENGENHARIA POR SEGMENTO:
 13. "SELADORAS_CONTINUAS" (Seladoras Contínuas de Sacos):
     - Essencial: Material do saco (plástico simples, metalizado, papel Kraft), espessura do saco (micras), peso por saco e tipo de datador (inkjet ou rolo de tinta).
 
-AVALIAÇÃO DA NOTA DE COMPLETUDE (0 a 100):
-- Se não tem a produção alvo (velocidade/hora ou minuto) para QUALQUER segmento: desconte 20 pontos.
-- Se não tem a tensão elétrica (monofásico/trifásico/voltagem) para QUALQUER segmento: desconte 15 pontos.
-- Se os dados essenciais listados no segmento selecionado acima NÃO foram informados no diagnóstico nem nos parâmetros: desconte 45 pontos.
-- Se um item não pertence ao segmento selecionado, considere-o como SATISFEITO (não desconte pontos).
+AVALIAÇÃO DA NOTA DE COMPLETUDE E INCOMPATIBILIDADES FÍSICAS CRÍTICAS (0 a 100):
+1. REGRAS DE INCOMPATIBILIDADE FÍSICA (SE DETECTADAS, SCORE DEVE SER FORÇADO A ZERO "0" E INJETAR O ALERTA NO ARRAY "missing"):
+   - INCOMPATIBILIDADE DE LARGURA VS BALANÇA (Empacotadoras VFFS): Se o dosador superior for "Balança Multicabeçote" ou o produto for grãos/snacks/parafusos E a largura da embalagem for menor que 50 mm (ex: 20 mm, 2 cm, 3 cm, 40 mm), defina "score": 0 e adicione em "missing": "INCOMPATIBILIDADE FÍSICA CRÍTICA: Uma largura de pacote de X mm é estreita demais para escoar produto de Balança Multicabeçote sem entupir. Confirme a largura correta (ex: 200 mm) ou mude o dosador para micro-volumétrico."
+   - INCOMPATIBILIDADE DE VELOCIDADE VS FILME PE (Empacotadoras VFFS): Se o filme especificado for "PE simples" / "PE" (Polietileno Monocamada) E a velocidade requerida for acima de 40 ppm (ex: 80 batidas/minuto, 80 ppm), defina "score": 0 e adicione em "missing": "INCOMPATIBILIDADE CRÍTICA: Selagem de filme PE simples exige tempo de resfriamento (impulso) e é incompatível com velocidades de X ppm. Para 80 ppm, é obrigatório o uso de filme Laminado (BOPP/PE) com selagem por calor constante ou reduzir a velocidade alvo."
+
+2. DESCONTOS DE PREENCHIMENTO REGULARES (Se não houver incompatibilidade física crítica):
+   - Se não tem a produção alvo (velocidade/hora ou minuto) para QUALQUER segmento: desconte 20 pontos.
+   - Se não tem a tensão elétrica (monofásico/trifásico/voltagem) para QUALQUER segmento: desconte 15 pontos.
+   - Se os dados essenciais listados no segmento selecionado acima NÃO foram informados no diagnóstico nem nos parâmetros: desconte 45 pontos.
+   - Se um item não pertence ao segmento selecionado, considere-o como SATISFEITO (não desconte pontos).
 
 Responda ESTRITAMENTE em formato JSON com a seguinte estrutura:
 {
