@@ -1988,6 +1988,7 @@
                                 <th>Progresso</th>
                                 <th>Responsável Atual</th>
                                 <th>Última Atualização</th>
+                                <th>Prazo</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
@@ -7630,6 +7631,35 @@
                 const date = p.lastUpdate ? new Date(p.lastUpdate).toLocaleDateString() : '-';
                 const bottleneck = getBottleneckRole(p);
                 const editingUser = state.activeLocks ? state.activeLocks[p.code] : null;
+
+                // Cálculo do Prazo
+                let deadlineHtml = '<span style="color: var(--text-secondary); font-weight: 500;">-</span>';
+                if (p.fase >= 1 && p.fase <= 4) {
+                    const defaults = { 1: 7, 2: 51, 3: 59, 4: 15 };
+                    let deadlineDays = defaults[p.fase];
+                    if (p.prazos) {
+                        try {
+                            const parsedPrazos = typeof p.prazos === 'string' ? JSON.parse(p.prazos) : p.prazos;
+                            if (parsedPrazos && parsedPrazos[`fase${p.fase}`] !== undefined) {
+                                deadlineDays = parseInt(parsedPrazos[`fase${p.fase}`]);
+                            }
+                        } catch(e) {}
+                    }
+                    const entryDateStr = p.faseEntryDate || p.lastUpdate || new Date().toISOString();
+                    const daysInPhase = Math.floor((new Date() - new Date(entryDateStr)) / (24 * 60 * 60 * 1000));
+                    const remaining = deadlineDays - daysInPhase;
+                    
+                    if (remaining < 0) {
+                        deadlineHtml = `<span style="background: rgba(239, 68, 68, 0.15); color: #f87171; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(239, 68, 68, 0.25); font-weight: bold; font-size: 0.72rem;">⚠️ Atrasado ${Math.abs(remaining)}d</span>`;
+                    } else {
+                        deadlineHtml = `<span style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.25); font-weight: bold; font-size: 0.72rem;">${remaining}d restantes</span>`;
+                    }
+                } else if (p.fase === 5) {
+                    deadlineHtml = `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.25); font-weight: bold; font-size: 0.72rem;">Concluído</span>`;
+                } else if (p.fase === 6) {
+                    deadlineHtml = `<span style="background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); font-weight: 500; font-size: 0.72rem;">Cancelado</span>`;
+                }
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="font-weight: 700; color: var(--primary);">
@@ -7660,6 +7690,7 @@
                     </td>
                     <td style="font-weight: 600; color: var(--primary);">${bottleneck}</td>
                     <td>${date}</td>
+                    <td>${deadlineHtml}</td>
                     <td>
                         <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="openProjectModal('${p.code}')">
                             Editar Controles
