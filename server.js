@@ -5424,6 +5424,9 @@ app.post('/api/projects/:code/generate-case-study', authenticateToken, async (re
             return res.status(404).json({ error: 'Projeto não encontrado.' });
         }
         
+        // Deletar perguntas automáticas da IA anteriores deste projeto para limpar a linha do tempo
+        await dbRun('DELETE FROM comments WHERE projectCode = ? AND user = ?', [code, 'Sistema Tecfag (IA)']);
+        
         const apiKey = process.env.GEMINI_API_KEY;
         let result = null;
         let usedAI = false;
