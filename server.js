@@ -5314,15 +5314,59 @@ app.post('/api/projects/:code/handover', authenticateToken, async (req, res) => 
 // Helper para gerar o estudo de caso localmente (Fallback)
 function generateLocalFallbackStudy(project) {
     let diagText = "";
+    let segment = "";
+    let diagLower = "";
+    
     try {
         if (project.diagnostico && project.diagnostico.trim().startsWith('{')) {
             const parsed = JSON.parse(project.diagnostico);
-            diagText = parsed.segment || "Equipamento Industrial Tecfag";
+            diagText = parsed.observations || "";
+            segment = parsed.segment || "";
         } else {
-            diagText = project.diagnostico || "Máquina Tecfag";
+            diagText = project.diagnostico || "";
         }
     } catch(e) {
         diagText = project.diagnostico || "";
+    }
+    
+    diagLower = diagText.toLowerCase();
+    
+    const missing = [];
+    
+    // Regra de Produção Alvo
+    if (!diagLower.includes('peças') && !diagLower.includes('batidas') && !diagLower.includes('por min') && !diagLower.includes('produção') && !diagLower.includes('hora')) {
+        missing.push("Qual a produtividade horária ou por minuto esperada?");
+    }
+    
+    // Regra de Utilidade (Tensão)
+    if (!diagLower.includes('volt') && !diagLower.includes('220v') && !diagLower.includes('380v')) {
+        missing.push("Qual a tensão elétrica disponível na fábrica (220V/380V)?");
+    }
+    
+    // Regras por Segmento
+    const isEnvasadora = segment === "ENVASADORA" || segment === "DOSADORA" || segment === "6" || segment === "4" || diagLower.includes('envas') || diagLower.includes('dosad');
+    const isRotuladora = segment === "ROTULADORA" || segment === "9" || diagLower.includes('rotul') || diagLower.includes('etiquet');
+    const isEmpacotadora = segment === "EMPACOTADORA" || segment === "5" || diagLower.includes('empacot') || diagLower.includes('sachê');
+    
+    if (isEnvasadora) {
+        if (!diagLower.includes('viscos') && !diagLower.includes('líquid') && !diagLower.includes('pastos') && !diagLower.includes('densidad') && !diagLower.includes('pó') && !diagLower.includes('grão')) {
+            missing.push("Como é a viscosidade do líquido ou o comportamento do pó?");
+        }
+    }
+    
+    if (isRotuladora) {
+        if (!diagLower.includes('dimens') && !diagLower.includes('rótulo') && !diagLower.includes('largura') && !diagLower.includes('altura')) {
+            missing.push("Quais as dimensões exatas e formatos dos rótulos?");
+        }
+        if (!diagLower.includes('frasco') && !diagLower.includes('garrafa') && !diagLower.includes('pote')) {
+            missing.push("Quantos formatos de frascos serão rotulados?");
+        }
+    }
+    
+    if (isEmpacotadora) {
+        if (!diagLower.includes('bobina') && !diagLower.includes('filme') && !diagLower.includes('largura')) {
+            missing.push("Qual a largura máxima da bobina do filme ou dimensões do sachê?");
+        }
     }
 
     const markdown = `
@@ -5335,7 +5379,7 @@ function generateLocalFallbackStudy(project) {
 
 ### 1. Resumo do Desafio Comercial
 Projeto iniciado pelo gerente ${project.pm} para atender a demanda descrita no diagnóstico técnico.
-*   **Segmento/Linha de Produto:** ${diagText}
+*   **Segmento/Linha de Produto:** ${segment || 'Equipamento Tecfag'}
 *   **SKU de Referência:** ${project.sku || '-'}
 
 ### 2. Solução Recomendada & Dimensionamento
@@ -5350,16 +5394,12 @@ O projeto passará pelas fases de engenharia e produção física para validaç�
 3.  **Inspeção de Segurança:** Garantir integridade de acionamentos e proteções contra acidentes (NR12).
 
 ---
-*Nota: Este é um escopo gerado localmente devido à ausência de chave de inteligência artificial.*
+*Nota: Este é um escopo gerado localmente devido à ausência de chave de inteligência artificial ou erro de comunicação.*
     `;
     
     return {
         estudoCaso: markdown,
-        perguntasFaltantes: [
-            "Quantos modelos de frascos/tampas diferentes serão utilizados?",
-            "Quais as dimensões e formatos exatos dos rótulos / filmes plásticos?",
-            "Qual a produtividade horária esperada e em quantos turnos a máquina irá operar?"
-        ]
+        perguntasFaltantes: missing
     };
 }
 
