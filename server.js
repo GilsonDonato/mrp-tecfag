@@ -5598,36 +5598,56 @@ app.post('/api/projects/validate-draft', authenticateToken, async (req, res) => 
         if (apiKey && apiKey.trim() !== '') {
             try {
                 const prompt = `
-Você é o Engenheiro de Aplicações Sênior da Tecfag, com conhecimento profundo de automação industrial, linhas de embalagens, dosagem, encapsulamento Softgel, fabricação de gomas/balas gummy e reologia (viscosidade, fluidez, densidade, comportamento reológico e abrasividade dos materiais).
+Você é o Engenheiro de Aplicações Sênior da Tecfag, especialista em projetar, validar e instalar linhas de máquinas industriais de embalagem.
 
-Analise o rascunho de informações inserido pelo vendedor para um novo projeto:
-Segmento Selecionado: ${segment || 'Não informado'}
-Descrição e Diagnóstico: "${diagnostico || ''}"
-Outros Parâmetros: ${JSON.stringify(extraParams || {})}
+Sua tarefa é analisar o rascunho de informações inserido pelo vendedor e dar uma nota de Completude do Escopo e uma lista de pendências.
+Segmento de Equipamento Principal Selecionado: "${segment}"
+Descrição/Diagnóstico do Vendedor: "${diagnostico}"
+Parâmetros Técnicos Digitados: ${JSON.stringify(extraParams)}
 
-Determine se este escopo é suficiente para prosseguir com segurança para a montagem/oficina.
+REGRA MESTRA ABSOLUTA:
+Avalie o escopo EXCLUSIVAMENTE sob as regras do segmento selecionado ("${segment}"). NUNCA misture regras ou faça perguntas de um segmento para o outro.
 
-REGRA CRÍTICA DE RELEVÂNCIA:
-- Você deve avaliar APENAS as regras que façam sentido técnico para o segmento selecionado: "${segment}".
-- Se o projeto for sobre dosadoras/envasadoras (líquidos/pós), avalie se a viscosidade do líquido ou granulometria do pó foi descrita. 
-- Se for empacotadora/seladora, avalie se a largura da bobina ou tamanho do sachê foi informado.
-- Se for rotuladora, avalie se dimensões do rótulo e quantidade de formatos foram descritos.
-- NUNCA peça características de rótulos para projetos de dosadoras, ou viscosidade de líquidos para seladoras de sólidos. Se um item não pertence ao segmento selecionado, considere-o como Satisfeito/Não aplicável.
+DIRETRIZES DE ENGENHARIA POR SEGMENTO:
+1. "MISTURADORES" (Processamento e Mistura):
+   - Essencial: Capacidade em litros ou quilos, densidade aparente do pó e se o produto é abrasivo, corrosivo ou inflamável.
+2. "ENCAPSULADORAS" (Encapsulamento & Linhas Farmacêuticas):
+   - Essencial: Tamanho da cápsula (ex: 00, 0, 1, Softgel), e se o preenchimento é pó, grânulo ou líquido.
+3. "GOMAS" (Fabricação de Gomas & Balas Gummy):
+   - Essencial: Tipo de gelificante (pectina, gelatina ou amido), formato do molde (3D, teflon, silicone) e capacidade em kg/hora.
+4. "DOSAGEM_SEMIAUTOMATICA" (Dosadores Semiautomáticos):
+   - Essencial: Faixa de dosagem (gramas ou ml) e comportamento físico do insumo (pó fino, grãos, viscosidade do líquido).
+5. "DOSAGEM_EMPACOTAMENTO" (Empacotamento Automático VFFS/Flow Pack):
+   - Essencial: Largura máxima da bobina do filme plástico, dimensões do pacote final (largura e comprimento) e tipo de solda.
+6. "ENVASE" (Envasadoras Automáticas de Líquidos/Pastosos):
+   - Essencial: Comportamento de viscosidade (baixo, médio, alto), temperatura de envase, presença de pedaços/sólidos no líquido e diâmetro do gargalo do frasco.
+7. "FECHAMENTO_TAMPAGEM" (Tampadoras, Rosqueadoras, Indução):
+   - Essencial: Diâmetro da tampa, tipo de tampa (rosca, batoque, pressão) e se exige selo de indução de alumínio.
+8. "VACUO_TERMOFORMADORAS" (Seladoras a Vácuo & Termoformadoras):
+   - Essencial: Dimensões da câmara/bandeja, nível de vácuo desejado e se exige injeção de gás (MAP).
+9. "ROTULADORAS" (Rotuladoras & Etiquetadoras):
+   - Essencial: Dimensões do rótulo (largura e altura), formato do frasco (cilíndrico, plano, cônico) e se o rótulo é transparente (exige sensor especial).
+10. "TERMOENCOLHIVEL" (Seladoras L, Túneis, Enfardadoras):
+    - Essencial: Dimensões do pacote ou agrupamento de produtos e tipo de filme encolhível (PE, PVC, poliolefínico).
+11. "FINAL_LINHA" (Fechadoras de Caixas, Paletização):
+    - Essencial: Dimensões externas das caixas, peso máximo e tipo de fechamento (fita adesiva ou cola hot-melt).
+12. "PROJETOS_ESPECIAIS" (Customizações Personnalité sob Medida):
+    - Essencial: Requisitos específicos de layout de fábrica do cliente, normas reguladoras (NR12, sala limpa) e desenho técnico básico.
+13. "SELADORAS_CONTINUAS" (Seladoras Contínuas de Sacos):
+    - Essencial: Material do saco (plástico simples, metalizado, papel Kraft), peso por saco e tipo de datador (inkjet ou rolo de tinta).
 
-Dê uma nota de Completude de Escopo (0 a 100).
-A nota deve ser calculada descontando pontos apenas para itens faltantes RELEVANTES para o segmento:
-- Se for envasadora/dosadora e não tem viscosidade/tipo de produto: desconte 35 pontos.
-- Se for rotuladora e não tem formatos/tampas ou rótulos: desconte 35 pontos.
-- Se for empacotadora e não tem largura da bobina/sachê: desconte 35 pontos.
-- Se não tem a produção alvo (velocidade) em qualquer segmento: desconte 20 pontos.
-- Se não tem a tensão elétrica (utilidade) em qualquer segmento: desconte 15 pontos.
+AVALIAÇÃO DA NOTA DE COMPLETUDE (0 a 100):
+- Se não tem a produção alvo (velocidade/hora ou minuto) para QUALQUER segmento: desconte 20 pontos.
+- Se não tem a tensão elétrica (monofásico/trifásico/voltagem) para QUALQUER segmento: desconte 15 pontos.
+- Se os dados essenciais listados no segmento selecionado acima NÃO foram informados no diagnóstico nem nos parâmetros: desconte 45 pontos.
+- Se um item não pertence ao segmento selecionado, considere-o como SATISFEITO (não desconte pontos).
 
-Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres extras, explicações ou marcações de markdown fora do JSON):
+Responda ESTRITAMENTE em formato JSON com a seguinte estrutura:
 {
   "score": 75,
   "color": "yellow", // "red" para score < 50, "yellow" para 50 <= score < 80, "green" para score >= 80
-  "missing": ["Pergunta 1?", "Pergunta 2?"],
-  "satisfied": ["Parâmetro informado 1", "Parâmetro informado 2"]
+  "missing": ["Pergunta/Pendência técnica 1?", "Pergunta/Pendência técnica 2?"],
+  "satisfied": ["Parâmetro bem especificado 1", "Parâmetro bem especificado 2"]
 }
 `;
                 const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
