@@ -5758,6 +5758,11 @@
             // Reseta a visibilidade dos campos específicos e o HUD de sugestão
             updateSegmentFields();
             runSkuSuggestionEngine();
+
+            // Reseta dados do Copiloto de IA
+            currentCopilotScore = 0;
+            currentCopilotMissing = [];
+            updateCopilotUI({ score: 0, missing: ['Selecione um segmento ou escreva no Diagnóstico para iniciar.'], satisfied: [] });
         }
 
         function maskPhone(el) {
@@ -6970,6 +6975,21 @@
                 if (submitBtn) {
                     submitBtn.disabled = true;
                     submitBtn.innerText = "Processando uploads...";
+                }
+
+                // Validação preventiva do Copiloto de IA para evitar retrabalho
+                if (currentCopilotScore < 80 && currentCopilotMissing.length > 0) {
+                    const cleanMissing = currentCopilotMissing.map(m => m.replace(/^[🔴\s•*-]+/g, '').trim());
+                    const message = `⚠️ ATENÇÃO: ESCOPO TÉCNICO INCOMPLETO (Completude: ${currentCopilotScore}%)\n\nPara evitar retrabalhos na Oficina e preencher o Estudo de Caso com assertividade, o Copiloto de IA identificou que faltam as seguintes informações essenciais:\n\n${cleanMissing.map(m => '• ' + m).join('\n')}\n\nDeseja CANCELAR o envio para complementar o Diagnóstico agora?`;
+                    
+                    if (confirm(message)) {
+                        isSubmitting = false;
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerText = "Cadastrar Projeto & Iniciar Funil";
+                        }
+                        return; // Cancela e foca na correção
+                    }
                 }
 
                 const code = document.getElementById('prj-code').value.trim().toUpperCase().replace(/\s+/g, '');
@@ -8757,6 +8777,8 @@
 
         // Copiloto de Engenharia IA - Lógica em Tempo Real
         let copilotTimeout = null;
+        let currentCopilotScore = 0;
+        let currentCopilotMissing = [];
 
         function bindCopilotEvents() {
             const form = document.getElementById('new-project-form');
@@ -8829,6 +8851,8 @@
             if (!progressBar || !scoreText || !badge || !missingList || !satisfiedList) return;
             
             const score = data.score || 0;
+            currentCopilotScore = score;
+            currentCopilotMissing = data.missing || [];
             progressBar.style.width = score + '%';
             scoreText.innerText = score + '%';
             
