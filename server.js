@@ -5311,6 +5311,17 @@ app.post('/api/projects/:code/handover', authenticateToken, async (req, res) => 
     }
 });
 
+// Helper para limpar e converter JSON retornado pelo Gemini (remove delimitadores de markdown)
+function cleanAndParseJSON(text) {
+    let cleaned = text.trim();
+    if (cleaned.startsWith('```')) {
+        // Remove ```json no início e ``` no fim
+        cleaned = cleaned.replace(/^```json\s*/i, '');
+        cleaned = cleaned.replace(/```\s*$/, '');
+    }
+    return JSON.parse(cleaned.trim());
+}
+
 // Helper para gerar o estudo de caso localmente (Fallback)
 function generateLocalFallbackStudy(project) {
     let diagText = "";
@@ -5464,7 +5475,7 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres e
                     const data = await response.json();
                     if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
                         const rawText = data.candidates[0].content.parts[0].text;
-                        result = JSON.parse(rawText);
+                        result = cleanAndParseJSON(rawText);
                         usedAI = true;
                     }
                 } else {
@@ -5666,7 +5677,7 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura:
                     const data = await response.json();
                     if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
                         const rawText = data.candidates[0].content.parts[0].text;
-                        result = JSON.parse(rawText);
+                        result = cleanAndParseJSON(rawText);
                     }
                 } else {
                     const errText = await response.text();
