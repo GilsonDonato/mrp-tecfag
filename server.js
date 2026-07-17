@@ -5610,31 +5610,31 @@ Avalie o escopo EXCLUSIVAMENTE sob as regras do segmento selecionado ("${segment
 
 DIRETRIZES DE ENGENHARIA POR SEGMENTO:
 1. "MISTURADORES" (Processamento e Mistura):
-   - Essencial: Capacidade em litros ou quilos, densidade aparente do pó e se o produto é abrasivo, corrosivo ou inflamável.
+   - Essencial: Capacidade em litros ou quilos, densidade aparente do pó, riscos de abrasividade/corrosividade, umidade do material e se o pó é explosivo/inflamável (necessidade de motores EX).
 2. "ENCAPSULADORAS" (Encapsulamento & Linhas Farmacêuticas):
-   - Essencial: Tamanho da cápsula (ex: 00, 0, 1, Softgel), e se o preenchimento é pó, grânulo ou líquido.
+   - Essencial: Tamanho da cápsula (ex: 00, 0, Softgel), comportamento higroscópico/sensibilidade térmica do pó e, se for Softgel, viscosidade da pasta de preenchimento e espessura da gelatina.
 3. "GOMAS" (Fabricação de Gomas & Balas Gummy):
-   - Essencial: Tipo de gelificante (pectina, gelatina ou amido), formato do molde (3D, teflon, silicone) e capacidade em kg/hora.
+   - Essencial: Tipo de gelificante (pectina, gelatina ou amido), formato do molde (3D, teflon, silicone), capacidade em kg/hora, temperatura de dosagem e tipo de agente desmoldante (óleo/amido).
 4. "DOSAGEM_SEMIAUTOMATICA" (Dosadores Semiautomáticos):
-   - Essencial: Faixa de dosagem (gramas ou ml) e comportamento físico do insumo (pó fino, grãos, viscosidade do líquido).
+   - Essencial: Faixa de dosagem (gramas ou ml), comportamento de fluidez/viscosidade e se o produto gera pó em suspensão (necessidade de bico com exaustão ou gaveta corta-fluxo).
 5. "DOSAGEM_EMPACOTAMENTO" (Empacotamento Automático VFFS/Flow Pack):
-   - Essencial: Largura máxima da bobina do filme plástico, dimensões do pacote final (largura e comprimento) e tipo de solda.
+   - Essencial: Largura máxima da bobina do filme plástico, tipo de material do filme (Laminado, PE, PP, Papel), dimensões do sachê final, tipo de solda e se o filme possui impressão (necessidade de fotocélula).
 6. "ENVASE" (Envasadoras Automáticas de Líquidos/Pastosos):
-   - Essencial: Comportamento de viscosidade (baixo, médio, alto), temperatura de envase, presença de pedaços/sólidos no líquido e diâmetro do gargalo do frasco.
+   - Essencial: Comportamento de viscosidade (baixo, médio, alto), temperatura de envase, presença de pedaços/sólidos no líquido, diâmetro do gargalo, corrosividade/PH ácido do produto (Inox 316L) e se gera espuma (necessidade de bico mergulhador).
 7. "FECHAMENTO_TAMPAGEM" (Tampadoras, Rosqueadoras, Indução):
-   - Essencial: Diâmetro da tampa, tipo de tampa (rosca, batoque, pressão) e se exige selo de indução de alumínio.
+   - Essencial: Diâmetro da tampa, tipo de tampa (rosca, batoque, pressão), torque dinâmico requerido (N.m), presença de lacre inviolável e necessidade de seladora de indução de alumínio.
 8. "VACUO_TERMOFORMADORAS" (Seladoras a Vácuo & Termoformadoras):
-   - Essencial: Dimensões da câmara/bandeja, nível de vácuo desejado e se exige injeção de gás (MAP).
+   - Essencial: Dimensões da câmara/bandeja, nível de vácuo desejado, nível de barreira de oxigênio do filme, tipo de bomba de vácuo (m3/h) e se exige injeção de gás (MAP).
 9. "ROTULADORAS" (Rotuladoras & Etiquetadoras):
-   - Essencial: Dimensões do rótulo (largura e altura), formato do frasco (cilíndrico, plano, cônico) e se o rótulo é transparente (exige sensor especial).
+   - Essencial: Dimensões do rótulo (largura e altura), formato do frasco (cilíndrico, plano, cônico - conicidade exige cabeçote angular), se o rótulo é transparente (necessidade de sensor especial) e velocidade da esteira.
 10. "TERMOENCOLHIVEL" (Seladoras L, Túneis, Enfardadoras):
-    - Essencial: Dimensões do pacote ou agrupamento de produtos e tipo de filme encolhível (PE, PVC, poliolefínico).
+    - Essencial: Dimensões do pacote ou agrupamento de produtos, tipo de filme encolhível (PE, PVC, poliolefínico) e estabilidade do agrupamento (necessidade de bandeja de papelão suporte).
 11. "FINAL_LINHA" (Fechadoras de Caixas, Paletização):
-    - Essencial: Dimensões externas das caixas, peso máximo e tipo de fechamento (fita adesiva ou cola hot-melt).
+    - Essencial: Dimensões externas das caixas, peso máximo, tipo de fechamento (fita adesiva ou cola hot-melt), sentido de fluxo da linha e altura da esteira de entrada/saída.
 12. "PROJETOS_ESPECIAIS" (Customizações Personnalité sob Medida):
-    - Essencial: Requisitos específicos de layout de fábrica do cliente, normas reguladoras (NR12, sala limpa) e desenho técnico básico.
+    - Essencial: Requisitos específicos de layout de fábrica, normas reguladoras (NR12, sala limpa), pontos de utilidades de fábrica (vazão de ar comprimido em PCM, pressão) e desenho técnico básico.
 13. "SELADORAS_CONTINUAS" (Seladoras Contínuas de Sacos):
-    - Essencial: Material do saco (plástico simples, metalizado, papel Kraft), peso por saco e tipo de datador (inkjet ou rolo de tinta).
+    - Essencial: Material do saco (plástico simples, metalizado, papel Kraft), espessura do saco (micras), peso por saco e tipo de datador (inkjet ou rolo de tinta).
 
 AVALIAÇÃO DA NOTA DE COMPLETUDE (0 a 100):
 - Se não tem a produção alvo (velocidade/hora ou minuto) para QUALQUER segmento: desconte 20 pontos.
