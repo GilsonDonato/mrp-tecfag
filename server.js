@@ -5090,7 +5090,7 @@ app.put('/api/projects/:code', async (req, res) => {
     const { 
         serial, route, fase, checklist, prazos, lastUpdate, motivoPerda, tech, machines, equipment_origin, handover_signed,
         crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date,
-        setup_specs
+        setup_specs, pm
     } = req.body;
     const { code } = req.params;
 
@@ -5132,6 +5132,9 @@ app.put('/api/projects/:code', async (req, res) => {
         }
         if (tech !== undefined && tech !== oldProject.tech) {
             await recordAuditLog(code, auditUser, `Alterou o Técnico Responsável de "${oldProject.tech || '-'}" para "${tech || '-'}"`);
+        }
+        if (pm !== undefined && pm !== oldProject.pm) {
+            await recordAuditLog(code, auditUser, `Alterou o Gerente Responsável de "${oldProject.pm || '-'}" para "${pm || '-'}"`);
         }
         if (equipment_origin !== undefined && equipment_origin !== oldProject.equipment_origin) {
             await recordAuditLog(code, auditUser, `Alterou a Origem do Equipamento de "${oldProject.equipment_origin || '-'}" para "${equipment_origin || '-'}"`);
@@ -5217,6 +5220,12 @@ app.put('/api/projects/:code', async (req, res) => {
         if (tech !== undefined) {
             sql += `, tech = ?`;
             params.push(tech);
+        }
+
+        // Se o gerente (PM) foi enviado para atualização
+        if (pm !== undefined) {
+            sql += `, pm = ?`;
+            params.push(pm);
         }
 
         sql += ` WHERE code = ?`;

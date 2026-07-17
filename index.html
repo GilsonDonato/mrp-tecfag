@@ -3077,6 +3077,10 @@
                                             <td style="padding: 6px 0; font-weight: bold; color: var(--primary);" id="modal-desc-creator">-</td>
                                         </tr>
                                         <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                            <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary); width: 110px;">Gerente (PM):</td>
+                                            <td style="padding: 6px 0;" id="modal-desc-pm">-</td>
+                                        </tr>
+                                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                                             <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary); width: 110px;">CNPJ:</td>
                                             <td style="padding: 6px 0;" id="modal-desc-cnpj">-</td>
                                         </tr>
@@ -7701,6 +7705,98 @@
             });
         }
 
+        // Renderiza o seletor editável de Gerente (PM) no modal de detalhes
+        function renderPmSelector(currentPm) {
+            const container = document.getElementById('modal-desc-pm');
+            if (!container) return;
+
+            // Gilson/Admin (ALL), Fernando/Gerente (GERENTE), Engenharia (ENGENHARIA) ou Diretor (DIRETOR) podem editar
+            const userRole = currentRole;
+            const isAuthorized = (userRole === 'ALL' || userRole === 'GERENTE' || userRole === 'ENGENHARIA' || userRole === 'DIRETOR');
+
+            if (!isAuthorized) {
+                container.innerHTML = `<span style="font-weight: bold; color: var(--primary);">${currentPm}</span>`;
+                return;
+            }
+
+            const pmList = [
+                'Fernando', 
+                'admin', 
+                'vendas', 
+                'vendas1', 
+                'vendas2', 
+                'vendas3', 
+                'vendas4', 
+                'gerente', 
+                'heilio', 
+                'suporte2',
+                'gerente_comercial',
+                'joao.lanza',
+                'Eng. Roberto Albuquerque',
+                'Eng. Patrícia Santos'
+            ];
+
+            if (!pmList.includes(currentPm) && currentPm) {
+                pmList.push(currentPm);
+            }
+
+            let selectHtml = `<select id="tag-edit-pm-select" class="form-control" style="background: rgba(14, 165, 233, 0.05); color: #cbd5e1; border: 1px solid rgba(14, 165, 233, 0.2); font-size: 0.76rem; padding: 2px 4px; border-radius: 4px; font-weight: bold; width: auto; display: inline-block; cursor: pointer;">`;
+            pmList.forEach(pmName => {
+                const selected = pmName === currentPm ? 'selected' : '';
+                selectHtml += `<option value="${pmName}" ${selected}>${pmName}</option>`;
+            });
+            selectHtml += `</select>`;
+
+            container.innerHTML = selectHtml;
+
+            // Bind change event
+            const selectEl = document.getElementById('tag-edit-pm-select');
+            if (selectEl) {
+                selectEl.addEventListener('change', async (e) => {
+                    const newPm = e.target.value;
+                    const token = localStorage.getItem('tecfag_session_token');
+                    try {
+                        const response = await fetch(`/api/projects/${activeProjectCode}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ pm: newPm })
+                        });
+                        const resData = await response.json();
+                        if (response.ok) {
+                            // Atualiza estado local
+                            const prjIndex = state.projects.findIndex(p => p.code === activeProjectCode);
+                            if (prjIndex !== -1) {
+                                state.projects[prjIndex].pm = newPm;
+                            }
+                            
+                            // Atualiza subtítulo do modal
+                            const subEl = document.getElementById('modal-project-subtitle');
+                            if (subEl) {
+                                const parts = subEl.innerText.split('|');
+                                if (parts.length >= 3) {
+                                    subEl.innerText = `Gerente: ${newPm} | ${parts[1].trim()} | ${parts[2].trim()}`;
+                                }
+                            }
+                            
+                            // Recarrega visualizações
+                            renderProjectsTable();
+                            renderKanban();
+                        } else {
+                            alert('Erro ao reatribuir: ' + (resData.error || 'Erro desconhecido'));
+                            renderPmSelector(currentPm);
+                        }
+                    } catch (err) {
+                        console.error('Erro na reatribuição de PM:', err);
+                        alert('Erro ao conectar com o servidor.');
+                        renderPmSelector(currentPm);
+                    }
+                });
+            }
+        }
+
         // Active project details in modal
         async function openProjectModal(code) {
             currentCaseStudyMD = ''; // Limpa cache anterior
@@ -7803,6 +7899,7 @@
             }
             
             document.getElementById('modal-desc-creator').innerText = creator;
+            renderPmSelector(project.pm);
             document.getElementById('modal-desc-cnpj').innerText = maskedCnpj;
             document.getElementById('modal-desc-contact-name').innerText = project.contact || '-';
             document.getElementById('modal-desc-contact-phone').innerText = project.contact_phone || '-';
