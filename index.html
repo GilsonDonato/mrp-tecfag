@@ -314,6 +314,11 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
         /* Current Bottleneck Task Alert Header */
         .my-tasks-bar {
             background: linear-gradient(90deg, #1d283d 0%, #171d2b 100%);
@@ -1889,21 +1894,45 @@
                 </div>
             </div>
 
-            <!-- Filtro de Vendedores -->
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; background: rgba(23, 29, 44, 0.5); border: 1px solid var(--border-color); padding: 12px 18px; border-radius: 8px; width: fit-content; backdrop-filter: blur(8px);">
-                <span style="font-size: 0.76rem; font-weight: bold; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    Filtrar por Vendedor:
-                </span>
-                <select id="kanban-seller-filter" onchange="filterKanbanBySeller(this.value)" style="background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; font-weight: bold; cursor: pointer; outline: none; transition: border-color 0.2s;">
-                    <option value="all">👥 Todos os Vendedores</option>
-                    <option value="vendas">Diana (vendas)</option>
-                    <option value="vendas1">Alex (vendas1)</option>
-                    <option value="vendas2">Jhordan (vendas2)</option>
-                    <option value="vendas3">Nardeli (vendas3)</option>
-                    <option value="vendas4">Lucas (vendas4)</option>
-                    <option value="vendas6">Patricia (vendas6)</option>
-                </select>
+            <!-- Filtros do Kanban -->
+            <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; background: rgba(23, 29, 44, 0.5); border: 1px solid var(--border-color); padding: 12px 18px; border-radius: 8px; width: 100%; max-width: 100%; box-sizing: border-box; backdrop-filter: blur(8px);">
+                <!-- Filtro de Busca -->
+                <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 250px;">
+                    <span style="font-size: 0.76rem; font-weight: bold; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        Buscar:
+                    </span>
+                    <input type="text" id="kanban-search-filter" oninput="applyKanbanFilters()" placeholder="Buscar por Cliente, Código ou SKU..." style="flex: 1; background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; outline: none; transition: border-color 0.2s;">
+                </div>
+
+                <!-- Filtro de Vendedores -->
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 220px;">
+                    <span style="font-size: 0.76rem; font-weight: bold; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Vendedor:
+                    </span>
+                    <select id="kanban-seller-filter" onchange="applyKanbanFilters()" style="background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; font-weight: bold; cursor: pointer; outline: none; transition: border-color 0.2s;">
+                        <option value="all">👥 Todos os Vendedores</option>
+                        <option value="vendas">Diana (vendas)</option>
+                        <option value="vendas1">Alex (vendas1)</option>
+                        <option value="vendas2">Jhordan (vendas2)</option>
+                        <option value="vendas3">Nardeli (vendas3)</option>
+                        <option value="vendas4">Lucas (vendas4)</option>
+                        <option value="vendas6">Patricia (vendas6)</option>
+                    </select>
+                </div>
+
+                <!-- Filtro de Dúvida Pendente -->
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 220px;">
+                    <span style="font-size: 0.76rem; font-weight: bold; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        Status:
+                    </span>
+                    <select id="kanban-status-filter" onchange="applyKanbanFilters()" style="background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; font-weight: bold; cursor: pointer; outline: none; transition: border-color 0.2s;">
+                        <option value="all">📋 Todos os Projetos</option>
+                        <option value="pending">💬 Dúvidas Pendentes</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Pipeline Board -->
@@ -4728,10 +4757,59 @@
         let activeProjectCode = null;
         let lockHeartbeatInterval = null;
 
-        function filterKanbanBySeller(val) {
-            activeSellerFilter = val;
+        function applyKanbanFilters() {
+            const sellerFilterEl = document.getElementById('kanban-seller-filter');
+            activeSellerFilter = sellerFilterEl ? sellerFilterEl.value : 'all';
             updateKPIs();
             renderKanban();
+        }
+
+        function filterKanbanBySeller(val) {
+            const sellerFilterEl = document.getElementById('kanban-seller-filter');
+            if (sellerFilterEl) sellerFilterEl.value = val;
+            applyKanbanFilters();
+        }
+
+        function getFilteredProjects() {
+            let filteredPrjs = state.projects;
+            
+            // Filtro de Vendedor
+            if (activeSellerFilter !== 'all') {
+                filteredPrjs = filteredPrjs.filter(p => {
+                    const creator = p.checklist ? p.checklist.diagnostico_user : null;
+                    return creator === activeSellerFilter;
+                });
+            }
+
+            // Filtro de Busca por Texto
+            const searchInput = document.getElementById('kanban-search-filter');
+            const searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            if (searchQuery) {
+                const cleanQueryCnpj = searchQuery.replace(/\D/g, '');
+                filteredPrjs = filteredPrjs.filter(p => {
+                    const clientMatch = p.client && p.client.toLowerCase().includes(searchQuery);
+                    const codeMatch = p.code && p.code.toLowerCase().includes(searchQuery);
+                    const skuMatch = p.sku && p.sku.toLowerCase().includes(searchQuery);
+                    const cnpjMatch = cleanQueryCnpj && p.cnpj && p.cnpj.replace(/\D/g, '').includes(cleanQueryCnpj);
+                    return clientMatch || codeMatch || skuMatch || cnpjMatch;
+                });
+            }
+
+            // Filtro de Dúvida Pendente
+            const statusFilter = document.getElementById('kanban-status-filter');
+            const statusVal = statusFilter ? statusFilter.value : 'all';
+            if (statusVal === 'pending') {
+                const userStr = localStorage.getItem('tecfag_user');
+                const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
+                filteredPrjs = filteredPrjs.filter(project => {
+                    const isCreator = project.checklist && project.checklist.diagnostico_user === currentUser;
+                    const hasPendingComment = project.crm_last_comment_user && 
+                        project.crm_last_comment_user !== (project.checklist ? project.checklist.diagnostico_user : '');
+                    return hasPendingComment && (isCreator || currentRole === 'ALL' || currentRole === 'GERENTE');
+                });
+            }
+
+            return filteredPrjs;
         }
         let isSubmitting = false;
         let projectToMarkLost = null;
@@ -5902,8 +5980,21 @@
 
             isCnpjValidating = true;
             if (statusEl) {
-                statusEl.innerText = "🔍 Consultando CNPJ na base da Receita...";
-                statusEl.style.color = "var(--primary)";
+                statusEl.innerHTML = `
+                    <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--primary);">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 1.2s linear infinite; flex-shrink: 0;">
+                            <line x1="12" y1="2" x2="12" y2="6"/>
+                            <line x1="12" y1="18" x2="12" y2="22"/>
+                            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
+                            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
+                            <line x1="2" y1="12" x2="6" y2="12"/>
+                            <line x1="18" y1="12" x2="22" y2="12"/>
+                            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
+                            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
+                        </svg>
+                        <span>Consultando CNPJ na base da Receita...</span>
+                    </span>
+                `;
             }
 
             try {
@@ -6973,6 +7064,11 @@
         async function handleProjectSubmit(e) {
             e.preventDefault();
 
+                if (isCnpjValidating) {
+                    alert("Aguarde a validação do CNPJ antes de cadastrar o projeto.");
+                    return;
+                }
+
                 if (isSubmitting) return;
                 isSubmitting = true;
 
@@ -7313,13 +7409,7 @@
 
         // KPIs
         function updateKPIs() {
-            let filteredPrjs = state.projects;
-            if (activeSellerFilter !== 'all') {
-                filteredPrjs = filteredPrjs.filter(p => {
-                    const creator = p.checklist ? p.checklist.diagnostico_user : null;
-                    return creator === activeSellerFilter;
-                });
-            }
+            let filteredPrjs = getFilteredProjects();
 
             const countFase = (f) => filteredPrjs.filter(p => p.fase === f).length;
 
@@ -7392,13 +7482,7 @@
                 if (el) el.innerHTML = '';
             });
 
-            let filteredProjects = state.projects;
-            if (activeSellerFilter !== 'all') {
-                filteredProjects = filteredProjects.filter(p => {
-                    const creator = p.checklist ? p.checklist.diagnostico_user : null;
-                    return creator === activeSellerFilter;
-                });
-            }
+            let filteredProjects = getFilteredProjects();
 
             if (filteredProjects.length === 0) {
                 const noPrjCol = document.getElementById('cards-fase1');
@@ -7797,6 +7881,111 @@
             }
         }
 
+        // Renderiza o seletor editável de Vendedor (Criador) no modal de detalhes
+        function renderSellerSelector(project) {
+            const container = document.getElementById('modal-desc-creator');
+            if (!container) return;
+
+            const userStr = localStorage.getItem('tecfag_user');
+            const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
+            
+            const currentSeller = project.checklist ? project.checklist.diagnostico_user : '';
+            const friendlyName = getFriendlyUserName(currentSeller);
+
+            const isCreator = project.checklist && (
+                currentSeller === currentUser ||
+                friendlyName.toLowerCase() === currentUser.toLowerCase() ||
+                getFriendlyUserName(currentUser).toLowerCase() === friendlyName.toLowerCase()
+            );
+            
+            const userRole = currentRole;
+            const isAuthorized = (
+                userRole === 'ALL' || 
+                userRole === 'GERENTE' || 
+                userRole === 'DIRETOR' || 
+                userRole === 'GERENTE_COMERCIAL' || 
+                userRole === 'ENGENHARIA' || 
+                isCreator
+            );
+
+            if (!isAuthorized) {
+                container.innerHTML = `<span style="font-weight: bold; color: var(--primary);">${friendlyName}</span>`;
+                return;
+            }
+
+            const sellerList = [
+                { username: 'vendas', label: 'Diana (vendas)' },
+                { username: 'vendas1', label: 'Alex (vendas1)' },
+                { username: 'vendas2', label: 'Jhordan (vendas2)' },
+                { username: 'vendas3', label: 'Nardeli (vendas3)' },
+                { username: 'vendas4', label: 'Lucas (vendas4)' },
+                { username: 'vendas6', label: 'Patricia (vendas6)' },
+                { username: 'gerente', label: 'Gerente (gerente)' }
+            ];
+
+            if (currentSeller && !sellerList.find(s => s.username === currentSeller)) {
+                sellerList.push({ username: currentSeller, label: `${friendlyName} (${currentSeller})` });
+            }
+
+            let selectHtml = `<select id="tag-edit-seller-select" class="form-control" style="background: rgba(16, 185, 129, 0.05); color: #cbd5e1; border: 1px solid rgba(16, 185, 129, 0.2); font-size: 0.76rem; padding: 2px 4px; border-radius: 4px; font-weight: bold; width: auto; display: inline-block; cursor: pointer;">`;
+            sellerList.forEach(s => {
+                const selected = s.username === currentSeller ? 'selected' : '';
+                selectHtml += `<option value="${s.username}" ${selected}>${s.label}</option>`;
+            });
+            selectHtml += `</select>`;
+
+            container.innerHTML = selectHtml;
+
+            const selectEl = document.getElementById('tag-edit-seller-select');
+            if (selectEl) {
+                selectEl.addEventListener('change', async (e) => {
+                    const newSeller = e.target.value;
+                    const token = localStorage.getItem('tecfag_session_token');
+                    
+                    const updatedChecklist = { ...project.checklist };
+                    updatedChecklist.diagnostico_user = newSeller;
+
+                    try {
+                        const response = await fetch(`/api/projects/${activeProjectCode}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ checklist: updatedChecklist })
+                        });
+                        const resData = await response.json();
+                        if (response.ok) {
+                            const prjIndex = state.projects.findIndex(p => p.code === activeProjectCode);
+                            if (prjIndex !== -1) {
+                                state.projects[prjIndex].checklist = updatedChecklist;
+                            }
+                            
+                            const subEl = document.getElementById('modal-project-subtitle');
+                            if (subEl) {
+                                const parts = subEl.innerText.split('|');
+                                if (parts.length >= 3) {
+                                    const friendlyNewSeller = getFriendlyUserName(newSeller);
+                                    subEl.innerText = `Gerente: ${parts[0].replace('Gerente:', '').trim()} | Vendedor: ${friendlyNewSeller} | ${parts[2].trim()}`;
+                                }
+                            }
+                            
+                            renderProjectsTable();
+                            renderKanban();
+                            renderSellerSelector(state.projects[prjIndex]);
+                        } else {
+                            alert('Erro ao reatribuir vendedor: ' + (resData.error || 'Erro desconhecido'));
+                            renderSellerSelector(project);
+                        }
+                    } catch (err) {
+                        console.error('Erro na reatribuição de vendedor:', err);
+                        alert('Erro ao conectar com o servidor.');
+                        renderSellerSelector(project);
+                    }
+                });
+            }
+        }
+
         // Active project details in modal
         async function openProjectModal(code) {
             currentCaseStudyMD = ''; // Limpa cache anterior
@@ -7898,7 +8087,7 @@
                 maskedCnpj = `${maskedCnpj.substring(0, 2)}.${maskedCnpj.substring(2, 5)}.${maskedCnpj.substring(5, 8)}/${maskedCnpj.substring(8, 12)}-${maskedCnpj.substring(12)}`;
             }
             
-            document.getElementById('modal-desc-creator').innerText = creator;
+            renderSellerSelector(project);
             renderPmSelector(project.pm);
             document.getElementById('modal-desc-cnpj').innerText = maskedCnpj;
             document.getElementById('modal-desc-contact-name').innerText = project.contact || '-';
@@ -9032,7 +9221,10 @@
             container.innerHTML = `<div style="text-align:center; padding: 10px; color:var(--text-secondary); font-size:0.8rem;">Carregando mensagens...</div>`;
             
             try {
-                const res = await fetch(`/api/projects/${activeProjectCode}/comments`);
+                const token = localStorage.getItem('tecfag_session_token');
+                const res = await fetch(`/api/projects/${activeProjectCode}/comments`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 if (!res.ok) throw new Error('Erro HTTP ao buscar comentários');
                 const comments = await res.json();
                 
@@ -9080,9 +9272,13 @@
             }
             
             try {
+                const token = localStorage.getItem('tecfag_session_token');
                 const res = await fetch(`/api/projects/${activeProjectCode}/comments`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ message })
                 });
                 

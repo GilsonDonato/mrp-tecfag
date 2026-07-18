@@ -735,7 +735,7 @@ app.get('/api/projects/:code/audit', authenticateToken, async (req, res) => {
 });
 
 // GET /api/projects/:code/comments - Retorna todos os comentários de um projeto
-app.get('/api/projects/:code/comments', async (req, res) => {
+app.get('/api/projects/:code/comments', authenticateToken, async (req, res) => {
     try {
         const comments = await dbAll('SELECT * FROM comments WHERE projectCode = ? ORDER BY id ASC', [req.params.code]);
         res.json(comments);
@@ -745,7 +745,7 @@ app.get('/api/projects/:code/comments', async (req, res) => {
 });
 
 // POST /api/projects/:code/comments - Adiciona um novo comentário
-app.post('/api/projects/:code/comments', async (req, res) => {
+app.post('/api/projects/:code/comments', authenticateToken, async (req, res) => {
     const { code } = req.params;
     const { message } = req.body;
     const user = req.user ? req.user.username : 'Sistema';
@@ -5148,9 +5148,15 @@ app.put('/api/projects/:code', async (req, res) => {
             try { oldChk = oldProject.checklist ? JSON.parse(oldProject.checklist) : {}; } catch(e){}
             for (const key of Object.keys(checklist)) {
                 if (checklist[key] !== oldChk[key]) {
-                    const statusText = checklist[key] ? 'Concluído/Sim' : 'Pendente/Não';
-                    const keyLabel = key.replace(/_/g, ' ');
-                    await recordAuditLog(code, auditUser, `Alterou item do checklist "${keyLabel}" para "${statusText}"`);
+                    if (key === 'diagnostico_user') {
+                        await recordAuditLog(code, auditUser, `Reatribuiu o projeto do vendedor "${oldChk[key] || '-'}" para "${checklist[key] || '-'}"`);
+                    } else if (key === 'diagnostico_date') {
+                        // Não gera log de auditoria barulhento para a data do diagnóstico
+                    } else {
+                        const statusText = checklist[key] ? 'Concluído/Sim' : 'Pendente/Não';
+                        const keyLabel = key.replace(/_/g, ' ');
+                        await recordAuditLog(code, auditUser, `Alterou item do checklist "${keyLabel}" para "${statusText}"`);
+                    }
                 }
             }
         }
@@ -5471,7 +5477,7 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres e
   "perguntasFaltantes": ["Pergunta 1?", "Pergunta 2?"]
 }
 `;
-                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 const payload = {
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: { responseMimeType: "application/json" }
@@ -5678,7 +5684,7 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura:
   "satisfied": ["Parâmetro bem especificado 1", "Parâmetro bem especificado 2"]
 }
 `;
-                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 const payload = {
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: { responseMimeType: "application/json" }
