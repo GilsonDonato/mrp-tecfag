@@ -226,6 +226,112 @@ function initializeDatabase() {
 
         // Seed de usuários padrão
         seedDefaultUsers();
+
+        // Tabela de Clientes ERP
+        db.run(`CREATE TABLE IF NOT EXISTS erp_clients (
+            codigo TEXT,
+            razao TEXT,
+            fantasia TEXT,
+            cnpj TEXT PRIMARY KEY,
+            cidade TEXT,
+            uf TEXT,
+            telefone TEXT,
+            representante TEXT,
+            email TEXT,
+            segmento TEXT,
+            data_cadastro TEXT,
+            dt_bloqueio TEXT,
+            tipo_bloqueio TEXT
+        )`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_erp_clients_razao ON erp_clients(razao)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_erp_clients_cnpj ON erp_clients(cnpj)`);
+
+        // Executar importação assíncrona se necessário
+        setTimeout(importClientsCsvIfEmpty, 1000);
+    });
+}
+
+// Importação automática do cadastro de clientes
+function importClientsCsvIfEmpty() {
+    db.get("SELECT COUNT(*) as count FROM erp_clients", async (err, row) => {
+        if (err) {
+            console.error("[CSV IMPORT] Erro ao contar clientes ERP:", err.message);
+            return;
+        }
+        if (row && row.count > 0) {
+            console.log(`[CSV IMPORT] Banco já possui ${row.count} clientes cadastrados. Importação desnecessária.`);
+            return;
+        }
+
+        const csvPath = path.join(__dirname, 'data', 'erp_clients.csv');
+        if (!fs.existsSync(csvPath)) {
+            console.log("[CSV IMPORT] Arquivo erp_clients.csv não encontrado para importação inicial em:", csvPath);
+            return;
+        }
+
+        console.log("[CSV IMPORT] Iniciando importação automática do banco de clientes...");
+        try {
+            const dataStr = fs.readFileSync(csvPath, 'utf8');
+            const lines = dataStr.split('\n');
+            
+            db.serialize(() => {
+                db.run("BEGIN TRANSACTION");
+                const stmt = db.prepare(`
+                    INSERT OR REPLACE INTO erp_clients (
+                        codigo, razao, fantasia, cnpj, cidade, uf, telefone, representante, email, segmento, data_cadastro, dt_bloqueio, tipo_bloqueio
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `);
+
+                let inserted = 0;
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    const cols = line.split(';');
+                    if (cols.length < 9) continue;
+
+                    const codigo = cols[0];
+                    const razao = cols[1];
+                    const cnpj = cols[2];
+                    const telefone = cols[3];
+                    const email = cols[4];
+                    const segmento = cols[5];
+                    const data_cadastro = cols[6];
+                    const dt_bloqueio = cols[7];
+                    const tipo_bloqueio = cols[8];
+
+                    stmt.run([
+                        codigo,
+                        razao,
+                        '', // fantasia
+                        cnpj,
+                        '', // cidade
+                        '', // uf
+                        telefone,
+                        '', // representante
+                        email,
+                        segmento,
+                        data_cadastro,
+                        dt_bloqueio,
+                        tipo_bloqueio
+                    ]);
+                    inserted++;
+                }
+
+                stmt.finalize((err) => {
+                    if (err) {
+                        console.error("[CSV IMPORT] Erro no statement finalize:", err.message);
+                        db.run("ROLLBACK");
+                    } else {
+                        db.run("COMMIT", () => {
+                            console.log(`[CSV IMPORT] Sucesso! ${inserted} clientes importados.`);
+                        });
+                    }
+                });
+            });
+        } catch (csvErr) {
+            console.error("[CSV IMPORT] Falha ao processar arquivo CSV:", csvErr.message);
+        }
     });
 }
 
