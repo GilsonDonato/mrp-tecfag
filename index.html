@@ -12116,14 +12116,32 @@
                         row.onmouseover = () => row.style.background = 'rgba(59, 130, 246, 0.2)';
                         row.onmouseout = () => row.style.background = 'transparent';
 
+                        let badgesHtml = '';
+                        if (item.dt_bloqueio && item.dt_bloqueio !== '') {
+                            badgesHtml += `<span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 1px 4px; border-radius: 3px; font-size: 0.6rem; font-weight: bold; margin-left: 6px;">⚠️ BLOQUEADO (${item.tipo_bloqueio})</span>`;
+                        }
+                        if (item.last_project_code) {
+                            badgesHtml += `<span style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); padding: 1px 4px; border-radius: 3px; font-size: 0.6rem; font-weight: bold; margin-left: 6px;">📂 ATIVO: ${item.last_project_code}</span>`;
+                        }
+
                         row.innerHTML = `
-                            <strong>${item.client}</strong>
-                            <div style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;">
-                                CNPJ: ${item.cnpj || '-'} | Contato: ${item.contact || '-'}
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <strong style="color: #f8fafc;">${item.client}</strong>
+                                <div>${badgesHtml}</div>
+                            </div>
+                            <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 3px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                                <div><strong>CNPJ:</strong> ${item.cnpj || '-'}</div>
+                                <div><strong>Carteira ERP:</strong> ${item.contact || '-'}</div>
+                                <div><strong>Segmento:</strong> ${item.segmento || 'Não inf.'}</div>
+                                <div><strong>Cadastro:</strong> ${item.data_cadastro || '-'}</div>
                             </div>
                         `;
 
                         row.onclick = () => {
+                            if (item.dt_bloqueio && item.dt_bloqueio !== '') {
+                                alert(`⚠️ ATENÇÃO: Este cliente está com status BLOQUEADO no ERP!\nMotivo: ${item.tipo_bloqueio}\nData do Bloqueio: ${item.dt_bloqueio}\n\nConsulte o Financeiro antes de prosseguir.`);
+                            }
+
                             if (item.client) document.getElementById('prj-client').value = item.client;
                             if (item.cnpj) {
                                 document.getElementById('prj-cnpj').value = item.cnpj;
@@ -12132,11 +12150,27 @@
                             if (item.contact) document.getElementById('prj-contact-name').value = item.contact;
                             if (item.contact_phone) document.getElementById('prj-contact-phone').value = item.contact_phone;
                             if (item.contact_email) document.getElementById('prj-contact-email').value = item.contact_email;
-                            if (item.website) document.getElementById('prj-website').value = item.website;
                             
-                            if (item.cnae_codigo) {
-                                document.getElementById('prj-cnae-code').value = item.cnae_codigo;
-                                document.getElementById('prj-cnae-desc').value = item.cnae_descricao || '';
+                            // Auto-definir o segmento com base na classificação se possível
+                            if (item.segmento) {
+                                const segmentSelect = document.getElementById('prj-segment');
+                                if (segmentSelect) {
+                                    // Mapear termos comuns do ERP para os enums de segmento do MRP
+                                    const segMap = {
+                                        'ALIMENTICIA': 'DOSAGEM_EMPACOTAMENTO',
+                                        'ALIMENTOS': 'DOSAGEM_EMPACOTAMENTO',
+                                        'COSMETICOS': 'ENVASE',
+                                        'FARMACEUTICA': 'ENCAPSULADORAS',
+                                        'QUIMICA': 'ENVASE'
+                                    };
+                                    const mapped = segMap[item.segmento.toUpperCase()];
+                                    if (mapped) {
+                                        segmentSelect.value = mapped;
+                                        if (typeof updateRequirementsForm === 'function') {
+                                            updateRequirementsForm();
+                                        }
+                                    }
+                                }
                             }
 
                             listContainer.style.display = 'none';

@@ -646,11 +646,30 @@ app.get('/api/clients/search', async (req, res) => {
     const term = `%${q.trim()}%`;
     try {
         const rows = await dbAll(`
-            SELECT DISTINCT client, cnpj, contact, contact_phone, contact_email, website, cnae_codigo, cnae_descricao 
-            FROM projects 
-            WHERE client LIKE ? OR cnpj LIKE ? OR contact LIKE ?
-            LIMIT 10
-        `, [term, term, term]);
+            SELECT 
+                razao AS client, 
+                cnpj, 
+                representante AS contact, 
+                telefone AS contact_phone, 
+                email AS contact_email, 
+                segmento,
+                dt_bloqueio,
+                tipo_bloqueio,
+                data_cadastro
+            FROM erp_clients 
+            WHERE razao LIKE ? OR cnpj LIKE ?
+            LIMIT 15
+        `, [term, term]);
+
+        // Para cada cliente encontrado, verifica histórico de projetos no MRP
+        for (let row of rows) {
+            const project = await dbGet('SELECT code, lastUpdate, fase FROM projects WHERE cnpj = ? ORDER BY lastUpdate DESC LIMIT 1', [row.cnpj]);
+            if (project) {
+                row.last_project_code = project.code;
+                row.last_project_date = project.lastUpdate;
+                row.last_project_fase = project.fase;
+            }
+        }
         res.json(rows);
     } catch (err) {
         res.status(500).json({ error: 'Erro ao buscar clientes: ' + err.message });
