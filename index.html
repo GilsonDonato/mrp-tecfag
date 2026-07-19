@@ -2359,6 +2359,7 @@
                                 <div id="intake-machines-container" style="display: flex; flex-direction: column; gap: 10px;">
                                     <!-- Preenchido dinamicamente por JS -->
                                 </div>
+                                <datalist id="products-sku-list"></datalist>
                             </div>
                             <div class="form-group" style="flex: 1;">
                                 <label for="prj-tech">Técnico Instalador Alocado</label>
@@ -4749,7 +4750,8 @@
         let state = {
             projects: [],
             logs: [],
-            activeLocks: {}
+            activeLocks: {},
+            productsCatalog: []
         };
 
         let currentRole = "ALL"; 
@@ -4825,7 +4827,7 @@
             row.id = `intake-machine-row-${intakeMachineCount}`;
             row.style = "display: flex; align-items: center; gap: 8px;";
             row.innerHTML = `
-                <input type="text" class="form-control intake-machine-sku" placeholder="Ex: LASER-SEALER-9920" value="${skuVal}" required style="flex: 1;">
+                <input type="text" class="form-control intake-machine-sku" placeholder="Ex: Escolha o SKU ou digite..." value="${skuVal}" required style="flex: 1;" list="products-sku-list">
                 <button type="button" class="btn btn-danger" onclick="removeMachineIntakeRow(${intakeMachineCount})" style="padding: 12px; display: flex; align-items: center; justify-content: center; box-shadow: none;" title="Remover Máquina">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 </button>
@@ -4870,8 +4872,44 @@
                 .catch(err => console.error('Erro ao excluir anexo:', err));
         }
 
+        // Load Products Catalog from Server API
+        function loadProductsDB() {
+            const token = localStorage.getItem('tecfag_session_token');
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            return fetch('/api/products', { headers })
+                .then(res => res.json())
+                .then(products => {
+                    state.productsCatalog = products || [];
+                    console.log(`Carregados ${state.productsCatalog.length} SKUs para o Autocomplete.`);
+                    
+                    const datalist = document.getElementById('products-sku-list');
+                    if (datalist) {
+                        datalist.innerHTML = '';
+                        
+                        const optDemand = document.createElement('option');
+                        optDemand.value = 'PROJETO SOB DEMANDA';
+                        optDemand.innerText = 'Desenvolvimento sob medida';
+                        datalist.appendChild(optDemand);
+                        
+                        state.productsCatalog.forEach(p => {
+                            const option = document.createElement('option');
+                            option.value = p.sku;
+                            option.innerText = `${p.name} (${p.group || 'Geral'})`;
+                            datalist.appendChild(option);
+                        });
+                    }
+                })
+                .catch(err => {
+                    console.error('Erro ao carregar catálogo de produtos:', err);
+                });
+        }
+
         // Load Database from Server APIs
         function loadProjectsDB() {
+            if (state.productsCatalog.length === 0) {
+                loadProductsDB();
+            }
+
             const fetchLocks = window.location.protocol !== 'file:'
                 ? fetch('/api/projects/locks/active').then(res => res.json()).catch(err => ({}))
                 : Promise.resolve({});

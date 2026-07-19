@@ -12,8 +12,9 @@
     "express": "^4.19.2",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.13",
+    "pdf-parse": "^1.1.1",
     "sqlite3": "^5.1.7",
-    "pdf-parse": "^1.1.1"
+    "xlsx": "^0.18.5"
   },
   "author": "Tecfag",
   "license": "ISC"

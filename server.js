@@ -734,6 +734,21 @@ app.get('/api/projects/:code/audit', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/products - Retorna a lista de SKUs e produtos cadastrados
+app.get('/api/products', authenticateToken, async (req, res) => {
+    try {
+        const productsPath = path.join(__dirname, 'data', 'products.json');
+        if (fs.existsSync(productsPath)) {
+            const data = fs.readFileSync(productsPath, 'utf8');
+            res.json(JSON.parse(data));
+        } else {
+            res.json([]);
+        }
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao carregar SKUs: ' + err.message });
+    }
+});
+
 // GET /api/projects/:code/comments - Retorna todos os comentários de um projeto
 app.get('/api/projects/:code/comments', authenticateToken, async (req, res) => {
     try {
