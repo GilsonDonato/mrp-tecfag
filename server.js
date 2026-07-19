@@ -637,7 +637,25 @@ async function sendPhaseChangeEmail(project, oldFase, newFase) {
 
 // ==========================================
 // ENDPOINTS DA API DE PROJETOS
-// ==========================================
+// GET /api/clients/search - Busca clientes cadastrados para autocomplete
+app.get('/api/clients/search', async (req, res) => {
+    const { q } = req.query;
+    if (!q || q.trim().length < 2) {
+        return res.json([]);
+    }
+    const term = `%${q.trim()}%`;
+    try {
+        const rows = await dbAll(`
+            SELECT DISTINCT client, cnpj, contact, contact_phone, contact_email, website, cnae_codigo, cnae_descricao 
+            FROM projects 
+            WHERE client LIKE ? OR cnpj LIKE ? OR contact LIKE ?
+            LIMIT 10
+        `, [term, term, term]);
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao buscar clientes: ' + err.message });
+    }
+});
 
 // GET /api/projects - Lista todos os projetos
 app.get('/api/projects', async (req, res) => {

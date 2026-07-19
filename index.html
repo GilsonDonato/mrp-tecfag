@@ -2042,17 +2042,19 @@
                                 <label for="prj-code">Código do Projeto (Gerado Automaticamente)</label>
                                 <input type="text" id="prj-code" class="form-control" placeholder="PRJTEC000000001" readonly required>
                             </div>
-                            <div class="form-group">
+                            <div class="form-group" style="position: relative;">
                                 <label for="prj-cnpj">CNPJ do Cliente (Somente Números)*</label>
                                 <input type="text" id="prj-cnpj" class="form-control" placeholder="00.000.000/0000-00" maxlength="18" required oninput="handleCnpjInput(this)" onblur="validateCnpjOnBlur(this)">
+                                <div id="prj-cnpj-autocomplete-list" style="display: none; position: absolute; background: #1e293b; border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); z-index: 9999; max-height: 200px; overflow-y: auto; width: 100%; top: calc(100% + 5px);"></div>
                                 <small id="cnpj-status" style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 4px; display: block;">Digite o CNPJ para validar e consultar.</small>
                             </div>
                         </div>
 
                         <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 15px; margin-bottom: 15px;">
-                            <div class="form-group">
+                            <div class="form-group" style="position: relative;">
                                 <label for="prj-client">Nome do Cliente (Razão Social)*</label>
                                 <input type="text" id="prj-client" class="form-control" placeholder="Preenchido automaticamente pelo CNPJ" required>
+                                <div id="prj-client-autocomplete-list" style="display: none; position: absolute; background: #1e293b; border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); z-index: 9999; max-height: 200px; overflow-y: auto; width: 100%; top: calc(100% + 5px);"></div>
                             </div>
                             <div class="form-group">
                                 <label for="prj-pm">Gerente de Projetos Alocado (Tecfag)*</label>
@@ -12072,12 +12074,112 @@
             alert('Memorial Técnico copiado no formato de e-mail com sucesso!');
         }
 
+        function setupAutocomplete() {
+            const clientInput = document.getElementById('prj-client');
+            const clientList = document.getElementById('prj-client-autocomplete-list');
+            const cnpjInput = document.getElementById('prj-cnpj');
+            const cnpjList = document.getElementById('prj-cnpj-autocomplete-list');
+
+            if (!clientInput || !clientList || !cnpjInput || !cnpjList) return;
+
+            const handleSearch = async (element, listContainer, isCnpj) => {
+                const value = element.value;
+                if (value.trim().length < 2) {
+                    listContainer.style.display = 'none';
+                    return;
+                }
+
+                try {
+                    const token = localStorage.getItem('tecfag_session_token');
+                    const response = await fetch(`/api/clients/search?q=${encodeURIComponent(value)}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+
+                    if (!Array.isArray(data) || data.length === 0) {
+                        listContainer.style.display = 'none';
+                        return;
+                    }
+
+                    listContainer.innerHTML = '';
+                    listContainer.style.display = 'block';
+
+                    data.forEach(item => {
+                        const row = document.createElement('div');
+                        row.style.padding = '8px 12px';
+                        row.style.cursor = 'pointer';
+                        row.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                        row.style.fontSize = '0.78rem';
+                        row.style.color = '#e2e8f0';
+                        row.style.transition = 'background 0.2s';
+                        
+                        row.onmouseover = () => row.style.background = 'rgba(59, 130, 246, 0.2)';
+                        row.onmouseout = () => row.style.background = 'transparent';
+
+                        row.innerHTML = `
+                            <strong>${item.client}</strong>
+                            <div style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;">
+                                CNPJ: ${item.cnpj || '-'} | Contato: ${item.contact || '-'}
+                            </div>
+                        `;
+
+                        row.onclick = () => {
+                            if (item.client) document.getElementById('prj-client').value = item.client;
+                            if (item.cnpj) {
+                                document.getElementById('prj-cnpj').value = item.cnpj;
+                                handleCnpjInput(document.getElementById('prj-cnpj'));
+                            }
+                            if (item.contact) document.getElementById('prj-contact-name').value = item.contact;
+                            if (item.contact_phone) document.getElementById('prj-contact-phone').value = item.contact_phone;
+                            if (item.contact_email) document.getElementById('prj-contact-email').value = item.contact_email;
+                            if (item.website) document.getElementById('prj-website').value = item.website;
+                            
+                            if (item.cnae_codigo) {
+                                document.getElementById('prj-cnae-code').value = item.cnae_codigo;
+                                document.getElementById('prj-cnae-desc').value = item.cnae_descricao || '';
+                            }
+
+                            listContainer.style.display = 'none';
+                            runSkuSuggestionEngine();
+                        };
+
+                        listContainer.appendChild(row);
+                    });
+
+                } catch (e) {
+                    console.error('Erro na pesquisa do autocomplete:', e);
+                }
+            };
+
+            let clientDebounce;
+            clientInput.addEventListener('input', () => {
+                clearTimeout(clientDebounce);
+                clientDebounce = setTimeout(() => handleSearch(clientInput, clientList, false), 300);
+            });
+
+            let cnpjDebounce;
+            cnpjInput.addEventListener('input', () => {
+                clearTimeout(cnpjDebounce);
+                cnpjDebounce = setTimeout(() => handleSearch(cnpjInput, cnpjList, true), 300);
+            });
+
+            document.addEventListener('click', (e) => {
+                if (e.target !== clientInput && e.target !== clientList) {
+                    clientList.style.display = 'none';
+                }
+                if (e.target !== cnpjInput && e.target !== cnpjList) {
+                    cnpjList.style.display = 'none';
+                }
+            });
+        }
+
         // On Load Init
         window.onload = function() {
             startLoginBgCarousel();
             startTelemetryTicker();
             loadRequisitosSchema();
             bindCopilotEvents();
+            setupAutocomplete();
             
             // Inicializar cotações de câmbio
             fetchExchangeRates();
