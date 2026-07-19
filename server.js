@@ -782,6 +782,17 @@ app.get('/api/clients/search', async (req, res) => {
     }
 });
 
+// Rota de diagnóstico temporária para verificar clientes do ERP
+app.get('/api/test-clients', async (req, res) => {
+    try {
+        const count = await dbGet("SELECT COUNT(*) as count FROM erp_clients");
+        const sample = await dbAll("SELECT razao, cnpj FROM erp_clients LIMIT 5");
+        res.json({ count: count ? count.count : 0, sample });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET /api/projects - Lista todos os projetos
 app.get('/api/projects', async (req, res) => {
     try {
