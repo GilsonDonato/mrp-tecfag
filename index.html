@@ -4894,7 +4894,8 @@
                         state.productsCatalog.forEach(p => {
                             const option = document.createElement('option');
                             option.value = p.sku;
-                            option.innerText = `${p.name} (${p.group || 'Geral'})`;
+                            const suffix = p.vendorCode ? ` | Fornec: ${p.vendorCode}` : '';
+                            option.innerText = `${p.name}${suffix} (${p.group || 'Geral'})`;
                             datalist.appendChild(option);
                         });
                     }
