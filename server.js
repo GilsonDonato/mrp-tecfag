@@ -145,7 +145,13 @@ function initializeDatabase() {
             user TEXT NOT NULL,
             message TEXT NOT NULL,
             dateAdded TEXT NOT NULL
-        )`);
+        )`, (err) => {
+            if (!err) {
+                // Remover dúvidas automáticas antigas da IA do banco de dados
+                db.run("DELETE FROM comments WHERE user = 'Sistema Tecfag (IA)'");
+                db.run("UPDATE projects SET crm_last_comment_user = NULL WHERE crm_last_comment_user = 'Sistema Tecfag (IA)'");
+            }
+        });
 
         // Tabela de Logs de Auditoria
         db.run(`CREATE TABLE IF NOT EXISTS logs (
@@ -5678,30 +5684,8 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres e
             result = generateLocalFallbackStudy(project);
         }
         
-        // Postar perguntas faltantes automaticamente no Chat/Mural
-        if (result.perguntasFaltantes && result.perguntasFaltantes.length > 0) {
-            let addedNewComment = false;
-            const timestamp = new Date().toISOString();
-            for (const pergunta of result.perguntasFaltantes) {
-                const exists = await dbGet('SELECT id FROM comments WHERE projectCode = ? AND user = ? AND message = ?', [code, 'Sistema Tecfag (IA)', pergunta]);
-                if (!exists) {
-                    await dbRun('INSERT INTO comments (projectCode, user, message, dateAdded) VALUES (?, ?, ?, ?)', [
-                        code,
-                        'Sistema Tecfag (IA)',
-                        pergunta,
-                        timestamp
-                    ]);
-                    addedNewComment = true;
-                }
-            }
-            if (addedNewComment) {
-                await dbRun('UPDATE projects SET crm_last_comment_user = ?, crm_last_interaction_date = ? WHERE code = ?', [
-                    'Sistema Tecfag (IA)',
-                    timestamp,
-                    code
-                ]);
-            }
-        }
+        // Postar perguntas faltantes automaticamente no Chat/Mural desativado (conforme solicitação do usuário)
+        // Deixamos apenas a comunicação manual e o estudo de caso gerado.
         
         res.json({
             success: true,
