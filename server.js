@@ -137,6 +137,7 @@ function initializeDatabase() {
         db.run("ALTER TABLE projects ADD COLUMN crm_last_comment_user TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN crm_last_interaction_date TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN setup_specs TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN spare_parts_recommendations TEXT", (err) => {});
 
         // Tabela de Comentários / Discussão (Timeline do Card)
         db.run(`CREATE TABLE IF NOT EXISTS comments (
@@ -874,6 +875,7 @@ app.get('/api/projects', async (req, res) => {
                 checklist: p.checklist ? JSON.parse(p.checklist) : {},
                 prazos: p.prazos ? JSON.parse(p.prazos) : {},
                 setup_specs: p.setup_specs ? JSON.parse(p.setup_specs) : {},
+                spare_parts_recommendations: p.spare_parts_recommendations ? JSON.parse(p.spare_parts_recommendations) : [],
                 machines: machinesParsed
             };
         });
@@ -926,6 +928,7 @@ app.get('/api/projects/:code', async (req, res) => {
         project.checklist = project.checklist ? JSON.parse(project.checklist) : {};
         project.prazos = project.prazos ? JSON.parse(project.prazos) : {};
         project.setup_specs = project.setup_specs ? JSON.parse(project.setup_specs) : {};
+        project.spare_parts_recommendations = project.spare_parts_recommendations ? JSON.parse(project.spare_parts_recommendations) : [];
         project.machines = machinesParsed;
 
         // Restrição de vendedor para rota individual
@@ -5756,6 +5759,130 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres e
         res.status(500).json({ error: 'Erro ao gerar estudo de caso: ' + err.message });
     }
 });
+
+// POST /api/projects/:code/generate-spare-parts - Gera lista recomendada de peças de reposição via IA
+app.post('/api/projects/:code/generate-spare-parts', authenticateToken, async (req, res) => {
+    const { code } = req.params;
+    
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) {
+            return res.status(404).json({ error: 'Projeto não encontrado.' });
+        }
+        
+        const apiKey = process.env.GEMINI_API_KEY;
+        let recommendations = [];
+        let usedAI = false;
+        
+        if (apiKey && apiKey.trim() !== '') {
+            try {
+                const prompt = `
+Você é o Engenheiro de Aplicação e Especialista de Peças Sênior da Tecfag, com profundo conhecimento em máquinas de embalagem (seladoras, envasadoras, empacotadoras, datadores, termoformadoras).
+Sua tarefa é analisar os dados abaixo de um projeto vendido e gerar uma lista técnica de peças de reposição sugeridas (itens consumíveis de desgaste ou peças críticas de reserva) para cobrir 1 ano de uso.
+
+Dados do Equipamento do Projeto:
+- Código do Projeto: "${project.code}"
+- Cliente: "${project.client}"
+- SKU do Equipamento: "${project.sku || 'Não cadastrado'}"
+- Diagnóstico Técnico / Briefing: "${project.diagnostico || ''}"
+- Especificações do Equipamento: ${project.setup_specs || '{}'}
+
+Retorne ESTRITAMENTE um array JSON contendo as recomendações de peças de reposição. Cada item do array deve ser um objeto JSON com a seguinte estrutura:
+{
+  "part": "Nome amigável e técnico da peça em português",
+  "quantity": "Quantidade recomendada (ex: '2 unidades', '1 rolo')",
+  "priority": "Alta", "Média" ou "Baixa",
+  "reason": "Explicação técnica clara de por que essa peça de desgaste/reserva é necessária"
+}
+
+Responda APENAS o JSON puro. Não adicione markdown, blocos de código (\`\`\`json) ou comentários.
+`;
+                
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { responseMimeType: "application/json" }
+                };
+                
+                const response = await fetch(geminiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
+                        const rawText = data.candidates[0].content.parts[0].text;
+                        const parsed = cleanAndParseJSON(rawText);
+                        if (Array.isArray(parsed)) {
+                            recommendations = parsed;
+                            usedAI = true;
+                        }
+                    }
+                } else {
+                    const errText = await response.text();
+                    console.error(`[GEMINI SPARE PARTS ERROR] Status ${response.status}: ${errText}`);
+                }
+            } catch (e) {
+                console.error("Falha ao chamar API do Gemini para peças de reposição:", e);
+            }
+        }
+        
+        // Fallback local se a IA não funcionar
+        if (!usedAI || recommendations.length === 0) {
+            recommendations = generateLocalFallbackSpareParts(project);
+        }
+        
+        // Salvar recomendações no banco de dados
+        const recommendationsStr = JSON.stringify(recommendations);
+        await dbRun('UPDATE projects SET spare_parts_recommendations = ? WHERE code = ?', [recommendationsStr, code]);
+        
+        res.json({
+            success: true,
+            usedAI,
+            recommendations
+        });
+        
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao gerar peças de reposição: ' + err.message });
+    }
+});
+
+// Helper de fallback local para peças de reposição
+function generateLocalFallbackSpareParts(project) {
+    const sku = (project.sku || '').toUpperCase();
+    const diag = (project.diagnostico || '').toUpperCase();
+    
+    let parts = [
+        { part: "Fusível de Proteção Elétrica", quantity: "5 unidades", priority: "Alta", reason: "Proteção de surto elétrico preventiva padrão de painel." }
+    ];
+    
+    if (sku.includes('VACUO') || diag.includes('VACUO') || diag.includes('VÁCUO')) {
+        parts.push({ part: "Óleo para Bomba de Vácuo (ISO VG 100)", quantity: "2 litros", priority: "Alta", reason: "Troca periódica necessária a cada 500 horas de uso para evitar desgaste da bomba." });
+        parts.push({ part: "Fita de Teflon de Alta Temperatura", quantity: "2 rolos", priority: "Alta", reason: "Isolante térmico sobre a resistência que se desgasta com a temperatura de selagem." });
+        parts.push({ part: "Borracha de Silicone da Barra de Selagem", quantity: "1 barra", priority: "Média", reason: "Desgaste mecânico e amassamento ao longo do ciclo de vácuo." });
+        parts.push({ part: "Resistência de Selagem Plana de 8mm", quantity: "4 unidades", priority: "Média", reason: "Desgaste térmico natural sujeito a rompimento por fadiga." });
+    } else if (sku.includes('SELADORA') || diag.includes('SELAR') || diag.includes('SELADORA')) {
+        parts.push({ part: "Fita de Teflon de Alta Temperatura", quantity: "2 rolos", priority: "Alta", reason: "Proteção térmica contra queima direta da embalagem plástica." });
+        parts.push({ part: "Resistência de Fio de Níquel Cromo", quantity: "4 unidades", priority: "Alta", reason: "Elemento de aquecimento consumível que rompe com ciclos contínuos." });
+        parts.push({ part: "Borracha de Apoio de Silicone", quantity: "1 barra", priority: "Média", reason: "Amassamento e perda de uniformidade no ponto de pressão de selagem." });
+    } else if (sku.includes('ENVASADORA') || diag.includes('ENVASE') || diag.includes('ENVASAR')) {
+        parts.push({ part: "Anel de Vedação O-Ring de Viton/Silicone", quantity: "1 conjunto", priority: "Alta", reason: "Evita vazamento de produtos pastosos ou líquidos nos eixos e bicos." });
+        parts.push({ part: "Bico Corta-Gotas de Inox", quantity: "1 unidade", priority: "Média", reason: "Pode sofrer entupimento ou acúmulo de crosta se a higienização falhar." });
+        parts.push({ part: "Mola de Retorno de Pistão Pneumático", quantity: "2 unidades", priority: "Média", reason: "Sujeito a perda de elasticidade e fadiga após milhares de acionamentos." });
+    } else if (sku.includes('ROTULADORA') || diag.includes('ROTULO') || diag.includes('ROTULAR')) {
+        parts.push({ part: "Correia de Transmissão Sincronizadora", quantity: "1 unidade", priority: "Média", reason: "Desgaste de atrito nas polias de tracionamento de rótulos." });
+        parts.push({ part: "Rolo Pressor de Silicone", quantity: "1 unidade", priority: "Alta", reason: "Item que pressiona o rótulo no frasco, sujeito a deformação ou ressecamento." });
+        parts.push({ part: "Sensor Óptico de Contraste para Rótulos", quantity: "1 unidade", priority: "Baixa", reason: "Reserva de segurança para caso ocorra queima elétrica ou desalinhamento físico." });
+    } else {
+        // Padrão geral de peças de desgaste
+        parts.push({ part: "Resistência de Reposição Geral", quantity: "2 unidades", priority: "Alta", reason: "Item térmico consumível comum em máquinas de embalagem." });
+        parts.push({ part: "Fita Isolante de Teflon auto-adesiva", quantity: "1 rolo", priority: "Alta", reason: "Necessária em qualquer máquina que aplique calor e selagem." });
+    }
+    
+    return parts;
+}
 
 // Helper de validação local de rascunhos (Fallback)
 function localValidationFallback(segment, diagnostico, extraParams) {

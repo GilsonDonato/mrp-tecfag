@@ -3099,6 +3099,7 @@
                             <div style="display: flex; border-bottom: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.02); overflow-x: auto; white-space: nowrap;">
                                 <button id="modal-tab-btn-contato" onclick="switchModalSubTab('contato')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--primary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid var(--primary); transition: all 0.3s; white-space: nowrap;">📞 Contato & Escopo</button>
                                 <button id="modal-tab-btn-estudo" onclick="switchModalSubTab('estudo')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">📄 Estudo de Caso</button>
+                                <button id="modal-tab-btn-pecas" onclick="switchModalSubTab('pecas')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">⚙️ Peças IA</button>
                                 <button id="modal-tab-btn-receita" onclick="switchModalSubTab('receita')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">🏛️ Dossiê Receita</button>
                                 <button id="modal-tab-btn-handover" onclick="switchModalSubTab('handover')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">🚚 Handover</button>
                                 <button id="modal-tab-btn-chat" onclick="switchModalSubTab('chat')" style="flex: 1; padding: 12px 8px; background: none; border: none; color: var(--text-secondary); font-weight: bold; font-size: 0.78rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; white-space: nowrap;">💬 Chat & Mural</button>
@@ -3174,6 +3175,47 @@
                                     <div id="modal-estudo-status" style="margin-bottom: 12px; font-size: 0.72rem; display: none;"></div>
                                     <div id="modal-estudo-content" style="font-size: 0.8rem; line-height: 1.6; color: #cbd5e1; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 20px; border-radius: 8px; max-height: 380px; overflow-y: auto; font-family: system-ui, sans-serif;">
                                         <!-- Preenchido via JS (Markdown renderizado ou HTML) -->
+                                    </div>
+                                </div>
+                                
+                                <!-- SUB-TAB: Peças de Reposição (IA) -->
+                                <div id="modal-subtab-pecas" style="display: none;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px;">
+                                        <h5 style="color: var(--primary); margin: 0; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">⚙️ Peças de Reposição Sugeridas (IA)</h5>
+                                        <div style="display: flex; gap: 8px;">
+                                            <button type="button" class="btn" id="btn-generate-spare-parts" onclick="generateSparePartsRecommendations()" style="font-size: 0.72rem; padding: 6px 12px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; gap: 4px; font-weight: bold; cursor: pointer; border-radius: 4px;">
+                                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                                                Sugerir Peças via IA
+                                            </button>
+                                            <button type="button" class="btn btn-secondary" onclick="copySparePartsToClipboard()" style="font-size: 0.72rem; padding: 6px 12px; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; gap: 4px; font-weight: bold; cursor: pointer; border-radius: 4px;">
+                                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M9 17h6M9 13h6M9 9h6"/></svg>
+                                                Copiar WhatsApp
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4;">
+                                        A IA analisa o diagnóstico técnico, SKU e customizações para indicar as peças de desgaste e consumíveis recomendadas para 1 ano. Selecione as peças desejadas para incluir no follow-up.
+                                    </p>
+                                    <div id="modal-pecas-status" style="margin-bottom: 12px; font-size: 0.72rem; display: none;"></div>
+                                    <div style="overflow-x: auto; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; max-height: 380px; overflow-y: auto;">
+                                        <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem;" id="table-spare-parts-recommendations">
+                                            <thead>
+                                                <tr style="border-bottom: 1px solid var(--border-color); background: rgba(255,255,255,0.02); text-align: left; color: var(--text-secondary);">
+                                                    <th style="padding: 10px; width: 40px; text-align: center;"><input type="checkbox" id="chk-select-all-spare-parts" onchange="toggleSelectAllSpareParts(this)"></th>
+                                                    <th style="padding: 10px;">Peça</th>
+                                                    <th style="padding: 10px; width: 100px;">Qtd (1 ano)</th>
+                                                    <th style="padding: 10px; width: 100px;">Prioridade</th>
+                                                    <th style="padding: 10px;">Motivo Técnico</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tbody-spare-parts-recommendations">
+                                                <tr>
+                                                    <td colspan="5" style="padding: 20px; text-align: center; color: var(--text-secondary);">
+                                                        Nenhuma sugestão gerada para este projeto. Clique em "Sugerir Peças via IA" para iniciar a análise.
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                                 
@@ -3597,6 +3639,30 @@
             };
             const setLocalSessions = (s) => localStorage.setItem('tecfag_sessions', JSON.stringify(s));
 
+            const generateMockSpareParts = (project) => {
+                const sku = (project.sku || '').toUpperCase();
+                const diag = (project.diagnostico || '').toUpperCase();
+                let parts = [
+                    { part: "Fusível de Proteção Elétrica (Mock)", quantity: "5 unidades", priority: "Alta", reason: "Proteção de surto elétrico preventiva padrão de painel." }
+                ];
+                if (sku.includes('VACUO') || diag.includes('VACUO') || diag.includes('VÁCUO')) {
+                    parts.push({ part: "Óleo para Bomba de Vácuo (ISO VG 100)", quantity: "2 litros", priority: "Alta", reason: "Troca periódica de vácuo." });
+                    parts.push({ part: "Fita de Teflon de Alta Temperatura", quantity: "2 rolos", priority: "Alta", reason: "Desgaste natural sob calor." });
+                    parts.push({ part: "Borracha de Silicone de Barra", quantity: "1 barra", priority: "Média", reason: "Deformação física por uso." });
+                } else if (sku.includes('SELADORA') || diag.includes('SELAR') || diag.includes('SELADORA')) {
+                    parts.push({ part: "Fita de Teflon de Alta Temperatura", quantity: "2 rolos", priority: "Alta", reason: "Isolante térmico consumível." });
+                    parts.push({ part: "Resistência de Reposição 8mm", quantity: "4 unidades", priority: "Alta", reason: "Resistência sob ciclos térmicos." });
+                } else if (sku.includes('ENVASADORA') || diag.includes('ENVASE') || diag.includes('ENVASAR')) {
+                    parts.push({ part: "Anel O-Ring Silicone Alimentício", quantity: "1 conjunto", priority: "Alta", reason: "Evita vazamento de produtos pastosos." });
+                    parts.push({ part: "Mola de Retorno de Pistão", quantity: "2 unidades", priority: "Média", reason: "Perda de pressão sob ciclos." });
+                } else if (sku.includes('ROTULADORA') || diag.includes('ROTULO') || diag.includes('ROTULAR')) {
+                    parts.push({ part: "Rolo Pressor de Silicone", quantity: "1 unidade", priority: "Alta", reason: "Rolo tracionador sujeito a ressecamento." });
+                } else {
+                    parts.push({ part: "Resistência de Reposição Geral", quantity: "2 unidades", priority: "Alta", reason: "Item térmico consumível padrão." });
+                }
+                return parts;
+            };
+
             window.fetch = function(url, options) {
                 options = options || {};
                 const method = (options.method || 'GET').toUpperCase();
@@ -3813,6 +3879,21 @@
                         const logMsg = `<strong>[HANDOVER]</strong> O técnico <code>${authenticatedUser.username}</code> marcou o projeto <code>${code}</code> como <strong>${statusText}</strong> para expedição.`;
                         logs.unshift({ timestamp: new Date().toISOString(), color: signedVal ? 'green' : 'yellow', text: logMsg });
                         setLocalLogs(logs);
+                    } else {
+                        isErrorResponse = true;
+                        errorStatus = 404;
+                        responseData = { error: 'Projeto não encontrado!' };
+                    }
+                } else if (url.includes('/generate-spare-parts')) {
+                    const code = decodeURIComponent(urlParts[urlParts.length - 2]);
+                    const rawProjects = getLocalProjects();
+                    const index = rawProjects.findIndex(p => p.code === code);
+                    if (index !== -1) {
+                        const project = rawProjects[index];
+                        const recommendations = generateMockSpareParts(project);
+                        rawProjects[index].spare_parts_recommendations = recommendations;
+                        setLocalProjects(rawProjects);
+                        responseData = { success: true, usedAI: false, recommendations };
                     } else {
                         isErrorResponse = true;
                         errorStatus = 404;
@@ -5689,12 +5770,14 @@
         function switchModalSubTab(tab) {
             const btnContato = document.getElementById('modal-tab-btn-contato');
             const btnEstudo = document.getElementById('modal-tab-btn-estudo');
+            const btnPecas = document.getElementById('modal-tab-btn-pecas');
             const btnReceita = document.getElementById('modal-tab-btn-receita');
             const btnHandover = document.getElementById('modal-tab-btn-handover');
             const btnChat = document.getElementById('modal-tab-btn-chat');
             const btnAudit = document.getElementById('modal-tab-btn-audit');
             const tabContato = document.getElementById('modal-subtab-contato');
             const tabEstudo = document.getElementById('modal-subtab-estudo');
+            const tabPecas = document.getElementById('modal-subtab-pecas');
             const tabReceita = document.getElementById('modal-subtab-receita');
             const tabHandover = document.getElementById('modal-subtab-handover');
             const tabChat = document.getElementById('modal-subtab-chat');
@@ -5702,12 +5785,13 @@
             
             if (tabContato) tabContato.style.display = 'none';
             if (tabEstudo) tabEstudo.style.display = 'none';
+            if (tabPecas) tabPecas.style.display = 'none';
             if (tabReceita) tabReceita.style.display = 'none';
             if (tabHandover) tabHandover.style.display = 'none';
             if (tabChat) tabChat.style.display = 'none';
             if (tabAudit) tabAudit.style.display = 'none';
             
-            [btnContato, btnEstudo, btnReceita, btnHandover, btnChat, btnAudit].forEach(btn => {
+            [btnContato, btnEstudo, btnPecas, btnReceita, btnHandover, btnChat, btnAudit].forEach(btn => {
                 if (btn) {
                     btn.style.color = 'var(--text-secondary)';
                     btn.style.borderBottomColor = 'transparent';
@@ -5727,6 +5811,13 @@
                     btnEstudo.style.borderBottomColor = 'var(--primary)';
                 }
                 loadCaseStudy();
+            } else if (tab === 'pecas') {
+                if (tabPecas) tabPecas.style.display = 'block';
+                if (btnPecas) {
+                    btnPecas.style.color = 'var(--primary)';
+                    btnPecas.style.borderBottomColor = 'var(--primary)';
+                }
+                loadSparePartsRecommendations();
             } else if (tab === 'receita') {
                 if (tabReceita) tabReceita.style.display = 'block';
                 if (btnReceita) {
@@ -9183,6 +9274,178 @@
                 </html>
             `);
             printWindow.document.close();
+        }
+
+        // Lógica de Peças de Reposição Sugeridas via IA
+        async function loadSparePartsRecommendations() {
+            const project = state.projects.find(p => p.code === activeProjectCode);
+            if (!project) return;
+
+            const tbody = document.getElementById('tbody-spare-parts-recommendations');
+            if (!tbody) return;
+
+            if (project.spare_parts_recommendations && Array.isArray(project.spare_parts_recommendations) && project.spare_parts_recommendations.length > 0) {
+                renderSparePartsTable(project.spare_parts_recommendations);
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="padding: 30px; text-align: center; color: var(--text-secondary);">
+                            Nenhuma sugestão gerada para este projeto. Clique em <strong>"Sugerir Peças via IA"</strong> para iniciar a análise.
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        async function generateSparePartsRecommendations() {
+            const tbody = document.getElementById('tbody-spare-parts-recommendations');
+            const statusDiv = document.getElementById('modal-pecas-status');
+            const btn = document.getElementById('btn-generate-spare-parts');
+            
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="padding: 30px; text-align: center; color: var(--text-secondary);">
+                        <div style="display: inline-block; border: 2px solid #1f2937; border-top: 2px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; margin-bottom: 8px;"></div>
+                        <br>Analisando projeto e gerando lista técnica...
+                    </td>
+                </tr>
+            `;
+
+            if (statusDiv) statusDiv.style.display = 'none';
+            if (btn) btn.disabled = true;
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const response = await fetch(`/api/projects/${activeProjectCode}/generate-spare-parts`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                if (btn) btn.disabled = false;
+
+                if (data.error) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="padding: 20px; text-align: center; color: #ef4444;">
+                                Erro ao gerar sugestões: ${data.error}
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                const projectIndex = state.projects.findIndex(p => p.code === activeProjectCode);
+                if (projectIndex !== -1) {
+                    state.projects[projectIndex].spare_parts_recommendations = data.recommendations;
+                }
+
+                renderSparePartsTable(data.recommendations);
+
+                if (statusDiv) {
+                    statusDiv.style.display = 'block';
+                    if (data.usedAI) {
+                        statusDiv.innerHTML = `<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: bold; display: inline-flex; align-items: center; gap: 4px;">✨ Recomendações geradas via Gemini AI</span>`;
+                    } else {
+                        statusDiv.innerHTML = `<span style="background: rgba(249, 115, 22, 0.15); color: #f97316; padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(249, 115, 22, 0.3); font-weight: bold; display: inline-flex; align-items: center; gap: 4px;">⚠️ Recomendações geradas localmente (Fallback)</span>`;
+                    }
+                }
+            } catch (err) {
+                if (btn) btn.disabled = false;
+                console.error(err);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="padding: 20px; text-align: center; color: #ef4444;">
+                            Falha de comunicação com o servidor.
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function renderSparePartsTable(recommendations) {
+            const tbody = document.getElementById('tbody-spare-parts-recommendations');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            recommendations.forEach((item, index) => {
+                const priorityColors = {
+                    'Alta': { bg: 'rgba(239, 68, 68, 0.15)', text: '#fca5a5', border: 'rgba(239, 68, 68, 0.3)' },
+                    'Média': { bg: 'rgba(249, 115, 22, 0.15)', text: '#fed7aa', border: 'rgba(249, 115, 22, 0.3)' },
+                    'Baixa': { bg: 'rgba(34, 197, 94, 0.15)', text: '#bbf7d0', border: 'rgba(34, 197, 94, 0.3)' }
+                };
+                const color = priorityColors[item.priority] || priorityColors['Baixa'];
+
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border-color)';
+                tr.innerHTML = `
+                    <td style="padding: 10px; text-align: center;"><input type="checkbox" class="chk-spare-part" data-index="${index}" checked></td>
+                    <td style="padding: 10px; font-weight: 600; color: var(--text-primary);">${item.part}</td>
+                    <td style="padding: 10px; color: var(--text-secondary);">${item.quantity}</td>
+                    <td style="padding: 10px;">
+                        <span style="background: ${color.bg}; color: ${color.text}; border: 1px solid ${color.border}; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; text-transform: uppercase; display: inline-block;">
+                            ${item.priority}
+                        </span>
+                    </td>
+                    <td style="padding: 10px; color: var(--text-secondary); font-style: italic; line-height: 1.3;">${item.reason}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const masterChk = document.getElementById('chk-select-all-spare-parts');
+            if (masterChk) masterChk.checked = true;
+        }
+
+        function toggleSelectAllSpareParts(masterChk) {
+            const checkboxes = document.querySelectorAll('.chk-spare-part');
+            checkboxes.forEach(chk => chk.checked = masterChk.checked);
+        }
+
+        function copySparePartsToClipboard() {
+            const project = state.projects.find(p => p.code === activeProjectCode);
+            if (!project) return;
+
+            const recommendations = project.spare_parts_recommendations;
+            if (!recommendations || !Array.isArray(recommendations) || recommendations.length === 0) {
+                alert('Gere as peças de reposição antes de tentar copiar.');
+                return;
+            }
+
+            const checkedBoxes = document.querySelectorAll('.chk-spare-part:checked');
+            if (checkedBoxes.length === 0) {
+                alert('Por favor, selecione ao menos uma peça da lista para copiar.');
+                return;
+            }
+
+            let message = `*Sugestão de Peças de Reposição - Tecfag* ⚙️\n\n`;
+            message += `*Projeto:* ${project.code}\n`;
+            message += `*Cliente:* ${project.client}\n`;
+            message += `*Equipamento/SKU:* ${project.sku || 'Customizado'}\n\n`;
+            message += `Recomendamos a inclusão dos seguintes itens de desgaste/reserva para 1 ano de uso:\n\n`;
+
+            checkedBoxes.forEach(chk => {
+                const idx = parseInt(chk.getAttribute('data-index'));
+                const item = recommendations[idx];
+                if (item) {
+                    message += `*• ${item.part}* - ${item.quantity} (Prioridade: ${item.priority})\n`;
+                    message += `  _Motivo:_ ${item.reason}\n\n`;
+                }
+            });
+
+            message += `Acompanhe os detalhes e aprove no MRP: ${window.location.origin}`;
+
+            navigator.clipboard.writeText(message)
+                .then(() => alert('Lista técnica de peças formatada para WhatsApp copiada com sucesso! Cole na conversa com o cliente.'))
+                .catch(err => {
+                    console.error(err);
+                    alert('Erro ao copiar para a área de transferência.');
+                });
         }
 
         // Copiloto de Engenharia IA - Lógica em Tempo Real
