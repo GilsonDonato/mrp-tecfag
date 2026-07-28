@@ -188,11 +188,9 @@ function initializeDatabase() {
             password_hash TEXT NOT NULL,
             salt TEXT NOT NULL,
             role TEXT NOT NULL
-        )`, (err) => {
-            if (!err) {
-                db.run("ALTER TABLE users ADD COLUMN phone TEXT", (errAlter) => {});
-            }
-        });
+        )`);
+
+        db.run("ALTER TABLE users ADD COLUMN phone TEXT", (err) => {});
 
         // Tabela de Sessões
         db.run(`CREATE TABLE IF NOT EXISTS sessions (
