@@ -188,7 +188,11 @@ function initializeDatabase() {
             password_hash TEXT NOT NULL,
             salt TEXT NOT NULL,
             role TEXT NOT NULL
-        )`);
+        )`, (err) => {
+            if (!err) {
+                db.run("ALTER TABLE users ADD COLUMN phone TEXT", (errAlter) => {});
+            }
+        });
 
         // Tabela de Sessões
         db.run(`CREATE TABLE IF NOT EXISTS sessions (
@@ -371,7 +375,7 @@ function hashPassword(password, salt) {
 function seedDefaultUsers() {
     const defaultUsers = [
         { username: 'admin', password: 'adm@tecfag99', role: 'ALL' },
-        { username: 'vendas', password: 'vend@tecfag01', role: 'VENDAS' },
+        { username: 'vendas', password: 'vend@tecfag01', role: 'VENDAS', phone: '5511999999999' },
         { username: 'engenharia', password: 'eng#tecfag22', role: 'ENGENHARIA' },
         { username: 'compras', password: 'comp@tecfag33', role: 'COMPRAS' },
         { username: 'estoque', password: 'estq@tecfag44', role: 'ESTOQUE' },
@@ -396,17 +400,19 @@ function seedDefaultUsers() {
             if (!err) {
                 const { salt, hash } = hashPassword(u.password);
                 if (!row) {
-                    db.run('INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)', [
+                    db.run('INSERT INTO users (username, password_hash, salt, role, phone) VALUES (?, ?, ?, ?, ?)', [
                         u.username,
                         hash,
                         salt,
-                        u.role
+                        u.role,
+                        u.phone || null
                     ]);
                 } else {
-                    db.run('UPDATE users SET password_hash = ?, salt = ?, role = ? WHERE username = ?', [
+                    db.run('UPDATE users SET password_hash = ?, salt = ?, role = ?, phone = COALESCE(phone, ?) WHERE username = ?', [
                         hash,
                         salt,
                         u.role,
+                        u.phone || null,
                         u.username
                     ]);
                 }
@@ -434,7 +440,7 @@ async function authenticateToken(req, res, next) {
             return res.status(403).json({ error: 'Sessão expirada. Faça login novamente.' });
         }
 
-        const user = await dbGet('SELECT username, role FROM users WHERE username = ?', [session.username]);
+        const user = await dbGet('SELECT username, role, phone FROM users WHERE username = ?', [session.username]);
         if (!user) {
             return res.status(403).json({ error: 'Usuário não existe.' });
         }
@@ -557,6 +563,60 @@ app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
         res.json({ success: true, message: 'Senha alterada com sucesso!' });
     } catch (err) {
         res.status(500).json({ error: 'Erro ao alterar senha: ' + err.message });
+    }
+});
+
+// PUT /api/auth/profile - Altera a senha e/ou número de WhatsApp do usuário autenticado
+app.put('/api/auth/profile', authenticateToken, async (req, res) => {
+    const { currentPassword, newPassword, phone } = req.body;
+    const username = req.user.username;
+
+    try {
+        const user = await dbGet('SELECT * FROM users WHERE username = ?', [username]);
+        if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+
+        // Se estiver tentando alterar a senha
+        if (newPassword && newPassword.trim() !== '') {
+            if (!currentPassword) {
+                return res.status(400).json({ error: 'A senha atual é obrigatória para definir uma nova senha.' });
+            }
+            const { hash } = hashPassword(currentPassword, user.salt);
+            if (hash !== user.password_hash) {
+                return res.status(400).json({ error: 'Senha atual incorreta.' });
+            }
+            const { salt: newSalt, hash: newHash } = hashPassword(newPassword);
+            await dbRun('UPDATE users SET password_hash = ?, salt = ?, phone = ? WHERE username = ?', [
+                newHash,
+                newSalt,
+                phone || null,
+                username
+            ]);
+        } else {
+            // Apenas atualiza o telefone
+            await dbRun('UPDATE users SET phone = ? WHERE username = ?', [
+                phone || null,
+                username
+            ]);
+        }
+
+        res.json({ success: true, message: 'Perfil atualizado com sucesso!' });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao atualizar perfil: ' + err.message });
+    }
+});
+
+// GET /api/users/:username/phone - Retorna o telefone de um usuário específico
+app.get('/api/users/:username/phone', authenticateToken, async (req, res) => {
+    try {
+        const user = await dbGet('SELECT phone FROM users WHERE username = ?', [req.params.username]);
+        if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+        res.json({ success: true, phone: user.phone || null });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao buscar telefone: ' + err.message });
     }
 });
 
