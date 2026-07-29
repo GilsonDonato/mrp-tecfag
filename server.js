@@ -5823,6 +5823,7 @@ app.post('/api/projects/:code/generate-spare-parts', authenticateToken, async (r
         const apiKey = process.env.GEMINI_API_KEY;
         let recommendations = [];
         let usedAI = false;
+        let geminiError = null;
         
         if (apiKey && apiKey.trim() !== '') {
             try {
@@ -5879,15 +5880,23 @@ Responda APENAS o JSON puro. Não adicione markdown, blocos de código (\`\`\`js
                         if (Array.isArray(extracted)) {
                             recommendations = extracted;
                             usedAI = true;
+                        } else {
+                            geminiError = 'Formato de resposta do Gemini inválido.';
                         }
+                    } else {
+                        geminiError = 'Estrutura de resposta vazia do Gemini.';
                     }
                 } else {
                     const errText = await response.text();
                     console.error(`[GEMINI SPARE PARTS ERROR] Status ${response.status}: ${errText}`);
+                    geminiError = `Erro ${response.status}: ${errText}`;
                 }
             } catch (e) {
                 console.error("Falha ao chamar API do Gemini para peças de reposição:", e);
+                geminiError = e.message;
             }
+        } else {
+            geminiError = 'Chave GEMINI_API_KEY não configurada ou vazia no servidor.';
         }
         
         // Fallback local se a IA não funcionar
@@ -5902,7 +5911,8 @@ Responda APENAS o JSON puro. Não adicione markdown, blocos de código (\`\`\`js
         res.json({
             success: true,
             usedAI,
-            recommendations
+            recommendations,
+            geminiError
         });
         
     } catch (err) {
