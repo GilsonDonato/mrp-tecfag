@@ -5815,8 +5815,19 @@ Responda APENAS o JSON puro. Não adicione markdown, blocos de código (\`\`\`js
                     if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
                         const rawText = data.candidates[0].content.parts[0].text;
                         const parsed = cleanAndParseJSON(rawText);
+                        let extracted = null;
                         if (Array.isArray(parsed)) {
-                            recommendations = parsed;
+                            extracted = parsed;
+                        } else if (parsed && typeof parsed === 'object') {
+                            for (const key in parsed) {
+                                if (Array.isArray(parsed[key])) {
+                                    extracted = parsed[key];
+                                    break;
+                                }
+                            }
+                        }
+                        if (Array.isArray(extracted)) {
+                            recommendations = extracted;
                             usedAI = true;
                         }
                     }
