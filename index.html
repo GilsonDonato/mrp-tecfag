@@ -3414,6 +3414,20 @@
                     <small style="font-size: 0.65rem; color: var(--text-secondary);">Insira apenas números (ex: 11999999999). Utilizado para notificações de vendas.</small>
                 </div>
                 
+                <!-- Configuração da IA (Gemini) -->
+                <div style="border-top: 1px solid var(--border-color); margin-top: 10px; padding-top: 10px; font-weight: bold; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;">
+                    <span>Integração da IA (Gemini)</span>
+                    <span id="chg-gemini-status" style="font-size: 0.68rem; font-weight: bold;">--</span>
+                </div>
+                <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                    <label for="chg-gemini-key" style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Chave de API do Gemini:</label>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="password" id="chg-gemini-key" class="form-control" style="flex: 1;" placeholder="Chave da API do Gemini (AIzaSy...)">
+                        <button type="button" class="btn" id="btn-test-gemini" onclick="testGeminiConnection()" style="font-size: 0.7rem; padding: 0 10px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); font-weight: bold; cursor: pointer; border-radius: 4px;">Testar</button>
+                    </div>
+                    <small style="font-size: 0.65rem; color: var(--text-secondary);">A chave ativa os recursos "Sugerir Peças", "Estudo de Caso" e "Busca por IA".</small>
+                </div>
+
                 <div style="border-top: 1px solid var(--border-color); margin-top: 10px; padding-top: 10px; font-weight: bold; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">
                     Alterar Senha (Opcional)
                 </div>
@@ -11107,6 +11121,11 @@
             document.getElementById('chg-current-pass').value = "";
             document.getElementById('chg-new-pass').value = "";
             document.getElementById('chg-confirm-pass').value = "";
+            document.getElementById('chg-gemini-key').value = "";
+            
+            const statusEl = document.getElementById('chg-gemini-status');
+            statusEl.innerHTML = "Carregando...";
+            statusEl.style.color = "var(--text-secondary)";
 
             const token = localStorage.getItem('tecfag_session_token');
             fetch('/api/auth/me', {
@@ -11120,6 +11139,38 @@
             })
             .catch(err => console.error('Erro ao buscar dados do perfil:', err));
 
+            // Verifica status da chave do Gemini no servidor
+            if (window.location.protocol === 'file:') {
+                statusEl.innerHTML = "Offline ⚠️";
+                statusEl.style.color = "#f97316";
+                document.getElementById('chg-gemini-key').disabled = true;
+                document.getElementById('chg-gemini-key').placeholder = "Indisponível em modo offline";
+                const btnTest = document.getElementById('btn-test-gemini');
+                if (btnTest) btnTest.disabled = true;
+            } else {
+                fetch('/api/config/gemini', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.configured) {
+                            statusEl.innerHTML = "Conectado ✨";
+                            statusEl.style.color = "#10b981";
+                            document.getElementById('chg-gemini-key').value = data.apiKeyMasked || "";
+                        } else {
+                            statusEl.innerHTML = "Não Configurado ⚠️";
+                            statusEl.style.color = "#f97316";
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Erro ao buscar status do Gemini:', err);
+                    statusEl.innerHTML = "Erro de Conexão";
+                    statusEl.style.color = "#ef4444";
+                });
+            }
+
             document.getElementById('change-password-modal').classList.add('active');
         }
 
@@ -11127,12 +11178,53 @@
             document.getElementById('change-password-modal').classList.remove('active');
         }
 
+        async function testGeminiConnection() {
+            const keyEl = document.getElementById('chg-gemini-key');
+            const key = keyEl.value.trim();
+            if (!key) {
+                alert('Por favor, insira uma chave para testar.');
+                return;
+            }
+            if (key.includes('...')) {
+                alert('A chave atual já está configurada e ativa no servidor.');
+                return;
+            }
+            
+            const btn = document.getElementById('btn-test-gemini');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = 'Testando...';
+
+            try {
+                const response = await fetch(`/api/gemini-test?key=${encodeURIComponent(key)}`);
+                const data = await response.json();
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+
+                if (response.ok && data.models) {
+                    alert('Conexão bem-sucedida! A chave de API do Gemini é válida e ativa.');
+                    const statusEl = document.getElementById('chg-gemini-status');
+                    statusEl.innerHTML = "Chave Válida ✨";
+                    statusEl.style.color = "#10b981";
+                } else {
+                    const errMsg = data.error || (data.error && data.error.message) || JSON.stringify(data);
+                    alert('Falha na validação da chave: ' + errMsg);
+                }
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                console.error(err);
+                alert('Erro de comunicação com o servidor ao testar a chave.');
+            }
+        }
+
         function submitProfileUpdate() {
             const phone = document.getElementById('chg-phone').value.trim();
             const currentPassword = document.getElementById('chg-current-pass').value;
             const newPassword = document.getElementById('chg-new-pass').value;
             const confirmPassword = document.getElementById('chg-confirm-pass').value;
-
+            
+            const geminiKey = document.getElementById('chg-gemini-key').value.trim();
             const changingPassword = newPassword.length > 0 || currentPassword.length > 0 || confirmPassword.length > 0;
 
             if (changingPassword) {
@@ -11161,10 +11253,33 @@
                 body: JSON.stringify({ currentPassword, newPassword, phone })
             })
             .then(res => res.json())
-            .then(data => {
+            .then(async data => {
                 if (data.error) {
                     alert('Erro ao atualizar perfil: ' + data.error);
                     return;
+                }
+                
+                // Se a chave do Gemini foi alterada e não contém máscara "...", salva ela também
+                if (window.location.protocol !== 'file:' && geminiKey && !geminiKey.includes('...')) {
+                    try {
+                        const geminiRes = await fetch('/api/config/gemini', {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ apiKey: geminiKey })
+                        });
+                        const geminiData = await geminiRes.json();
+                        if (geminiData.error) {
+                            alert('Aviso: Perfil atualizado, mas houve erro ao salvar chave Gemini: ' + geminiData.error);
+                            return;
+                        }
+                    } catch(err) {
+                        console.error(err);
+                        alert('Aviso: Perfil atualizado, mas houve erro ao se comunicar para salvar chave Gemini.');
+                        return;
+                    }
                 }
                 
                 if (changingPassword) {
@@ -11172,7 +11287,7 @@
                     closeChangePasswordModal();
                     handleLogout();
                 } else {
-                    alert('Perfil atualizado com sucesso!');
+                    alert('Perfil e configurações atualizados com sucesso!');
                     closeChangePasswordModal();
                 }
             })

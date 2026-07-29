@@ -606,6 +606,56 @@ app.put('/api/auth/profile', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/config/gemini - Retorna o status de configuração da chave do Gemini
+app.get('/api/config/gemini', authenticateToken, (req, res) => {
+    const key = process.env.GEMINI_API_KEY || '';
+    const masked = key ? (key.substring(0, 6) + '...' + key.substring(key.length - 4)) : '';
+    res.json({
+        success: true,
+        configured: !!key,
+        apiKeyMasked: masked
+    });
+});
+
+// PUT /api/config/gemini - Salva a chave do Gemini no .env e atualiza em memória
+app.put('/api/config/gemini', authenticateToken, async (req, res) => {
+    const { apiKey } = req.body;
+    if (typeof apiKey !== 'string') {
+        return res.status(400).json({ error: 'Chave de API inválida.' });
+    }
+
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const envPath = path.join(__dirname, '.env');
+        let envContent = '';
+        if (fs.existsSync(envPath)) {
+            envContent = fs.readFileSync(envPath, 'utf8');
+        }
+
+        const trimmedKey = apiKey.trim();
+        const regex = /^GEMINI_API_KEY=(.*)$/m;
+        if (regex.test(envContent)) {
+            envContent = envContent.replace(regex, `GEMINI_API_KEY=${trimmedKey}`);
+        } else {
+            envContent = envContent.trim() + `\nGEMINI_API_KEY=${trimmedKey}\n`;
+        }
+
+        fs.writeFileSync(envPath, envContent, 'utf8');
+        process.env.GEMINI_API_KEY = trimmedKey;
+
+        const masked = trimmedKey ? (trimmedKey.substring(0, 6) + '...' + trimmedKey.substring(trimmedKey.length - 4)) : '';
+        res.json({
+            success: true,
+            message: 'Chave do Gemini configurada com sucesso!',
+            configured: !!trimmedKey,
+            apiKeyMasked: masked
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao salvar configuração no servidor: ' + err.message });
+    }
+});
+
 // GET /api/users/:username/phone - Retorna o telefone de um usuário específico
 app.get('/api/users/:username/phone', authenticateToken, async (req, res) => {
     try {
@@ -5022,7 +5072,7 @@ app.delete('/api/supplier-resources/:id', authenticateToken, restrictToEngineeri
 
 // GET /api/gemini-test - Rota de diagnóstico para listar os modelos disponíveis para a chave do Gemini
 app.get('/api/gemini-test', async (req, res) => {
-    const geminiKey = process.env.GEMINI_API_KEY;
+    const geminiKey = req.query.key || process.env.GEMINI_API_KEY;
     if (!geminiKey) {
         return res.status(500).json({ error: 'A chave GEMINI_API_KEY não está configurada.' });
     }
@@ -5172,8 +5222,8 @@ Responda APENAS com o objeto JSON puramente, sem formatação markdown de códig
             }
         };
 
-        // Realiza requisição direta para a API do Gemini Flash Latest (resolve automaticamente para a versão estável ativa)
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`;
+        // Realiza requisição direta para a API do Gemini 2.0 Flash
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
         
         const reqOpts = {
             method: 'POST',
