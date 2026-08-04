@@ -9284,11 +9284,17 @@
                 return;
             }
             
+            const project = state.projects.find(p => p.code === activeProjectCode);
+            const isProposal = project ? project.fase <= 2 : false;
+            const docPrefix = isProposal ? 'TC' : 'TCD';
+            const docTitle = isProposal ? 'PROPOSTA COMERCIAL' : 'DOCUMENTAÇÃO TÉCNICA';
+            const docLabel = isProposal ? 'Proposta Comercial (Escopo)' : 'Documentação Técnica (Dossiê)';
+            
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
                 <html>
                 <head>
-                    <title>Tecfag - Documentação Técnica (TCD-${activeProjectCode.replace('PRJTEC', '')})</title>
+                    <title>Tecfag - ${docTitle} (${docPrefix}-${activeProjectCode.replace('PRJTEC', '')})</title>
                     <style>
                         body {
                             font-family: Arial, sans-serif;
@@ -9299,34 +9305,21 @@
                         .header {
                             border-bottom: 2px solid #0056b3;
                             padding-bottom: 20px;
-                            margin-bottom: 30px;
+                            margin-bottom: 20px;
                             display: flex;
                             justify-content: space-between;
                             align-items: center;
                         }
-                        .logo-area {
-                            font-size: 24px;
-                            font-weight: bold;
-                            color: #0056b3;
+                        .header img {
+                            max-height: 50px;
                         }
                         .title-area {
                             text-align: right;
-                            font-size: 14px;
-                            color: #666;
+                            font-size: 0.9rem;
                         }
-                        h1, h2, h3, h4 {
+                        .title-area strong {
+                            font-size: 1.2rem;
                             color: #0056b3;
-                        }
-                        h2 {
-                            border-bottom: 1px solid #ddd;
-                            padding-bottom: 5px;
-                            margin-top: 30px;
-                        }
-                        strong {
-                            color: #000;
-                        }
-                        li {
-                            margin-bottom: 8px;
                         }
                         .footer {
                             margin-top: 50px;
