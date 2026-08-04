@@ -5365,6 +5365,51 @@ app.post('/api/projects', async (req, res) => {
         await recordAuditLog(code, auditUser, `Criou o projeto para o cliente "${client}" (SKU: ${sku})`);
 
         sendWebhookNotification('CREATE', { code, client, pm, sku });
+
+        // Se for PROJETOS_ESPECIAIS, adiciona comentários e alertas de customização de engenharia
+        let isEspecial = false;
+        if (diagnostico) {
+            try {
+                const parsed = typeof diagnostico === 'string' ? JSON.parse(diagnostico) : diagnostico;
+                if (parsed && parsed.segment === 'PROJETOS_ESPECIAIS') {
+                    isEspecial = true;
+                }
+            } catch(e) {}
+        }
+
+        if (isEspecial) {
+            const commentMsg = '⚠️ ALERTA DE CUSTOMIZAÇÃO: Este escopo sairá do fluxo padrão e exigirá aprovação prévia da Engenharia de Projetos (Fernando). Não prometa prazos de entrega ou valores finais ao cliente nesta etapa. Status: Fila de Análise Técnica Pendente.';
+            const commentDate = new Date().toISOString();
+            await dbRun(`INSERT INTO comments (projectCode, user, message, dateAdded) VALUES (?, ?, ?, ?)`, [
+                code,
+                'Sistema Tecfag (IA)',
+                commentMsg,
+                commentDate
+            ]);
+            
+            // Atualiza o último comentário no projeto
+            await dbRun('UPDATE projects SET crm_last_comment_user = ?, crm_last_interaction_date = ? WHERE code = ?', [
+                'Sistema Tecfag (IA)',
+                commentDate,
+                code
+            ]);
+
+            // Grava no log global de auditoria
+            const timestamp = new Date().toLocaleTimeString() + ' ' + new Date().toLocaleDateString();
+            await dbRun('INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)', [
+                timestamp,
+                '#f97316',
+                `⚠️ ALERTA DE CUSTOMIZAÇÃO: Projeto especial <code>${code}</code> para o cliente <strong>${client}</strong> inserido. Direcionado para análise técnica da engenharia.`
+            ]);
+
+            // Broadcast de comentário em tempo real
+            broadcastNotification('COMMENT_ADDED', {
+                code,
+                user: 'Sistema Tecfag (IA)',
+                message: commentMsg
+            });
+        }
+
         res.status(201).json({ success: true, message: 'Projeto inserido com sucesso!' });
     } catch (err) {
         res.status(500).json({ error: 'Erro ao cadastrar projeto: ' + err.message });
@@ -5725,6 +5770,15 @@ app.post('/api/projects/:code/generate-case-study', authenticateToken, async (re
             return res.status(404).json({ error: 'Projeto não encontrado.' });
         }
         
+        if (project.diagnostico) {
+            try {
+                const parsed = typeof project.diagnostico === 'string' ? JSON.parse(project.diagnostico) : project.diagnostico;
+                if (parsed && parsed.segment === 'PROJETOS_ESPECIAIS') {
+                    return res.status(400).json({ error: '⚠️ ALERTA DE CUSTOMIZAÇÃO: Este escopo sairá do fluxo padrão e exigirá aprovação prévia da Engenharia de Projetos. Não prometa prazos de entrega ou valores finais ao cliente nesta etapa.' });
+                }
+            } catch(e) {}
+        }
+        
         // Deletar perguntas automáticas da IA anteriores deste projeto para limpar a linha do tempo
         await dbRun('DELETE FROM comments WHERE projectCode = ? AND user = ?', [code, 'Sistema Tecfag (IA)']);
         
@@ -5955,6 +6009,72 @@ function generateLocalFallbackSpareParts(project) {
     return parts;
 }
 
+// Auditor de Engenharia Tecfag - Validação Físico-Mecânica e Dimensional
+function getEngineeringErrors(segment, diagnostico, extraParams) {
+    const errors = [];
+    const diagLower = (diagnostico || '').toLowerCase();
+    const params = extraParams || {};
+    
+    // 1. O Veto Autônomo (Auditoria Físico-Mecânica)
+    const doser = params["Tipo de Alimentador/Dosador*"] || params["Equipamento de Dosagem Superior Acoplado*"] || "";
+    const viscosity = params["Viscosidade / Fluidez do Produto*"] || "";
+    const physicalChars = params["Características Físicas do Produto*"] || "";
+
+    // Rosca Sem Fim para líquidos ou fluidez livre
+    if (doser.includes("Rosca Sem Fim") || doser.includes("Rosca")) {
+        if (viscosity.includes("Água / Óleo") || viscosity.includes("Shampoo / Mel") || diagLower.includes("água") || diagLower.includes("agua") || diagLower.includes("óleo") || diagLower.includes("oleo") || diagLower.includes("líquido") || diagLower.includes("liquido") || diagLower.includes("shampoo") || diagLower.includes("mel")) {
+            errors.push("🔴 ERRO TÉCNICO DE ENGENHARIA: Alimentador de Rosca Sem Fim selecionado para produto com comportamento de líquido ou viscoso. Rosca sem fim é exclusiva para pós densos/farináceos; fluidos irão vazar pelas espirais por gravidade. Use dosador por Pistão Pneumático ou Bomba.");
+        } else if (physicalChars.includes("Pó seco / Fluidez livre") || physicalChars.includes("Fluidez livre") || diagLower.includes("fluidez livre") || diagLower.includes("grãos") || diagLower.includes("graos") || diagLower.includes("granulado")) {
+            errors.push("🔴 ERRO TÉCNICO DE ENGENHARIA: Alimentador de Rosca Sem Fim selecionado para produto com fluidez livre. Pós com fluidez livre ou granulados escorrem por gravidade através da rosca parada, causando superdosagem e vazamentos. Use dosador por calha vibratória, gravidade ou gaveta volumétrica.");
+        }
+    }
+    
+    // Copo Volumétrico / Balança para pastas/líquidos
+    if (doser.includes("Copo Volumétrico") || doser.includes("Balança Multicabeçote") || doser.includes("Balança de Caneca")) {
+        if (viscosity.includes("Pasta de Amendoim") || viscosity.includes("Shampoo / Mel") || diagLower.includes("pasta") || diagLower.includes("creme") || diagLower.includes("gel") || diagLower.includes("shampoo") || diagLower.includes("mel") || diagLower.includes("líquido") || diagLower.includes("liquido")) {
+            errors.push("🔴 ERRO TÉCNICO DE ENGENHARIA: Dosador volumétrico de copos ou balança selecionado para produtos pastosos/líquidos. Copos volumétricos e balanças são exclusivos para sólidos, granulados e grãos; produtos viscosos ou pastosos irão aderir às paredes ou vazar, impedindo a dosagem. Use dosador por Pistão Pneumático ou Bomba.");
+        }
+    }
+
+    // Pistão Pneumático para pós
+    if (doser.includes("Pistão Pneumático") || doser.includes("Bomba de Pistão")) {
+        if (physicalChars.includes("Pó seco") || diagLower.includes("pó seco") || diagLower.includes("po seco") || diagLower.includes("farinha") || diagLower.includes("amido")) {
+            errors.push("🔴 ERRO TÉCNICO DE ENGENHARIA: Dosador por Pistão Pneumático selecionado para pó seco. Pistões são exclusivos para líquidos e pastosos; pós secos irão travar o pistão e danificar as vedações. Use dosador por Rosca Sem Fim.");
+        }
+    }
+
+    // 2. Tolerância Zero Dimensional
+    const genericTerms = ['tamanhos variados', 'tamanho variado', 'variados', 'padrão', 'padrao', 'estimado', 'estimados', 'variado', 'tamanhos diversos', 'diversos tamanhos', 'diversos', 'medidas variadas', 'varias medidas', 'várias medidas'];
+    
+    let hasGenericDim = false;
+    for (const term of genericTerms) {
+        if (diagLower.includes(term)) {
+            hasGenericDim = true;
+        }
+        for (const val of Object.values(params)) {
+            if (typeof val === 'string' && val.toLowerCase().includes(term)) {
+                hasGenericDim = true;
+            }
+        }
+    }
+    
+    if (hasGenericDim) {
+        errors.push("🔴 ERRO TÉCNICO DE ENGENHARIA: Uso de dimensões genéricas ('tamanhos variados', 'padrão', etc.) detectado. A engenharia da Tecfag exige o preenchimento exato da geometria da embalagem e suas dimensões em milímetros (ex: 'Frasco quadrado de 80mm x 80mm com gargalo de 30mm').");
+    }
+
+    // Contexto de Operação (sachês / sticks)
+    const isSachetOrStick = diagLower.includes("sachê") || diagLower.includes("sache") || diagLower.includes("stick") || 
+                            (params["Formato da Embalagem*"] && (params["Formato da Embalagem*"].toLowerCase().includes("sachê") || params["Formato da Embalagem*"].toLowerCase().includes("stick")));
+    if (isSachetOrStick) {
+        const hasOutsourceInfo = diagLower.includes("própria") || diagLower.includes("propria") || diagLower.includes("terceiriza") || diagLower.includes("terceiro") || diagLower.includes("produção própria") || diagLower.includes("producao propria");
+        if (!hasOutsourceInfo) {
+            errors.push("⚠️ QUALIFICAÇÃO DE SETUP DE FÁBRICA: Para projetos de sachês ou sticks, é obrigatório qualificar se a produção é própria (produzida no local) ou terceirizada pelo cliente, para fins de setup e testes FAT na fábrica chinesa.");
+        }
+    }
+    
+    return errors;
+}
+
 // Helper de validação local de rascunhos (Fallback)
 function localValidationFallback(segment, diagnostico, extraParams) {
     const missing = [];
@@ -6120,8 +6240,30 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura:
             }
         }
         
+        if (segment === 'PROJETOS_ESPECIAIS') {
+            return res.json({
+                success: true,
+                score: 100,
+                color: "green",
+                missing: [
+                    "⚠️ ALERTA DE CUSTOMIZAÇÃO: Este escopo sairá do fluxo padrão e exigirá aprovação prévia da Engenharia de Projetos. Não prometa prazos de entrega ou valores finais ao cliente nesta etapa."
+                ],
+                satisfied: [
+                    "Descrição Detalhada da Dor do Cliente fornecida"
+                ]
+            });
+        }
+
         if (!result) {
             result = localValidationFallback(segment, diagnostico, extraParams);
+        }
+        
+        // Aplica validações estritas de engenharia do auditor Tecfag
+        const engineeringErrors = getEngineeringErrors(segment, diagnostico, extraParams);
+        if (engineeringErrors.length > 0) {
+            result.score = 0;
+            result.color = "red";
+            result.missing = [...engineeringErrors, ...(result.missing || [])];
         }
         
         res.json({

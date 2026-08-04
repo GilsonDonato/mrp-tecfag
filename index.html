@@ -5768,8 +5768,11 @@
         function toggleSubmitButton() {
             const checkbox = document.getElementById('prj-compromisso');
             const submitBtn = document.getElementById('btn-submit-project');
+            const missingList = document.getElementById('copilot-list-missing');
+            const hasVetoError = missingList && missingList.innerHTML.includes('🔴 ERRO TÉCNICO DE ENGENHARIA:');
+
             if (checkbox && submitBtn) {
-                if (checkbox.checked) {
+                if (checkbox.checked && !hasVetoError) {
                     submitBtn.disabled = false;
                     submitBtn.style.opacity = '1';
                     submitBtn.style.pointerEvents = 'auto';
@@ -6332,6 +6335,48 @@
             }
 
             if (grid) grid.innerHTML = '';
+            
+            // Restaura obrigatoriedade padrão de mídia para outros segmentos
+            const mediaInput = document.getElementById('prj-media-files');
+            if (mediaInput) {
+                mediaInput.required = false;
+                const label = mediaInput.previousElementSibling;
+                if (label) {
+                    label.innerHTML = 'Vídeo / Fotos do Produto em Ação (Dica de Ouro)*';
+                }
+            }
+
+            if (segment === 'PROJETOS_ESPECIAIS') {
+                if (title) title.innerText = "12. Projetos Especiais & Customizações";
+                if (grid) {
+                    grid.innerHTML = `
+                        <div id="projetos-especiais-banner" class="alert alert-important" style="grid-column: span 2; background: rgba(249, 115, 22, 0.1); border-left: 4px solid #f97316; color: #f97316; padding: 15px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; line-height: 1.4; margin-bottom: 10px;">
+                            ⚠️ ALERTA: Projeto fora de catálogo. Não prometa valores, prazos ou viabilidade sem a validação prévia da Engenharia.
+                        </div>
+                        <div class="form-group" style="grid-column: span 2; margin-bottom: 12px;">
+                            <label for="prj-dynamic-dor-cliente">Descrição Detalhada da Dor do Cliente*</label>
+                            <textarea id="prj-dynamic-dor-cliente" class="form-control" data-field-name="Descrição Detalhada da Dor do Cliente" style="height: 120px; resize: vertical; background-color: #0b0f19;" required placeholder="Descreva detalhadamente a dor do cliente, o problema que ele quer resolver, o processo manual atual, o espaço e quaisquer particularidades técnicas..."></textarea>
+                        </div>
+                    `;
+                    
+                    // Adiciona evento de escuta para re-validar ao digitar
+                    const textarea = document.getElementById('prj-dynamic-dor-cliente');
+                    if (textarea) {
+                        textarea.addEventListener('input', runSkuSuggestionEngine);
+                    }
+                }
+
+                if (mediaInput) {
+                    mediaInput.required = true;
+                    const label = mediaInput.previousElementSibling;
+                    if (label) {
+                        label.innerHTML = 'Vídeo / Fotos do Produto em Ação (Obrigatório para Projetos Especiais)*';
+                    }
+                }
+
+                if (container) container.style.display = 'block';
+                return;
+            }
             
             // Encontra o prefixo numérico correspondente (ex: "1.")
             const mapping = {
@@ -7267,6 +7312,14 @@
                     return;
                 }
 
+                const segment = document.getElementById('prj-intake-segment').value;
+                if (segment === 'PROJETOS_ESPECIAIS') {
+                    if (!mediaFilesList || mediaFilesList.length === 0) {
+                        alert("🔴 ERRO DE VALIDAÇÃO: Para projetos especiais (Segmento 12), é obrigatório o upload de mídias (vídeos do processo atual ou fotos do galpão) para análise da engenharia.");
+                        return;
+                    }
+                }
+
                 if (isSubmitting) return;
                 isSubmitting = true;
 
@@ -7918,6 +7971,41 @@
                 const bottleneck = getBottleneckRole(p);
                 const editingUser = state.activeLocks ? state.activeLocks[p.code] : null;
 
+                // Detecta se é projeto especial pendente de aprovação técnica
+                let isEspecial = false;
+                if (p.diagnostico) {
+                    try {
+                        const parsed = typeof p.diagnostico === 'string' ? JSON.parse(p.diagnostico) : p.diagnostico;
+                        if (parsed && parsed.segment === 'PROJETOS_ESPECIAIS') {
+                            isEspecial = true;
+                        }
+                    } catch(e) {}
+                }
+                
+                let isApprovedByEng = false;
+                if (p.checklist) {
+                    try {
+                        const parsedChecklist = typeof p.checklist === 'string' ? JSON.parse(p.checklist) : p.checklist;
+                        if (parsedChecklist && parsedChecklist.aprovacao === true) {
+                            isApprovedByEng = true;
+                        }
+                    } catch(e) {}
+                }
+
+                let badgeHtml = `
+                    <span class="badge-fase" style="background-color: ${faseClasses[p.fase]}20; color: ${faseClasses[p.fase]}; border: 1px solid ${faseClasses[p.fase]}40;">
+                        ${faseTextos[p.fase]}
+                    </span>
+                `;
+                
+                if (isEspecial && !isApprovedByEng) {
+                    badgeHtml = `
+                        <span class="badge-fase" style="background-color: rgba(249, 115, 22, 0.15); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.30); font-weight: bold;">
+                            Análise Técnica Pendente
+                        </span>
+                    `;
+                }
+
                 // Cálculo do Prazo
                 let deadlineHtml = '<span style="color: var(--text-secondary); font-weight: 500;">-</span>';
                 if (p.fase >= 1 && p.fase <= 4) {
@@ -7962,9 +8050,7 @@
                     <td style="font-weight: 600;">${p.client}</td>
                     <td><code>${p.sku}</code></td>
                     <td>
-                        <span class="badge-fase" style="background-color: ${faseClasses[p.fase]}20; color: ${faseClasses[p.fase]}; border: 1px solid ${faseClasses[p.fase]}40;">
-                            ${faseTextos[p.fase]}
-                        </span>
+                        ${badgeHtml}
                     </td>
                     <td>
                         <div style="display: flex; align-items: center; gap: 8px;">
@@ -9202,7 +9288,7 @@
             printWindow.document.write(`
                 <html>
                 <head>
-                    <title>Tecfag - Estudo de Caso (${activeProjectCode})</title>
+                    <title>Tecfag - Documentação Técnica (TCD-${activeProjectCode.replace('PRJTEC', '')})</title>
                     <style>
                         body {
                             font-family: Arial, sans-serif;
@@ -9266,8 +9352,8 @@
                             </div>
                         </div>
                         <div class="title-area">
-                            <strong>Estudo de Caso & Escopo Técnico</strong><br>
-                            Projeto: ${activeProjectCode}
+                            <strong>Documentação Técnica (Dossiê)</strong><br>
+                            Código Técnico: TCD-${activeProjectCode.replace('PRJTEC', '')} (Projeto: ${activeProjectCode})
                         </div>
                     </div>
                     
@@ -9584,6 +9670,9 @@
             } else {
                 satisfiedList.innerHTML = `<li style="color: var(--text-secondary);">Nenhum parâmetro identificado ainda.</li>`;
             }
+            
+            // Invoca a verificação do botão de envio com base no novo estado do Copiloto
+            toggleSubmitButton();
         }
 
         async function loadModalComments() {
@@ -10574,6 +10663,11 @@
             const project = state.projects.find(p => p.code === activeProjectCode);
             if (!project) return;
 
+            const isProposal = project.fase <= 2;
+            const docPrefix = isProposal ? 'TC' : 'TCD';
+            const formattedCode = `${docPrefix}-${project.code.replace('PRJTEC', '')}`;
+            const docTitle = isProposal ? 'PROPOSTA COMERCIAL' : 'DOCUMENTAÇÃO TÉCNICA';
+
             // Fases definitions
             const phaseLabels = {
                 1: 'Fase 1: Vendas & Escopo',
@@ -10945,7 +11039,7 @@
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Relatório do Projeto ${project.code}</title>
+                    <title>${docTitle} (${formattedCode})</title>
                     <meta charset="utf-8">
                     <style>
                         body {
@@ -11064,13 +11158,13 @@
                             <img src="media/tecfag_emblem.png" alt="TECFAG Emblem" style="height: 35px;">
                             <img src="media/tecfag_text.png" alt="TECFAG" style="height: 18px;">
                         </div>
-                        <div class="report-title">Relatório de Acompanhamento MRP</div>
+                        <div class="report-title">${docTitle}</div>
                     </div>
 
                     <div class="meta-grid">
                         <div class="meta-item">
                             <span class="meta-label">Código do Projeto</span>
-                            <span class="meta-value">${project.code}</span>
+                            <span class="meta-value">${formattedCode} (Ref: ${project.code})</span>
                         </div>
                         <div class="meta-item">
                             <span class="meta-label">Cliente / Razão Social</span>
