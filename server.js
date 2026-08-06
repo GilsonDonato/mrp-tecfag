@@ -1816,6 +1816,35 @@ function downloadFile(url) {
     });
 }
 
+// Helper para extrair o ID de uma pasta do Google Drive a partir da URL
+function extractFolderId(url) {
+    try {
+        if (url.includes('drive.google.com') && (url.includes('/folders/') || url.includes('/drive/folders/'))) {
+            const parts = url.split('/folders/');
+            if (parts[1]) {
+                return parts[1].split('?')[0].split('/')[0].trim();
+            }
+        }
+    } catch (e) {
+        console.error('[FOLDER ID EXTRACTOR] Erro ao extrair ID de pasta:', e.message);
+    }
+    return null;
+}
+
+// Helper para listar arquivos PDF dentro de uma pasta do Google Drive usando a API v3
+async function listFilesInFolder(folderId, apiKey) {
+    const q = `'${folderId}' in parents and mimeType = 'application/pdf' and trashed = false`;
+    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&key=${apiKey}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        const errMsg = errData.error ? errData.error.message : `HTTP status ${response.status}`;
+        throw new Error(`Erro na API do Google Drive: ${errMsg}`);
+    }
+    const data = await response.json();
+    return data.files || [];
+}
+
 async function seedSupplierResources() {
     const seedData = [
     {
@@ -4976,47 +5005,83 @@ async function seedSupplierResources() {
 
     console.log('[SEED] Todos os metadados dos catálogos foram verificados/cadastrados.');
 
-    // 2. Segundo passo: Processa a extração de texto em segundo plano, um por um, com delay
-    // para evitar estouro de memória (Out Of Memory) no Render
-    setTimeout(async () => {
+    // 2. Segundo passo: Processa a extração de texto em segundo plano (Worker Periódico)
+    // Executa em segundo plano para evitar timeouts no Render e estouros de memória
+    async function processPendingResources() {
         try {
             const pendingResources = await dbAll("SELECT id, title, url FROM supplier_resources WHERE extracted_text = 'PENDING'");
             if (pendingResources.length === 0) {
-                console.log('[SEED] Nenhum catálogo com extração de texto pendente.');
                 return;
             }
 
-            console.log(`[SEED] Encontrados ${pendingResources.length} catálogos pendentes de extração de texto. Iniciando processamento sequencial...`);
+            console.log(`[WORKER] Encontrados ${pendingResources.length} recursos pendentes de extração de texto. Iniciando processamento...`);
 
             for (const resInfo of pendingResources) {
-                console.log(`[SEED] Aguardando 15s antes de processar: ${resInfo.title}...`);
-                await new Promise(resolve => setTimeout(resolve, 15000)); // Delay de 15 segundos para GC liberar memória
-
-                // Marca como processando para evitar reprocessamento em caso de reinício rápido
+                // Marca como processando para evitar reprocessamento concorrente
                 await dbRun("UPDATE supplier_resources SET extracted_text = 'PROCESSING' WHERE id = ?", [resInfo.id]);
 
                 try {
-                    console.log(`[SEED] Baixando e extraindo texto de: ${resInfo.title}...`);
-                    const directUrl = convertDriveUrl(resInfo.url);
-                    const fileBuffer = await downloadFile(directUrl);
+                    console.log(`[WORKER] Iniciando extração de texto de: ${resInfo.title}...`);
                     
-                    const pdfData = await pdfParse(fileBuffer);
-                    const text = pdfData.text || '';
+                    let text = '';
+                    const folderId = extractFolderId(resInfo.url);
+                    const apiKey = process.env.GEMINI_API_KEY;
                     
+                    if (folderId && apiKey) {
+                        console.log(`[WORKER] Detectada pasta do Google Drive. FOLDER_ID: ${folderId}`);
+                        const files = await listFilesInFolder(folderId, apiKey);
+                        console.log(`[WORKER] Encontrados ${files.length} arquivos PDF na pasta.`);
+                        
+                        if (files.length === 0) {
+                            text = 'Nenhum arquivo PDF encontrado nesta pasta pública do Google Drive.';
+                        } else {
+                            let concatenatedText = '';
+                            for (const file of files) {
+                                try {
+                                    console.log(`[WORKER] Baixando arquivo da pasta: ${file.name}...`);
+                                    const fileUrl = `https://drive.google.com/uc?export=download&id=${file.id}`;
+                                    const fileBuffer = await downloadFile(fileUrl);
+                                    const pdfData = await pdfParse(fileBuffer);
+                                    concatenatedText += `=== ARQUIVO: ${file.name} ===\n${pdfData.text || ''}\n\n`;
+                                    
+                                    // Delay de 2 segundos para o garbage collector e evitar limites de taxa
+                                    await new Promise(r => setTimeout(r, 2000));
+                                } catch (fileErr) {
+                                    console.warn(`[WORKER] Falha ao processar arquivo ${file.name} da pasta:`, fileErr.message);
+                                    concatenatedText += `=== ARQUIVO: ${file.name} (FALHA NA LEITURA: ${fileErr.message}) ===\n\n`;
+                                }
+                            }
+                            text = concatenatedText;
+                        }
+                    } else {
+                        // Trata como arquivo individual
+                        const directUrl = convertDriveUrl(resInfo.url);
+                        const fileBuffer = await downloadFile(directUrl);
+                        const pdfData = await pdfParse(fileBuffer);
+                        text = pdfData.text || '';
+                    }
+
                     await dbRun("UPDATE supplier_resources SET extracted_text = ? WHERE id = ?", [text, resInfo.id]);
-                    console.log(`[SEED] Sucesso! Texto extraído (${text.length} carac.) para: ${resInfo.title}`);
+                    console.log(`[WORKER] Sucesso! Texto extraído (${text.length} carac.) para: ${resInfo.title}`);
                 } catch (extractErr) {
-                    console.warn(`[SEED] Falha ao extrair texto de ${resInfo.title}:`, extractErr.message);
-                    // Salva status de falha para não tentar extrair novamente em loop
+                    console.warn(`[WORKER] Falha ao extrair texto de ${resInfo.title}:`, extractErr.message);
                     const errorMsg = `FAILED: ${extractErr.message}`;
                     await dbRun("UPDATE supplier_resources SET extracted_text = ? WHERE id = ?", [errorMsg, resInfo.id]);
                 }
+
+                // Delay de 5 segundos entre recursos diferentes no loop do worker
+                await new Promise(resolve => setTimeout(resolve, 5000));
             }
-            console.log('[SEED] Processamento de extração de texto de catálogos concluído.');
         } catch (err) {
-            console.error('[SEED] Erro no loop de extração de texto:', err.message);
+            console.error('[WORKER] Erro no loop de extração de texto:', err.message);
         }
-    }, 10000); // Inicia 10 segundos após o boot do servidor
+    }
+
+    // Inicializa o worker executando uma vez após 10 segundos, e depois periodicamente a cada 30 segundos
+    setTimeout(() => {
+        processPendingResources();
+        setInterval(processPendingResources, 30000);
+    }, 10000);
 }
 
 // POST /api/supplier-resources - Cadastra novo recurso com extração automática de texto (restrito a Admin/Engenharia)
@@ -5027,20 +5092,27 @@ app.post('/api/supplier-resources', authenticateToken, restrictToEngineeringAndA
     }
 
     try {
+        const folderId = extractFolderId(url);
         let extracted_text = '';
-        
-        // Tenta converter e fazer o download do PDF para extrair o texto
-        const directDownloadUrl = convertDriveUrl(url);
-        console.log(`[SUPPLIER API] Tentando extrair texto do link de download: ${directDownloadUrl}`);
+        let isFolder = false;
 
-        try {
-            const fileBuffer = await downloadFile(directDownloadUrl);
-            const pdfData = await pdfParse(fileBuffer);
-            extracted_text = pdfData.text || '';
-            console.log(`[SUPPLIER API] Sucesso! Texto extraído (${extracted_text.length} caracteres) do catálogo.`);
-        } catch (parseErr) {
-            console.warn(`[SUPPLIER API] Não foi possível extrair texto do PDF (o cadastro será feito apenas com metadados):`, parseErr.message);
-            // Continua a execução para salvar pelo menos o link e as anotações
+        if (folderId) {
+            isFolder = true;
+            // Se for pasta, cadastramos como PENDING para processar em segundo plano e evitar timeouts HTTP
+            extracted_text = 'PENDING';
+        } else {
+            // Se for arquivo individual, tenta processar imediatamente (comportamento síncrono herdado)
+            const directDownloadUrl = convertDriveUrl(url);
+            console.log(`[SUPPLIER API] Tentando extrair texto do link de download: ${directDownloadUrl}`);
+
+            try {
+                const fileBuffer = await downloadFile(directDownloadUrl);
+                const pdfData = await pdfParse(fileBuffer);
+                extracted_text = pdfData.text || '';
+                console.log(`[SUPPLIER API] Sucesso! Texto extraído (${extracted_text.length} caracteres) do catálogo.`);
+            } catch (parseErr) {
+                console.warn(`[SUPPLIER API] Não foi possível extrair texto do PDF (o cadastro será feito apenas com metadados):`, parseErr.message);
+            }
         }
 
         const sql = `INSERT INTO supplier_resources (
@@ -5051,7 +5123,12 @@ app.post('/api/supplier-resources', authenticateToken, restrictToEngineeringAndA
         const created_by = req.user.username;
 
         await dbRun(sql, [supplier_name, machine_category, title, url, notes, extracted_text, created_by, created_at]);
-        res.status(201).json({ message: 'Recurso cadastrado com sucesso e texto indexado!' });
+        
+        if (isFolder) {
+            res.status(201).json({ message: 'Pasta cadastrada com sucesso! Os arquivos PDF estão sendo processados em segundo plano.' });
+        } else {
+            res.status(201).json({ message: 'Recurso cadastrado com sucesso e texto indexado!' });
+        }
     } catch (err) {
         console.error('[SUPPLIER API] Erro ao cadastrar recurso:', err.message);
         res.status(500).json({ error: 'Erro ao cadastrar recurso na biblioteca técnica.' });
