@@ -5222,8 +5222,9 @@ Responda APENAS com o objeto JSON puramente, sem formatação markdown de códig
             }
         };
 
-        // Realiza requisição direta para a API do Gemini 1.5 Flash
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+        // Realiza requisição direta para a API do Gemini
+        const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`;
         
         const reqOpts = {
             method: 'POST',
@@ -5817,7 +5818,8 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres e
   "perguntasFaltantes": ["Pergunta 1?", "Pergunta 2?"]
 }
 `;
-                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
                 const payload = {
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: { responseMimeType: "application/json" }
@@ -5903,7 +5905,8 @@ Retorne ESTRITAMENTE um array JSON contendo as recomendações de peças de repo
 Responda APENAS o JSON puro. Não adicione markdown, blocos de código (\`\`\`json) ou comentários.
 `;
                 
-                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
                 const payload = {
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: { responseMimeType: "application/json" }
@@ -6213,7 +6216,8 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura:
   "satisfied": ["Parâmetro bem especificado 1", "Parâmetro bem especificado 2"]
 }
 `;
-                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
                 const payload = {
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: { responseMimeType: "application/json" }
