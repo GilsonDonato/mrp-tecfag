@@ -1819,11 +1819,9 @@ function downloadFile(url) {
 // Helper para extrair o ID de uma pasta do Google Drive a partir da URL
 function extractFolderId(url) {
     try {
-        if (url.includes('drive.google.com') && (url.includes('/folders/') || url.includes('/drive/folders/'))) {
-            const parts = url.split('/folders/');
-            if (parts[1]) {
-                return parts[1].split('?')[0].split('/')[0].trim();
-            }
+        const match = url.match(/\/folders\/([a-zA-Z0-9_-]{25,45})/);
+        if (match && match[1]) {
+            return match[1].trim();
         }
     } catch (e) {
         console.error('[FOLDER ID EXTRACTOR] Erro ao extrair ID de pasta:', e.message);
