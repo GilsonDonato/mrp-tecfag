@@ -4960,6 +4960,17 @@
                 });
             }
 
+            // Filtro de Cargo / Função (Responsabilidade / Gargalo)
+            if (currentRole && currentRole !== 'ALL' && currentRole !== 'DIRETOR') {
+                filteredPrjs = filteredPrjs.filter(p => {
+                    const bottleneck = getBottleneckRole(p);
+                    if (currentRole === 'GERENTE_COMERCIAL') {
+                        return bottleneck === 'VENDAS';
+                    }
+                    return bottleneck === currentRole;
+                });
+            }
+
             return filteredPrjs;
         }
         let isSubmitting = false;
@@ -5641,7 +5652,9 @@
         function handleRoleChange() {
             currentRole = document.getElementById('profile-select-role').value;
             updateRolePanel();
+            updateKPIs();
             renderKanban();
+            renderProjectsTable();
         }
 
         // Tasks bottlenecks
@@ -5676,12 +5689,17 @@
             const countBadge = document.getElementById('tasks-role-count');
             const title = document.getElementById('tasks-role-title');
 
-            if (currentRole === 'ALL') {
+            if (currentRole === 'ALL' || currentRole === 'DIRETOR') {
                 panel.style.display = 'none';
                 return;
             }
 
-            const myBottlenecks = state.projects.filter(p => getBottleneckRole(p) === currentRole);
+            let myBottlenecks = [];
+            if (currentRole === 'GERENTE_COMERCIAL') {
+                myBottlenecks = state.projects.filter(p => getBottleneckRole(p) === 'VENDAS');
+            } else {
+                myBottlenecks = state.projects.filter(p => getBottleneckRole(p) === currentRole);
+            }
             const count = myBottlenecks.length;
 
             panel.style.display = 'flex';
@@ -5693,7 +5711,8 @@
                 COMPRAS: "Compras & Importação",
                 ESTOQUE: "Almoxarifado & Estoque",
                 TECNICO: "Técnico Instalador de Campo",
-                GERENTE: "Gerente de Projetos (PM)"
+                GERENTE: "Gerente de Projetos (PM)",
+                GERENTE_COMERCIAL: "Gerência Comercial"
             };
 
             title.innerText = `Você possui ${count} projeto(s) aguardando sua ação em ${roleNames[currentRole]}`;
@@ -7939,7 +7958,18 @@
                                       p.diagnostico.toLowerCase().includes(searchVal);
                 
                 const matchesFase = filterFase === 'ALL' || p.fase === parseInt(filterFase);
-                return matchesSearch && matchesFase;
+                
+                let matchesRole = true;
+                if (currentRole && currentRole !== 'ALL' && currentRole !== 'DIRETOR') {
+                    const bottleneck = getBottleneckRole(p);
+                    if (currentRole === 'GERENTE_COMERCIAL') {
+                        matchesRole = bottleneck === 'VENDAS';
+                    } else {
+                        matchesRole = bottleneck === currentRole;
+                    }
+                }
+                
+                return matchesSearch && matchesFase && matchesRole;
             });
 
             if (filtered.length === 0) {
