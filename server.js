@@ -1846,6 +1846,14 @@ async function listFilesInFolder(folderId, apiKey) {
 }
 
 async function seedSupplierResources() {
+    // Resetar itens que ficaram travados em PROCESSING devido a reinicializações do servidor
+    try {
+        await dbRun("UPDATE supplier_resources SET extracted_text = 'PENDING' WHERE extracted_text = 'PROCESSING'");
+        console.log('[WORKER] Itens travados em PROCESSING foram resetados para PENDING.');
+    } catch (e) {
+        console.error('[WORKER] Erro ao resetar itens PROCESSING no boot:', e.message);
+    }
+
     const seedData = [
     {
         "supplier_name": "ANKE-YIMU",
