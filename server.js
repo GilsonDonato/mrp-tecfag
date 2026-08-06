@@ -5159,6 +5159,56 @@ app.put('/api/supplier-resources/:id/sync', authenticateToken, restrictToEnginee
     }
 });
 
+// POST /api/supplier-resources/sync-folder - Sincronização rápida de pastas sem burocracia (restrito a Admin/Engenharia)
+app.post('/api/supplier-resources/sync-folder', authenticateToken, restrictToEngineeringAndAdmin, async (req, res) => {
+    const { url } = req.body;
+    try {
+        if (url && url.trim()) {
+            const trimmedUrl = url.trim();
+            const folderId = extractFolderId(trimmedUrl);
+            if (!folderId) {
+                return res.status(400).json({ error: 'Link de pasta do Google Drive inválido. Certifique-se de que contém /folders/ ou /drive/folders/.' });
+            }
+            
+            // Verificar se a pasta já existe
+            const existing = await dbGet('SELECT id FROM supplier_resources WHERE url = ?', [trimmedUrl]);
+            if (existing) {
+                await dbRun("UPDATE supplier_resources SET extracted_text = 'PENDING' WHERE id = ?", [existing.id]);
+                return res.json({ message: 'Sincronização da pasta agendada com sucesso! O robô fará o processamento em segundo plano.' });
+            } else {
+                // Cadastrar automaticamente sem burocracia
+                await dbRun(
+                    `INSERT INTO supplier_resources (
+                        supplier_name, machine_category, title, url, notes, extracted_text, created_by, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        'Drive Engenharia',
+                        'GERAL',
+                        'Pasta Sincronizada Rápida',
+                        trimmedUrl,
+                        'Pasta sincronizada via botão de Ação Rápida.',
+                        'PENDING',
+                        req.user ? req.user.username : 'sistema',
+                        new Date().toISOString()
+                    ]
+                );
+                return res.json({ message: 'Pasta cadastrada e sincronização agendada com sucesso!' });
+            }
+        } else {
+            // Sincronização Global de todas as pastas existentes
+            await dbRun(
+                `UPDATE supplier_resources 
+                 SET extracted_text = 'PENDING' 
+                 WHERE url LIKE '%/folders/%' OR url LIKE '%/drive/folders/%'`
+            );
+            return res.json({ message: 'Sincronização global agendada para todas as pastas cadastradas!' });
+        }
+    } catch (err) {
+        console.error('[SUPPLIER API] Erro na sincronização rápida:', err.message);
+        res.status(500).json({ error: 'Erro ao processar sincronização rápida.' });
+    }
+});
+
 // GET /api/gemini-test - Rota de diagnóstico para listar os modelos disponíveis para a chave do Gemini
 app.get('/api/gemini-test', async (req, res) => {
     const geminiKey = req.query.key || process.env.GEMINI_API_KEY;
