@@ -5222,68 +5222,79 @@ Responda APENAS com o objeto JSON puramente, sem formatação markdown de códig
             }
         };
 
-        // Realiza requisição direta para a API do Gemini
-        const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`;
-        
-        const reqOpts = {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+        // Realiza requisição direta para a API do Gemini com mecanismo de fallback (tentativa dupla)
+        const tryCallGemini = async (model) => {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+            const data = await response.json();
+            return { ok: response.ok, status: response.status, data };
         };
 
-        const apiRequest = https.request(url, reqOpts, (apiRes) => {
-            let data = '';
-            apiRes.on('data', (chunk) => data += chunk);
-            apiRes.on('end', () => {
-                try {
-                    const parsedResponse = JSON.parse(data);
-                    if (parsedResponse.error) {
-                        console.error('[GEMINI API ERROR]', parsedResponse.error);
-                        return res.status(500).json({ error: `Erro na API do Gemini: ${parsedResponse.error.message}` });
-                    }
+        const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+        let resData = await tryCallGemini(primaryModel);
 
-                    const rawText = parsedResponse.candidates[0].content.parts[0].text;
-                    
-                    // Helper para limpar formatações de markdown que a IA possa ter retornado no JSON
-                    let cleanText = rawText.trim();
-                    if (cleanText.startsWith('```')) {
-                        const lines = cleanText.split('\n');
-                        if (lines[0].startsWith('```')) lines.shift();
-                        if (lines[lines.length - 1].trim() === '```') lines.pop();
-                        cleanText = lines.join('\n').trim();
+        const isQuotaError = (resObj) => {
+            if (!resObj.ok) {
+                if (resObj.status === 429) return true;
+                if (resObj.data && resObj.data.error) {
+                    const msg = String(resObj.data.error.message || '').toLowerCase();
+                    const code = resObj.data.error.code;
+                    if (code === 429 || msg.includes('quota') || msg.includes('limit') || msg.includes('resource_exhausted')) {
+                        return true;
                     }
-
-                    const result = JSON.parse(cleanText);
-                    
-                    // Cruza as referências de ID retornadas com os recursos reais do banco para enviar detalhes completos ao frontend
-                    const matchedRefs = resources.filter(r => (result.references || []).includes(r.id));
-                    
-                    res.json({
-                        answer: result.answer,
-                        references: matchedRefs.map(r => ({
-                            id: r.id,
-                            supplier_name: r.supplier_name,
-                            title: r.title,
-                            url: r.url,
-                            machine_category: r.machine_category
-                        }))
-                    });
-                } catch (parseErr) {
-                    console.error('[GEMINI PARSE ERROR] Resposta bruta da API:', data);
-                    res.status(500).json({ error: 'Falha ao processar a resposta analítica da inteligência artificial: ' + parseErr.message });
                 }
-            });
-        });
+            }
+            return false;
+        };
 
-        apiRequest.on('error', (apiErr) => {
-            console.error('[GEMINI HTTP ERROR]', apiErr.message);
-            res.status(500).json({ error: 'Erro de conexão com o servidor do Gemini.' });
-        });
+        // Fallback automático se falhar por limite de cota/limite zero
+        if (isQuotaError(resData) && primaryModel !== 'gemini-1.5-flash') {
+            console.warn(`[GEMINI API WARNING] Limite excedido para o modelo ${primaryModel}. Acionando fallback para gemini-1.5-flash...`);
+            resData = await tryCallGemini('gemini-1.5-flash');
+        }
 
-        apiRequest.write(JSON.stringify(requestBody));
-        apiRequest.end();
+        if (!resData.ok) {
+            console.error('[GEMINI API ERROR]', resData.data ? resData.data.error : 'Erro HTTP ' + resData.status);
+            if (isQuotaError(resData)) {
+                return res.status(429).json({
+                    error: "🔴 Limite de leitura da IA temporariamente excedido devido ao tamanho dos manuais. Por favor, aguarde cerca de 30 segundos e tente pesquisar novamente."
+                });
+            }
+            const errMsg = (resData.data && resData.data.error) ? resData.data.error.message : `Erro HTTP ${resData.status}`;
+            return res.status(resData.status || 500).json({ error: `Erro na API do Gemini: ${errMsg}` });
+        }
+
+        const parsedResponse = resData.data;
+        const rawText = parsedResponse.candidates[0].content.parts[0].text;
+        
+        // Helper para limpar formatações de markdown que a IA possa ter retornado no JSON
+        let cleanText = rawText.trim();
+        if (cleanText.startsWith('```')) {
+            const lines = cleanText.split('\n');
+            if (lines[0].startsWith('```')) lines.shift();
+            if (lines[lines.length - 1].trim() === '```') lines.pop();
+            cleanText = lines.join('\n').trim();
+        }
+
+        const result = JSON.parse(cleanText);
+        
+        // Cruza as referências de ID retornadas com os recursos reais do banco para enviar detalhes completos ao frontend
+        const matchedRefs = resources.filter(r => (result.references || []).includes(r.id));
+        
+        res.json({
+            answer: result.answer,
+            references: matchedRefs.map(r => ({
+                id: r.id,
+                supplier_name: r.supplier_name,
+                title: r.title,
+                url: r.url,
+                machine_category: r.machine_category
+            }))
+        });
 
     } catch (err) {
         console.error('[AI SEARCH API] Erro ao processar busca por IA:', err.message);
