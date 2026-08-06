@@ -5234,7 +5234,7 @@ Responda APENAS com o objeto JSON puramente, sem formatação markdown de códig
             return { ok: response.ok, status: response.status, data };
         };
 
-        const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+        const primaryModel = process.env.GEMINI_MODEL || 'gemini-flash-latest';
         let resData = await tryCallGemini(primaryModel);
 
         const isQuotaError = (resObj) => {
@@ -5252,9 +5252,9 @@ Responda APENAS com o objeto JSON puramente, sem formatação markdown de códig
         };
 
         // Fallback automático se falhar por limite de cota/limite zero
-        if (isQuotaError(resData) && primaryModel !== 'gemini-2.5-flash-lite') {
-            console.warn(`[GEMINI API WARNING] Limite excedido para o modelo ${primaryModel}. Acionando fallback para gemini-2.5-flash-lite...`);
-            resData = await tryCallGemini('gemini-2.5-flash-lite');
+        if (isQuotaError(resData) && primaryModel !== 'gemini-flash-lite-latest') {
+            console.warn(`[GEMINI API WARNING] Limite excedido para o modelo ${primaryModel}. Acionando fallback para gemini-flash-lite-latest...`);
+            resData = await tryCallGemini('gemini-flash-lite-latest');
         }
 
         if (!resData.ok) {
@@ -5829,7 +5829,7 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres e
   "perguntasFaltantes": ["Pergunta 1?", "Pergunta 2?"]
 }
 `;
-                const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+                const modelName = process.env.GEMINI_MODEL || 'gemini-flash-latest';
                 const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
                 const payload = {
                     contents: [{ parts: [{ text: prompt }] }],
@@ -5916,7 +5916,7 @@ Retorne ESTRITAMENTE um array JSON contendo as recomendações de peças de repo
 Responda APENAS o JSON puro. Não adicione markdown, blocos de código (\`\`\`json) ou comentários.
 `;
                 
-                const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+                const modelName = process.env.GEMINI_MODEL || 'gemini-flash-latest';
                 const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
                 const payload = {
                     contents: [{ parts: [{ text: prompt }] }],
@@ -6227,7 +6227,7 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura:
   "satisfied": ["Parâmetro bem especificado 1", "Parâmetro bem especificado 2"]
 }
 `;
-                const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+                const modelName = process.env.GEMINI_MODEL || 'gemini-flash-latest';
                 const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
                 const payload = {
                     contents: [{ parts: [{ text: prompt }] }],
