@@ -11984,6 +11984,11 @@
                         <a href="${r.url}" target="_blank" class="btn" style="padding: 4px 8px; font-size: 0.68rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); text-decoration: none; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; font-weight: bold;">
                             📂 Abrir Link
                         </a>
+                        ${(r.url.includes('/folders/') || r.url.includes('/drive/folders/')) ? `
+                            <button onclick="syncSupplierResource(${r.id}, this)" class="btn" style="padding: 4px 8px; font-size: 0.68rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 4px; display: inline-flex; margin-left: 5px; align-items: center; gap: 4px; font-weight: bold;">
+                                🔄 Sincronizar
+                            </button>
+                        ` : ''}
                         <button onclick="deleteSupplierResource(${r.id})" class="btn" style="padding: 4px 8px; font-size: 0.68rem; background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; display: inline-flex; margin-left: 5px;">
                             Excluir
                         </button>
@@ -12087,6 +12092,39 @@
             } catch (err) {
                 alert('Erro ao remover do servidor.');
                 console.error(err);
+            }
+        }
+
+        async function syncSupplierResource(id, btn) {
+            if (!confirm('Deseja realmente sincronizar esta pasta? O robô fará a releitura do Google Drive em instantes.')) return;
+
+            if (window.location.protocol === 'file:') {
+                alert('Modo offline: a sincronização simulada foi agendada.');
+                return;
+            }
+
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '🔄 Sincronizando...';
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const res = await fetch(`/api/supplier-resources/${id}/sync`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.status === 200) {
+                    alert('Sincronização agendada com sucesso! A pasta será re-processada em segundo plano em até 30 segundos.');
+                } else {
+                    const errData = await res.json();
+                    alert('Erro ao agendar sincronização: ' + errData.error);
+                }
+            } catch (err) {
+                alert('Erro ao conectar com o servidor.');
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
             }
         }
 

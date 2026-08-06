@@ -5147,6 +5147,18 @@ app.delete('/api/supplier-resources/:id', authenticateToken, restrictToEngineeri
     }
 });
 
+// PUT /api/supplier-resources/:id/sync - Agenda a sincronização de uma pasta/arquivo colocando em PENDING (restrito a Admin/Engenharia)
+app.put('/api/supplier-resources/:id/sync', authenticateToken, restrictToEngineeringAndAdmin, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await dbRun("UPDATE supplier_resources SET extracted_text = 'PENDING' WHERE id = ?", [id]);
+        res.json({ message: 'Sincronização agendada com sucesso! O robô fará o re-processamento em breve.' });
+    } catch (err) {
+        console.error('[SUPPLIER API] Erro ao sincronizar recurso:', err.message);
+        res.status(500).json({ error: 'Erro ao agendar sincronização do recurso.' });
+    }
+});
+
 // GET /api/gemini-test - Rota de diagnóstico para listar os modelos disponíveis para a chave do Gemini
 app.get('/api/gemini-test', async (req, res) => {
     const geminiKey = req.query.key || process.env.GEMINI_API_KEY;
