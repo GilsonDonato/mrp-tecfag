@@ -8463,6 +8463,18 @@
             document.getElementById('modal-desc-crm-value').innerText = val > 0 ? `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'Não definido';
             document.getElementById('modal-desc-crm-source').innerText = project.crm_source || 'Não especificado';
 
+            // Informações de Rastreabilidade da última edição do diagnóstico
+            let editInfoHtml = '';
+            if (project.checklist && project.checklist.diagnostico_edit_user) {
+                const editorName = getFriendlyUserName(project.checklist.diagnostico_edit_user);
+                const editDate = new Date(project.checklist.diagnostico_edit_date).toLocaleString('pt-BR');
+                editInfoHtml = `
+                    <div style="font-size: 0.65rem; color: var(--text-secondary); margin-top: 4px; font-style: italic; text-align: left;">
+                        Última edição por <strong>${editorName}</strong> em ${editDate}
+                    </div>
+                `;
+            }
+
             if (project.diagnostico) {
                 let parsed = null;
                 try {
@@ -8749,6 +8761,7 @@
                             <button class="btn" onclick="saveProjectObservations()" style="margin-top: 8px; font-size: 0.72rem; padding: 6px 12px; font-weight: bold; background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
                                 💾 Salvar Observações
                             </button>
+                            ${editInfoHtml}
                         </div>
                     `;
 
@@ -8806,6 +8819,7 @@
                             <button class="btn" onclick="saveProjectObservations()" style="margin-top: 8px; font-size: 0.72rem; padding: 6px 12px; font-weight: bold; background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
                                 💾 Salvar Observações
                             </button>
+                            ${editInfoHtml}
                         </div>
                     `;
                     html += `</div>`;
@@ -8821,6 +8835,7 @@
                                 <button class="btn" onclick="saveProjectObservations()" style="margin-top: 8px; font-size: 0.72rem; padding: 6px 12px; font-weight: bold; background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
                                     💾 Salvar Observações
                                 </button>
+                                ${editInfoHtml}
                             </div>
                         </div>
                     `;
@@ -8836,6 +8851,7 @@
                             <button class="btn" onclick="saveProjectObservations()" style="margin-top: 8px; font-size: 0.72rem; padding: 6px 12px; font-weight: bold; background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
                                 💾 Salvar Observações
                             </button>
+                            ${editInfoHtml}
                         </div>
                     </div>
                 `;
@@ -9136,6 +9152,13 @@
                 } catch(e) {}
             }
             
+            // Atualiza metadados de quem editou no checklist
+            const userStr = localStorage.getItem('tecfag_user');
+            const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
+            const updatedChecklist = project.checklist ? { ...project.checklist } : {};
+            updatedChecklist.diagnostico_edit_user = currentUser;
+            updatedChecklist.diagnostico_edit_date = new Date().toISOString();
+            
             const token = localStorage.getItem('tecfag_session_token');
             try {
                 const response = await fetch(`/api/projects/${activeProjectCode}`, {
@@ -9144,13 +9167,17 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ diagnostico: updatedDiagnostico })
+                    body: JSON.stringify({ 
+                        diagnostico: updatedDiagnostico,
+                        checklist: updatedChecklist
+                    })
                 });
                 
                 const data = await response.json();
                 if (response.ok) {
                     // Atualiza o estado local do projeto
                     project.diagnostico = updatedDiagnostico;
+                    project.checklist = updatedChecklist;
                     
                     alert('Observações técnicas atualizadas com sucesso!');
                     
