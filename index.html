@@ -3157,7 +3157,36 @@
                                     </table>
                                     
                                     <h5 style="color: var(--primary); margin-bottom: 10px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">Diagnóstico de Automação Requerida</h5>
-                                    <p id="modal-desc-diagnostico" style="font-size: 0.82rem; line-height: 1.5; color: #cbd5e1; background-color: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); white-space: pre-wrap; margin: 0;"></p>
+                                    <div id="modal-desc-diagnostico" style="font-size: 0.82rem; line-height: 1.5; color: #cbd5e1; background-color: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); margin: 0; display: flex; flex-direction: column; gap: 15px;"></div>
+                                    
+                                    <!-- PAINEL COPILOTO DO PROJETO NO MODAL -->
+                                    <div id="modal-copilot-panel" style="margin-top: 20px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; display: none;">
+                                        <div style="border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 8px; margin-bottom: 12px;">
+                                            <h5 style="color: var(--primary); margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                                                🤖 Copiloto Tecfag IA (Validação de Escopo)
+                                            </h5>
+                                        </div>
+                                        
+                                        <!-- Progresso -->
+                                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                                            <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; display: flex; border: 1px solid rgba(255,255,255,0.05);">
+                                                <div id="modal-copilot-progress-bar" style="width: 0%; height: 100%; background: #ef4444; transition: width 0.4s ease-in-out, background-color 0.4s;"></div>
+                                            </div>
+                                            <span id="modal-copilot-score-text" style="font-size: 0.95rem; font-weight: bold; color: #ef4444; min-width: 35px; text-align: right;">0%</span>
+                                        </div>
+                                        
+                                        <!-- Alertas -->
+                                        <div style="display: grid; grid-template-columns: 1fr; gap: 12px; font-size: 0.76rem;">
+                                            <div>
+                                                <span style="color: #f87171; font-weight: bold; display: block; margin-bottom: 6px; text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.5px;">🔴 Pendências Técnicas</span>
+                                                <ul id="modal-copilot-list-missing" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px;"></ul>
+                                            </div>
+                                            <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
+                                                <span style="color: #34d399; font-weight: bold; display: block; margin-bottom: 6px; text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.5px;">🟢 Parâmetros Especificados</span>
+                                                <ul id="modal-copilot-list-satisfied" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; color: #94a3b8;"></ul>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <!-- SUB-TAB: Estudo de Caso & Escopo com IA -->
@@ -8712,15 +8741,16 @@
                         html += `</div></div>`;
                     }
 
-                    // Observações
-                    if (parsed.observations) {
-                        html += `
-                            <div>
-                                <div style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 2px; letter-spacing: 0.5px;">Observações Complementares</div>
-                                <div style="font-size: 0.76rem; color: var(--text-primary); line-height: 1.4; padding: 4px 0; white-space: pre-wrap;">${parsed.observations}</div>
-                            </div>
-                        `;
-                    }
+                    // Observações (Editável)
+                    html += `
+                        <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 15px;">
+                            <div style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Observações Técnicas / Particularidades Relevantes</div>
+                            <textarea id="modal-edit-observations" class="form-control" style="width: 100%; height: 90px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); color: #cbd5e1; font-size: 0.78rem; padding: 8px; border-radius: 6px; resize: none; font-family: system-ui, sans-serif; box-sizing: border-box;" placeholder="Insira observações técnicas adicionais...">${parsed.observations || ''}</textarea>
+                            <button class="btn" onclick="saveProjectObservations()" style="margin-top: 8px; font-size: 0.72rem; padding: 6px 12px; font-weight: bold; background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                💾 Salvar Observações
+                            </button>
+                        </div>
+                    `;
 
                     html += `
                         <div style="margin-top: 15px; display: flex; gap: 10px;">
@@ -8768,13 +8798,48 @@
                             html += `<div style="font-size: 0.78rem; color: var(--text-primary); line-height: 1.4; padding: 2px 0;">${trimmed}</div>`;
                         }
                     });
+                    
+                    html += `
+                        <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 15px;">
+                            <div style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Editar Observações Técnicas</div>
+                            <textarea id="modal-edit-observations" class="form-control" style="width: 100%; height: 90px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); color: #cbd5e1; font-size: 0.78rem; padding: 8px; border-radius: 6px; resize: none; font-family: system-ui, sans-serif; box-sizing: border-box;" placeholder="Insira as observações técnicas...">${project.diagnostico || ''}</textarea>
+                            <button class="btn" onclick="saveProjectObservations()" style="margin-top: 8px; font-size: 0.72rem; padding: 6px 12px; font-weight: bold; background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                💾 Salvar Observações
+                            </button>
+                        </div>
+                    `;
                     html += `</div>`;
                     document.getElementById('modal-desc-diagnostico').innerHTML = html;
                 } else {
-                    document.getElementById('modal-desc-diagnostico').innerText = project.diagnostico || '-';
+                    const plainText = project.diagnostico || '';
+                    let html = `
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div style="font-size: 0.78rem; color: var(--text-primary); line-height: 1.4; white-space: pre-wrap; padding: 4px 0;">${plainText || 'Sem diagnóstico cadastrado.'}</div>
+                            <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 15px;">
+                                <div style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Editar Observações Técnicas</div>
+                                <textarea id="modal-edit-observations" class="form-control" style="width: 100%; height: 90px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); color: #cbd5e1; font-size: 0.78rem; padding: 8px; border-radius: 6px; resize: none; font-family: system-ui, sans-serif; box-sizing: border-box;" placeholder="Insira as observações...">${plainText}</textarea>
+                                <button class="btn" onclick="saveProjectObservations()" style="margin-top: 8px; font-size: 0.72rem; padding: 6px 12px; font-weight: bold; background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                    💾 Salvar Observações
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('modal-desc-diagnostico').innerHTML = html;
                 }
             } else {
-                document.getElementById('modal-desc-diagnostico').innerText = '-';
+                let html = `
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4; padding: 4px 0;">Sem observações ou diagnóstico cadastrado.</div>
+                        <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 15px;">
+                            <div style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Adicionar Observações Técnicas</div>
+                            <textarea id="modal-edit-observations" class="form-control" style="width: 100%; height: 90px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); color: #cbd5e1; font-size: 0.78rem; padding: 8px; border-radius: 6px; resize: none; font-family: system-ui, sans-serif; box-sizing: border-box;" placeholder="Insira as observações..."></textarea>
+                            <button class="btn" onclick="saveProjectObservations()" style="margin-top: 8px; font-size: 0.72rem; padding: 6px 12px; font-weight: bold; background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                💾 Salvar Observações
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('modal-desc-diagnostico').innerHTML = html;
             }
 
             // Renderização do dossiê da Receita
@@ -8986,7 +9051,118 @@
                 }
             }
 
+            loadProjectCopilotValidation();
+
             document.getElementById('project-detail-modal').classList.add('active');
+        }
+
+        // Carrega a validação do Copiloto no modal de detalhes
+        async function loadProjectCopilotValidation() {
+            const panel = document.getElementById('modal-copilot-panel');
+            const progressBar = document.getElementById('modal-copilot-progress-bar');
+            const scoreText = document.getElementById('modal-copilot-score-text');
+            const missingList = document.getElementById('modal-copilot-list-missing');
+            const satisfiedList = document.getElementById('modal-copilot-list-satisfied');
+            
+            if (!panel || !progressBar || !scoreText || !missingList || !satisfiedList) return;
+            
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const response = await fetch(`/api/projects/${activeProjectCode}/validate`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    panel.style.display = 'block';
+                    
+                    const score = data.score || 0;
+                    progressBar.style.width = `${score}%`;
+                    scoreText.innerText = `${score}%`;
+                    
+                    let color = '#ef4444'; // red
+                    if (score >= 80) color = '#10b981'; // green
+                    else if (score >= 50) color = '#f59e0b'; // yellow
+                    
+                    progressBar.style.backgroundColor = color;
+                    scoreText.style.color = color;
+                    
+                    if (data.missing && data.missing.length > 0) {
+                        missingList.innerHTML = data.missing.map(m => `
+                            <li style="display: flex; align-items: flex-start; gap: 4px; margin-bottom: 2px;">
+                                <span style="color: #f87171;">•</span>
+                                <span>${m}</span>
+                            </li>
+                        `).join('');
+                    } else {
+                        missingList.innerHTML = `<li style="color: #10b981; font-weight: bold;">🟢 Sem pendências críticas!</li>`;
+                    }
+                    
+                    if (data.satisfied && data.satisfied.length > 0) {
+                        satisfiedList.innerHTML = data.satisfied.map(s => `
+                            <li style="display: flex; align-items: flex-start; gap: 4px; color: #94a3b8; margin-bottom: 2px;">
+                                <span style="color: #34d399;">•</span>
+                                <span>${s}</span>
+                            </li>
+                        `).join('');
+                    } else {
+                        satisfiedList.innerHTML = `<li style="color: var(--text-secondary);">Nenhum parâmetro identificado ainda.</li>`;
+                    }
+                }
+            } catch (err) {
+                console.error('Erro ao carregar validação do Copiloto no modal:', err);
+            }
+        }
+
+        // Salva as observações do projeto e re-executa a validação do Copiloto
+        async function saveProjectObservations() {
+            const textarea = document.getElementById('modal-edit-observations');
+            if (!textarea) return;
+            
+            const newObs = textarea.value.trim();
+            const project = state.projects.find(p => p.code === activeProjectCode);
+            if (!project) return;
+            
+            // Constrói o campo de diagnóstico atualizado
+            let updatedDiagnostico = newObs;
+            if (project.diagnostico) {
+                try {
+                    if (project.diagnostico.trim().startsWith('{')) {
+                        const parsed = JSON.parse(project.diagnostico);
+                        parsed.observations = newObs;
+                        updatedDiagnostico = JSON.stringify(parsed);
+                    }
+                } catch(e) {}
+            }
+            
+            const token = localStorage.getItem('tecfag_session_token');
+            try {
+                const response = await fetch(`/api/projects/${activeProjectCode}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ diagnostico: updatedDiagnostico })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    // Atualiza o estado local do projeto
+                    project.diagnostico = updatedDiagnostico;
+                    
+                    alert('Observações técnicas atualizadas com sucesso!');
+                    
+                    // Recarrega o modal e reconstrói a UI
+                    openProjectModal(activeProjectCode);
+                } else {
+                    alert('Erro ao salvar observações: ' + (data.error || 'Erro desconhecido'));
+                }
+            } catch (err) {
+                console.error('Erro ao salvar observações técnicas:', err);
+                alert('Erro de conexão ao salvar observações.');
+            }
         }
 
         // Render attachments lists inside modal for the current active project

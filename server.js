@@ -5578,7 +5578,7 @@ app.put('/api/projects/:code', async (req, res) => {
     const { 
         serial, route, fase, checklist, prazos, lastUpdate, motivoPerda, tech, machines, equipment_origin, handover_signed,
         crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date,
-        setup_specs, pm
+        setup_specs, pm, diagnostico
     } = req.body;
     const { code } = req.params;
 
@@ -5665,6 +5665,29 @@ app.put('/api/projects/:code', async (req, res) => {
                 }
             }
         }
+        
+        if (diagnostico !== undefined && diagnostico !== oldProject.diagnostico) {
+            let oldObs = '';
+            let newObs = '';
+            try {
+                if (oldProject.diagnostico && oldProject.diagnostico.trim().startsWith('{')) {
+                    oldObs = JSON.parse(oldProject.diagnostico).observations || '';
+                } else {
+                    oldObs = oldProject.diagnostico || '';
+                }
+                if (diagnostico && diagnostico.trim().startsWith('{')) {
+                    newObs = JSON.parse(diagnostico).observations || '';
+                } else {
+                    newObs = diagnostico || '';
+                }
+            } catch(e) {
+                oldObs = oldProject.diagnostico || '';
+                newObs = diagnostico || '';
+            }
+            if (oldObs !== newObs) {
+                await recordAuditLog(code, auditUser, `Alterou as observações do diagnóstico de "${oldObs}" para "${newObs}"`);
+            }
+        }
         // ------------------------------------------
         
         let sql = `UPDATE projects SET 
@@ -5686,7 +5709,8 @@ app.put('/api/projects/:code', async (req, res) => {
             crm_last_comment_user = ?,
             crm_last_interaction_date = ?,
             faseEntryDate = ?,
-            setup_specs = ?`;
+            setup_specs = ?,
+            diagnostico = ?`;
             
         const params = [
             serial !== undefined ? serial : oldProject.serial,
@@ -5707,7 +5731,8 @@ app.put('/api/projects/:code', async (req, res) => {
             crm_last_comment_user !== undefined ? crm_last_comment_user : oldProject.crm_last_comment_user,
             crm_last_interaction_date !== undefined ? crm_last_interaction_date : oldProject.crm_last_interaction_date,
             newFaseEntryDate,
-            setup_specs ? JSON.stringify(setup_specs) : oldProject.setup_specs
+            setup_specs ? JSON.stringify(setup_specs) : oldProject.setup_specs,
+            diagnostico !== undefined ? diagnostico : oldProject.diagnostico
         ];
 
         // Se o técnico foi enviado para atualização
@@ -6345,17 +6370,13 @@ function localValidationFallback(segment, diagnostico, extraParams) {
     return { score, color, missing, satisfied };
 }
 
-// POST /api/projects/validate-draft - Validação de rascunho de escopo técnico em tempo real
-app.post('/api/projects/validate-draft', authenticateToken, async (req, res) => {
-    const { segment, diagnostico, extraParams } = req.body;
+async function executeCopilotValidation(segment, diagnostico, extraParams) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    let result = null;
     
-    try {
-        const apiKey = process.env.GEMINI_API_KEY;
-        let result = null;
-        
-        if (apiKey && apiKey.trim() !== '') {
-            try {
-                const prompt = `
+    if (apiKey && apiKey.trim() !== '') {
+        try {
+            const prompt = `
 Você é o Engenheiro de Aplicações Sênior da Tecfag, especialista em projetar, validar e instalar linhas de máquinas industriais de embalagem.
 
 Sua tarefa é analisar o rascunho de informações inserido pelo vendedor e dar uma nota de Completude do Escopo e uma lista de pendências.
@@ -6413,70 +6434,124 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura:
   "satisfied": ["Parâmetro bem especificado 1", "Parâmetro bem especificado 2"]
 }
 `;
-                const modelName = process.env.GEMINI_MODEL || 'gemini-flash-latest';
-                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-                const payload = {
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { responseMimeType: "application/json" }
-                };
-                
-                const response = await fetch(geminiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
-                        const rawText = data.candidates[0].content.parts[0].text;
-                        result = cleanAndParseJSON(rawText);
+            const modelName = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            };
+            
+            const response = await fetch(geminiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
+                    const rawText = data.candidates[0].content.parts[0].text;
+                    result = cleanAndParseJSON(rawText);
+                }
+            } else {
+                const errText = await response.text();
+                console.error(`[GEMINI DRAFT VALIDATE ERROR] Status ${response.status}: ${errText}`);
+            }
+        } catch (e) {
+            console.error("Falha ao validar rascunho via Gemini:", e);
+        }
+    }
+    
+    if (segment === 'PROJETOS_ESPECIAIS') {
+        return {
+            score: 100,
+            color: "green",
+            missing: [
+                "⚠️ ALERTA DE CUSTOMIZAÇÃO: Este escopo sairá do fluxo padrão e exigirá aprovação prévia da Engenharia de Projetos. Não prometa prazos de entrega ou valores finais ao cliente nesta etapa."
+            ],
+            satisfied: [
+                "Descrição Detalhada da Dor do Cliente fornecida"
+            ]
+        };
+    }
+
+    if (!result) {
+        result = localValidationFallback(segment, diagnostico, extraParams);
+    }
+    
+    // Aplica validações estritas de engenharia do auditor Tecfag
+    const engineeringErrors = getEngineeringErrors(segment, diagnostico, extraParams);
+    if (engineeringErrors.length > 0) {
+        result.score = 0;
+        result.color = "red";
+        result.missing = [...engineeringErrors, ...(result.missing || [])];
+    }
+    
+    return {
+        score: result.score,
+        color: result.color,
+        missing: result.missing,
+        satisfied: result.satisfied
+    };
+}
+
+// POST /api/projects/validate-draft - Validação de rascunho de escopo técnico em tempo real
+app.post('/api/projects/validate-draft', authenticateToken, async (req, res) => {
+    const { segment, diagnostico, extraParams } = req.body;
+    
+    try {
+        const validation = await executeCopilotValidation(segment, diagnostico, extraParams);
+        res.json({
+            success: true,
+            ...validation
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao validar rascunho: ' + err.message });
+    }
+});
+
+// GET /api/projects/:code/validate - Executa recálculo de validação do Copiloto para um projeto existente
+app.get('/api/projects/:code/validate', authenticateToken, async (req, res) => {
+    const { code } = req.params;
+    
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) {
+            return res.status(404).json({ error: 'Projeto não encontrado.' });
+        }
+        
+        let segment = "";
+        let diagnostico = "";
+        let extraParams = {};
+        
+        if (project.diagnostico) {
+            try {
+                if (project.diagnostico.trim().startsWith('{')) {
+                    const parsed = JSON.parse(project.diagnostico);
+                    segment = parsed.segment || "";
+                    diagnostico = parsed.observations || "";
+                    extraParams = Object.assign({}, parsed.parameters || {}, parsed.infra || {});
+                    if (project.setup_specs) {
+                        try {
+                            const specsObj = typeof project.setup_specs === 'string' ? JSON.parse(project.setup_specs) : project.setup_specs;
+                            extraParams = Object.assign(extraParams, specsObj);
+                        } catch(e) {}
                     }
                 } else {
-                    const errText = await response.text();
-                    console.error(`[GEMINI DRAFT VALIDATE ERROR] Status ${response.status}: ${errText}`);
+                    diagnostico = project.diagnostico;
                 }
-            } catch (e) {
-                console.error("Falha ao validar rascunho via Gemini:", e);
+            } catch(e) {
+                diagnostico = project.diagnostico;
             }
         }
         
-        if (segment === 'PROJETOS_ESPECIAIS') {
-            return res.json({
-                success: true,
-                score: 100,
-                color: "green",
-                missing: [
-                    "⚠️ ALERTA DE CUSTOMIZAÇÃO: Este escopo sairá do fluxo padrão e exigirá aprovação prévia da Engenharia de Projetos. Não prometa prazos de entrega ou valores finais ao cliente nesta etapa."
-                ],
-                satisfied: [
-                    "Descrição Detalhada da Dor do Cliente fornecida"
-                ]
-            });
-        }
-
-        if (!result) {
-            result = localValidationFallback(segment, diagnostico, extraParams);
-        }
-        
-        // Aplica validações estritas de engenharia do auditor Tecfag
-        const engineeringErrors = getEngineeringErrors(segment, diagnostico, extraParams);
-        if (engineeringErrors.length > 0) {
-            result.score = 0;
-            result.color = "red";
-            result.missing = [...engineeringErrors, ...(result.missing || [])];
-        }
-        
+        const validation = await executeCopilotValidation(segment, diagnostico, extraParams);
         res.json({
             success: true,
-            score: result.score,
-            color: result.color,
-            missing: result.missing,
-            satisfied: result.satisfied
+            ...validation
         });
-        
-    } catch (err) {
-        res.status(500).json({ error: 'Erro ao validar rascunho: ' + err.message });
+    } catch(err) {
+        res.status(500).json({ error: 'Erro ao validar projeto: ' + err.message });
     }
 });
 
