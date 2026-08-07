@@ -5920,6 +5920,7 @@ O projeto passará pelas fases de engenharia e produção física para validaç�
 // POST /api/projects/:code/generate-case-study - Gera o Estudo de Caso e valida escopo via Gemini ou Fallback
 app.post('/api/projects/:code/generate-case-study', authenticateToken, async (req, res) => {
     const { code } = req.params;
+    const { guidelines, currentScope } = req.body;
     
     try {
         const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
@@ -5945,13 +5946,44 @@ app.post('/api/projects/:code/generate-case-study', authenticateToken, async (re
         
         if (apiKey && apiKey.trim() !== '') {
             try {
-                const prompt = `
+                let prompt = '';
+                
+                if (currentScope && currentScope.trim() !== '') {
+                    // Refinamento/Reescrita contínua
+                    prompt = `
+Você é o Engenheiro de Aplicação Sênior da Tecfag, especialista em projetar, validar e instalar linhas de máquinas industriais de embalagem (seladoras, rotuladoras, dosadoras, termoformadoras, envolvedoras, empacotadoras).
+
+Sua tarefa é REVISAR e REESCREVER o documento de "Estudo de Caso & Escopo Técnico" atual de acordo com a nova instrução de correção/refinamento inserida pelo usuário.
+
+Instrução de correção/refinamento obrigatória:
+"${guidelines || 'Refinar e melhorar a formatação do documento.'}"
+
+Aqui está o documento de "Estudo de Caso & Escopo Técnico" atual que deve ser corrigido/reescrito:
+${currentScope}
+
+Regras para a reescrita:
+- Aplique a instrução de correção mantendo todo o restante do conteúdo, parâmetros técnicos, limitações de campo e estrutura do documento original.
+- Mantenha a formatação Markdown premium do documento para impressão em PDF.
+- Não invente informações incompatíveis com as especificações gerais do projeto.
+- Se a instrução exigir alteração de um componente ou material (ex: trocar esteira de lona para inox), certifique-se de que essa mudança seja refletida de forma consistente por todo o documento.
+
+Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres extras ou marcações de markdown fora do JSON):
+{
+  "estudoCaso": "Texto do estudo de caso corrigido e formatado em markdown com cabeçalhos, marcadores e tabelas",
+  "perguntasFaltantes": []
+}
+`;
+                } else {
+                    // Geração inicial (opcionalmente guiada)
+                    prompt = `
 Você é o Engenheiro de Aplicação Sênior da Tecfag, especialista em projetar, validar e instalar linhas de máquinas industriais de embalagem (seladoras, rotuladoras, dosadoras, termoformadoras, envolvedoras, empacotadoras).
 
 Analise os dados abaixo do Diagnóstico Técnico inserido pelo vendedor:
 Projeto: ${project.code} - Cliente: ${project.client}
 Produto/Insumos informados: ${project.diagnostico}
 Especificações de Campo atuais: ${project.setup_specs || '{}'}
+
+${guidelines && guidelines.trim() !== '' ? `Diretrizes técnicas obrigatórias adicionais a serem incorporadas na geração do documento:\n"${guidelines.trim()}"\n` : ''}
 
 Com base nestes dados, você deve gerar:
 1. Um documento de "Estudo de Caso & Escopo Técnico" formatado em Markdown premium para ser impresso em PDF. O documento deve ter:
@@ -5974,6 +6006,8 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres e
   "perguntasFaltantes": ["Pergunta 1?", "Pergunta 2?"]
 }
 `;
+                }
+
                 const modelName = process.env.GEMINI_MODEL || 'gemini-flash-latest';
                 const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
                 const payload = {
@@ -6004,7 +6038,14 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura (sem caracteres e
         }
         
         if (!result) {
-            result = generateLocalFallbackStudy(project);
+            if (currentScope && currentScope.trim() !== '') {
+                result = {
+                    estudoCaso: currentScope + "\n\n*(Erro ao refinar via IA: As alterações solicitadas não puderam ser processadas no momento. Exibindo versão anterior)*",
+                    perguntasFaltantes: []
+                };
+            } else {
+                result = generateLocalFallbackStudy(project);
+            }
         }
         
         // Postar perguntas faltantes automaticamente no Chat/Mural desativado (conforme solicitação do usuário)

@@ -3165,9 +3165,9 @@
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px;">
                                         <h5 style="color: var(--primary); margin: 0; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">📄 Estudo de Caso & Memorial Descritivo</h5>
                                         <div style="display: flex; gap: 8px;">
-                                            <button type="button" onclick="generateCaseStudyWithAI()" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                                            <button type="button" id="btn-estudo-action" onclick="generateCaseStudyWithAI()" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
                                                 <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                                                Atualizar via IA
+                                                <span id="btn-estudo-action-text">Gerar Escopo via IA</span>
                                             </button>
                                             <button type="button" onclick="printCaseStudy()" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
                                                 <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
@@ -3176,6 +3176,9 @@
                                         </div>
                                     </div>
                                     <div id="modal-estudo-status" style="margin-bottom: 12px; font-size: 0.72rem; display: none;"></div>
+                                    <div style="margin-bottom: 12px;">
+                                        <textarea id="modal-estudo-guidelines" class="form-control" style="width: 100%; height: 50px; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); color: #cbd5e1; font-size: 0.76rem; resize: none; border-radius: 6px; padding: 8px; font-family: system-ui, sans-serif; box-sizing: border-box;" placeholder="Insira aqui diretrizes técnicas para a geração inicial ou comandos para refinar o escopo já gerado..."></textarea>
+                                    </div>
                                     <div id="modal-estudo-content" style="font-size: 0.8rem; line-height: 1.6; color: #cbd5e1; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 20px; border-radius: 8px; max-height: 380px; overflow-y: auto; font-family: system-ui, sans-serif;">
                                         <!-- Preenchido via JS (Markdown renderizado ou HTML) -->
                                     </div>
@@ -9254,17 +9257,41 @@
             return html;
         }
 
+        function updateEstudoButtonUI() {
+            const btnText = document.getElementById('btn-estudo-action-text');
+            const btn = document.getElementById('btn-estudo-action');
+            if (!btnText || !btn) return;
+            
+            if (currentCaseStudyMD) {
+                btnText.innerText = "Aplicar Ajuste / Refinar";
+                btn.style.background = "rgba(249, 115, 22, 0.15)";
+                btn.style.color = "#f97316";
+                btn.style.borderColor = "rgba(249, 115, 22, 0.3)";
+            } else {
+                btnText.innerText = "Gerar Escopo via IA";
+                btn.style.background = "rgba(59, 130, 246, 0.15)";
+                btn.style.color = "#60a5fa";
+                btn.style.borderColor = "rgba(59, 130, 246, 0.3)";
+            }
+        }
+
         async function loadCaseStudy() {
             const contentDiv = document.getElementById('modal-estudo-content');
+            const guidelinesTextarea = document.getElementById('modal-estudo-guidelines');
             if (!contentDiv) return;
+            
+            if (guidelinesTextarea) guidelinesTextarea.value = '';
             
             // Se já tiver carregado nessa sessão de modal, apenas exibe
             if (currentCaseStudyMD) {
                 contentDiv.innerHTML = renderMarkdownToHTML(currentCaseStudyMD);
+                updateEstudoButtonUI();
                 return;
             }
             
             contentDiv.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 30px;"><br>Analisando dados do projeto e gerando escopo técnico...</div>`;
+            
+            updateEstudoButtonUI();
             
             // Disparar geração (híbrido)
             generateCaseStudyWithAI(true);
@@ -9273,6 +9300,10 @@
         async function generateCaseStudyWithAI(silent = false) {
             const contentDiv = document.getElementById('modal-estudo-content');
             const statusDiv = document.getElementById('modal-estudo-status');
+            const guidelinesTextarea = document.getElementById('modal-estudo-guidelines');
+            
+            const guidelines = guidelinesTextarea ? guidelinesTextarea.value.trim() : '';
+            const currentScope = currentCaseStudyMD || '';
             
             if (!silent) {
                 contentDiv.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 30px;"><br>Processando com inteligência artificial...</div>`;
@@ -9285,7 +9316,8 @@
                     headers: { 
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
-                    }
+                    },
+                    body: JSON.stringify({ guidelines, currentScope })
                 });
                 
                 const data = await response.json();
@@ -9296,6 +9328,8 @@
                 
                 currentCaseStudyMD = data.estudoCaso;
                 contentDiv.innerHTML = renderMarkdownToHTML(currentCaseStudyMD);
+                
+                if (guidelinesTextarea) guidelinesTextarea.value = '';
                 
                 if (statusDiv) {
                     statusDiv.style.display = 'block';
@@ -9308,6 +9342,8 @@
             } catch(e) {
                 console.error("Erro na geração de estudo de caso:", e);
                 contentDiv.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 20px;">Falha de comunicação com o servidor.</div>`;
+            } finally {
+                updateEstudoButtonUI();
             }
         }
 
