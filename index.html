@@ -26,6 +26,85 @@
             --color-fase6: #ef4444; /* Perdido (Vermelho) */
         }
 
+        body.theme-light {
+            --bg-base: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-surface-hover: #f1f5f9;
+            --border-color: #cbd5e1;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --primary-glow: rgba(14, 165, 233, 0.15);
+            background-image: radial-gradient(circle at 50% 50%, rgba(248, 250, 252, 0.9), rgba(241, 245, 249, 0.95)), url('media/tech_grid.png') !important;
+        }
+
+        /* Overrides específicos para o tema claro */
+        body.theme-light .form-control {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+        }
+        body.theme-light select.form-control option {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+        }
+        body.theme-light aside {
+            background-color: rgba(255, 255, 255, 0.9) !important;
+            border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+        }
+        body.theme-light .kanban-column {
+            background-color: rgba(255, 255, 255, 0.7) !important;
+            border: 1px solid rgba(0, 0, 0, 0.08) !important;
+        }
+        body.theme-light .column-header h3 {
+            color: var(--text-primary) !important;
+        }
+        body.theme-light .checklist-item {
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+        }
+        body.theme-light .checklist-item.active-role-task {
+            background-color: rgba(14, 165, 233, 0.08) !important;
+            border-color: var(--primary) !important;
+        }
+        body.theme-light .checklist-item:hover {
+            background-color: #e2e8f0 !important;
+        }
+        body.theme-light .kpi-card {
+            background-color: rgba(255, 255, 255, 0.85) !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05) !important;
+        }
+        body.theme-light .help-panel {
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+        }
+        body.theme-light .help-card {
+            background-color: #ffffff !important;
+            border-color: #cbd5e1 !important;
+        }
+        body.theme-light .sales-playbook-wrapper {
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+        }
+        body.theme-light .sales-playbook-desc {
+            color: var(--text-secondary) !important;
+        }
+        body.theme-light #projects-table th {
+            background-color: var(--bg-base) !important;
+        }
+        body.theme-light .btn:not(.btn-secondary) {
+            color: #ffffff !important;
+        }
+        body.theme-light .profile-selector-container {
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+        }
+        
+        /* Contraste do texto branco no botão da barra lateral ativo */
+        .nav-item.active button {
+            color: #ffffff !important;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -1599,6 +1678,47 @@
     </style>
 </head>
 <body class="not-logged-in">
+    <script>
+        // 1. Executa a leitura inicial IMEDIATAMENTE para evitar o FOUC (piscar tela)
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('tecfag_theme');
+            if (savedTheme === 'light') {
+                document.body.classList.add('theme-light');
+            } else {
+                document.body.classList.remove('theme-light');
+            }
+        }
+        initializeTheme(); // Chamada síncrona no topo
+
+        // 2. Função para atualizar o ícone (Sol/Lua)
+        function updateThemeIcon(isLight) {
+            const iconSvg = document.getElementById('theme-toggle-icon');
+            if (!iconSvg) return;
+            
+            if (isLight) {
+                // Desenha o Sol (Modo Claro ativo)
+                iconSvg.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+            } else {
+                // Desenha a Lua (Modo Escuro ativo)
+                iconSvg.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+            }
+        }
+
+        // 3. Função disparada ao clicar no botão
+        function toggleTheme() {
+            const isLight = document.body.classList.toggle('theme-light');
+            // Salva a nova preferência do usuário
+            localStorage.setItem('tecfag_theme', isLight ? 'light' : 'dark');
+            // Troca o ícone dinamicamente
+            updateThemeIcon(isLight);
+        }
+
+        // Garante que o ícone carregue corretamente assim que o HTML estiver pronto
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('tecfag_theme');
+            updateThemeIcon(savedTheme === 'light');
+        });
+    </script>
     <!-- SCADA Scanlines overlays -->
     <div class="scanlines"></div>
     <div class="scanline-moving"></div>
@@ -1839,6 +1959,11 @@
                 <p id="main-subtitle">Gestão ponta a ponta: do alinhamento do escopo comercial à instalação física final.</p>
             </div>
             <div class="header-actions">
+                <button class="btn btn-secondary" onclick="toggleTheme()" id="btn-theme-toggle" style="padding: 10px; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; margin-right: 8px;" title="Alternar Tema Claro/Escuro">
+                    <svg id="theme-toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" style="transition: transform 0.3s ease;">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                </button>
                 <button class="btn btn-secondary" onclick="seedProjectMockData()" id="btn-seed">Simular Projetos</button>
                 <button class="btn" onclick="switchTab('cadprj')">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
