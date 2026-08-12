@@ -154,6 +154,9 @@ function initializeDatabase() {
             }
         });
 
+        db.run("ALTER TABLE comments ADD COLUMN attachmentPath TEXT", (err) => {});
+        db.run("ALTER TABLE comments ADD COLUMN attachmentName TEXT", (err) => {});
+
         // Tabela de Logs de Auditoria
         db.run(`CREATE TABLE IF NOT EXISTS logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -236,6 +239,16 @@ function initializeDatabase() {
 
         // Seed de usuários padrão
         seedDefaultUsers();
+
+        // Tabela de Templates de Segmento
+        db.run(`CREATE TABLE IF NOT EXISTS segment_templates (
+            segment TEXT PRIMARY KEY,
+            template TEXT NOT NULL
+        )`, (err) => {
+            if (!err) {
+                seedSegmentTemplates();
+            }
+        });
 
         // Tabela de Clientes ERP
         db.run(`CREATE TABLE IF NOT EXISTS erp_clients (
@@ -421,6 +434,32 @@ function seedDefaultUsers() {
     });
 }
 
+function seedSegmentTemplates() {
+    const templates = {
+        'MISTURADORES': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Capacidade requerida (Litros/Quilos): [PREENCHER aqui]\n- Densidade aparente do pó: [PREENCHER aqui]\n- Riscos de abrasividade/corrosividade: [PREENCHER aqui]\n- Umidade do material: [PREENCHER aqui]\n- Pó é inflamável ou explosivo (Necessidade de motores EX)?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
+        'ENCAPSULADORAS': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Tamanho da cápsula (ex: 00, 0, Softgel): [PREENCHER aqui]\n- Viscosidade do produto/pasta: [PREENCHER aqui]\n- Comportamento higroscópico/sensibilidade térmica do pó: [PREENCHER aqui]\n- Espessura de gelatina requerida: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
+        'GOMAS': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Tipo de gelificante (pectina, gelatina ou amido): [PREENCHER aqui]\n- Formato do molde (3D, teflon, silicone): [PREENCHER aqui]\n- Capacidade em kg/hora: [PREENCHER aqui]\n- Temperatura de dosagem desejada: [PREENCHER aqui]\n- Tipo de agente desmoldante (óleo/amido): [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
+        'DOSAGEM_SEMIAUTOMATICA': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Faixa de dosagem desejada (gramas ou ml): [PREENCHER aqui]\n- Comportamento de fluidez/viscosidade: [PREENCHER aqui]\n- Produto gera pó em suspensão (Necessidade de bico com exaustão ou gaveta corta-fluxo)?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
+        'DOSAGEM_EMPACOTAMENTO': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Largura máxima da bobina do filme plástico: [PREENCHER aqui]\n- Tipo de material do filme (Laminado, PE, PP, Papel): [PREENCHER aqui]\n- Dimensões do sachê final: [PREENCHER aqui]\n- Tipo de solda do sachê: [PREENCHER aqui]\n- Filme possui impressão (Necessidade de sensor de fotocélula)?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
+        'ENVASE': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Comportamento de viscosidade (baixo, médio, alto): [PREENCHER aqui]\n- Temperatura de envase do produto: [PREENCHER aqui]\n- Presença de pedaços ou sólidos no líquido?: [PREENCHER aqui]\n- Diâmetro do gargalo do frasco: [PREENCHER aqui]\n- Corrosividade/PH ácido do produto (Necessidade de Inox 316L)?: [PREENCHER aqui]\n- Produto gera espuma (Necessidade de bico mergulhador)?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
+        'FECHAMENTO_TAMPAGEM': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Diâmetro da tampa: [PREENCHER aqui]\n- Tipo de tampa (rosca, batoque, pressão): [PREENCHER aqui]\n- Torque dinâmico requerido (N.m): [PREENCHER aqui]\n- Presença de lacre inviolável?: [PREENCHER aqui]\n- Necessidade de seladora de indução de alumínio?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
+        'VACUO_TERMOFORMADORAS': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Dimensões da câmara/bandeja: [PREENCHER aqui]\n- Nível de vácuo desejado (mbar): [PREENCHER aqui]\n- Nível de barreira de oxigênio do filme: [PREENCHER aqui]\n- Tipo de bomba de vácuo (m3/h): [PREENCHER aqui]\n- Exige injeção de gás inerte (MAP)?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
+        'ROTULADORAS': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Dimensões do rótulo (largura e altura): [PREENCHER aqui]\n- Formato do frasco (cilíndrico, plano, cônico)?: [PREENCHER aqui]\n- O rótulo é transparente (Necessidade de sensor especial)?: [PREENCHER aqui]\n- Velocidade desejada da esteira: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
+        'TERMOENCOLHIVEL': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Dimensões do pacote ou agrupamento de produtos: [PREENCHER aqui]\n- Tipo de filme encolhível (PE, PVC, poliolefínico): [PREENCHER aqui]\n- Estabilidade do agrupamento (Necessidade de bandeja de papelão suporte)?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
+        'FINAL_LINHA': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Dimensões externas das caixas: [PREENCHER aqui]\n- Peso máximo da caixa cheia: [PREENCHER aqui]\n- Tipo de fechamento (fita adesiva ou cola hot-melt): [PREENCHER aqui]\n- Sentido de fluxo da linha: [PREENCHER aqui]\n- Altura da esteira de entrada/saída: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
+        'PROJETOS_ESPECIAIS': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Requisitos específicos de layout de fábrica: [PREENCHER aqui]\n- Normas reguladoras exigidas (NR12, sala limpa)?: [PREENCHER aqui]\n- Pontos de utilidades disponíveis (PCM de ar comprimido, pressão)?: [PREENCHER aqui]\n- Disponibilidade de desenho técnico básico do local?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
+        'SELADORAS_CONTINUAS': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Material do saco (plástico simples, metalizado, papel Kraft): [PREENCHER aqui]\n- Espessura do saco (micras): [PREENCHER aqui]\n- Peso máximo por saco: [PREENCHER aqui]\n- Tipo de datador (inkjet ou rolo de tinta)?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`
+    };
+
+    Object.entries(templates).forEach(([seg, tpl]) => {
+        db.get('SELECT segment FROM segment_templates WHERE segment = ?', [seg], (err, row) => {
+            if (!err && !row) {
+                db.run('INSERT INTO segment_templates (segment, template) VALUES (?, ?)', [seg, tpl]);
+            }
+        });
+    });
+}
+
 async function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -466,12 +505,15 @@ const storage = multer.diskStorage({
         cb(null, uniqueSuffix + path.extname(file.originalname));
     }
 });
-const upload = multer({ storage: storage });
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB
+});
 
 // Middlewares
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // ==========================================
 // ROTAS DE AUTENTICAÇÃO
@@ -1133,6 +1175,37 @@ app.get('/api/products', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/segment-templates - Retorna todos os templates de segmento cadastrados no banco
+app.get('/api/segment-templates', authenticateToken, async (req, res) => {
+    try {
+        const rows = await dbAll('SELECT * FROM segment_templates');
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao carregar templates de segmento: ' + err.message });
+    }
+});
+
+// PUT /api/segment-templates/:segment - Atualiza o template de um segmento específico (apenas Admin/Gerente/Diretor)
+app.put('/api/segment-templates/:segment', authenticateToken, async (req, res) => {
+    const { segment } = req.params;
+    const { template } = req.body;
+
+    if (req.user.role !== 'ALL' && req.user.role !== 'GERENTE' && req.user.role !== 'DIRETOR') {
+        return res.status(403).json({ error: 'Acesso negado: Apenas a diretoria ou administração podem editar templates.' });
+    }
+
+    if (typeof template !== 'string') {
+        return res.status(400).json({ error: 'O template deve ser fornecido em formato de texto.' });
+    }
+
+    try {
+        await dbRun('UPDATE segment_templates SET template = ? WHERE segment = ?', [template, segment]);
+        res.json({ success: true, message: `Template do segmento "${segment}" atualizado com sucesso.` });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao atualizar template de segmento: ' + err.message });
+    }
+});
+
 // GET /api/projects/:code/comments - Retorna todos os comentários de um projeto
 app.get('/api/projects/:code/comments', authenticateToken, async (req, res) => {
     try {
@@ -1143,23 +1216,36 @@ app.get('/api/projects/:code/comments', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/projects/:code/comments - Adiciona um novo comentário
-app.post('/api/projects/:code/comments', authenticateToken, async (req, res) => {
+// POST /api/projects/:code/comments - Adiciona um novo comentário com suporte opcional a anexo de arquivo (máx 50MB)
+app.post('/api/projects/:code/comments', authenticateToken, upload.single('file'), async (req, res) => {
     const { code } = req.params;
     const { message } = req.body;
+    const file = req.file;
     const user = req.user ? req.user.username : 'Sistema';
 
-    if (!message || message.trim() === '') {
-        return res.status(400).json({ error: 'A mensagem do comentário é obrigatória.' });
+    if ((!message || message.trim() === '') && !file) {
+        return res.status(400).json({ error: 'A mensagem do comentário ou um arquivo anexo é obrigatório.' });
     }
 
     try {
         const timestamp = new Date().toISOString();
-        await dbRun(`INSERT INTO comments (projectCode, user, message, dateAdded) VALUES (?, ?, ?, ?)`, [
+        let attachmentPath = null;
+        let attachmentName = null;
+
+        if (file) {
+            attachmentPath = 'uploads/' + file.filename;
+            attachmentName = file.originalname;
+        }
+
+        const cleanMessage = message ? message.trim() : '';
+
+        await dbRun(`INSERT INTO comments (projectCode, user, message, dateAdded, attachmentPath, attachmentName) VALUES (?, ?, ?, ?, ?, ?)`, [
             code,
             user,
-            message.trim(),
-            timestamp
+            cleanMessage,
+            timestamp,
+            attachmentPath,
+            attachmentName
         ]);
 
         await dbRun(`UPDATE projects SET crm_last_comment_user = ?, crm_last_interaction_date = ? WHERE code = ?`, [
@@ -1172,12 +1258,24 @@ app.post('/api/projects/:code/comments', authenticateToken, async (req, res) => 
         broadcastNotification('COMMENT_ADDED', {
             code,
             user,
-            message: message.trim(),
-            dateAdded: timestamp
+            message: cleanMessage,
+            dateAdded: timestamp,
+            attachmentPath,
+            attachmentName
         });
 
-        res.status(201).json({ success: true, user, dateAdded: timestamp, message: message.trim() });
+        res.status(201).json({ 
+            success: true, 
+            user, 
+            dateAdded: timestamp, 
+            message: cleanMessage,
+            attachmentPath,
+            attachmentName
+        });
     } catch (err) {
+        if (file && fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+        }
         res.status(500).json({ error: 'Erro ao salvar comentário: ' + err.message });
     }
 });
@@ -6484,6 +6582,11 @@ function localValidationFallback(segment, diagnostico, extraParams) {
 }
 
 async function executeCopilotValidation(segment, diagnostico, extraParams) {
+    if (diagnostico) {
+        diagnostico = diagnostico.split('\n')
+            .filter(line => !line.includes('[PREENCHER') && !line.includes('[PREENCHER aqui]'))
+            .join('\n');
+    }
     const apiKey = process.env.GEMINI_API_KEY;
     let result = null;
     
@@ -6799,7 +6902,7 @@ app.delete('/api/logs', async (req, res) => {
 // ==========================================
 
 // POST /api/attachments - Faz o upload de um arquivo vinculado a um projeto e etapa
-app.post('/api/attachments', upload.single('file'), async (req, res) => {
+app.post('/api/attachments', authenticateToken, upload.single('file'), async (req, res) => {
     const { projectCode, phase } = req.body;
     const file = req.file;
 

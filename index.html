@@ -1883,6 +1883,12 @@
                     Biblioteca Técnica
                 </button>
             </li>
+            <li class="nav-item" id="menu-settings" onclick="switchTab('settings')" style="display: none;">
+                <button>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    Configurações
+                </button>
+            </li>
             <li class="nav-item" id="menu-ncm" onclick="openNcmLookupModal()">
                 <button>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20M4 19.5V5A2.5 2.5 0 0 1 6.5 2.5H20v14H6.5a2.5 2.5 0 0 0-2.5 2.5z"/></svg>
@@ -2999,6 +3005,51 @@
                 </div>
             </div>
         </div>
+
+        <div id="tab-settings" class="tab-content">
+            <div class="project-table-card">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+                    <div style="background: rgba(14, 165, 233, 0.15); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </div>
+                    <div>
+                        <h3 style="color: var(--primary); margin: 0; font-size: 1.15rem;">Templates de Roteiro Técnico</h3>
+                        <p style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px;">Edite as perguntas guiadas de cada segmento de máquina para preenchimento de diagnóstico comercial.</p>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label for="settings-segment-select" style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); display: block; margin-bottom: 6px;">Segmento / Tipo de Máquina</label>
+                    <select id="settings-segment-select" class="form-control" onchange="loadSegmentTemplateSettings()" style="padding: 12px; font-size: 0.88rem; width: 100%;">
+                        <option value="MISTURADORES">MISTURADORES (Processamento e Mistura)</option>
+                        <option value="ENCAPSULADORAS">ENCAPSULADORAS (Encapsulamento / Farmacêutica)</option>
+                        <option value="GOMAS">GOMAS (Fabricação de Gomas & Balas Gummy)</option>
+                        <option value="DOSAGEM_SEMIAUTOMATICA">DOSAGEM_SEMIAUTOMATICA (Dosadores Semiautomáticos)</option>
+                        <option value="DOSAGEM_EMPACOTAMENTO">DOSAGEM_EMPACOTAMENTO (Empacotadoras Automáticas VFFS/Flow Pack)</option>
+                        <option value="ENVASE">ENVASE (Envasadoras Automáticas de Líquidos/Pastosos)</option>
+                        <option value="FECHAMENTO_TAMPAGEM">FECHAMENTO_TAMPAGEM (Tampadoras, Rosqueadoras, Indução)</option>
+                        <option value="VACUO_TERMOFORMADORAS">VACUO_TERMOFORMADORAS (Seladoras a Vácuo & Termoformadoras)</option>
+                        <option value="ROTULADORAS">ROTULADORAS (Rotuladoras & Etiquetadoras)</option>
+                        <option value="TERMOENCOLHIVEL">TERMOENCOLHIVEL (Seladoras L, Túneis, Enfardadoras)</option>
+                        <option value="FINAL_LINHA">FINAL_LINHA (Fechadoras de Caixas, Paletização)</option>
+                        <option value="PROJETOS_ESPECIAIS">PROJETOS_ESPECIAIS (Customizações Personnalité sob Medida)</option>
+                        <option value="SELADORAS_CONTINUAS">SELADORAS_CONTINUAS (Seladoras Contínuas de Sacos)</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label for="settings-template-text" style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); display: block; margin-bottom: 6px;">Template de Observações Técnicas</label>
+                    <textarea id="settings-template-text" class="form-control" style="height: 220px; font-family: monospace; font-size: 0.85rem; padding: 12px; resize: vertical; line-height: 1.5; width: 100%;" placeholder="Escreva o template para este segmento..."></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
+                    <span id="settings-alert" style="display: none; border-radius: 6px; padding: 8px 12px; font-size: 0.82rem; margin-right: auto; font-weight: 500;"></span>
+                    <button type="button" class="btn" onclick="saveSegmentTemplateSettings()" style="font-weight: bold; padding: 12px 25px; background: linear-gradient(135deg, var(--primary) 0%, #0284c7 100%); border: none;">
+                        Salvar Template
+                    </button>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- INTERACTIVE PROJECT DIALOG (MODAL PONTUADO) -->
@@ -3517,9 +3568,26 @@
                                     
                                     <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
                                         <textarea id="modal-chat-input" class="form-control" style="height: 70px; resize: none; background: rgba(0,0,0,0.3); border-color: var(--border-color); color: var(--text-primary); font-size: 0.8rem;" placeholder="Digite aqui a sua pergunta ou anotação comercial..."></textarea>
-                                        <button class="btn" style="background: var(--success); border-color: var(--success); color: #fff; align-self: flex-end; font-size: 0.74rem; font-weight: bold; cursor: pointer;" onclick="addModalChatMessage()">
-                                            Adicionar Comentário
-                                        </button>
+                                        
+                                        <!-- Container de exibição do arquivo selecionado -->
+                                        <div id="modal-chat-attachment-preview" style="display: none; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.72rem; color: var(--text-secondary);">
+                                            <span style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                📎 <strong id="modal-chat-attachment-name" style="color: var(--text-primary);">arquivo.pdf</strong> (<span id="modal-chat-attachment-size">1.2 MB</span>)
+                                            </span>
+                                            <button type="button" onclick="clearModalChatAttachment()" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1rem; padding: 0 4px; font-weight: bold;">×</button>
+                                        </div>
+
+                                        <div style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
+                                            <!-- Inputs de anexo ocultos -->
+                                            <input type="file" id="modal-chat-file-input" onchange="handleModalChatFileChange()" style="display: none;">
+                                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-chat-file-input').click()" style="padding: 6px 10px; font-size: 0.74rem; display: flex; align-items: center; gap: 4px;" title="Anexar arquivo técnico (Fotos, PDFs, Videos ou CAD de até 50MB)">
+                                                📎 Anexar
+                                            </button>
+                                            
+                                            <button id="btn-submit-chat-message" class="btn" style="background: var(--success); border-color: var(--success); color: #fff; font-size: 0.74rem; font-weight: bold; cursor: pointer; padding: 6px 15px;" onclick="addModalChatMessage()">
+                                                Adicionar Comentário
+                                            </button>
+                                        </div>
                                     </div>
                                     
                                     <h5 style="color: var(--primary); font-size: 0.78rem; text-transform: uppercase; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; margin-bottom: 10px;">Linha do Tempo de Interações</h5>
@@ -4498,6 +4566,10 @@
             if (menuSupplier) {
                 menuSupplier.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'ENGENHARIA') ? 'block' : 'none';
             }
+            const menuSettings = document.getElementById('menu-settings');
+            if (menuSettings) {
+                menuSettings.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'DIRETOR') ? 'block' : 'none';
+            }
             
             // If active tab gets hidden, switch to dashboard
             const activeTab = document.querySelector('.nav-item.active');
@@ -5112,7 +5184,8 @@
             projects: [],
             logs: [],
             activeLocks: {},
-            productsCatalog: []
+            productsCatalog: [],
+            segmentTemplates: {}
         };
 
         let currentRole = "ALL"; 
@@ -5277,10 +5350,31 @@
                 });
         }
 
+        // Load Segment Templates from Server API
+        function loadSegmentTemplatesDB() {
+            const token = localStorage.getItem('tecfag_session_token');
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            return fetch('/api/segment-templates', { headers })
+                .then(res => res.json())
+                .then(templates => {
+                    const mapped = {};
+                    templates.forEach(t => {
+                        mapped[t.segment] = t.template;
+                    });
+                    state.segmentTemplates = mapped;
+                })
+                .catch(err => {
+                    console.error('Erro ao carregar templates de segmentos:', err);
+                });
+        }
+
         // Load Database from Server APIs
         function loadProjectsDB() {
             if (state.productsCatalog.length === 0) {
                 loadProductsDB();
+            }
+            if (Object.keys(state.segmentTemplates).length === 0) {
+                loadSegmentTemplatesDB();
             }
 
             const fetchLocks = window.location.protocol !== 'file:'
@@ -5984,7 +6078,8 @@
                 tag: "Gerador e Impressor de Etiquetas",
                 metrics: "Painel de Métricas e Gargalos",
                 log: "Histórico de Auditoria & Alertas",
-                supplier: "Biblioteca Técnica de Fornecedores"
+                supplier: "Biblioteca Técnica de Fornecedores",
+                settings: "Configurações Globais do Sistema"
             };
 
             const subtitles = {
@@ -5994,7 +6089,8 @@
                 tag: "Imprima a etiqueta de caixa física de projeto e trave o ERP de vendas indébitas.",
                 metrics: "Visão analítica dos prazos das fases e gargalos de produtividade por setor.",
                 log: "Logs de comunicação automáticos simulando e-mails para cada etapa do processo.",
-                supplier: "Consulte e gerencie catálogos, cotações e documentação técnica de fornecedores."
+                supplier: "Consulte e gerencie catálogos, cotações e documentação técnica de fornecedores.",
+                settings: "Gerencie templates de questionamentos técnicos e regras de automação."
             };
 
             document.getElementById('main-title').innerText = titles[tabId];
@@ -6006,6 +6102,8 @@
                 loadMetrics();
             } else if (tabId === 'supplier') {
                 loadSupplierResources();
+            } else if (tabId === 'settings') {
+                loadSettingsTab();
             }
         }
 
@@ -6576,6 +6674,16 @@
             if (!segment) {
                 if (container) container.style.display = 'none';
                 return;
+            }
+
+            const obsTextarea = document.getElementById('prj-intake-observations');
+            if (obsTextarea) {
+                const currentVal = obsTextarea.value.trim();
+                const template = state.segmentTemplates[segment] || '';
+                const isTemplate = Object.values(state.segmentTemplates).some(t => t.trim() === currentVal);
+                if (currentVal === '' || isTemplate) {
+                    obsTextarea.value = template;
+                }
             }
 
             if (grid) grid.innerHTML = '';
@@ -10161,12 +10269,46 @@
                     const date = new Date(c.dateAdded).toLocaleString('pt-BR');
                     const friendlyAuthor = getFriendlyUserName(c.user);
                     
+                    let attachmentHTML = '';
+                    if (c.attachmentPath) {
+                        const pathLower = c.attachmentPath.toLowerCase();
+                        const fileName = c.attachmentName || 'Anexo';
+                        if (pathLower.endsWith('.png') || pathLower.endsWith('.jpg') || pathLower.endsWith('.jpeg') || pathLower.endsWith('.gif') || pathLower.endsWith('.webp')) {
+                            attachmentHTML = `
+                                <div style="margin-top: 8px; border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; max-width: 200px; cursor: pointer;" onclick="window.open('${c.attachmentPath}', '_blank')">
+                                    <img src="${c.attachmentPath}" style="width: 100%; display: block; max-height: 120px; object-fit: cover;" alt="${fileName}">
+                                </div>
+                            `;
+                        } else if (pathLower.endsWith('.mp4') || pathLower.endsWith('.mov') || pathLower.endsWith('.webm') || pathLower.endsWith('.ogg')) {
+                            attachmentHTML = `
+                                <div style="margin-top: 8px; max-width: 260px;">
+                                    <video src="${c.attachmentPath}" controls style="width: 100%; border-radius: 4px; border: 1px solid rgba(255,255,255,0.08); max-height: 150px; background: #000; display: block;"></video>
+                                </div>
+                            `;
+                        } else {
+                            let icon = '📄';
+                            if (pathLower.endsWith('.pdf')) icon = '📕';
+                            else if (pathLower.endsWith('.dwg') || pathLower.endsWith('.step') || pathLower.endsWith('.stp')) icon = '📐';
+                            
+                            attachmentHTML = `
+                                <div style="margin-top: 8px;">
+                                    <a href="${c.attachmentPath}" download="${fileName}" style="display: inline-flex; align-items: center; gap: 8px; background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.2); color: #38bdf8; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 0.72rem; font-weight: 500; transition: background 0.2s;" onmouseover="this.style.background='rgba(14, 165, 233, 0.2)'" onmouseout="this.style.background='rgba(14, 165, 233, 0.1)'">
+                                        <span>${icon}</span>
+                                        <span style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${fileName}</span>
+                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                    </a>
+                                </div>
+                            `;
+                        }
+                    }
+                    
                     div.innerHTML = `
                         <div style="display:flex; justify-content:space-between; margin-bottom: 4px; font-size:0.7rem; color:var(--text-secondary);">
                             <strong style="color:var(--primary);">${friendlyAuthor}</strong>
                             <span>${date}</span>
                         </div>
                         <div style="color:#e2e8f0; white-space:pre-wrap; word-break:break-word;">${c.message}</div>
+                        ${attachmentHTML}
                     `;
                     container.appendChild(div);
                 });
@@ -10177,24 +10319,73 @@
             }
         }
 
+        let modalChatSelectedFile = null;
+
+        function handleModalChatFileChange() {
+            const fileInput = document.getElementById('modal-chat-file-input');
+            const previewContainer = document.getElementById('modal-chat-attachment-preview');
+            const nameEl = document.getElementById('modal-chat-attachment-name');
+            const sizeEl = document.getElementById('modal-chat-attachment-size');
+            
+            if (!fileInput || fileInput.files.length === 0) return;
+            
+            const file = fileInput.files[0];
+            
+            if (file.size > 50 * 1024 * 1024) {
+                alert("❌ Erro: O arquivo selecionado excede o limite máximo permitido de 50MB. Escolha um arquivo menor.");
+                fileInput.value = '';
+                modalChatSelectedFile = null;
+                if (previewContainer) previewContainer.style.display = 'none';
+                return;
+            }
+            
+            modalChatSelectedFile = file;
+            if (nameEl) nameEl.innerText = file.name;
+            if (sizeEl) sizeEl.innerText = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+            if (previewContainer) previewContainer.style.display = 'flex';
+        }
+
+        function clearModalChatAttachment() {
+            const fileInput = document.getElementById('modal-chat-file-input');
+            const previewContainer = document.getElementById('modal-chat-attachment-preview');
+            modalChatSelectedFile = null;
+            if (fileInput) fileInput.value = '';
+            if (previewContainer) previewContainer.style.display = 'none';
+        }
+
         async function addModalChatMessage() {
             const input = document.getElementById('modal-chat-input');
+            const submitBtn = document.getElementById('btn-submit-chat-message');
             if (!input) return;
+            
             const message = input.value.trim();
-            if (!message) {
-                alert('Por favor, digite alguma mensagem.');
+            if (!message && !modalChatSelectedFile) {
+                alert('Por favor, digite uma mensagem ou anexe um arquivo.');
                 return;
+            }
+            
+            const oldText = submitBtn ? submitBtn.innerText : 'Adicionar Comentário';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerText = 'Enviando...';
             }
             
             try {
                 const token = localStorage.getItem('tecfag_session_token');
+                const formData = new FormData();
+                formData.append('message', message);
+                if (modalChatSelectedFile) {
+                    formData.append('file', modalChatSelectedFile);
+                }
+                
+                const headers = {
+                    'Authorization': `Bearer ${token}`
+                };
+                
                 const res = await fetch(`/api/projects/${activeProjectCode}/comments`, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ message })
+                    headers,
+                    body: formData
                 });
                 
                 if (!res.ok) {
@@ -10203,6 +10394,7 @@
                 }
                 
                 input.value = '';
+                clearModalChatAttachment();
                 await loadModalComments();
                 
                 const projectIdx = state.projects.findIndex(p => p.code === activeProjectCode);
@@ -10215,7 +10407,13 @@
                     renderKanban();
                 }
             } catch (err) {
+                console.error(err);
                 alert('Erro ao enviar mensagem: ' + err.message);
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = oldText;
+                }
             }
         }
 
@@ -13509,6 +13707,75 @@
                 alertEl.style.color = color;
                 alertEl.style.border = `1px solid ${color}`;
                 alertEl.style.display = show ? 'block' : 'none';
+            }
+        }
+
+        // Configurações de templates de segmento
+        function loadSettingsTab() {
+            if (Object.keys(state.segmentTemplates).length === 0) {
+                loadSegmentTemplatesDB().then(() => {
+                    loadSegmentTemplateSettings();
+                });
+            } else {
+                loadSegmentTemplateSettings();
+            }
+        }
+
+        function loadSegmentTemplateSettings() {
+            const select = document.getElementById('settings-segment-select');
+            const textarea = document.getElementById('settings-template-text');
+            const alertEl = document.getElementById('settings-alert');
+            
+            if (!select || !textarea) return;
+            if (alertEl) alertEl.style.display = 'none';
+
+            const segment = select.value;
+            textarea.value = state.segmentTemplates[segment] || '';
+        }
+
+        async function saveSegmentTemplateSettings() {
+            const select = document.getElementById('settings-segment-select');
+            const textarea = document.getElementById('settings-template-text');
+            
+            if (!select || !textarea) return;
+            
+            const segment = select.value;
+            const template = textarea.value;
+            
+            showSettingsAlert('Salvando template...', '#0ea5e9');
+            
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const response = await fetch(`/api/segment-templates/${segment}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ template })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    state.segmentTemplates[segment] = template;
+                    showSettingsAlert('✅ Template atualizado com sucesso!', '#10b981');
+                } else {
+                    showSettingsAlert('❌ ' + (data.error || 'Erro ao salvar template.'), '#ef4444');
+                }
+            } catch (err) {
+                console.error(err);
+                showSettingsAlert('❌ Erro ao conectar ao servidor.', '#ef4444');
+            }
+        }
+
+        function showSettingsAlert(msg, color) {
+            const alertEl = document.getElementById('settings-alert');
+            if (alertEl) {
+                alertEl.innerText = msg;
+                alertEl.style.color = color;
+                alertEl.style.border = `1px solid ${color}`;
+                alertEl.style.backgroundColor = color + '15';
+                alertEl.style.display = 'inline-block';
             }
         }
     </script>
