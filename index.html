@@ -1679,6 +1679,45 @@
 </head>
 <body class="not-logged-in">
     <script>
+        // Safe localStorage Wrapper to prevent SecurityError in Firefox Private Mode / Strict Edge Policies
+        (function() {
+            try {
+                const testKey = '__storage_test__';
+                window.localStorage.setItem(testKey, testKey);
+                window.localStorage.removeItem(testKey);
+            } catch (e) {
+                console.warn('localStorage is blocked or not available. Falling back to in-memory storage.');
+                const mockStorage = {};
+                const mockLocalStorage = {
+                    getItem: function(key) {
+                        return mockStorage.hasOwnProperty(key) ? mockStorage[key] : null;
+                    },
+                    setItem: function(key, value) {
+                        mockStorage[key] = String(value);
+                    },
+                    removeItem: function(key) {
+                        delete mockStorage[key];
+                    },
+                    clear: function() {
+                        for (let key in mockStorage) {
+                            delete mockStorage[key];
+                        }
+                    },
+                    key: function(index) {
+                        const keys = Object.keys(mockStorage);
+                        return keys[index] || null;
+                    },
+                    get length() {
+                        return Object.keys(mockStorage).length;
+                    }
+                };
+                Object.defineProperty(window, 'localStorage', {
+                    value: mockLocalStorage,
+                    writable: true
+                });
+            }
+        })();
+
         // 1. Executa a leitura inicial IMEDIATAMENTE para evitar o FOUC (piscar tela)
         function initializeTheme() {
             const savedTheme = localStorage.getItem('tecfag_theme');
