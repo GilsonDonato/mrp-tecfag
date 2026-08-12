@@ -7681,6 +7681,18 @@
                     submitBtn.innerText = "Processando uploads...";
                 }
 
+                // Bloqueio rígido para Erros Técnicos de Engenharia Críticos (Veto)
+                const hasVetoError = currentCopilotMissing.some(m => m.includes('🔴 ERRO TÉCNICO DE ENGENHARIA:'));
+                if (hasVetoError) {
+                    alert("🔴 BLOQUEIO DE ENGENHARIA:\nExistem inconformidades técnicas críticas no escopo que impedem a criação do projeto. Por favor, revise as notas de diagnóstico vermelhas indicadas pelo Copiloto.");
+                    isSubmitting = false;
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerText = "Cadastrar Projeto & Iniciar Funil";
+                    }
+                    return; // Impede a submissão completamente
+                }
+
                 // Validação preventiva do Copiloto de IA para evitar retrabalho
                 if (currentCopilotScore < 80 && currentCopilotMissing.length > 0) {
                     const cleanMissing = currentCopilotMissing.map(m => m.replace(/^[🔴\s•*-]+/g, '').trim());
@@ -10141,11 +10153,26 @@
             const segment = segmentSelect.value;
             const diagnostico = obsTextarea.value.trim();
             
-            // Junta os parâmetros dinâmicos preenchidos na tela
+            // Junta os parâmetros dinâmicos preenchidos na tela e toda a infraestrutura
             const extraParams = Object.assign(
                 {}, 
                 getSegmentParametersFromDOM(segment),
-                { tensao: document.getElementById('prj-infra-tension') ? document.getElementById('prj-infra-tension').value : '' }
+                {
+                    tension: document.getElementById('prj-infra-tension') ? document.getElementById('prj-infra-tension').value : '',
+                    frequency: '60Hz',
+                    structureMaterial: document.getElementById('prj-infra-structure-material') ? document.getElementById('prj-infra-structure-material').value : '',
+                    pressure: '',
+                    airConsumption: '',
+                    airDryer: document.getElementById('prj-infra-air-dryer') ? document.getElementById('prj-infra-air-dryer').value : '',
+                    material: document.getElementById('prj-infra-material') ? document.getElementById('prj-infra-material').value : '',
+                    roughness: document.getElementById('prj-infra-roughness') ? document.getElementById('prj-infra-roughness').value : '',
+                    ipRating: document.getElementById('prj-infra-ip-rating') ? document.getElementById('prj-infra-ip-rating').value : '',
+                    nr12: document.getElementById('prj-infra-nr12') ? document.getElementById('prj-infra-nr12').value : '',
+                    classifiedArea: document.getElementById('prj-infra-classified-area') ? document.getElementById('prj-infra-classified-area').value : '',
+                    cleaning: document.getElementById('prj-infra-cleaning') ? document.getElementById('prj-infra-cleaning').value : '',
+                    envTemp: document.getElementById('prj-infra-env-temp') ? document.getElementById('prj-infra-env-temp').value : '',
+                    spaceLimit: document.getElementById('prj-infra-space-limit') ? document.getElementById('prj-infra-space-limit').value : ''
+                }
             );
             
             if (!diagnostico) {

@@ -6487,11 +6487,26 @@ function getEngineeringErrors(segment, diagnostico, extraParams) {
         if (diagLower.includes(term)) {
             hasGenericDim = true;
         }
-        for (const val of Object.values(params)) {
-            if (typeof val === 'string' && val.toLowerCase().includes(term)) {
+        for (const [k, val] of Object.entries(params)) {
+            const keyLower = k.toLowerCase();
+            // Só verifica termos genéricos em campos que realmente digitem dimensões
+            const isDimensionKey = keyLower.includes('largura') || keyLower.includes('altura') || keyLower.includes('comprimento') || keyLower.includes('dimens') || keyLower.includes('diâmetro') || keyLower.includes('tamanho') || keyLower.includes('medida');
+            if (isDimensionKey && typeof val === 'string' && val.toLowerCase().includes(term)) {
                 hasGenericDim = true;
             }
         }
+    }
+
+    // Se o diagnóstico ou os parâmetros contêm medidas exatas especificadas em mm/cm/etc., inibe a trava de dimensões genéricas
+    const hasExactMeasurements = /\d+\s*(?:mm|mil[ií]metros|cm|x\s*\d+)/i.test(diagLower) || 
+                                 Object.entries(params).some(([k, v]) => {
+                                     const keyLower = k.toLowerCase();
+                                     const isDimensionKey = keyLower.includes('largura') || keyLower.includes('altura') || keyLower.includes('comprimento') || keyLower.includes('dimens') || keyLower.includes('diâmetro') || keyLower.includes('tamanho') || keyLower.includes('medida');
+                                     return isDimensionKey && typeof v === 'string' && /\d+/.test(v) && !v.toLowerCase().includes('padrao') && !v.toLowerCase().includes('variado');
+                                 });
+
+    if (hasGenericDim && hasExactMeasurements) {
+        hasGenericDim = false;
     }
     
     if (hasGenericDim) {
