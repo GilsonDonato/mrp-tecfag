@@ -1742,16 +1742,25 @@
                     <label for="login-username" style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary);">Usuário</label>
                     <input type="text" id="login-username" class="form-control" placeholder="Digite seu usuário" required style="padding: 12px; font-size: 0.9rem;">
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="position: relative;">
                     <label for="login-password" style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary);">Senha</label>
-                    <input type="password" id="login-password" class="form-control" placeholder="Digite sua senha" required style="padding: 12px; font-size: 0.9rem;">
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <input type="password" id="login-password" class="form-control" placeholder="Digite sua senha" required style="padding: 12px; font-size: 0.9rem; width: 100%; padding-right: 40px;">
+                        <button type="button" onclick="togglePasswordVisibility()" style="position: absolute; right: 10px; background: none; border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;" title="Mostrar/Ocultar Senha">
+                            <svg id="password-toggle-eye" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="transition: color 0.2s;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div style="text-align: right; margin-top: -5px;">
+                    <a href="#" onclick="openForgotPasswordModal(event)" style="font-size: 0.72rem; color: var(--primary); text-decoration: none; font-weight: bold; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">Esqueci minha senha</a>
                 </div>
                 
                 <div id="login-error-alert" style="display: none; background-color: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: 6px; padding: 10px; font-size: 0.8rem; color: #fca5a5; margin-top: 5px;">
                     ❌ Usuário ou senha inválidos.
                 </div>
                 
-                <button type="submit" class="btn" style="width: 100%; margin-top: 15px; justify-content: center; font-weight: 700; padding: 12px;">
+                <button type="submit" class="btn" style="width: 100%; margin-top: 10px; justify-content: center; font-weight: 700; padding: 12px;">
                     Acessar Sistema
                 </button>
             </form>
@@ -4278,7 +4287,11 @@
                 usernameInput.value = '';
                 passwordInput.value = '';
                 
-                initializeSession();
+                if (data.requirePasswordChange) {
+                    openForceChangePasswordModal();
+                } else {
+                    initializeSession();
+                }
             })
             .catch(err => {
                 console.error(err);
@@ -5238,8 +5251,21 @@
             fetchLocks.then(locks => {
                 state.activeLocks = locks || {};
 
-                fetch('/api/projects')
-                    .then(res => res.json())
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                fetch('/api/projects', { headers })
+                    .then(res => {
+                        if (res.status === 403) {
+                            return res.json().then(data => {
+                                if (data.error === 'FORCE_PASSWORD_CHANGE') {
+                                    openForceChangePasswordModal();
+                                    throw new Error('FORCE_PASSWORD_CHANGE');
+                                }
+                                throw new Error(data.error || 'Erro de autenticação');
+                            });
+                        }
+                        return res.json();
+                    })
                     .then(async projects => {
                         state.projects = projects;
                     
@@ -13290,6 +13316,207 @@
                 setInterval(autoDownloadBackup, 30 * 60 * 1000);
             });
         };
+
+        // Alternador de visibilidade de senha
+        function togglePasswordVisibility() {
+            const pwdInput = document.getElementById('login-password');
+            const eyeSvg = document.getElementById('password-toggle-eye');
+            if (pwdInput && eyeSvg) {
+                if (pwdInput.type === 'password') {
+                    pwdInput.type = 'text';
+                    eyeSvg.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+                } else {
+                    pwdInput.type = 'password';
+                    eyeSvg.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+                }
+            }
+        }
+
+        // Modais de recuperação e troca de senha
+        function openForgotPasswordModal(event) {
+            if (event) event.preventDefault();
+            const modal = document.getElementById('forgot-password-modal');
+            const alertEl = document.getElementById('recovery-alert');
+            const usernameInput = document.getElementById('recovery-username');
+            if (modal) {
+                modal.style.display = 'flex';
+                if (alertEl) alertEl.style.display = 'none';
+                if (usernameInput) {
+                    usernameInput.value = '';
+                    usernameInput.focus();
+                }
+            }
+        }
+
+        function closeForgotPasswordModal() {
+            const modal = document.getElementById('forgot-password-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function submitForgotPassword() {
+            const usernameInput = document.getElementById('recovery-username');
+            const alertEl = document.getElementById('recovery-alert');
+            const btnSubmit = document.getElementById('btn-submit-recovery');
+            
+            if (!usernameInput || !usernameInput.value.trim()) {
+                showRecoveryAlert('Digite seu usuário.', true, 'rgba(239, 68, 68, 0.15)', '#fca5a5');
+                return;
+            }
+            
+            const username = usernameInput.value.trim();
+            showRecoveryAlert('Enviando e-mail, por favor aguarde...', true, 'rgba(14, 165, 233, 0.15)', '#38bdf8');
+            
+            if (btnSubmit) btnSubmit.disabled = true;
+            
+            try {
+                const response = await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    showRecoveryAlert(`✅ ${data.message || 'Senha enviada com sucesso!'}`, true, 'rgba(16, 185, 129, 0.15)', '#10b981');
+                    setTimeout(closeForgotPasswordModal, 4000);
+                } else {
+                    showRecoveryAlert(`❌ ${data.error || 'Erro desconhecido.'}`, true, 'rgba(239, 68, 68, 0.15)', '#fca5a5');
+                }
+            } catch (err) {
+                console.error(err);
+                showRecoveryAlert('❌ Erro de conexão com o servidor.', true, 'rgba(239, 68, 68, 0.15)', '#fca5a5');
+            } finally {
+                if (btnSubmit) btnSubmit.disabled = false;
+            }
+        }
+
+        function showRecoveryAlert(msg, show, bg = 'rgba(255,255,255,0.05)', color = '#cbd5e1') {
+            const alertEl = document.getElementById('recovery-alert');
+            if (alertEl) {
+                alertEl.innerText = msg;
+                alertEl.style.backgroundColor = bg;
+                alertEl.style.color = color;
+                alertEl.style.border = `1px solid ${color}`;
+                alertEl.style.display = show ? 'block' : 'none';
+            }
+        }
+
+        // Modal de Alteração de Senha Obrigatória
+        function openForceChangePasswordModal() {
+            const modal = document.getElementById('force-change-password-modal');
+            const alertEl = document.getElementById('force-change-alert');
+            const pwdInput = document.getElementById('new-force-password');
+            if (modal) {
+                modal.style.display = 'flex';
+                if (alertEl) alertEl.style.display = 'none';
+                if (pwdInput) {
+                    pwdInput.value = '';
+                    pwdInput.focus();
+                }
+            }
+        }
+
+        async function submitForcePasswordChange() {
+            const pwdInput = document.getElementById('new-force-password');
+            const alertEl = document.getElementById('force-change-alert');
+            const btnSubmit = document.getElementById('btn-submit-force-change');
+            const token = localStorage.getItem('tecfag_session_token');
+            
+            if (!pwdInput || !pwdInput.value.trim() || pwdInput.value.trim().length < 6) {
+                showForceChangeAlert('A nova senha deve ter pelo menos 6 caracteres.', true, 'rgba(239, 68, 68, 0.15)', '#fca5a5');
+                return;
+            }
+            
+            const newPassword = pwdInput.value.trim();
+            showForceChangeAlert('Salvando nova senha...', true, 'rgba(14, 165, 233, 0.15)', '#38bdf8');
+            
+            if (btnSubmit) btnSubmit.disabled = true;
+            
+            try {
+                const response = await fetch('/api/auth/change-password', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ newPassword })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    showForceChangeAlert('✅ Senha redefinida com sucesso! Redirecionando...', true, 'rgba(16, 185, 129, 0.15)', '#10b981');
+                    setTimeout(() => {
+                        const modal = document.getElementById('force-change-password-modal');
+                        if (modal) modal.style.display = 'none';
+                        document.getElementById('login-overlay').style.display = 'none';
+                        initializeSession();
+                    }, 2000);
+                } else {
+                    showForceChangeAlert(`❌ ${data.error || 'Erro desconhecido.'}`, true, 'rgba(239, 68, 68, 0.15)', '#fca5a5');
+                }
+            } catch (err) {
+                console.error(err);
+                showForceChangeAlert('❌ Erro ao conectar com o servidor.', true, 'rgba(239, 68, 68, 0.15)', '#fca5a5');
+            } finally {
+                if (btnSubmit) btnSubmit.disabled = false;
+            }
+        }
+
+        function showForceChangeAlert(msg, show, bg = 'rgba(255,255,255,0.05)', color = '#cbd5e1') {
+            const alertEl = document.getElementById('force-change-alert');
+            if (alertEl) {
+                alertEl.innerText = msg;
+                alertEl.style.backgroundColor = bg;
+                alertEl.style.color = color;
+                alertEl.style.border = `1px solid ${color}`;
+                alertEl.style.display = show ? 'block' : 'none';
+            }
+        }
     </script>
+
+    <!-- Modal de Recuperação de Senha -->
+    <div id="forgot-password-modal" class="modal-overlay" style="display: none; justify-content: center; align-items: center; z-index: 10000; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.75);">
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px; width: 95%; max-width: 400px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); text-align: left;">
+            <h3 style="margin-top: 0; margin-bottom: 15px; color: var(--primary); font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                🔑 Recuperar Acesso
+            </h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
+                Digite seu nome de usuário. Se houver um e-mail cadastrado, enviaremos uma senha temporária.
+            </p>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="recovery-username" style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary);">Usuário</label>
+                <input type="text" id="recovery-username" class="form-control" placeholder="Ex: vendas2" style="padding: 12px; font-size: 0.9rem;">
+            </div>
+            
+            <div id="recovery-alert" style="display: none; border-radius: 6px; padding: 10px; font-size: 0.8rem; margin-bottom: 15px; border: 1px solid transparent;"></div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeForgotPasswordModal()" style="padding: 10px 15px;">Cancelar</button>
+                <button type="button" id="btn-submit-recovery" class="btn" onclick="submitForgotPassword()" style="padding: 10px 15px; font-weight: bold;">Enviar E-mail</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Alteração de Senha Obrigatória -->
+    <div id="force-change-password-modal" class="modal-overlay" style="display: none; justify-content: center; align-items: center; z-index: 10000; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85);">
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px; width: 95%; max-width: 400px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); text-align: left;">
+            <h3 style="margin-top: 0; margin-bottom: 15px; color: #f59e0b; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                ⚠️ Alteração de Senha Obrigatória
+            </h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
+                Você fez login com uma senha temporária. Para garantir a segurança da sua conta, defina uma nova senha definitiva.
+            </p>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="new-force-password" style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary);">Nova Senha (mínimo 6 caracteres)</label>
+                <input type="password" id="new-force-password" class="form-control" placeholder="Digite sua nova senha" style="padding: 12px; font-size: 0.9rem;">
+            </div>
+            
+            <div id="force-change-alert" style="display: none; border-radius: 6px; padding: 10px; font-size: 0.8rem; margin-bottom: 15px; border: 1px solid transparent;"></div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" id="btn-submit-force-change" class="btn" onclick="submitForcePasswordChange()" style="padding: 10px 15px; font-weight: bold; background: #f59e0b; border-color: #f59e0b; color: #1e1b4b;">Salvar Nova Senha</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -192,6 +192,7 @@ function initializeDatabase() {
         )`);
 
         db.run("ALTER TABLE users ADD COLUMN phone TEXT", (err) => {});
+        db.run("ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0", (err) => {});
 
         // Tabela de Sessões
         db.run(`CREATE TABLE IF NOT EXISTS sessions (
@@ -439,9 +440,13 @@ async function authenticateToken(req, res, next) {
             return res.status(403).json({ error: 'Sessão expirada. Faça login novamente.' });
         }
 
-        const user = await dbGet('SELECT username, role, phone FROM users WHERE username = ?', [session.username]);
+        const user = await dbGet('SELECT username, role, phone, must_change_password FROM users WHERE username = ?', [session.username]);
         if (!user) {
             return res.status(403).json({ error: 'Usuário não existe.' });
+        }
+
+        if (user.must_change_password === 1 && req.path !== '/api/auth/change-password' && req.path !== '/api/auth/logout') {
+            return res.status(403).json({ error: 'FORCE_PASSWORD_CHANGE', message: 'Alteração de senha obrigatória.' });
         }
 
         req.user = user;
@@ -503,6 +508,7 @@ app.post('/api/auth/login', async (req, res) => {
         res.json({
             success: true,
             token,
+            requirePasswordChange: user.must_change_password === 1,
             user: {
                 username: user.username,
                 role: user.role
@@ -510,6 +516,113 @@ app.post('/api/auth/login', async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ error: 'Erro ao fazer login: ' + err.message });
+    }
+});
+
+// POST /api/auth/forgot-password - Gera uma senha temporária limpa e envia por e-mail
+app.post('/api/auth/forgot-password', async (req, res) => {
+    const { username } = req.body;
+    if (!username) {
+        return res.status(400).json({ error: 'O nome de usuário é obrigatório.' });
+    }
+
+    try {
+        const user = await dbGet('SELECT * FROM users WHERE username = ?', [username.toLowerCase().trim()]);
+        if (!user) {
+            return res.status(400).json({ error: 'Usuário não encontrado.' });
+        }
+
+        const email = getUserEmail(user.username);
+        if (!email) {
+            return res.status(400).json({ error: 'Nenhum e-mail de contato cadastrado para este usuário. Por favor, contate o administrador.' });
+        }
+
+        // Se não há dados do SMTP no .env, não é possível enviar a senha
+        if (!process.env.SMTP_HOST || process.env.SMTP_HOST === 'smtp.exemplo.com') {
+            return res.status(500).json({ error: 'O servidor de envio de e-mails não está configurado. Contate o administrador.' });
+        }
+
+        // Gerar senha temporária limpa de 8 caracteres (sem O, 0, l, 1, I, i)
+        const chars = 'abcdefghjkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let tempPassword = '';
+        for (let i = 0; i < 8; i++) {
+            tempPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        
+        const { salt, hash } = hashPassword(tempPassword);
+
+        // Atualiza a senha do usuário e define a flag de mudança obrigatória de senha
+        await dbRun('UPDATE users SET password_hash = ?, salt = ?, must_change_password = 1 WHERE username = ?', [
+            hash,
+            salt,
+            user.username
+        ]);
+
+        // Envia o e-mail
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT) || 587,
+            secure: process.env.SMTP_SECURE === 'true',
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        });
+
+        const subject = `🔑 MRP II: Sua nova senha temporária`;
+        const htmlBody = `
+            <div style="font-family: 'Segoe UI', Arial, sans-serif; padding: 25px; background-color: #f4f6f9; color: #333; line-height: 1.6;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; border: 1px solid #e1e8ed; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                    <div style="background: linear-gradient(135deg, #0ea5e9, #a855f7); padding: 20px; text-align: center; color: white;">
+                        <h2 style="margin: 0; font-size: 1.4rem;">Recuperação de Acesso</h2>
+                        <p style="margin: 5px 0 0 0; font-size: 0.85rem; opacity: 0.9;">Tecfag MRP II</p>
+                    </div>
+                    <div style="padding: 25px;">
+                        <p>Olá <strong>${user.username}</strong>,</p>
+                        <p>Recebemos uma solicitação de recuperação de senha para a sua conta. Uma nova senha temporária foi gerada automaticamente:</p>
+                        <div style="background-color: #f1f5f9; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 15px; text-align: center; margin: 20px 0; font-size: 1.4rem; font-family: monospace; font-weight: bold; letter-spacing: 2px; color: #0f172a;">
+                            ${tempPassword}
+                        </div>
+                        <p style="color: #e11d48; font-size: 0.82rem; font-weight: bold;">Por motivos de segurança, você será obrigado a definir uma nova senha definitiva no seu próximo acesso.</p>
+                        <p>Se você não solicitou essa alteração, nenhuma ação é necessária.</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        await transporter.sendMail({
+            from: `"Tecfag MRP II" <${process.env.SMTP_USER}>`,
+            to: email,
+            subject,
+            html: htmlBody
+        });
+
+        res.json({ success: true, message: `Uma nova senha temporária foi enviada para o e-mail: ${email.replace(/(.{3})(.*)(@.*)/, '$1***$3')}` });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao processar recuperação de senha: ' + err.message });
+    }
+});
+
+// POST /api/auth/change-password - Altera a senha do usuário logado
+app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ error: 'A nova senha deve ter pelo menos 6 caracteres.' });
+    }
+
+    try {
+        const { salt, hash } = hashPassword(newPassword);
+        await dbRun('UPDATE users SET password_hash = ?, salt = ?, must_change_password = 0 WHERE username = ?', [
+            hash,
+            salt,
+            req.user.username
+        ]);
+        res.json({ success: true, message: 'Senha alterada com sucesso!' });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao alterar a senha: ' + err.message });
     }
 });
 
@@ -909,7 +1022,7 @@ app.get('/api/test-clients', async (req, res) => {
 });
 
 // GET /api/projects - Lista todos os projetos
-app.get('/api/projects', async (req, res) => {
+app.get('/api/projects', authenticateToken, async (req, res) => {
     try {
         const rows = await dbAll('SELECT * FROM projects');
         let formatted = rows.map(p => {
