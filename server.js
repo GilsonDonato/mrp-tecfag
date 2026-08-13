@@ -6456,18 +6456,23 @@ function getEngineeringErrors(segment, diagnostico, extraParams) {
     const viscosity = params["Viscosidade / Fluidez do Produto*"] || "";
     const physicalChars = params["Características Físicas do Produto*"] || "";
 
-    // Rosca Sem Fim para líquidos ou fluidez livre
+    // Rosca Sem Fim para líquidos ou viscosos
     if (doser.includes("Rosca Sem Fim") || doser.includes("Rosca")) {
-        if (viscosity.includes("Água / Óleo") || viscosity.includes("Shampoo / Mel") || diagLower.includes("água") || diagLower.includes("agua") || diagLower.includes("óleo") || diagLower.includes("oleo") || diagLower.includes("líquido") || diagLower.includes("liquido") || diagLower.includes("shampoo") || diagLower.includes("mel")) {
+        const isLiquidViscosity = viscosity.includes("Líquido") || viscosity.includes("Água") || viscosity.includes("Mel") || viscosity.includes("Xarope") || viscosity.includes("Creme") || viscosity.includes("Shampoo") || viscosity.includes("Pasta");
+        if (isLiquidViscosity) {
             errors.push("🔴 ERRO TÉCNICO DE ENGENHARIA: Alimentador de Rosca Sem Fim selecionado para produto com comportamento de líquido ou viscoso. Rosca sem fim é exclusiva para pós densos/farináceos; fluidos irão vazar pelas espirais por gravidade. Use dosador por Pistão Pneumático ou Bomba.");
         } else if (physicalChars.includes("Pó seco / Fluidez livre") || physicalChars.includes("Fluidez livre") || diagLower.includes("fluidez livre") || diagLower.includes("grãos") || diagLower.includes("graos") || diagLower.includes("granulado")) {
-            errors.push("🔴 ERRO TÉCNICO DE ENGENHARIA: Alimentador de Rosca Sem Fim selecionado para produto com fluidez livre. Pós com fluidez livre ou granulados escorrem por gravidade através da rosca parada, causando superdosagem e vazamentos. Use dosador por calha vibratória, gravidade ou gaveta volumétrica.");
+            // Apenas alertar se for fluidez livre de grãos/granulados
+            if (!viscosity.includes("Pó Fino") && !viscosity.includes("Pó Denso") && !viscosity.includes("Pó Granulado")) {
+                errors.push("🔴 ERRO TÉCNICO DE ENGENHARIA: Alimentador de Rosca Sem Fim selecionado para produto com fluidez livre. Pós com fluidez livre ou granulados escorrem por gravidade através da rosca parada, causando superdosagem e vazamentos. Use dosador por calha vibratória, gravidade ou gaveta volumétrica.");
+            }
         }
     }
     
     // Copo Volumétrico / Balança para pastas/líquidos
     if (doser.includes("Copo Volumétrico") || doser.includes("Balança Multicabeçote") || doser.includes("Balança de Caneca")) {
-        if (viscosity.includes("Pasta de Amendoim") || viscosity.includes("Shampoo / Mel") || diagLower.includes("pasta") || diagLower.includes("creme") || diagLower.includes("gel") || diagLower.includes("shampoo") || diagLower.includes("mel") || diagLower.includes("líquido") || diagLower.includes("liquido")) {
+        const isLiquidViscosity = viscosity.includes("Líquido") || viscosity.includes("Água") || viscosity.includes("Mel") || viscosity.includes("Xarope") || viscosity.includes("Creme") || viscosity.includes("Shampoo") || viscosity.includes("Pasta");
+        if (isLiquidViscosity) {
             errors.push("🔴 ERRO TÉCNICO DE ENGENHARIA: Dosador volumétrico de copos ou balança selecionado para produtos pastosos/líquidos. Copos volumétricos e balanças são exclusivos para sólidos, granulados e grãos; produtos viscosos ou pastosos irão aderir às paredes ou vazar, impedindo a dosagem. Use dosador por Pistão Pneumático ou Bomba.");
         }
     }

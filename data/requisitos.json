@@ -373,9 +373,9 @@
     "subtipo": "Dosadores Semi",
     "campo": "Viscosidade / Fluidez do Produto*",
     "tipo": "Seleção (Select)",
-    "opcoes": "Semelhante à Água / Óleo; Semelhante a Shampoo / Mel; Semelhante a Pasta de Amendoim / Massa densa",
+    "opcoes": "Pó Fino e Aerado (ex: Whey, Leite em pó, Farinhas leves); Pó Granulado / Arenoso (ex: Café solúvel, Açúcar, Sal); Pó Denso / Compactável (ex: Argamassa, Talco pesado); Líquido / Baixa Viscosidade (Água / Óleo); Líquido / Alta Viscosidade (Mel / Xarope / Creme)",
     "origem": "Proposto Melhorado (UX)",
-    "justificativa": "Analogias práticas evitam o uso de termos técnicos e garantem o projeto das válvulas."
+    "justificativa": "Analogias práticas de fluidez e densidade para líquidos ou pós industriais."
   },
   {
     "segmento": "4. Dosagem e Pesagem Semiautomática",
