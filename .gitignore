@@ -1,0 +1,12 @@
+.env
+node_modules/
+data/backups/
+data/tecfag_mrp.db
+uploads/
+*.db
+*.xls
+*.xlsx
+*.csv
+*.txt
+*.log
+.DS_Store
