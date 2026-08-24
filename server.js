@@ -6946,8 +6946,8 @@ app.post('/api/attachments', authenticateToken, upload.single('file'), async (re
         // Obter caminho relativo para servir via HTTP
         const relativePath = 'uploads/' + file.filename;
 
-        // Se já existe um anexo nessa etapa para esse projeto, deletar o antigo antes de inserir (exceto no diagnóstico que permite múltiplos)
-        if (phase !== 'diagnostico') {
+        // Se já existe um anexo nessa etapa para esse projeto, deletar o antigo antes de inserir (exceto no diagnóstico e setup que permitem múltiplos)
+        if (phase !== 'diagnostico' && phase !== 'setup') {
             const existing = await dbGet('SELECT * FROM attachments WHERE projectCode = ? AND phase = ?', [projectCode, phase]);
             if (existing) {
                 const oldFullPath = path.join(__dirname, existing.filePath);
@@ -6985,7 +6985,7 @@ app.post('/api/attachments', authenticateToken, upload.single('file'), async (re
 });
 
 // GET /api/attachments/:projectCode - Retorna todos os anexos de um projeto
-app.get('/api/attachments/:projectCode', async (req, res) => {
+app.get('/api/attachments/:projectCode', authenticateToken, async (req, res) => {
     try {
         let rows = await dbAll('SELECT * FROM attachments WHERE projectCode = ?', [req.params.projectCode]);
         
@@ -7005,7 +7005,7 @@ app.get('/api/attachments/:projectCode', async (req, res) => {
 });
 
 // DELETE /api/attachments/:id - Exclui um anexo pelo ID
-app.delete('/api/attachments/:id', async (req, res) => {
+app.delete('/api/attachments/:id', authenticateToken, async (req, res) => {
     try {
         const attachment = await dbGet('SELECT * FROM attachments WHERE id = ?', [req.params.id]);
         if (!attachment) {

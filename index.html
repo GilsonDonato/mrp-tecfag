@@ -3318,6 +3318,18 @@
                                     <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">6. Notas de Setup / Ajustes de Oficina</label>
                                     <textarea class="form-control" id="modal-spec-obs" style="font-size: 0.78rem; padding: 6px; height: 50px; resize: none; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Exige fotocélula ativa para bobina com marca de registro..."></textarea>
                                 </div>
+                                <div style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 10px;">
+                                    <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Anexos do Setup (Desenhos CAD, Imagens, Vídeos, PDFs)</label>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <input type="file" id="modal-setup-files-input" multiple onchange="handleSetupFilesSelect()" style="display: none;">
+                                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-setup-files-input').click()" style="font-size: 0.72rem; padding: 6px 12px; display: flex; align-items: center; gap: 4px;">
+                                            📎 Selecionar Arquivos
+                                        </button>
+                                        <span id="modal-setup-files-status" style="font-size: 0.7rem; color: var(--text-secondary);">Nenhum arquivo selecionado</span>
+                                    </div>
+                                    <div id="modal-setup-selected-list" style="display: flex; flex-direction: column; gap: 4px; margin-top: 8px;"></div>
+                                    <div id="modal-setup-saved-list" style="display: flex; flex-direction: column; gap: 6px; margin-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 8px;"></div>
+                                </div>
                             </div>
                         </div>
 
@@ -3623,7 +3635,7 @@
                         Exportar PDF
                     </button>
                     <button class="btn btn-secondary" onclick="closeProjectModal()">Fechar sem Salvar</button>
-                    <button class="btn" onclick="saveProjectModal()">Salvar Alterações</button>
+                    <button id="btn-save-project-modal" class="btn" onclick="saveProjectModal()">Salvar Alterações</button>
                 </div>
             </div>
         </div>
@@ -5192,6 +5204,7 @@
         let activeSellerFilter = "all";
         let activeProjectCode = null;
         let lockHeartbeatInterval = null;
+        let setupSelectedFiles = [];
 
         function applyKanbanFilters() {
             const sellerFilterEl = document.getElementById('kanban-seller-filter');
@@ -8648,6 +8661,14 @@
         // Active project details in modal
         async function openProjectModal(code) {
             currentCaseStudyMD = ''; // Limpa cache anterior
+            setupSelectedFiles = [];
+            const setupInput = document.getElementById('modal-setup-files-input');
+            if (setupInput) setupInput.value = '';
+            const setupSelList = document.getElementById('modal-setup-selected-list');
+            if (setupSelList) setupSelList.innerHTML = '';
+            const setupStatus = document.getElementById('modal-setup-files-status');
+            if (setupStatus) setupStatus.innerText = 'Nenhum arquivo selecionado';
+
             const project = state.projects.find(p => p.code === code);
             if (!project) return;
 
@@ -9378,6 +9399,8 @@
             }
 
             loadProjectCopilotValidation();
+
+            renderSavedSetupFiles();
 
             document.getElementById('project-detail-modal').classList.add('active');
         }
@@ -11074,10 +11097,58 @@
         }
 
         // Save project changes from modal
-        function saveProjectModal() {
+        async function saveProjectModal() {
             if (!activeProjectCode) return;
             const project = state.projects.find(p => p.code === activeProjectCode);
             if (!project) return;
+
+            const saveBtn = document.getElementById('btn-save-project-modal');
+            const oldBtnText = saveBtn ? saveBtn.innerText : 'Salvar Alterações';
+            
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerText = 'Enviando arquivos...';
+            }
+
+            try {
+                if (setupSelectedFiles.length > 0) {
+                    const token = localStorage.getItem('tecfag_session_token');
+                    for (const file of setupSelectedFiles) {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        formData.append('projectCode', activeProjectCode);
+                        formData.append('phase', 'setup');
+                        
+                        const res = await fetch('/api/attachments', {
+                            method: 'POST',
+                            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                            body: formData
+                        });
+                        
+                        if (!res.ok) {
+                            const errData = await res.json();
+                            throw new Error(`Falha no upload do arquivo ${file.name}: ${errData.error || 'Erro desconhecido'}`);
+                        }
+                    }
+                    setupSelectedFiles = [];
+                    const statusText = document.getElementById('modal-setup-files-status');
+                    if (statusText) statusText.innerText = 'Nenhum arquivo selecionado';
+                    const listContainer = document.getElementById('modal-setup-selected-list');
+                    if (listContainer) listContainer.innerHTML = '';
+                }
+            } catch (uploadErr) {
+                console.error(uploadErr);
+                alert('Erro durante o upload dos anexos: ' + uploadErr.message);
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerText = oldBtnText;
+                }
+                return;
+            }
+
+            if (saveBtn) {
+                saveBtn.innerText = 'Salvando dados...';
+            }
 
             const serialInputs = document.querySelectorAll('.modal-machine-serial');
             const routeSelects = document.querySelectorAll('.modal-machine-route');
@@ -11169,6 +11240,11 @@
             .then(async data => {
                 if (data.error) {
                     alert('Erro ao salvar projeto: ' + data.error);
+                    const btn = document.getElementById('btn-save-project-modal');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerText = 'Salvar Alterações';
+                    }
                     return;
                 }
 
@@ -11223,6 +11299,11 @@
             .catch(err => {
                 console.error(err);
                 alert('Erro ao atualizar projeto no servidor.');
+                const btn = document.getElementById('btn-save-project-modal');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = 'Salvar Alterações';
+                }
             });
         }
 
@@ -13803,6 +13884,150 @@
                 alertEl.style.border = `1px solid ${color}`;
                 alertEl.style.backgroundColor = color + '15';
                 alertEl.style.display = 'inline-block';
+            }
+        }
+
+        // Parâmetros de Setup & Campo - Upload Múltiplo
+        function handleSetupFilesSelect() {
+            const fileInput = document.getElementById('modal-setup-files-input');
+            const statusText = document.getElementById('modal-setup-files-status');
+            
+            if (!fileInput || fileInput.files.length === 0) return;
+            
+            const files = Array.from(fileInput.files);
+            
+            files.forEach(file => {
+                if (file.size > 50 * 1024 * 1024) {
+                    alert(`❌ Arquivo rejeitado: "${file.name}" excede o limite máximo de 50MB.`);
+                } else {
+                    setupSelectedFiles.push(file);
+                }
+            });
+            
+            fileInput.value = '';
+            renderSelectedSetupFiles();
+        }
+
+        function renderSelectedSetupFiles() {
+            const container = document.getElementById('modal-setup-selected-list');
+            const statusText = document.getElementById('modal-setup-files-status');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            if (setupSelectedFiles.length === 0) {
+                if (statusText) statusText.innerText = 'Nenhum arquivo selecionado';
+                return;
+            }
+            
+            if (statusText) statusText.innerText = `${setupSelectedFiles.length} arquivo(s) selecionado(s) para upload`;
+            
+            setupSelectedFiles.forEach((file, idx) => {
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.justifyContent = 'space-between';
+                div.style.background = 'rgba(255, 145, 0, 0.08)';
+                div.style.border = '1px solid rgba(255, 145, 0, 0.2)';
+                div.style.padding = '4px 8px';
+                div.style.borderRadius = '4px';
+                div.style.fontSize = '0.72rem';
+                
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                
+                div.innerHTML = `
+                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; color: #ff9800;">
+                        ⏳ <strong>${file.name}</strong> (${sizeMB} MB)
+                    </span>
+                    <button type="button" onclick="removeSelectedSetupFile(${idx})" style="background: none; border: none; color: #ef4444; cursor: pointer; font-weight: bold; font-size: 0.85rem; padding: 0 4px;">×</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function removeSelectedSetupFile(idx) {
+            setupSelectedFiles.splice(idx, 1);
+            renderSelectedSetupFiles();
+        }
+
+        async function renderSavedSetupFiles() {
+            const container = document.getElementById('modal-setup-saved-list');
+            if (!container) return;
+            
+            container.innerHTML = `<div style="font-size: 0.72rem; color: var(--text-secondary); text-align: center;">Carregando arquivos salvos...</div>`;
+            
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const res = await fetch(`/api/attachments/${activeProjectCode}`, { headers });
+                if (!res.ok) throw new Error('Erro ao buscar anexos');
+                
+                const attachments = await res.json();
+                const setupFiles = attachments.filter(a => a.phase === 'setup');
+                
+                container.innerHTML = '';
+                
+                if (setupFiles.length === 0) {
+                    container.innerHTML = `<div style="font-size: 0.72rem; color: var(--text-secondary); font-style: italic; padding: 4px 0;">Nenhum anexo salvo para este setup.</div>`;
+                    return;
+                }
+                
+                const headerTitle = document.createElement('div');
+                headerTitle.style.fontSize = '0.7rem';
+                headerTitle.style.fontWeight = 'bold';
+                headerTitle.style.color = 'var(--primary)';
+                headerTitle.style.marginBottom = '6px';
+                headerTitle.innerText = '⚙️ ANEXOS SALVOS DO SETUP:';
+                container.appendChild(headerTitle);
+                
+                setupFiles.forEach(file => {
+                    const div = document.createElement('div');
+                    div.style.display = 'flex';
+                    div.style.alignItems = 'center';
+                    div.style.justifyContent = 'space-between';
+                    div.style.background = 'rgba(255, 255, 255, 0.03)';
+                    div.style.border = '1px solid rgba(255, 255, 255, 0.05)';
+                    div.style.padding = '6px 10px';
+                    div.style.borderRadius = '5px';
+                    div.style.fontSize = '0.72rem';
+                    
+                    const isImg = file.fileName.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp)$/);
+                    let icon = '📄';
+                    if (isImg) icon = '🖼️';
+                    else if (file.fileName.toLowerCase().endsWith('.pdf')) icon = '📕';
+                    else if (file.fileName.toLowerCase().match(/\.(dwg|step|stp|dxf)$/)) icon = '📐';
+                    
+                    div.innerHTML = `
+                        <a href="${file.fileData}" download="${file.fileName}" style="display: flex; align-items: center; gap: 6px; color: #38bdf8; text-decoration: none; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px;" title="Clique para baixar: ${file.fileName}">
+                            <span>${icon}</span>
+                            <span>${file.fileName}</span>
+                        </a>
+                        <button type="button" onclick="deleteSavedSetupFile(${file.id})" style="background: none; border: none; color: #ef4444; cursor: pointer; font-weight: bold; font-size: 0.85rem; padding: 0 4px;" title="Remover anexo do banco">×</button>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = `<div style="font-size: 0.72rem; color: #ef4444;">Erro ao carregar anexos do setup.</div>`;
+            }
+        }
+
+        async function deleteSavedSetupFile(id) {
+            if (!confirm('Deseja realmente excluir este anexo de setup?')) return;
+            
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const res = await fetch(`/api/attachments/${id}`, { method: 'DELETE', headers });
+                if (res.ok) {
+                    await renderSavedSetupFiles();
+                } else {
+                    const data = await res.json();
+                    alert('Erro ao excluir anexo: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao excluir anexo.');
             }
         }
     </script>
