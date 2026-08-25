@@ -436,25 +436,30 @@ function seedDefaultUsers() {
 
 function seedSegmentTemplates() {
     const templates = {
-        'MISTURADORES': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Capacidade requerida (Litros/Quilos): [PREENCHER aqui]\n- Densidade aparente do pó: [PREENCHER aqui]\n- Riscos de abrasividade/corrosividade: [PREENCHER aqui]\n- Umidade do material: [PREENCHER aqui]\n- Pó é inflamável ou explosivo (Necessidade de motores EX)?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
-        'ENCAPSULADORAS': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Tamanho da cápsula (ex: 00, 0, Softgel): [PREENCHER aqui]\n- Viscosidade do produto/pasta: [PREENCHER aqui]\n- Comportamento higroscópico/sensibilidade térmica do pó: [PREENCHER aqui]\n- Espessura de gelatina requerida: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
-        'GOMAS': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Tipo de gelificante (pectina, gelatina ou amido): [PREENCHER aqui]\n- Formato do molde (3D, teflon, silicone): [PREENCHER aqui]\n- Capacidade em kg/hora: [PREENCHER aqui]\n- Temperatura de dosagem desejada: [PREENCHER aqui]\n- Tipo de agente desmoldante (óleo/amido): [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
-        'DOSAGEM_SEMIAUTOMATICA': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Faixa de dosagem desejada (gramas ou ml): [PREENCHER aqui]\n- Comportamento de fluidez/viscosidade: [PREENCHER aqui]\n- Produto gera pó em suspensão (Necessidade de bico com exaustão ou gaveta corta-fluxo)?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
-        'DOSAGEM_EMPACOTAMENTO': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Largura máxima da bobina do filme plástico: [PREENCHER aqui]\n- Tipo de material do filme (Laminado, PE, PP, Papel): [PREENCHER aqui]\n- Dimensões do sachê final: [PREENCHER aqui]\n- Tipo de solda do sachê: [PREENCHER aqui]\n- Filme possui impressão (Necessidade de sensor de fotocélula)?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
-        'ENVASE': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Comportamento de viscosidade (baixo, médio, alto): [PREENCHER aqui]\n- Temperatura de envase do produto: [PREENCHER aqui]\n- Presença de pedaços ou sólidos no líquido?: [PREENCHER aqui]\n- Diâmetro do gargalo do frasco: [PREENCHER aqui]\n- Corrosividade/PH ácido do produto (Necessidade de Inox 316L)?: [PREENCHER aqui]\n- Produto gera espuma (Necessidade de bico mergulhador)?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
-        'FECHAMENTO_TAMPAGEM': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Diâmetro da tampa: [PREENCHER aqui]\n- Tipo de tampa (rosca, batoque, pressão): [PREENCHER aqui]\n- Torque dinâmico requerido (N.m): [PREENCHER aqui]\n- Presença de lacre inviolável?: [PREENCHER aqui]\n- Necessidade de seladora de indução de alumínio?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
-        'VACUO_TERMOFORMADORAS': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Dimensões da câmara/bandeja: [PREENCHER aqui]\n- Nível de vácuo desejado (mbar): [PREENCHER aqui]\n- Nível de barreira de oxigênio do filme: [PREENCHER aqui]\n- Tipo de bomba de vácuo (m3/h): [PREENCHER aqui]\n- Exige injeção de gás inerte (MAP)?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
-        'ROTULADORAS': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Dimensões do rótulo (largura e altura): [PREENCHER aqui]\n- Formato do frasco (cilíndrico, plano, cônico)?: [PREENCHER aqui]\n- O rótulo é transparente (Necessidade de sensor especial)?: [PREENCHER aqui]\n- Velocidade desejada da esteira: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
-        'TERMOENCOLHIVEL': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Dimensões do pacote ou agrupamento de produtos: [PREENCHER aqui]\n- Tipo de filme encolhível (PE, PVC, poliolefínico): [PREENCHER aqui]\n- Estabilidade do agrupamento (Necessidade de bandeja de papelão suporte)?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
-        'FINAL_LINHA': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Dimensões externas das caixas: [PREENCHER aqui]\n- Peso máximo da caixa cheia: [PREENCHER aqui]\n- Tipo de fechamento (fita adesiva ou cola hot-melt): [PREENCHER aqui]\n- Sentido de fluxo da linha: [PREENCHER aqui]\n- Altura da esteira de entrada/saída: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
-        'PROJETOS_ESPECIAIS': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Requisitos específicos de layout de fábrica: [PREENCHER aqui]\n- Normas reguladoras exigidas (NR12, sala limpa)?: [PREENCHER aqui]\n- Pontos de utilidades disponíveis (PCM de ar comprimido, pressão)?: [PREENCHER aqui]\n- Disponibilidade de desenho técnico básico do local?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`,
-        'SELADORAS_CONTINUAS': `- Restrições de espaço físico na fábrica: [PREENCHER aqui]\n- Material do saco (plástico simples, metalizado, papel Kraft): [PREENCHER aqui]\n- Espessura do saco (micras): [PREENCHER aqui]\n- Peso máximo por saco: [PREENCHER aqui]\n- Tipo de datador (inkjet ou rolo de tinta)?: [PREENCHER aqui]\n- Tensão elétrica local: [PREENCHER aqui]`
+        'MISTURADORES': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
+        'ENCAPSULADORAS': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
+        'GOMAS': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
+        'DOSAGEM_SEMIAUTOMATICA': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
+        'DOSAGEM_EMPACOTAMENTO': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
+        'ENVASE': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
+        'FECHAMENTO_TAMPAGEM': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
+        'VACUO_TERMOFORMADORAS': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
+        'ROTULADORAS': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
+        'TERMOENCOLHIVEL': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
+        'FINAL_LINHA': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
+        'PROJETOS_ESPECIAIS': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
+        'SELADORAS_CONTINUAS': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`
     };
 
     Object.entries(templates).forEach(([seg, tpl]) => {
         db.get('SELECT segment FROM segment_templates WHERE segment = ?', [seg], (err, row) => {
-            if (!err && !row) {
-                db.run('INSERT INTO segment_templates (segment, template) VALUES (?, ?)', [seg, tpl]);
+            if (!err) {
+                if (!row) {
+                    db.run('INSERT INTO segment_templates (segment, template) VALUES (?, ?)', [seg, tpl]);
+                } else {
+                    // Update existing templates to clean them up as requested
+                    db.run('UPDATE segment_templates SET template = ? WHERE segment = ?', [tpl, seg]);
+                }
             }
         });
     });
