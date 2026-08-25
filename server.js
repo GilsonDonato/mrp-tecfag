@@ -436,19 +436,19 @@ function seedDefaultUsers() {
 
 function seedSegmentTemplates() {
     const templates = {
-        'MISTURADORES': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
-        'ENCAPSULADORAS': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
-        'GOMAS': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
-        'DOSAGEM_SEMIAUTOMATICA': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
-        'DOSAGEM_EMPACOTAMENTO': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
-        'ENVASE': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
-        'FECHAMENTO_TAMPAGEM': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
-        'VACUO_TERMOFORMADORAS': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
-        'ROTULADORAS': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
-        'TERMOENCOLHIVEL': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
-        'FINAL_LINHA': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
-        'PROJETOS_ESPECIAIS': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`,
-        'SELADORAS_CONTINUAS': `- Observações adicionais e particularidades da máquina/produto: [PREENCHER aqui]`
+        'MISTURADORES': '',
+        'ENCAPSULADORAS': '',
+        'GOMAS': '',
+        'DOSAGEM_SEMIAUTOMATICA': '',
+        'DOSAGEM_EMPACOTAMENTO': '',
+        'ENVASE': '',
+        'FECHAMENTO_TAMPAGEM': '',
+        'VACUO_TERMOFORMADORAS': '',
+        'ROTULADORAS': '',
+        'TERMOENCOLHIVEL': '',
+        'FINAL_LINHA': '',
+        'PROJETOS_ESPECIAIS': '',
+        'SELADORAS_CONTINUAS': ''
     };
 
     Object.entries(templates).forEach(([seg, tpl]) => {
@@ -6542,63 +6542,65 @@ function localValidationFallback(segment, diagnostico, extraParams) {
     const satisfied = [];
     let score = 100;
     
-    const diagLower = (diagnostico || '').toLowerCase();
+    // Mapeamento de prefixo de segmento
+    const mapping = {
+        "MISTURADORES": "1.",
+        "ENCAPSULADORAS": "2.",
+        "GOMAS": "3.",
+        "DOSAGEM_SEMIAUTOMATICA": "4.",
+        "DOSAGEM_EMPACOTAMENTO": "5.",
+        "ENVASE": "6.",
+        "FECHAMENTO_TAMPAGEM": "7.",
+        "VACUO_TERMOFORMADORAS": "8.",
+        "ROTULADORAS": "9.",
+        "TERMOENCOLHIVEL": "10.",
+        "FINAL_LINHA": "11.",
+        "PROJETOS_ESPECIAIS": "12.",
+        "SELADORAS_CONTINUAS": "13."
+    };
+    const prefix = mapping[segment];
     
-    // Regra de Produção Alvo
-    if (!extraParams.velocidade && !diagLower.includes('peças') && !diagLower.includes('batidas') && !diagLower.includes('por min') && !diagLower.includes('produção') && !diagLower.includes('hora')) {
-        missing.push("Qual a produtividade horária ou por minuto esperada?");
-        score -= 20;
-    } else {
-        satisfied.push("Produtividade / velocidade alvo especificada");
-    }
-    
-    // Regra de Utilidade (Tensão)
-    if (!extraParams.tensao && !diagLower.includes('volt') && !diagLower.includes('220v') && !diagLower.includes('380v')) {
-        missing.push("Qual a tensão elétrica disponível na fábrica (220V/380V)?");
-        score -= 15;
-    } else {
-        satisfied.push("Tensão elétrica informada");
-    }
-    
-    // Regras por Segmento
-    const isEnvasadora = segment === "ENVASADORA" || segment === "DOSADORA" || segment === "6" || segment === "4" || diagLower.includes('envas') || diagLower.includes('dosad');
-    const isRotuladora = segment === "ROTULADORA" || segment === "9" || diagLower.includes('rotul') || diagLower.includes('etiquet');
-    const isEmpacotadora = segment === "EMPACOTADORA" || segment === "5" || diagLower.includes('empacot') || diagLower.includes('sachê');
-    
-    if (isEnvasadora) {
-        if (!diagLower.includes('viscos') && !diagLower.includes('líquid') && !diagLower.includes('pastos') && !diagLower.includes('densidad') && !diagLower.includes('pó') && !diagLower.includes('grão')) {
-            missing.push("Como é a viscosidade do líquido ou o comportamento do pó?");
-            score -= 30;
-        } else {
-            satisfied.push("Características de viscosidade/fluidez descritas");
+    try {
+        const reqPath = path.join(__dirname, 'data', 'requisitos.json');
+        if (fs.existsSync(reqPath) && prefix) {
+            const reqData = JSON.parse(fs.readFileSync(reqPath, 'utf8'));
+            // Filtra os campos que pertencem a este segmento e que são obrigatórios (terminam com *)
+            const mandatoryFields = reqData.filter(f => f.segmento.startsWith(prefix) && f.campo.endsWith('*'));
+            
+            if (mandatoryFields.length > 0) {
+                let requiredCount = mandatoryFields.length;
+                let prefilledCount = 0;
+                
+                // Adiciona Tensão como utilidade essencial obrigatória
+                requiredCount += 1;
+                const tensionVal = extraParams.tension || extraParams["Tensão Elétrica*"] || "";
+                if (tensionVal && tensionVal !== "-" && tensionVal !== "") {
+                    prefilledCount += 1;
+                    satisfied.push("Tensão elétrica informada");
+                } else {
+                    missing.push("Qual a tensão elétrica disponível na fábrica (220V/380V)?");
+                }
+                
+                mandatoryFields.forEach(f => {
+                    const fieldVal = extraParams[f.campo] || "";
+                    if (fieldVal && fieldVal !== "-" && fieldVal !== "") {
+                        prefilledCount += 1;
+                        satisfied.push(`${f.campo.replace('*', '')} preenchido`);
+                    } else {
+                        missing.push(`Falta preencher: ${f.campo.replace('*', '')}`);
+                    }
+                });
+                
+                score = Math.round((prefilledCount / requiredCount) * 100);
+            }
         }
-    }
-    
-    if (isRotuladora) {
-        if (!diagLower.includes('dimens') && !diagLower.includes('rótulo') && !diagLower.includes('largura') && !diagLower.includes('altura') && !diagLower.includes('tamanho')) {
-            missing.push("Quais as dimensões exatas e formatos dos rótulos?");
-            score -= 30;
-        } else {
-            satisfied.push("Dimensões básicas de rótulo informadas");
-        }
-        if (!diagLower.includes('frasco') && !diagLower.includes('garrafa') && !diagLower.includes('pote') && !diagLower.includes('modelo')) {
-            missing.push("Quantos formatos de frascos serão rotulados?");
-            score -= 20;
-        } else {
-            satisfied.push("Modelos de frascos informados");
-        }
-    }
-    
-    if (isEmpacotadora) {
-        if (!diagLower.includes('bobina') && !diagLower.includes('filme') && !diagLower.includes('largura') && !diagLower.includes('plástic')) {
-            missing.push("Qual a largura máxima da bobina do filme ou dimensões do sachê?");
-            score -= 30;
-        } else {
-            satisfied.push("Especificação de largura da bobina/sachê informada");
-        }
+    } catch (err) {
+        console.error("Erro no localValidationFallback:", err);
     }
     
     if (score < 0) score = 0;
+    if (score > 100) score = 100;
+    
     let color = "red";
     if (score >= 80) color = "green";
     else if (score >= 50) color = "yellow";
@@ -6622,8 +6624,13 @@ Você é o Engenheiro de Aplicações Sênior da Tecfag, especialista em projeta
 
 Sua tarefa é analisar o rascunho de informações inserido pelo vendedor e dar uma nota de Completude do Escopo e uma lista de pendências.
 Segmento de Equipamento Principal Selecionado: "${segment}"
-Descrição/Diagnóstico do Vendedor: "${diagnostico}"
+Descrição/Diagnóstico Adicional do Vendedor (Opcional): "${diagnostico}"
 Parâmetros Técnicos Digitados: ${JSON.stringify(extraParams)}
+
+REGRA MESTRA DE COMPLETUDE:
+A nota de completude (score) deve ser baseada UNICAMENTE nos Parâmetros Técnicos Digitados estruturados (extraParams) e informações de infraestrutura (como tension, nr12).
+O campo "Descrição/Diagnóstico Adicional" é Opcional. Se ele estiver vazio, NÃO diminua a nota de completude.
+Sua nota deve chegar a 100 se todos os campos técnicos necessários para o segmento "${segment}" estiverem preenchidos no objeto de parâmetros estruturados.
 
 REGRA MESTRA ABSOLUTA:
 Avalie o escopo EXCLUSIVAMENTE sob as regras do segmento selecionado ("${segment}"). NUNCA misture regras ou faça perguntas de um segmento para o outro.

@@ -10542,15 +10542,6 @@
                 }
             );
             
-            if (!diagnostico) {
-                updateCopilotUI({
-                    score: 0,
-                    color: 'red',
-                    missing: ['Escreva as especificações do produto/processo em "Notas de Diagnóstico" para iniciar o copiloto.'],
-                    satisfied: []
-                });
-                return;
-            }
             
             try {
                 const token = localStorage.getItem('tecfag_session_token');
