@@ -1895,6 +1895,12 @@
                     Consultar NCM
                 </button>
             </li>
+            <li class="nav-item" id="menu-pouch-calc" onclick="openPouchCalcModal()">
+                <button>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
+                    Calculadora de Embalagem
+                </button>
+            </li>
         </ul>
 
         <!-- Widget de Câmbio Comercial -->
@@ -3872,6 +3878,97 @@
         </div>
     </div>
 
+    <!-- MODAL DE CALCULADORA DE EMBALAGEM -->
+    <div class="modal-overlay" id="pouch-calc-modal" style="z-index: 1240;">
+        <div class="modal" style="width: 900px; max-width: 95vw; padding: 25px;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color: var(--text-primary); font-size: 1.1rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    🧮 Calculadora de Embalagem & Bobina de Filme
+                </h3>
+                <button class="btn-icon" onclick="closePouchCalcModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            
+            <div class="modal-body" style="padding: 0; display: grid; grid-template-columns: 1fr 1.2fr; gap: 25px;">
+                <!-- Painel de Inputs e Resultados -->
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <p style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4; margin: 0;">
+                        Configure as dimensões da embalagem para calcular a largura total da bobina de filme flexível e o passo (comprimento) necessário.
+                    </p>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Face Frontal (W):</label>
+                            <input type="number" id="pouch-face" class="form-control" value="120" oninput="updatePouchCalculations()">
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Altura Útil (H):</label>
+                            <input type="number" id="pouch-height" class="form-control" value="150" oninput="updatePouchCalculations()">
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Aba Solda Esq. (A_e):</label>
+                            <input type="number" id="pouch-left-flap" class="form-control" value="60" oninput="updatePouchCalculations()">
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Aba Solda Dir. (A_d):</label>
+                            <input type="number" id="pouch-right-flap" class="form-control" value="60" oninput="updatePouchCalculations()">
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Solda Lateral Esq. (S_e):</label>
+                            <input type="number" id="pouch-left-weld" class="form-control" value="10" oninput="updatePouchCalculations()">
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Solda Lateral Dir. (S_d):</label>
+                            <input type="number" id="pouch-right-weld" class="form-control" value="10" oninput="updatePouchCalculations()">
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Solda Superior:</label>
+                            <input type="number" id="pouch-top-weld" class="form-control" value="15" oninput="updatePouchCalculations()">
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Solda Inferior:</label>
+                            <input type="number" id="pouch-bottom-weld" class="form-control" value="15" oninput="updatePouchCalculations()">
+                        </div>
+                    </div>
+                    
+                    <!-- Resultados -->
+                    <div style="background-color: var(--bg-base); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px;">
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Largura Total Bobina</span>
+                            <span id="pouch-res-film-width" style="font-size: 1.25rem; font-weight: 800; color: #3b82f6;">-- mm</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px;">
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Comprimento / Passo</span>
+                            <span id="pouch-res-pitch" style="font-size: 1.25rem; font-weight: 800; color: #10b981;">-- mm</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px;">
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Sobreposição Traseira</span>
+                            <span id="pouch-res-overlap" style="font-size: 1.1rem; font-weight: 800; color: #f59e0b;">-- mm</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Largura Pacote Pronto</span>
+                            <span id="pouch-res-width" style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary);">-- mm</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SVG Diagram Panel -->
+                <div style="background-color: var(--bg-base); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; display: flex; align-items: center; justify-content: center; min-height: 380px; position: relative;">
+                    <div style="position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 4px; font-size: 0.65rem; color: var(--text-secondary); background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); z-index: 10;">
+                        <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 10px; height: 10px; background: repeating-linear-gradient(45deg, #64748b, #64748b 1px, transparent 1px, transparent 4px); border: 1px solid var(--border-color);"></div> Área de Solda</div>
+                        <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 10px; height: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color);"></div> Área Útil</div>
+                    </div>
+                    <svg id="pouch-svg-diagram" width="100%" height="340" viewBox="0 0 500 300" style="background: transparent;"></svg>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closePouchCalcModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Core Logic Engine -->
     <script>
         // Intercept global fetch on file:// protocol for offline/serverless mode
@@ -4605,6 +4702,185 @@
                 'DIRETOR': 'Diretor (Acompanhamento)'
             };
             return labels[role] || role;
+        }
+
+        // Calculadora de Embalagem & Bobina de Filme
+        function openPouchCalcModal() {
+            const modal = document.getElementById('pouch-calc-modal');
+            if (modal) {
+                modal.classList.add('active');
+                updatePouchCalculations();
+            }
+        }
+
+        function closePouchCalcModal() {
+            const modal = document.getElementById('pouch-calc-modal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
+
+        function updatePouchCalculations() {
+            const face = parseFloat(document.getElementById('pouch-face').value) || 0;
+            const height = parseFloat(document.getElementById('pouch-height').value) || 0;
+            const leftFlap = parseFloat(document.getElementById('pouch-left-flap').value) || 0;
+            const rightFlap = parseFloat(document.getElementById('pouch-right-flap').value) || 0;
+            const leftWeld = parseFloat(document.getElementById('pouch-left-weld').value) || 0;
+            const rightWeld = parseFloat(document.getElementById('pouch-right-weld').value) || 0;
+            const topWeld = parseFloat(document.getElementById('pouch-top-weld').value) || 0;
+            const bottomWeld = parseFloat(document.getElementById('pouch-bottom-weld').value) || 0;
+
+            const totalWidth = leftWeld + leftFlap + face + rightFlap + rightWeld;
+            const totalLength = topWeld + height + bottomWeld;
+            const overlap = (leftFlap + rightFlap) - face;
+
+            document.getElementById('pouch-res-film-width').innerText = totalWidth.toFixed(0) + ' mm';
+            document.getElementById('pouch-res-pitch').innerText = totalLength.toFixed(0) + ' mm';
+            document.getElementById('pouch-res-overlap').innerText = overlap.toFixed(0) + ' mm';
+            document.getElementById('pouch-res-width').innerText = face.toFixed(0) + ' mm';
+
+            // Draw SVG
+            const svg = document.getElementById('pouch-svg-diagram');
+            if (!svg) return;
+
+            // Define viewport sizes
+            const svgW = 460;
+            const svgH = 330;
+            svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+
+            // Margins in SVG
+            const padX = 60;
+            const padY = 65;
+            const plotW = svgW - 2 * padX;
+            const plotH = svgH - 2 * padY;
+
+            // Scale factors
+            const scaleX = totalWidth > 0 ? plotW / totalWidth : 1;
+            const scaleY = totalLength > 0 ? plotH / totalLength : 1;
+
+            // Coordinates
+            const x0 = padX;
+            const x1 = x0 + leftWeld * scaleX;
+            const x2 = x1 + leftFlap * scaleX;
+            const x3 = x2 + face * scaleX;
+            const x4 = x3 + rightFlap * scaleX;
+            const x5 = x4 + rightWeld * scaleX;
+
+            const y0 = padY;
+            const y1 = y0 + topWeld * scaleY;
+            const y2 = y1 + height * scaleY;
+            const y3 = y2 + bottomWeld * scaleY;
+
+            // Hatching Pattern definition if not exists
+            let defs = svg.querySelector('defs');
+            if (!defs) {
+                defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                defs.innerHTML = `
+                    <pattern id="pouch-hatch" width="6" height="6" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                        <line x1="0" y1="0" x2="0" y2="6" style="stroke: var(--text-secondary); stroke-width: 1;" />
+                    </pattern>
+                `;
+                svg.appendChild(defs);
+            }
+
+            // Draw content
+            let html = '';
+
+            // 1. Background sheets/rectangles
+            // Left weld area
+            html += `<rect x="${x0}" y="${y0}" width="${x1-x0}" height="${y3-y0}" fill="url(#pouch-hatch)" stroke="var(--border-color)" stroke-width="1" />`;
+            // Left flap (without welds)
+            html += `<rect x="${x1}" y="${y1}" width="${x2-x1}" height="${y2-y1}" fill="rgba(255,255,255,0.02)" stroke="var(--border-color)" stroke-width="1" />`;
+            // Face frontal
+            html += `<rect x="${x2}" y="${y1}" width="${x3-x2}" height="${y2-y1}" fill="rgba(255,255,255,0.05)" stroke="var(--border-color)" stroke-width="1" />`;
+            // Right flap
+            html += `<rect x="${x3}" y="${y1}" width="${x4-x3}" height="${y2-y1}" fill="rgba(255,255,255,0.02)" stroke="var(--border-color)" stroke-width="1" />`;
+            // Right weld area
+            html += `<rect x="${x4}" y="${y0}" width="${x5-x4}" height="${y3-y0}" fill="url(#pouch-hatch)" stroke="var(--border-color)" stroke-width="1" />`;
+
+            // Top horizontal weld area across the middle sections (or whole width)
+            html += `<rect x="${x1}" y="${y0}" width="${x4-x1}" height="${y1-y0}" fill="url(#pouch-hatch)" stroke="var(--border-color)" stroke-width="1" />`;
+            // Bottom horizontal weld area
+            html += `<rect x="${x1}" y="${y2}" width="${x4-x1}" height="${y3-y2}" fill="url(#pouch-hatch)" stroke="var(--border-color)" stroke-width="1" />`;
+
+            // Dobras (Linhas tracejadas)
+            html += `<line x1="${x2}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#3b82f6" stroke-dasharray="3,3" stroke-width="1.5" />`;
+            html += `<line x1="${x3}" y1="${y1}" x2="${x3}" y2="${y2}" stroke="#3b82f6" stroke-dasharray="3,3" stroke-width="1.5" />`;
+
+            // Marca de Fotocélula (Registration Mark)
+            html += `<rect x="${x0 + 3}" y="${y2 + 3}" width="12" height="6" fill="#000000" stroke="#ffffff" stroke-width="0.5" />`;
+            html += `<text x="${x0 + 18}" y="${y2 + 8}" font-size="7" fill="var(--text-primary)" text-anchor="start" font-weight="bold">Fotocélula</text>`;
+
+            // Dimension Helper Lines & Labels (horizontal at top)
+            // Left weld 10mm
+            html += drawHorizontalDim(x0, x1, y0 - 15, leftWeld + ' mm', 'var(--text-secondary)');
+            // 240mm (from left weld inner edge to right weld inner edge)
+            html += drawHorizontalDim(x1, x4, y0 - 32, (leftFlap + face + rightFlap) + ' mm', 'var(--text-primary)', true);
+            // Right weld 15mm
+            html += drawHorizontalDim(x4, x5, y0 - 15, rightWeld + ' mm', 'var(--text-secondary)');
+
+            // Horizontal inner widths (60mm, 120mm, 65mm) inside or below
+            html += drawHorizontalDim(x1, x2, y1 + 30, leftFlap + ' mm', 'var(--text-secondary)', false, true);
+            html += drawHorizontalDim(x2, x3, y1 + 30, face + ' mm', 'var(--text-primary)', false, true);
+            html += drawHorizontalDim(x3, x4, y1 + 30, rightFlap + ' mm', '#3b82f6', false, true);
+
+            // Labels for areas
+            html += `<text x="${x1 + (x2-x1)/2}" y="${y1 + (y2-y1)/2 + 15}" font-size="8" fill="var(--text-secondary)" text-anchor="middle">Aba Esq.</text>`;
+            html += `<text x="${x2 + (x3-x2)/2}" y="${y1 + (y2-y1)/2 + 15}" font-size="10" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">FACE FRONTAL</text>`;
+            html += `<text x="${x3 + (x4-x3)/2}" y="${y1 + (y2-y1)/2 + 15}" font-size="8" fill="var(--text-secondary)" text-anchor="middle">Aba Dir.</text>`;
+
+            // Vertical dimensions (on left)
+            // Top weld
+            html += drawVerticalDim(x0 - 15, y0, y1, topWeld + ' mm', 'var(--text-secondary)');
+            // Height
+            html += drawVerticalDim(x0 - 15, y1, y2, height + ' mm', 'var(--text-primary)');
+            // Bottom weld
+            html += drawVerticalDim(x0 - 15, y2, y3, bottomWeld + ' mm', 'var(--text-secondary)');
+
+            // Specific vertical bottom-right label for bottom weld height (e.g. 15mm)
+            html += drawVerticalDim(x5 + 15, y2, y3, bottomWeld + ' mm', 'var(--text-secondary)');
+            // Specific right weld width label
+            html += drawHorizontalDim(x4, x5, y3 + 15, rightWeld + ' mm', 'var(--text-secondary)');
+
+            svg.innerHTML = defs.outerHTML + html;
+        }
+
+        function drawHorizontalDim(xStart, xEnd, y, label, color, drawOuterLines = false, cleanMode = false) {
+            if (Math.abs(xEnd - xStart) < 3) return '';
+            let s = '';
+            // Dim line
+            s += `<line x1="${xStart}" y1="${y}" x2="${xEnd}" y2="${y}" stroke="${color}" stroke-width="0.8" />`;
+            // Left tick/arrow
+            s += `<line x1="${xStart}" y1="${y-3}" x2="${xStart}" y2="${y+3}" stroke="${color}" stroke-width="0.8" />`;
+            // Right tick/arrow
+            s += `<line x1="${xEnd}" y1="${y-3}" x2="${xEnd}" y2="${y+3}" stroke="${color}" stroke-width="0.8" />`;
+            if (drawOuterLines) {
+                // Extension lines to the sheet
+                s += `<line x1="${xStart}" y1="${y}" x2="${xStart}" y2="${y+20}" stroke="${color}" stroke-width="0.5" stroke-dasharray="2,2" />`;
+                s += `<line x1="${xEnd}" y1="${y}" x2="${xEnd}" y2="${y+20}" stroke="${color}" stroke-width="0.5" stroke-dasharray="2,2" />`;
+            }
+            // Text
+            const textBgColor = 'var(--bg-base)';
+            const yOffset = cleanMode ? 12 : -5;
+            s += `<rect x="${xStart + (xEnd - xStart)/2 - 20}" y="${y + yOffset - 7}" width="40" height="9" fill="${textBgColor}" />`;
+            s += `<text x="${xStart + (xEnd - xStart)/2}" y="${y + yOffset}" font-size="8" fill="${color}" text-anchor="middle">${label}</text>`;
+            return s;
+        }
+
+        function drawVerticalDim(x, yStart, yEnd, label, color) {
+            if (Math.abs(yEnd - yStart) < 3) return '';
+            let s = '';
+            // Dim line
+            s += `<line x1="${x}" y1="${yStart}" x2="${x}" y2="${yEnd}" stroke="${color}" stroke-width="0.8" />`;
+            // Top tick
+            s += `<line x1="${x-3}" y1="${yStart}" x2="${x+3}" y2="${yStart}" stroke="${color}" stroke-width="0.8" />`;
+            // Bottom tick
+            s += `<line x1="${x-3}" y1="${yEnd}" x2="${x+3}" y2="${yEnd}" stroke="${color}" stroke-width="0.8" />`;
+            // Text
+            const textBgColor = 'var(--bg-base)';
+            s += `<rect x="${x-25}" y="${yStart + (yEnd - yStart)/2 - 5}" width="50" height="10" fill="${textBgColor}" />`;
+            s += `<text x="${x}" y="${yStart + (yEnd - yStart)/2 + 3}" font-size="8" fill="${color}" text-anchor="middle" transform="rotate(-90 ${x} ${yStart + (yEnd - yStart)/2})">${label}</text>`;
+            return s;
         }
 
         // Lógica de Consulta de NCM (BrasilAPI)
@@ -9084,13 +9360,51 @@
                         html += `</div></div>`;
                     }
 
-                    // Observações (Editável)
+                    // Observações (Audit Trail e Imutabilidade)
+                    let obsList = [];
+                    if (parsed.observations) {
+                        if (Array.isArray(parsed.observations)) {
+                            obsList = parsed.observations;
+                        } else if (typeof parsed.observations === 'string' && parsed.observations.trim() !== '') {
+                            const projectDateStr = project.dateCreated || new Date().toISOString();
+                            obsList = [{
+                                text: parsed.observations,
+                                user: 'sistema',
+                                date: projectDateStr
+                            }];
+                        }
+                    }
+
+                    let obsHistoryHTML = '';
+                    if (obsList.length > 0) {
+                        obsList.forEach(obs => {
+                            const dateStr = new Date(obs.date).toLocaleString('pt-BR');
+                            const userLabel = obs.user === 'sistema' ? '💾 Legado' : `👤 ${obs.user}`;
+                            obsHistoryHTML += `
+                                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 8px 10px; border-radius: 5px; margin-bottom: 8px; font-size: 0.76rem; line-height: 1.4;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--text-secondary); margin-bottom: 4px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 2px;">
+                                        <span style="font-weight: bold; color: var(--primary);">${userLabel}</span>
+                                        <span>${dateStr}</span>
+                                    </div>
+                                    <div style="color: #cbd5e1; white-space: pre-wrap; word-break: break-word;">${obs.text}</div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        obsHistoryHTML = `<div style="font-size: 0.72rem; color: var(--text-secondary); font-style: italic; padding: 4px 0; margin-bottom: 8px;">Nenhuma observação registrada ainda.</div>`;
+                    }
+
                     html += `
                         <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 15px;">
-                            <div style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Observações Técnicas / Particularidades Relevantes</div>
-                            <textarea id="modal-edit-observations" class="form-control" style="width: 100%; height: 90px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); color: #cbd5e1; font-size: 0.78rem; padding: 8px; border-radius: 6px; resize: none; font-family: system-ui, sans-serif; box-sizing: border-box;" placeholder="Insira observações técnicas adicionais...">${parsed.observations || ''}</textarea>
+                            <div style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Histórico de Observações Técnicas</div>
+                            <div style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.1); border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; margin-bottom: 12px;">
+                                ${obsHistoryHTML}
+                            </div>
+                            
+                            <div style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Adicionar Novo Complemento / Observação</div>
+                            <textarea id="modal-edit-observations" class="form-control" style="width: 100%; height: 60px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); color: #cbd5e1; font-size: 0.78rem; padding: 8px; border-radius: 6px; resize: none; font-family: system-ui, sans-serif; box-sizing: border-box;" placeholder="Digite aqui o complemento técnico a ser adicionado ao log..."></textarea>
                             <button class="btn" onclick="saveProjectObservations()" style="margin-top: 8px; font-size: 0.72rem; padding: 6px 12px; font-weight: bold; background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-                                💾 Salvar Observações
+                                ➕ Adicionar Observação
                             </button>
                             ${editInfoHtml}
                         </div>
@@ -9470,19 +9784,49 @@
             if (!textarea) return;
             
             const newObs = textarea.value.trim();
+            if (newObs === '') {
+                alert('Por favor, digite alguma observação ou complemento técnico para adicionar.');
+                return;
+            }
+            
             const project = state.projects.find(p => p.code === activeProjectCode);
             if (!project) return;
             
-            // Constrói o campo de diagnóstico atualizado
-            let updatedDiagnostico = newObs;
+            // Constrói o campo de diagnóstico atualizado com histórico
+            let updatedDiagnostico = '';
             if (project.diagnostico) {
                 try {
                     if (project.diagnostico.trim().startsWith('{')) {
                         const parsed = JSON.parse(project.diagnostico);
-                        parsed.observations = newObs;
+                        
+                        let currentList = [];
+                        if (parsed.observations) {
+                            if (Array.isArray(parsed.observations)) {
+                                currentList = parsed.observations;
+                            } else if (typeof parsed.observations === 'string' && parsed.observations.trim() !== '') {
+                                currentList = [{
+                                    text: parsed.observations,
+                                    user: 'sistema',
+                                    date: project.dateCreated || new Date().toISOString()
+                                }];
+                            }
+                        }
+                        
+                        const userStr = localStorage.getItem('tecfag_user');
+                        const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
+                        
+                        currentList.push({
+                            text: newObs,
+                            user: currentUser,
+                            date: new Date().toISOString()
+                        });
+                        
+                        parsed.observations = currentList;
                         updatedDiagnostico = JSON.stringify(parsed);
                     }
-                } catch(e) {}
+                } catch(e) {
+                    console.error(e);
+                }
             }
             
             // Atualiza metadados de quem editou no checklist
@@ -11679,9 +12023,19 @@
 
                     let observationsHtml = '';
                     if (parsed.observations) {
+                        let obsText = '';
+                        if (Array.isArray(parsed.observations)) {
+                            obsText = parsed.observations.map(obs => {
+                                const dateStr = new Date(obs.date).toLocaleString('pt-BR');
+                                const author = obs.user === 'sistema' ? 'Legado' : obs.user;
+                                return `[${dateStr} - ${author}]: ${obs.text}`;
+                            }).join('\n\n');
+                        } else {
+                            obsText = parsed.observations;
+                        }
                         observationsHtml = `
                             <h4 style="font-size: 11px; text-transform: uppercase; color: #495057; margin-top: 15px; margin-bottom: 5px;">Observações Técnicas</h4>
-                            <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; border-radius: 4px; font-size: 11px; white-space: pre-wrap; margin-bottom: 15px;">${parsed.observations}</div>
+                            <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; border-radius: 4px; font-size: 11px; white-space: pre-wrap; margin-bottom: 15px;">${obsText}</div>
                         `;
                     }
 
@@ -13403,7 +13757,17 @@
             txt += `\n`;
 
             if (parsed.observations) {
-                txt += `*✍️ Observações do Vendedor:*\n${parsed.observations}\n`;
+                let obsText = '';
+                if (Array.isArray(parsed.observations)) {
+                    obsText = parsed.observations.map(obs => {
+                        const dateStr = new Date(obs.date).toLocaleString('pt-BR');
+                        const author = obs.user === 'sistema' ? 'Legado' : obs.user;
+                        return `[${dateStr} - ${author}]: ${obs.text}`;
+                    }).join('\n');
+                } else {
+                    obsText = parsed.observations;
+                }
+                txt += `*✍️ Observações do Vendedor:*\n${obsText}\n`;
             }
             
             navigator.clipboard.writeText(txt);
@@ -13484,10 +13848,20 @@
             txt += `\n`;
 
             if (parsed.observations) {
+                let obsText = '';
+                if (Array.isArray(parsed.observations)) {
+                    obsText = parsed.observations.map(obs => {
+                        const dateStr = new Date(obs.date).toLocaleString('pt-BR');
+                        const author = obs.user === 'sistema' ? 'Legado' : obs.user;
+                        return `[${dateStr} - ${author}]: ${obs.text}`;
+                    }).join('\n');
+                } else {
+                    obsText = parsed.observations;
+                }
                 txt += `==============================================\n`;
                 txt += `OBSERVAÇÕES ADICIONAIS\n`;
                 txt += `==============================================\n`;
-                txt += `${parsed.observations}\n`;
+                txt += `${obsText}\n`;
             }
             
             navigator.clipboard.writeText(txt);
