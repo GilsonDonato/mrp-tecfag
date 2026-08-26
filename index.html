@@ -3289,36 +3289,100 @@
                             </div>
                         </div>
 
-                        <!-- PARÂMETROS DE SETUP E CAMPO (PRE-REQUISITOS OFICINA) -->
+                        <!-- REUNIÃO DE ALINHAMENTO TÉCNICO & FICHA DE COMPRA -->
                         <div class="detail-card" style="margin-bottom: 20px;">
                             <h4 style="color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; font-size: 0.9rem;">
-                                ⚙️ Parâmetros de Setup & Campo
+                                ⚙️ Reunião de Alinhamento Técnico & Ficha de Compra
                             </h4>
                             <p style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.3;">
-                                Preencha estes pré-requisitos para orientar o teste físico na oficina e evitar surpresas no start-up.
+                                Insira as informações técnicas fechadas na reunião multidisciplinar. Estes campos alimentam diretamente a Ficha Técnica gerada no PDF.
                             </p>
                             <div style="display: flex; flex-direction: column; gap: 10px;">
-                                <div>
-                                    <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">1. Especificação da Embalagem / Insumo</label>
-                                    <input type="text" class="form-control" id="modal-spec-frasco" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Pote 100mm, sachê 10x15, filme 400mm">
-                                </div>
-                                <div>
-                                    <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">2. Tipo de Fechamento / Solda / Aplicação</label>
-                                    <input type="text" class="form-control" id="modal-spec-tampa" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Rosca flip-top, selagem lisa, rótulo envolvente">
-                                </div>
-                                <div>
-                                    <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">3. Produtividade & Sentido da Linha</label>
-                                    <input type="text" class="form-control" id="modal-spec-espaco" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: 20 batidas/min, esteira sentido E->D">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Insumo / Frasco</label>
+                                        <input type="text" class="form-control" id="modal-spec-frasco" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Frasco 500ml PEAD">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Fechamento / Solda</label>
+                                        <input type="text" class="form-control" id="modal-spec-tampa" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Selo Alumínio / Rosca 28mm">
+                                    </div>
                                 </div>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                                     <div>
-                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">4. Tensão Elétrica</label>
-                                        <input type="text" class="form-control" id="modal-spec-tensao" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: 220V Bifásico / 380V">
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Formato da Embalagem</label>
+                                        <input type="text" class="form-control" id="modal-spec-formato" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Cilíndrico / Stand-up pouch">
                                     </div>
                                     <div>
-                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">5. Pressão Pneumática</label>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Largura do Filme/Bobina</label>
+                                        <input type="text" class="form-control" id="modal-spec-largura" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: 320 mm">
+                                    </div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Dosador</label>
+                                        <input type="text" class="form-control" id="modal-spec-dosador" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Balança de cabeçotes">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Bicos de Envase</label>
+                                        <input type="text" class="form-control" id="modal-spec-bicos" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: 4 bicos corta-gota">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Ciclo CIP/SIP</label>
+                                        <input type="text" class="form-control" id="modal-spec-cip" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Composto Químico CIP">
+                                    </div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Fluidez / Viscosidade</label>
+                                        <input type="text" class="form-control" id="modal-spec-fluidez" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Líquido viscoso 5000 cPs">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Densidade Aparente</label>
+                                        <input type="text" class="form-control" id="modal-spec-densidade" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: 0.95 g/cm³">
+                                    </div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Material (Contato Produto)</label>
+                                        <input type="text" class="form-control" id="modal-spec-aco" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Aço Inox AISI 316L">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Polimento / Rugosidade</label>
+                                        <input type="text" class="form-control" id="modal-spec-polimento" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Espelhado Ra < 0.4µm">
+                                    </div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px;">
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Tensão Elétrica</label>
+                                        <input type="text" class="form-control" id="modal-spec-tensao" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: 220V Trifásico">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Frequência</label>
+                                        <input type="text" class="form-control" id="modal-spec-frequencia" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: 60 Hz">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Pressão Ar</label>
                                         <input type="text" class="form-control" id="modal-spec-ar" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: 6 bar / ar seco">
                                     </div>
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Consumo de Ar</label>
+                                        <input type="text" class="form-control" id="modal-spec-consumo-ar" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: 300 L/min">
+                                    </div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Adequação NR12</label>
+                                        <input type="text" class="form-control" id="modal-spec-nr12" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Categoria 4 com ART">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Portas de Segurança</label>
+                                        <input type="text" class="form-control" id="modal-spec-portas" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Sensores magnéticos">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Produtividade & Linha/Espaço</label>
+                                    <input type="text" class="form-control" id="modal-spec-espaco" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: 20 batidas/min, esteira sentido E->D">
                                 </div>
                                 <div>
                                     <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">6. Notas de Setup / Ajustes de Oficina</label>
@@ -8999,7 +9063,20 @@
                 espaco_disponivel: savedSpecs.espaco_disponivel || extracted.espaco_disponivel || '',
                 tensao_eletrica: savedSpecs.tensao_eletrica || extracted.tensao_eletrica || '',
                 ar_comprimido: savedSpecs.ar_comprimido || extracted.ar_comprimido || '',
-                obs_startup: savedSpecs.obs_startup || extracted.obs_startup || ''
+                obs_startup: savedSpecs.obs_startup || extracted.obs_startup || '',
+                formato_embalagem: savedSpecs.formato_embalagem || '',
+                largura_bobina: savedSpecs.largura_bobina || '',
+                tipo_dosador: savedSpecs.tipo_dosador || '',
+                bicos_envase: savedSpecs.bicos_envase || '',
+                higienizacao_cip: savedSpecs.higienizacao_cip || '',
+                produto_fluidez: savedSpecs.produto_fluidez || '',
+                produto_densidade: savedSpecs.produto_densidade || '',
+                aco_grau: savedSpecs.aco_grau || '',
+                polimento_grau: savedSpecs.polimento_grau || '',
+                eletrica_frequencia: savedSpecs.eletrica_frequencia || '',
+                consumo_ar: savedSpecs.consumo_ar || '',
+                seguranca_nr12: savedSpecs.seguranca_nr12 || '',
+                portas_seguranca: savedSpecs.portas_seguranca || ''
             };
             
             document.getElementById('modal-spec-frasco').value = specs.frasco_tamanho;
@@ -9008,7 +9085,21 @@
             document.getElementById('modal-spec-tensao').value = specs.tensao_eletrica;
             document.getElementById('modal-spec-ar').value = specs.ar_comprimido;
             document.getElementById('modal-spec-obs').value = specs.obs_startup;
-
+            
+            document.getElementById('modal-spec-formato').value = specs.formato_embalagem;
+            document.getElementById('modal-spec-largura').value = specs.largura_bobina;
+            document.getElementById('modal-spec-dosador').value = specs.tipo_dosador;
+            document.getElementById('modal-spec-bicos').value = specs.bicos_envase;
+            document.getElementById('modal-spec-cip').value = specs.higienizacao_cip;
+            document.getElementById('modal-spec-fluidez').value = specs.produto_fluidez;
+            document.getElementById('modal-spec-densidade').value = specs.produto_densidade;
+            document.getElementById('modal-spec-aco').value = specs.aco_grau;
+            document.getElementById('modal-spec-polimento').value = specs.polimento_grau;
+            document.getElementById('modal-spec-frequencia').value = specs.eletrica_frequencia;
+            document.getElementById('modal-spec-consumo-ar').value = specs.consumo_ar;
+            document.getElementById('modal-spec-nr12').value = specs.seguranca_nr12;
+            document.getElementById('modal-spec-portas').value = specs.portas_seguranca;
+            
             // Atualizar o Alerta de Pré-Requisitos do Técnico
             const specAlert = document.getElementById('modal-setup-specs-alert');
             const specGrid = document.getElementById('modal-setup-specs-alert-grid');
@@ -11553,9 +11644,22 @@
                 espaco_disponivel: document.getElementById('modal-spec-espaco').value.trim(),
                 tensao_eletrica: document.getElementById('modal-spec-tensao').value.trim(),
                 ar_comprimido: document.getElementById('modal-spec-ar').value.trim(),
-                obs_startup: document.getElementById('modal-spec-obs').value.trim()
+                obs_startup: document.getElementById('modal-spec-obs').value.trim(),
+                formato_embalagem: document.getElementById('modal-spec-formato').value.trim(),
+                largura_bobina: document.getElementById('modal-spec-largura').value.trim(),
+                tipo_dosador: document.getElementById('modal-spec-dosador').value.trim(),
+                bicos_envase: document.getElementById('modal-spec-bicos').value.trim(),
+                higienizacao_cip: document.getElementById('modal-spec-cip').value.trim(),
+                produto_fluidez: document.getElementById('modal-spec-fluidez').value.trim(),
+                produto_densidade: document.getElementById('modal-spec-densidade').value.trim(),
+                aco_grau: document.getElementById('modal-spec-aco').value.trim(),
+                polimento_grau: document.getElementById('modal-spec-polimento').value.trim(),
+                eletrica_frequencia: document.getElementById('modal-spec-frequencia').value.trim(),
+                consumo_ar: document.getElementById('modal-spec-consumo-ar').value.trim(),
+                seguranca_nr12: document.getElementById('modal-spec-nr12').value.trim(),
+                portas_seguranca: document.getElementById('modal-spec-portas').value.trim()
             };
-
+            
             const updateBody = {
                 serial: projectSerial,
                 route: projectRoute,
@@ -12122,34 +12226,51 @@
                 }
 
                 if (parsed && parsed.isStructured) {
-                    const frascoTamanho = (project.setup_specs && project.setup_specs.frasco_tamanho) || (parsed.parameters && (parsed.parameters.filmWidth || parsed.parameters.bagStyle || parsed.parameters.bottleShape)) || '-';
-                    const tampaTamanho = (project.setup_specs && project.setup_specs.tampa_tamanho) || (parsed.parameters && (parsed.parameters.rosqueadoraCapType || parsed.parameters.dosagemSealingType)) || '-';
-                    const bagStyleVal = (parsed.parameters && parsed.parameters.bagStyle) || '-';
-                    const filmWidthVal = (parsed.parameters && parsed.parameters.filmWidth) || '-';
+                    const s = project.setup_specs || {};
+                    const frascoTamanho = s.frasco_tamanho || (parsed.parameters && (parsed.parameters.filmWidth || parsed.parameters.bagStyle || parsed.parameters.bottleShape)) || '-';
+                    const tampaTamanho = s.tampa_tamanho || (parsed.parameters && (parsed.parameters.rosqueadoraCapType || parsed.parameters.dosagemSealingType)) || '-';
+                    const bagStyleVal = s.formato_embalagem || (parsed.parameters && parsed.parameters.bagStyle) || '-';
+                    const filmWidthVal = s.largura_bobina || (parsed.parameters && parsed.parameters.filmWidth) || '-';
                     
-                    const doserType = (parsed.parameters && (parsed.parameters.semiType || parsed.parameters.semiPrinciple)) || '-';
-                    const nozzleType = (parsed.parameters && parsed.parameters.nozzle) || '-';
-                    const cipSipType = (parsed.parameters && parsed.parameters.cipSip) || '-';
+                    const doserType = s.tipo_dosador || (parsed.parameters && (parsed.parameters.semiType || parsed.parameters.semiPrinciple)) || '-';
+                    const nozzleType = s.bicos_envase || (parsed.parameters && parsed.parameters.nozzle) || '-';
+                    const cipSipType = s.higienizacao_cip || (parsed.parameters && parsed.parameters.cipSip) || '-';
                     
-                    const productFluidez = (parsed.parameters && (parsed.parameters.envaseViscosity || parsed.parameters.semiProductChars || parsed.parameters.viscosity)) || '-';
-                    const productDensity = (parsed.parameters && parsed.parameters.density) || '-';
+                    const productFluidez = s.produto_fluidez || (parsed.parameters && (parsed.parameters.envaseViscosity || parsed.parameters.semiProductChars || parsed.parameters.viscosity)) || '-';
+                    const productDensity = s.produto_densidade || (parsed.parameters && parsed.parameters.density) || '-';
                     
-                    const metalMaterial = (parsed.infra && parsed.infra.material === 'Inox304' ? 'Aço Inox 304 (Industrial Padrão)' : (parsed.infra && parsed.infra.material === 'Inox316' ? 'Aço Inox 316L (Farmacêutico Estéril)' : (parsed.infra && parsed.infra.material) || '-'));
-                    const metalPolishing = (parsed.infra && parsed.infra.roughness === 'Padrao' ? 'Polimento Industrial comum' : (parsed.infra && parsed.infra.roughness === 'Sanitario' ? 'Polimento Sanitário Espelhado (Ra < 0.4 µm)' : (parsed.infra && parsed.infra.roughness) || '-'));
+                    const metalMaterial = s.aco_grau || (parsed.infra && parsed.infra.material === 'Inox304' ? 'Aço Inox 304 (Industrial Padrão)' : (parsed.infra && parsed.infra.material === 'Inox316' ? 'Aço Inox 316L (Farmacêutico Estéril)' : (parsed.infra && parsed.infra.material) || '-'));
+                    const metalPolishing = s.polimento_grau || (parsed.infra && parsed.infra.roughness === 'Padrao' ? 'Polimento Industrial comum' : (parsed.infra && parsed.infra.roughness === 'Sanitario' ? 'Polimento Sanitário Espelhado (Ra < 0.4 µm)' : (parsed.infra && parsed.infra.roughness) || '-'));
                     
-                    const elecTension = (project.setup_specs && project.setup_specs.tensao_eletrica) || (parsed.infra && parsed.infra.tension) || '-';
-                    const elecFrequency = (parsed.infra && parsed.infra.frequency) || '60 Hz';
-                    const pneumPressure = (project.setup_specs && project.setup_specs.ar_comprimido) || (parsed.infra && parsed.infra.pressure) || '-';
-                    const pneumConsumption = (parsed.infra && parsed.infra.airConsumption) || '-';
+                    const elecTension = s.tensao_eletrica || (parsed.infra && parsed.infra.tension) || '-';
+                    const elecFrequency = s.eletrica_frequencia || (parsed.infra && parsed.infra.frequency) || '60 Hz';
+                    const pneumPressure = s.ar_comprimido || (parsed.infra && parsed.infra.pressure) || '-';
+                    const pneumConsumption = s.consumo_ar || (parsed.infra && parsed.infra.airConsumption) || '-';
                     
-                    const safetyNR12 = (parsed.infra && parsed.infra.nr12 === 'Padrao' ? 'Adequação NR-12 Padrão Tecfag' : (parsed.infra && parsed.infra.nr12 === 'Rigoroso' ? 'Adequação NR-12 Rigorosa com Relatório e ART' : (parsed.infra && parsed.infra.nr12) || '-'));
-                    const safetyDoors = (parsed.parameters && parsed.parameters.finalSafetyDoors) || '-';
+                    const safetyNR12 = s.seguranca_nr12 || (parsed.infra && parsed.infra.nr12 === 'Padrao' ? 'Adequação NR-12 Padrão Tecfag' : (parsed.infra && parsed.infra.nr12 === 'Rigoroso' ? 'Adequação NR-12 Rigorosa com Relatório e ART' : (parsed.infra && parsed.infra.nr12) || '-'));
+                    const safetyDoors = s.portas_seguranca || (parsed.parameters && parsed.parameters.finalSafetyDoors) || '-';
                     
                     const diagUser = (project.checklist && project.checklist.diagnostico_user) || 'Engenharia Comercial';
                     const diagDate = (project.checklist && project.checklist.diagnostico_date) ? new Date(project.checklist.diagnostico_date).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
                     
+                    let statusBanner = '';
+                    if (project.validation_status === 'EM_HOMOLOGACAO') {
+                        statusBanner = `
+                            <div style="margin-bottom: 15px; border: 2px dashed #f59e0b; padding: 10px; border-radius: 6px; background-color: #fffbeb; color: #b45309; font-size: 0.78rem; line-height: 1.4; font-weight: bold; text-align: center; text-transform: uppercase;">
+                                ⚠️ STATUS: AGUARDANDO REUNIÃO DE DEFINIÇÕES TÉCNICAS (BRAINSTORMING)
+                            </div>
+                        `;
+                    } else {
+                        statusBanner = `
+                            <div style="margin-bottom: 15px; border: 2px solid #10b981; padding: 10px; border-radius: 6px; background-color: #f0fdf4; color: #15803d; font-size: 0.78rem; line-height: 1.4; font-weight: bold; text-align: center; text-transform: uppercase;">
+                                ✓ STATUS: ESPECIFICAÇÃO TÉCNICA DEFINITIVA VINCULANTE (HOMOLOGADA)
+                            </div>
+                        `;
+                    }
+
                     supplierGuideHtml = `
                         <div class="phase-section" style="border: 2px solid #e11d48; padding: 15px; border-radius: 8px; background: rgba(225, 29, 72, 0.02); margin-top: 25px; page-break-inside: avoid;">
+                            ${statusBanner}
                             <h3 style="color: #e11d48; border-bottom: 2px solid #e11d48; padding-bottom: 6px; margin-top: 0; display: flex; align-items: center; gap: 8px; font-size: 13px;">
                                 ⚙️ FICHA TÉCNICA DE IMPORTAÇÃO E COMPRA (GUIA DE FORNECEDOR)
                             </h3>
@@ -12217,6 +12338,59 @@
                             <div style="margin-top: 12px; border: 1px solid #fca5a5; padding: 10px; border-radius: 6px; background-color: #fff1f2; color: #991b1b; font-size: 0.72rem; line-height: 1.4; font-weight: bold; text-transform: uppercase;">
                                 ⚠️ ATENÇÃO (DISCLAIMER DE COMPRA VINCULANTE):
                                 Este documento é uma especificação técnica vinculante. Qualquer divergência nas dimensões, elétrica, tipo de rosca ou padrão de aço em relação a esta ficha implicará recusa imediata do lote na importação.
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            // Visual attachments rendering (Seção 5)
+            let mediaAttachmentsHtml = '';
+            if (isStructured && parsed) {
+                const mediaFiles = parsed.mediaFiles || [];
+                const especialFiles = parsed.especialFiles || [];
+                
+                if (mediaFiles.length > 0 || especialFiles.length > 0) {
+                    mediaAttachmentsHtml = `
+                        <div class="phase-section" style="margin-top: 25px; page-break-inside: avoid;">
+                            <h3>Seção 5: Anexos e Evidências Visuais</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                    `;
+                    
+                    mediaFiles.forEach(file => {
+                        const fileUrl = window.location.origin + '/' + file.filePath;
+                        mediaAttachmentsHtml += `
+                            <div style="border: 1px solid #dee2e6; padding: 10px; border-radius: 6px; text-align: center; background: #fafafa; page-break-inside: avoid;">
+                                <div style="font-weight: bold; font-size: 10px; margin-bottom: 5px; color: #4b5563; word-break: break-all;">\${file.fileName}</div>
+                                <img src="\${fileUrl}" style="max-width: 100%; max-height: 160px; object-fit: contain; border-radius: 4px;" alt="\${file.fileName}" onerror="this.outerHTML='<div style=\\\'padding: 20px; color: #6b7280; font-size: 11px;\\\'>🎬 Arquivo de Vídeo (Download Disponível no MRP)</div>'">
+                            </div>
+                        `;
+                    });
+
+                    especialFiles.forEach(file => {
+                        const fileUrl = window.location.origin + '/' + file.filePath;
+                        const isDwg = file.fileName.toLowerCase().endsWith('.dwg');
+                        if (isDwg) {
+                            mediaAttachmentsHtml += `
+                                <div style="border: 1px solid #dee2e6; padding: 10px; border-radius: 6px; text-align: center; background: #fafafa; page-break-inside: avoid;">
+                                    <div style="font-weight: bold; font-size: 10px; margin-bottom: 5px; color: #4b5563; word-break: break-all;">\${file.fileName}</div>
+                                    <div style="padding: 20px; border: 1px dashed #cbd5e1; border-radius: 4px; background: #f8fafc; color: #475569; font-size: 10px; font-weight: 500;">
+                                        📐 Desenho Técnico CAD (.DWG)<br>
+                                        <span style="font-size: 8px; color: #64748b;">Arquivo bruto disponível para download no card do MRP</span>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            mediaAttachmentsHtml += `
+                                <div style="border: 1px solid #dee2e6; padding: 10px; border-radius: 6px; text-align: center; background: #fafafa; page-break-inside: avoid;">
+                                    <div style="font-weight: bold; font-size: 10px; margin-bottom: 5px; color: #4b5563; word-break: break-all;">\${file.fileName}</div>
+                                    <embed src="\${fileUrl}" type="application/pdf" style="width: 100%; height: 160px; border: none; border-radius: 4px;" onerror="this.outerHTML='<img src=\\\'\${fileUrl}\\\' style=\\\'max-width: 100%; max-height: 160px; object-fit: contain; border-radius: 4px;\\\'>'">
+                                </div>
+                            `;
+                        }
+                    });
+                    
+                    mediaAttachmentsHtml += `
                             </div>
                         </div>
                     `;
