@@ -12218,7 +12218,15 @@
                 }
 
                 if (parsed && parsed.isStructured) {
-                    const s = project.setup_specs || {};
+                    let s = {};
+                    if (project.setup_specs) {
+                        try {
+                            s = typeof project.setup_specs === 'string' ? JSON.parse(project.setup_specs) : project.setup_specs;
+                        } catch (e) {
+                            s = {};
+                        }
+                    }
+                    s = s || {};
                     const frascoTamanho = s.frasco_tamanho || (parsed.parameters && (parsed.parameters.filmWidth || parsed.parameters.bagStyle || parsed.parameters.bottleShape)) || '-';
                     const tampaTamanho = s.tampa_tamanho || (parsed.parameters && (parsed.parameters.rosqueadoraCapType || parsed.parameters.dosagemSealingType)) || '-';
                     const bagStyleVal = s.formato_embalagem || (parsed.parameters && parsed.parameters.bagStyle) || '-';
@@ -12338,7 +12346,7 @@
 
             // Visual attachments rendering (Seção 5)
             let mediaAttachmentsHtml = '';
-            if (isStructured && parsed) {
+            if (parsed && parsed.isStructured) {
                 const mediaFiles = parsed.mediaFiles || [];
                 const especialFiles = parsed.especialFiles || [];
                 
