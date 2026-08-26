@@ -11547,7 +11547,7 @@
                         
                         const res = await fetch('/api/attachments', {
                             method: 'POST',
-                            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                            headers: token ? { 'Authorization': 'Bearer ' + token } : {},
                             body: formData
                         });
                         
@@ -11562,127 +11562,123 @@
                     const listContainer = document.getElementById('modal-setup-selected-list');
                     if (listContainer) listContainer.innerHTML = '';
                 }
-            } catch (uploadErr) {
-                console.error(uploadErr);
-                alert('Erro durante o upload dos anexos: ' + uploadErr.message);
+
                 if (saveBtn) {
-                    saveBtn.disabled = false;
-                    saveBtn.innerText = oldBtnText;
+                    saveBtn.innerText = 'Salvando dados...';
                 }
-                return;
-            }
 
-            if (saveBtn) {
-                saveBtn.innerText = 'Salvando dados...';
-            }
-
-            const serialInputs = document.querySelectorAll('.modal-machine-serial');
-            const routeSelects = document.querySelectorAll('.modal-machine-route');
-            
-            const updatedMachines = [];
-            let triggerAutoPrint = false;
-            
-            serialInputs.forEach((input, idx) => {
-                const serialVal = input.value.trim() || '-';
-                const routeVal = routeSelects[idx] ? routeSelects[idx].value : '-';
-                const oldMach = (project.machines && project.machines[idx]) || { sku: project.sku, serial: '-', route: '-' };
+                const serialInputs = document.querySelectorAll('.modal-machine-serial');
+                const routeSelects = document.querySelectorAll('.modal-machine-route');
                 
-                updatedMachines.push({
-                    sku: oldMach.sku,
-                    serial: serialVal,
-                    route: routeVal
+                const updatedMachines = [];
+                let triggerAutoPrint = false;
+                
+                serialInputs.forEach((input, idx) => {
+                    const serialVal = input.value.trim() || '-';
+                    const routeVal = routeSelects[idx] ? routeSelects[idx].value : '-';
+                    const oldMach = (project.machines && project.machines[idx]) || { sku: project.sku, serial: '-', route: '-' };
+                    
+                    updatedMachines.push({
+                        sku: oldMach.sku,
+                        serial: serialVal,
+                        route: routeVal
+                    });
+
+                    const hasSerialNow = serialVal !== '-';
+                    const hasRouteNow = routeVal !== '-';
+                    const serialJustAdded = (serialVal !== '-' && oldMach.serial === '-');
+                    const routeJustAdded = (routeVal !== '-' && oldMach.route === '-');
+                    
+                    if (hasSerialNow && hasRouteNow && (serialJustAdded || routeJustAdded)) {
+                        triggerAutoPrint = true;
+                    }
                 });
 
-                const hasSerialNow = serialVal !== '-';
-                const hasRouteNow = routeVal !== '-';
-                const serialJustAdded = (serialVal !== '-' && oldMach.serial === '-');
-                const routeJustAdded = (routeVal !== '-' && oldMach.route === '-');
+                const nonHyphenSerials = updatedMachines.map(m => m.serial).filter(s => s !== '-');
+                const projectSerial = nonHyphenSerials.length > 0 ? nonHyphenSerials.join(', ') : '-';
                 
-                if (hasSerialNow && hasRouteNow && (serialJustAdded || routeJustAdded)) {
-                    triggerAutoPrint = true;
-                }
-            });
+                const nonHyphenRoutes = updatedMachines.map(m => m.route).filter(r => r !== '-');
+                const projectRoute = nonHyphenRoutes.length > 0 ? nonHyphenRoutes.join(', ') : '-';
 
-            // Aggregate values for project top-level compatibility
-            const nonHyphenSerials = updatedMachines.map(m => m.serial).filter(s => s !== '-');
-            const projectSerial = nonHyphenSerials.length > 0 ? nonHyphenSerials.join(', ') : '-';
-            
-            const nonHyphenRoutes = updatedMachines.map(m => m.route).filter(r => r !== '-');
-            const projectRoute = nonHyphenRoutes.length > 0 ? nonHyphenRoutes.join(', ') : '-';
+                let finalFase = project.fase;
+                let updatedChecklist = { ...project.checklist };
 
-            let finalFase = project.fase;
-            let updatedChecklist = { ...project.checklist };
+                const fase1And2Completed = [
+                    'diagnostico', 'customizacao', 'aprovacao', 'cotacao', 'fluxograma', 'contrato', 'planta_baixa',
+                    'pagamento', 'producao', 'embarque', 'fedex'
+                ].every(k => project.checklist[k] === true);
 
-            const fase1And2Completed = [
-                'diagnostico', 'customizacao', 'aprovacao', 'cotacao', 'fluxograma', 'contrato', 'planta_baixa',
-                'pagamento', 'producao', 'embarque', 'fedex'
-            ].every(k => project.checklist[k] === true);
+                const allMachinesHaveSerial = updatedMachines.every(m => m.serial !== '-');
+                const someMachinesJustGotSerial = updatedMachines.some((m, idx) => m.serial !== '-' && (project.machines && project.machines[idx] ? project.machines[idx].serial === '-' : true));
 
-            const allMachinesHaveSerial = updatedMachines.every(m => m.serial !== '-');
-            const someMachinesJustGotSerial = updatedMachines.some((m, idx) => m.serial !== '-' && (project.machines && project.machines[idx] ? project.machines[idx].serial === '-' : true));
+                if (fase1And2Completed) {
+                    if (allMachinesHaveSerial && someMachinesJustGotSerial) {
+                        updatedChecklist.desembaraco = true;
+                        updatedChecklist.vistoria = true;
+                        updatedChecklist.travas = true;
+                        
+                        if (finalFase < 3) {
+                            finalFase = 3;
+                        }
+                    }
 
-            if (fase1And2Completed) {
-                if (allMachinesHaveSerial && someMachinesJustGotSerial) {
-                    updatedChecklist.desembaraco = true;
-                    updatedChecklist.vistoria = true;
-                    updatedChecklist.travas = true;
-                    
-                    if (finalFase < 3) {
-                        finalFase = 3;
+                    const allMachinesHaveRoute = updatedMachines.every(m => m.route !== '-');
+                    if (allMachinesHaveSerial && allMachinesHaveRoute) {
+                        updatedChecklist.direcionamento = true;
                     }
                 }
 
-                const allMachinesHaveRoute = updatedMachines.every(m => m.route !== '-');
-                if (allMachinesHaveSerial && allMachinesHaveRoute) {
-                    updatedChecklist.direcionamento = true;
-                }
-            }
+                // Helper to safe-read DOM elements in case they are missing
+                const getVal = (id) => {
+                    const el = document.getElementById(id);
+                    return el ? el.value.trim() : '';
+                };
 
-            const setupSpecs = {
-                frasco_tamanho: document.getElementById('modal-spec-frasco').value.trim(),
-                tampa_tamanho: document.getElementById('modal-spec-tampa').value.trim(),
-                espaco_disponivel: document.getElementById('modal-spec-espaco').value.trim(),
-                tensao_eletrica: document.getElementById('modal-spec-tensao').value.trim(),
-                ar_comprimido: document.getElementById('modal-spec-ar').value.trim(),
-                obs_startup: document.getElementById('modal-spec-obs').value.trim(),
-                formato_embalagem: document.getElementById('modal-spec-formato').value.trim(),
-                largura_bobina: document.getElementById('modal-spec-largura').value.trim(),
-                tipo_dosador: document.getElementById('modal-spec-dosador').value.trim(),
-                bicos_envase: document.getElementById('modal-spec-bicos').value.trim(),
-                higienizacao_cip: document.getElementById('modal-spec-cip').value.trim(),
-                produto_fluidez: document.getElementById('modal-spec-fluidez').value.trim(),
-                produto_densidade: document.getElementById('modal-spec-densidade').value.trim(),
-                aco_grau: document.getElementById('modal-spec-aco').value.trim(),
-                polimento_grau: document.getElementById('modal-spec-polimento').value.trim(),
-                eletrica_frequencia: document.getElementById('modal-spec-frequencia').value.trim(),
-                consumo_ar: document.getElementById('modal-spec-consumo-ar').value.trim(),
-                seguranca_nr12: document.getElementById('modal-spec-nr12').value.trim(),
-                portas_seguranca: document.getElementById('modal-spec-portas').value.trim()
-            };
-            
-            const updateBody = {
-                serial: projectSerial,
-                route: projectRoute,
-                fase: finalFase,
-                checklist: updatedChecklist,
-                lastUpdate: new Date().toISOString(),
-                machines: updatedMachines,
-                setup_specs: setupSpecs
-            };
+                const setupSpecs = {
+                    frasco_tamanho: getVal('modal-spec-frasco'),
+                    tampa_tamanho: getVal('modal-spec-tampa'),
+                    espaco_disponivel: getVal('modal-spec-espaco'),
+                    tensao_eletrica: getVal('modal-spec-tensao'),
+                    ar_comprimido: getVal('modal-spec-ar'),
+                    obs_startup: getVal('modal-spec-obs'),
+                    formato_embalagem: getVal('modal-spec-formato'),
+                    largura_bobina: getVal('modal-spec-largura'),
+                    tipo_dosador: getVal('modal-spec-dosador'),
+                    bicos_envase: getVal('modal-spec-bicos'),
+                    higienizacao_cip: getVal('modal-spec-cip'),
+                    produto_fluidez: getVal('modal-spec-fluidez'),
+                    produto_densidade: getVal('modal-spec-densidade'),
+                    aco_grau: getVal('modal-spec-aco'),
+                    polimento_grau: getVal('modal-spec-polimento'),
+                    eletrica_frequencia: getVal('modal-spec-frequencia'),
+                    consumo_ar: getVal('modal-spec-consumo-ar'),
+                    seguranca_nr12: getVal('modal-spec-nr12'),
+                    portas_seguranca: getVal('modal-spec-portas')
+                };
+                
+                const updateBody = {
+                    serial: projectSerial,
+                    route: projectRoute,
+                    fase: finalFase,
+                    checklist: updatedChecklist,
+                    lastUpdate: new Date().toISOString(),
+                    machines: updatedMachines,
+                    setup_specs: setupSpecs
+                };
 
-            fetch(`/api/projects/${project.code}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updateBody)
-            })
-            .then(res => res.json())
-            .then(async data => {
+                const response = await fetch(`/api/projects/${project.code}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateBody)
+                });
+
+                const data = await response.json();
+
                 if (data.error) {
                     alert('Erro ao salvar projeto: ' + data.error);
-                    const btn = document.getElementById('btn-save-project-modal');
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerText = 'Salvar Alterações';
+                    if (saveBtn) {
+                        saveBtn.disabled = false;
+                        saveBtn.innerText = 'Salvar Alterações';
                     }
                     return;
                 }
@@ -11709,12 +11705,10 @@
                         const select = document.getElementById('tag-select-prj');
                         select.value = project.code;
                         
-                        // Populate machine dropdown in Tag tab
                         if (typeof populateTagMachineSelectors === 'function') {
                             populateTagMachineSelectors(project.code);
                         }
                         
-                        // Select the first completed machine index
                         const selectMach = document.getElementById('tag-select-machine');
                         if (selectMach) {
                             const readyIndex = updatedMachines.findIndex(m => m.serial !== '-' && m.route !== '-');
@@ -11734,19 +11728,17 @@
 
                     }, 400);
                 }
-            })
-            .catch(err => {
+            } catch (err) {
                 console.error(err);
-                alert('Erro ao atualizar projeto no servidor.');
-                const btn = document.getElementById('btn-save-project-modal');
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerText = 'Salvar Alterações';
+                alert('Erro ao salvar alterações: ' + err.message);
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerText = 'Salvar Alterações';
                 }
-            });
+            }
         }
 
-        // Delete project
+                // Delete project
         function deleteProjectFromModal() {
             if (!activeProjectCode) return;
             if (currentRole !== 'GERENTE' && currentRole !== 'ALL') {
