@@ -12207,8 +12207,8 @@
 
             // Constrói a Ficha Técnica de Importação e Compra (Guia de Fornecedor)
             let supplierGuideHtml = '';
+            let parsed = null;
             if (project.diagnostico) {
-                let parsed = null;
                 try {
                     if (project.diagnostico.trim().startsWith('{')) {
                         parsed = JSON.parse(project.diagnostico);
