@@ -5674,8 +5674,9 @@ app.post('/api/projects', async (req, res) => {
     const { 
         code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, 
         faseEntryDate, lastUpdate, machines, cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, 
-        receita_data, website, equipment_origin, project_name,
-        crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date
+        receita_data, website, equipment_origin,
+        crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date,
+        project_name
     } = req.body;
     
     if (!code || !client || !sku || !pm || !cnpj) {
@@ -5688,8 +5689,7 @@ app.post('/api/projects', async (req, res) => {
             return res.status(400).json({ error: 'Já existe um projeto cadastrado com o código ' + code });
         }
 
-            validationStatus,
-            project_name || ''
+        const validationStatus = calculateProjectValidationStatus({ checklist });
         const sql = `INSERT INTO projects (
             code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, 
             checklist, prazos, faseEntryDate, lastUpdate, motivoPerda, machines,
@@ -5732,7 +5732,8 @@ app.post('/api/projects', async (req, res) => {
             crm_task_date || '',
             crm_last_comment_user || '',
             crm_last_interaction_date || new Date().toISOString(),
-            validationStatus
+            validationStatus,
+            project_name || ''
         ]);
 
         // Registrar entrada da primeira fase no histórico
@@ -5936,8 +5937,7 @@ app.put('/api/projects/:code', async (req, res) => {
         const currentChecklistJson = checklist ? JSON.stringify(checklist) : oldProject.checklist;
         let currentChecklist = {};
         try { currentChecklist = currentChecklistJson ? JSON.parse(currentChecklistJson) : {}; } catch(e){}
-            validationStatus,
-            project_name !== undefined ? project_name : oldProject.project_name
+        const validationStatus = calculateProjectValidationStatus({ checklist: currentChecklist });
 
         let sql = `UPDATE projects SET 
             serial = ?, 
@@ -5984,7 +5984,8 @@ app.put('/api/projects/:code', async (req, res) => {
             newFaseEntryDate,
             setup_specs ? JSON.stringify(setup_specs) : oldProject.setup_specs,
             diagnostico !== undefined ? diagnostico : oldProject.diagnostico,
-            validationStatus
+            validationStatus,
+            project_name !== undefined ? project_name : oldProject.project_name
         ];
 
         // Se o técnico foi enviado para atualização
