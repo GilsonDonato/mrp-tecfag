@@ -116,7 +116,8 @@ function initializeDatabase() {
             website TEXT,
             equipment_origin TEXT DEFAULT 'Importação',
             handover_signed INTEGER DEFAULT 0,
-            validation_status TEXT DEFAULT 'EM_HOMOLOGACAO'
+            validation_status TEXT DEFAULT 'EM_HOMOLOGACAO',
+            project_name TEXT
         )`);
 
         // Executar migração de colunas para bancos existentes
@@ -140,6 +141,7 @@ function initializeDatabase() {
         db.run("ALTER TABLE projects ADD COLUMN setup_specs TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN spare_parts_recommendations TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN validation_status TEXT DEFAULT 'EM_HOMOLOGACAO'", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN project_name TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN validation_status TEXT DEFAULT 'EM_HOMOLOGACAO'", (err) => {});
 
         // Tabela de Comentários / Discussão (Timeline do Card)
@@ -5672,7 +5674,7 @@ app.post('/api/projects', async (req, res) => {
     const { 
         code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, checklist, prazos, 
         faseEntryDate, lastUpdate, machines, cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, 
-        receita_data, website, equipment_origin,
+        receita_data, website, equipment_origin, project_name,
         crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date
     } = req.body;
     
@@ -5686,15 +5688,17 @@ app.post('/api/projects', async (req, res) => {
             return res.status(400).json({ error: 'Já existe um projeto cadastrado com o código ' + code });
         }
 
-        const validationStatus = calculateProjectValidationStatus({ checklist });
+            validationStatus,
+            project_name || ''
         const sql = `INSERT INTO projects (
             code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, 
             checklist, prazos, faseEntryDate, lastUpdate, motivoPerda, machines,
             cnpj, contact_phone, contact_email, cnae_codigo, cnae_descricao, receita_data, website,
             equipment_origin, handover_signed,
             crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date,
-            validation_status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?)`;
+            validation_status,
+            project_name
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
         await dbRun(sql, [
             code,
@@ -5801,7 +5805,7 @@ app.put('/api/projects/:code', async (req, res) => {
     const { 
         serial, route, fase, checklist, prazos, lastUpdate, motivoPerda, tech, machines, equipment_origin, handover_signed,
         crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date,
-        setup_specs, pm, diagnostico
+        setup_specs, pm, diagnostico, project_name
     } = req.body;
     const { code } = req.params;
 
@@ -5932,7 +5936,8 @@ app.put('/api/projects/:code', async (req, res) => {
         const currentChecklistJson = checklist ? JSON.stringify(checklist) : oldProject.checklist;
         let currentChecklist = {};
         try { currentChecklist = currentChecklistJson ? JSON.parse(currentChecklistJson) : {}; } catch(e){}
-        const validationStatus = calculateProjectValidationStatus({ checklist: currentChecklist });
+            validationStatus,
+            project_name !== undefined ? project_name : oldProject.project_name
 
         let sql = `UPDATE projects SET 
             serial = ?, 
@@ -5955,7 +5960,8 @@ app.put('/api/projects/:code', async (req, res) => {
             faseEntryDate = ?,
             setup_specs = ?,
             diagnostico = ?,
-            validation_status = ?`;
+            validation_status = ?,
+            project_name = ?`;
             
         const params = [
             serial !== undefined ? serial : oldProject.serial,
