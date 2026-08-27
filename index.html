@@ -3318,6 +3318,7 @@
                                         <input type="text" class="form-control" id="modal-spec-largura" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: 320 mm">
                                     </div>
                                 </div>
+                                <div id="modal-group-envase-only" style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
                                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
                                     <div>
                                         <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Dosador</label>
@@ -3342,7 +3343,8 @@
                                         <input type="text" class="form-control" id="modal-spec-densidade" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: 0.95 g/cm³">
                                     </div>
                                 </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                                     <div>
                                         <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Material (Contato Produto)</label>
                                         <input type="text" class="form-control" id="modal-spec-aco" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Aço Inox AISI 316L">
@@ -9099,6 +9101,23 @@
             document.getElementById('modal-spec-consumo-ar').value = specs.consumo_ar;
             document.getElementById('modal-spec-nr12').value = specs.seguranca_nr12;
             document.getElementById('modal-spec-portas').value = specs.portas_seguranca;
+            
+            // Controle dinâmico de visibilidade para processos que não são de Envase/Dosagem
+            let projectSegment = '';
+            if (project.diagnostico) {
+                try {
+                    const parsedDiag = typeof project.diagnostico === 'string' ? JSON.parse(project.diagnostico) : project.diagnostico;
+                    projectSegment = parsedDiag.segment || '';
+                } catch(e) {}
+            }
+            const envaseGroup = document.getElementById('modal-group-envase-only');
+            if (envaseGroup) {
+                if (projectSegment === 'FECHAMENTO_TAMPAGEM' || projectSegment === 'ROTULAGEM' || projectSegment === 'EMBALAGEM_SECUNDARIA') {
+                    envaseGroup.style.display = 'none';
+                } else {
+                    envaseGroup.style.display = 'flex';
+                }
+            }
             
             // Atualizar o Alerta de Pré-Requisitos do Técnico
             const specAlert = document.getElementById('modal-setup-specs-alert');
