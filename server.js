@@ -88,6 +88,8 @@ const db = new sqlite3.Database(dbPath, (err) => {
         console.log('Conectado com sucesso ao banco SQLite em:', dbPath);
         initializeDatabase();
         runAutoPipelineHygiene();
+        setTimeout(sendAutoHygieneWarningEmails, 10000);
+        setInterval(sendAutoHygieneWarningEmails, 24 * 60 * 60 * 1000);
         runDailyBackup();
         setInterval(runDailyBackup, 24 * 60 * 60 * 1000);
     }
@@ -202,6 +204,7 @@ function initializeDatabase() {
 
         db.run("ALTER TABLE users ADD COLUMN phone TEXT", (err) => {});
         db.run("ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0", (err) => {});
+        db.run("ALTER TABLE users ADD COLUMN email TEXT", (err) => {});
 
         // Tabela de Sessões
         db.run(`CREATE TABLE IF NOT EXISTS sessions (
@@ -1075,11 +1078,171 @@ app.get('/api/test-clients', async (req, res) => {
     }
 });
 
+// Rotina de Alertas de Higiene por E-mail (SMTP)
+async function sendAutoHygieneWarningEmails() {
+    try {
+        if (!process.env.SMTP_HOST || process.env.SMTP_HOST === 'smtp.exemplo.com') {
+            console.log('[AUTO-HIGIENE ALERT EMAIL] SMTP não configurado. Alertas diários pulados.');
+            return;
+        }
+        
+        const now = new Date();
+        const projects = await dbAll("SELECT code, client, pm, crm_last_interaction_date, faseEntryDate, prazos, checklist FROM projects WHERE fase = 1");
+        
+        const overdueBySeller = {};
+        
+        for (const p of projects) {
+            let checklistObj = {};
+            try { checklistObj = p.checklist ? JSON.parse(p.checklist) : {}; } catch(e) {}
+            const seller = checklistObj.diagnostico_user || p.pm || 'admin';
+            
+            let prazos = {};
+            try { prazos = p.prazos ? JSON.parse(p.prazos) : {}; } catch(e) {}
+            const limitDays = (prazos && prazos.fase1 !== undefined) ? parseInt(prazos.fase1) : 7;
+            
+            const lastInteractionStr = p.crm_last_interaction_date || p.faseEntryDate;
+            const lastInteractionDate = new Date(lastInteractionStr);
+            const deadlineDate = new Date(lastInteractionDate.getTime() + limitDays * 24 * 60 * 60 * 1000);
+            
+            if (now >= deadlineDate) {
+                const diffMs = now.getTime() - deadlineDate.getTime();
+                const delayDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+                const daysToCancel = 20 - delayDays;
+                
+                if (!overdueBySeller[seller]) {
+                    overdueBySeller[seller] = [];
+                }
+                overdueBySeller[seller].push({
+                    code: p.code,
+                    client: p.client,
+                    delayDays,
+                    daysToCancel: daysToCancel > 0 ? daysToCancel : 0
+                });
+            }
+        }
+        
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT || '587'),
+            secure: process.env.SMTP_SECURE === 'true',
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            }
+        });
+        
+        for (const [seller, list] of Object.entries(overdueBySeller)) {
+            if (list.length === 0) continue;
+            
+            let sellerEmail = seller;
+            if (!sellerEmail.includes('@')) {
+                const userRow = await dbGet('SELECT email FROM users WHERE username = ?', [seller]);
+                if (userRow && userRow.email) {
+                    sellerEmail = userRow.email;
+                } else {
+                    sellerEmail = `${seller}@tecfag.com.br`;
+                }
+            }
+            
+            let html = `
+                <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px;">
+                    <h2 style="color: #ef4444; border-bottom: 2px solid #ef4444; padding-bottom: 8px; margin-top: 0;">⚠️ Alerta de Higiene do Funil: Cards Atrasados</h2>
+                    <p>Olá <strong>${seller}</strong>,</p>
+                    <p>Os projetos listados abaixo na <strong>Fase de Vendas</strong> estão atrasados e correm risco de <strong>cancelamento automático por inatividade</strong> se nenhuma ação for tomada.</p>
+                    
+                    <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+                        <thead>
+                            <tr style="background-color: #f3f4f6;">
+                                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left;">Projeto</th>
+                                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left;">Cliente</th>
+                                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">Dias Atrasado</th>
+                                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">Tempo p/ Cancelar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            for (const item of list) {
+                html += `
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #cbd5e1;"><code>${item.code}</code></td>
+                                <td style="padding: 8px; border: 1px solid #cbd5e1;">${item.client}</td>
+                                <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center; color: #ef4444; font-weight: bold;">${item.delayDays} dias</td>
+                                <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold;">${item.daysToCancel} dias</td>
+                            </tr>
+                `;
+            }
+            
+            html += `
+                        </tbody>
+                    </table>
+                    
+                    <p style="font-weight: bold; color: #b45309;">👉 Ação Requerida:</p>
+                    <p>Abra o MRP, acesse os cards listados e faça uma interação (adicione observações, anexe arquivos ou clique no botão <strong>"Prorrogar Prazo"</strong>) para restabelecer a validade do projeto.</p>
+                    <hr style="border: none; border-top: 1px solid #cbd5e1; margin: 20px 0;">
+                    <span style="font-size: 11px; color: #9ca3af;">Mensagem automática gerada pelo sistema de higiene do funil MRP Tecfag 2.</span>
+                </div>
+            `;
+            
+            await transporter.sendMail({
+                from: `"MRP Tecfag" <${process.env.SMTP_USER}>`,
+                to: sellerEmail,
+                subject: `⚠️ [MRP Tecfag] Alerta de Higiene: ${list.length} cards pendentes de ação`,
+                html
+            });
+            console.log(`[AUTO-HIGIENE EMAIL] Alerta enviado com sucesso para ${sellerEmail} (${list.length} cards)`);
+        }
+    } catch (err) {
+        console.error("[AUTO-HIGIENE EMAIL ERROR] Falha ao enviar e-mails de alerta:", err.message);
+    }
+}
+
+// POST /api/projects/:code/extend - Prorroga o prazo do projeto por +7 dias
+app.post('/api/projects/:code/extend', authenticateToken, async (req, res) => {
+    const { code } = req.params;
+    const { justification } = req.body;
+    
+    if (!justification || justification.trim() === '') {
+        return res.status(400).json({ error: 'Justificativa obrigatória para prorrogar o prazo.' });
+    }
+    
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) return res.status(404).json({ error: 'Projeto não encontrado.' });
+        
+        const now = new Date();
+        const newInteractionDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        
+        await dbRun('UPDATE projects SET crm_last_interaction_date = ?, lastUpdate = ? WHERE code = ?', [
+            newInteractionDate.toISOString(),
+            now.toISOString(),
+            code
+        ]);
+        
+        const username = req.user ? req.user.username : 'Vendedor';
+        const commentText = `⏱️ **Prazo de inatividade prorrogado por +7 dias.** Justificativa: ${justification}`;
+        await dbRun(
+            'INSERT INTO comments (projectCode, user, text, timestamp) VALUES (?, ?, ?, ?)',
+            [code, username, commentText, now.toISOString()]
+        );
+        
+        const logText = `<strong>[PRAZO PRORROGADO]</strong> Vendedor <strong>${username}</strong> prorrogou o prazo do projeto <code>${code}</code>. Justificativa: ${justification}`;
+        await dbRun(
+            'INSERT INTO logs (timestamp, user, text, projectCode) VALUES (?, ?, ?, ?)',
+            [now.toISOString(), username, logText, code]
+        );
+        
+        res.json({ success: true, newInteractionDate: newInteractionDate.toISOString() });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Rotina de Auto-Higiene do Funil (Mover cards atrasados da Fase 1 para a Fase 6 após 20 dias)
 async function runAutoPipelineHygiene() {
     try {
         const now = new Date();
-        const projects = await dbAll("SELECT code, faseEntryDate, prazos, client FROM projects WHERE fase = 1");
+        const projects = await dbAll("SELECT code, faseEntryDate, crm_last_interaction_date, prazos, client FROM projects WHERE fase = 1");
         
         for (const p of projects) {
             let prazos = {};
@@ -1088,8 +1251,9 @@ async function runAutoPipelineHygiene() {
             } catch(e) {}
             
             const limitDays = (prazos && prazos.fase1 !== undefined) ? parseInt(prazos.fase1) : 7;
-            const entryDate = new Date(p.faseEntryDate);
-            const deadlineDate = new Date(entryDate.getTime() + limitDays * 24 * 60 * 60 * 1000);
+            const lastInteractionStr = p.crm_last_interaction_date || p.faseEntryDate;
+            const lastInteractionDate = new Date(lastInteractionStr);
+            const deadlineDate = new Date(lastInteractionDate.getTime() + limitDays * 24 * 60 * 60 * 1000);
             
             // Auto cancelamento ocorre após 20 dias de atraso pós-prazo
             const gracePeriodMs = 20 * 24 * 60 * 60 * 1000;

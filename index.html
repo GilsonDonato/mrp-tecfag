@@ -2120,6 +2120,17 @@
                 </div>
             </div>
 
+            <!-- Banner de Alerta de Higiene / Cards Atrasados -->
+            <div id="auto-hygiene-alert-banner" class="alert alert-important" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #f87171; padding: 12px 15px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; line-height: 1.4; margin-bottom: 20px; align-items: center; justify-content: space-between; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span>⚠️</span>
+                    <span id="auto-hygiene-alert-text">Você possui X cards atrasados na Fase de Vendas com risco de cancelamento automático.</span>
+                </div>
+                <button class="btn" onclick="toggleFilterOverdueOnly()" id="btn-toggle-overdue-filter" style="background: #ef4444; border: 1px solid #ef4444; color: #ffffff; font-size: 0.72rem; font-weight: bold; padding: 5px 12px; border-radius: 4px; cursor: pointer; transition: all 0.2s;">
+                    Filtrar Atrasados
+                </button>
+            </div>
+
             <!-- Pipeline Board -->
             <div class="kanban-board" id="kanban-board-wrapper">
                 <!-- Coluna 1: Vendas / Diagnóstico -->
@@ -3071,6 +3082,9 @@
                     <p id="modal-project-subtitle" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;"></p>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
+                    <button class="btn" id="btn-prorrogar-prazo" onclick="handleProrrogarPrazo()" style="background-color: #d97706; border-color: #d97706; color: #ffffff; padding: 6px 12px; font-size: 0.72rem; font-weight: bold; display: none; align-items: center; gap: 6px; border-radius: 6px;" title="Prorrogar o prazo de inatividade por +7 dias">
+                        ⏱️ <span>Prorrogar Prazo</span>
+                    </button>
                     <button class="btn" id="btn-whatsapp-notify" onclick="sendWhatsappNotification()" style="background-color: #16a34a; border-color: #16a34a; color: #ffffff; padding: 6px 12px; font-size: 0.72rem; font-weight: bold; display: flex; align-items: center; gap: 6px; border-radius: 6px;" title="Notificar Vendedor via WhatsApp Web">
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984a9.96 9.96 0 0 0 1.335 4.963L2 22l5.233-1.371a9.94 9.94 0 0 0 4.779 1.22h.005c5.505 0 9.989-4.478 9.99-9.985A9.98 9.98 0 0 0 12.012 2zm4.957 14.22c-.274.774-1.353 1.4-1.854 1.48-.443.076-.99.143-3.136-.713-2.738-1.09-4.489-3.864-4.626-4.046-.137-.18-.992-1.314-.992-2.505 0-1.192.624-1.78.847-2.022.223-.243.486-.304.65-.304.162 0 .324.002.463.008.148.007.348-.056.545.42.203.49.696 1.696.757 1.821.06.126.1.272.015.44-.086.17-.13.275-.258.423-.127.148-.266.33-.38.455-.128.14-.262.29-.112.548.15.258.665 1.095 1.425 1.77.98.87 1.802 1.14 2.06 1.268.257.127.407.106.557-.068.15-.174.646-.75.82-.998.174-.249.349-.208.588-.12.24.088 1.516.715 1.779.847.262.13.437.195.5.304.064.108.064.63-.21 1.404z"/></svg>
                         <span>Notificar Vendedor</span>
@@ -5555,6 +5569,57 @@
         let currentRole = "ALL"; 
         let activeSellerFilter = "all";
         let activeProjectCode = null;
+        let filterOverdueOnly = false;
+
+        async function handleProrrogarPrazo() {
+            if (!activeProjectCode) return;
+            const justification = prompt("Digite uma justificativa rápida para prorrogar o prazo do projeto (obrigatório):");
+            if (justification === null) return; 
+            if (justification.trim() === '') {
+                alert("Você precisa digitar uma justificativa para poder prorrogar o prazo.");
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const response = await fetch(`/api/projects/${activeProjectCode}/extend`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ justification })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert("✅ Prazo de inatividade prorrogado com sucesso por +7 dias!");
+                    await loadProjects();
+                    openProjectModal(activeProjectCode);
+                } else {
+                    alert("❌ Erro ao prorrogar prazo: " + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("❌ Erro de conexão ao tentar prorrogar prazo.");
+            }
+        }
+
+        function toggleFilterOverdueOnly() {
+            filterOverdueOnly = !filterOverdueOnly;
+            const btn = document.getElementById('btn-toggle-overdue-filter');
+            if (btn) {
+                if (filterOverdueOnly) {
+                    btn.innerText = "Mostrar Todos";
+                    btn.style.backgroundColor = "var(--bg-base)";
+                    btn.style.borderColor = "var(--border-color)";
+                } else {
+                    btn.innerText = "Filtrar Atrasados";
+                    btn.style.backgroundColor = "#ef4444";
+                    btn.style.borderColor = "#ef4444";
+                }
+            }
+            renderKanbanBoard();
+        }
         let lockHeartbeatInterval = null;
         let setupSelectedFiles = [];
 
