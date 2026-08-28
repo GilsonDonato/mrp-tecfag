@@ -3390,9 +3390,15 @@
                                     <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Produtividade & Linha/Espaço</label>
                                     <input type="text" class="form-control" id="modal-spec-espaco" style="font-size: 0.78rem; padding: 6px; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: 20 batidas/min, esteira sentido E->D">
                                 </div>
-                                <div>
-                                    <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">6. Notas de Setup / Ajustes de Oficina</label>
-                                    <textarea class="form-control" id="modal-spec-obs" style="font-size: 0.78rem; padding: 6px; height: 50px; resize: none; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Exige fotocélula ativa para bobina com marca de registro..."></textarea>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">5. Documentação & Requisitos do Fornecedor</label>
+                                        <textarea class="form-control" id="modal-spec-documentacao" style="font-size: 0.78rem; padding: 6px; height: 65px; resize: vertical; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Manuais completos em português, qualificação QI/QO/QD em padrão GMP..."></textarea>
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">6. Notas de Setup / Ajustes de Oficina</label>
+                                        <textarea class="form-control" id="modal-spec-obs" style="font-size: 0.78rem; padding: 6px; height: 65px; resize: vertical; background: rgba(0,0,0,0.2); border-color: var(--border-color); color: var(--text-primary);" placeholder="Ex: Exige fotocélula ativa para bobina com marca de registro..."></textarea>
+                                    </div>
                                 </div>
                                 <div style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 10px;">
                                     <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Anexos do Setup (Desenhos CAD, Imagens, Vídeos, PDFs)</label>
@@ -9077,6 +9083,7 @@
                 tensao_eletrica: savedSpecs.tensao_eletrica || extracted.tensao_eletrica || '',
                 ar_comprimido: savedSpecs.ar_comprimido || extracted.ar_comprimido || '',
                 obs_startup: savedSpecs.obs_startup || extracted.obs_startup || '',
+                obs_documentacao: savedSpecs.obs_documentacao || '',
                 formato_embalagem: savedSpecs.formato_embalagem || '',
                 largura_bobina: savedSpecs.largura_bobina || '',
                 tipo_dosador: savedSpecs.tipo_dosador || '',
@@ -9098,6 +9105,8 @@
             document.getElementById('modal-spec-tensao').value = specs.tensao_eletrica;
             document.getElementById('modal-spec-ar').value = specs.ar_comprimido;
             document.getElementById('modal-spec-obs').value = specs.obs_startup;
+            const docInput = document.getElementById('modal-spec-documentacao');
+            if (docInput) docInput.value = specs.obs_documentacao;
             
             document.getElementById('modal-spec-formato').value = specs.formato_embalagem;
             document.getElementById('modal-spec-largura').value = specs.largura_bobina;
@@ -11671,6 +11680,7 @@
                     tensao_eletrica: getVal('modal-spec-tensao'),
                     ar_comprimido: getVal('modal-spec-ar'),
                     obs_startup: getVal('modal-spec-obs'),
+                    obs_documentacao: getVal('modal-spec-documentacao'),
                     formato_embalagem: getVal('modal-spec-formato'),
                     largura_bobina: getVal('modal-spec-largura'),
                     tipo_dosador: getVal('modal-spec-dosador'),
@@ -12279,6 +12289,8 @@
                     
                     const safetyNR12 = s.seguranca_nr12 || (parsed.infra && parsed.infra.nr12 === 'Padrao' ? 'Adequação NR-12 Padrão Tecfag' : (parsed.infra && parsed.infra.nr12 === 'Rigoroso' ? 'Adequação NR-12 Rigorosa com Relatório e ART' : (parsed.infra && parsed.infra.nr12) || '-'));
                     const safetyDoors = s.portas_seguranca || (parsed.parameters && parsed.parameters.finalSafetyDoors) || '-';
+                    const obsDocumentacao = s.obs_documentacao || '-';
+                    const obsStartup = s.obs_startup || '-';
                     
                     const diagUser = (project.checklist && project.checklist.diagnostico_user) || 'Engenharia Comercial';
                     const diagDate = (project.checklist && project.checklist.diagnostico_date) ? new Date(project.checklist.diagnostico_date).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
@@ -12356,6 +12368,14 @@
                                             <strong>Regulamentação:</strong> ${safetyNR12} | 
                                             <strong>Portas de Segurança:</strong> ${safetyDoors}
                                         </td>
+                                    </tr>
+                                    <tr style="background: rgba(0,0,0,0.02);">
+                                        <td style="font-weight: bold; padding: 6px; border: 1px solid #dee2e6;">5. Documentação & Requisitos</td>
+                                        <td style="padding: 6px; border: 1px solid #dee2e6; white-space: pre-wrap;">${obsDocumentacao}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: bold; padding: 6px; border: 1px solid #dee2e6;">6. Notas de Setup & Oficina</td>
+                                        <td style="padding: 6px; border: 1px solid #dee2e6; white-space: pre-wrap;">${obsStartup}</td>
                                     </tr>
                                 </tbody>
                             </table>
