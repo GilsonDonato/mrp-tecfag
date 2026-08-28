@@ -1228,8 +1228,14 @@ app.post('/api/projects/:code/extend', authenticateToken, async (req, res) => {
         
         const logText = `<strong>[PRAZO PRORROGADO]</strong> Vendedor <strong>${username}</strong> prorrogou o prazo do projeto <code>${code}</code>. Justificativa: ${justification}`;
         await dbRun(
-            'INSERT INTO logs (timestamp, user, text, projectCode) VALUES (?, ?, ?, ?)',
-            [now.toISOString(), username, logText, code]
+            'INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)',
+            [now.toISOString(), '#d97706', logText]
+        );
+        
+        const actionText = `Prorrogou o prazo de inatividade por +7 dias. Justificativa: ${justification}`;
+        await dbRun(
+            'INSERT INTO project_audit_trail (projectCode, user, timestamp, action) VALUES (?, ?, ?, ?)',
+            [code, username, now.toISOString(), actionText]
         );
         
         res.json({ success: true, newInteractionDate: newInteractionDate.toISOString() });
@@ -1282,8 +1288,13 @@ async function runAutoPipelineHygiene() {
                 // Gravar log de auditoria
                 const logText = `<strong>[AUTO-HIGIENE]</strong> Projeto <code>${p.code}</code> de <strong>${p.client}</strong> foi cancelado automaticamente por inatividade superior a 20 dias de atraso na Fase 1.`;
                 await dbRun(
-                    'INSERT INTO logs (timestamp, user, text, projectCode) VALUES (?, ?, ?, ?)',
-                    [now.toISOString(), 'Sistema (Auto-Higiene)', logText, p.code]
+                    'INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)',
+                    [now.toISOString(), '#ef4444', logText]
+                );
+                
+                await dbRun(
+                    'INSERT INTO project_audit_trail (projectCode, user, timestamp, action) VALUES (?, ?, ?, ?)',
+                    [p.code, 'Sistema (Auto-Higiene)', now.toISOString(), 'Cancelamento automático por inatividade na Fase 1.']
                 );
             }
         }
