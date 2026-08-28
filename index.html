@@ -9131,6 +9131,12 @@
             
             document.getElementById('modal-project-subtitle').innerText = `Gerente: ${project.pm} | Vendedor: ${creator} | Técnico: ${project.tech}`;
             
+            // Exibir botão de prorrogação apenas se estiver na Fase 1 (Vendas)
+            const btnProrrogar = document.getElementById('btn-prorrogar-prazo');
+            if (btnProrrogar) {
+                btnProrrogar.style.display = parseInt(project.fase) === 1 ? 'flex' : 'none';
+            }
+            
             // Gerar imagem do QR Code
             const qrContainer = document.getElementById('modal-project-qrcode');
             if (qrContainer) {
