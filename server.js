@@ -1222,7 +1222,7 @@ app.post('/api/projects/:code/extend', authenticateToken, async (req, res) => {
         const username = req.user ? req.user.username : 'Vendedor';
         const commentText = `⏱️ **Prazo de inatividade prorrogado por +7 dias.** Justificativa: ${justification}`;
         await dbRun(
-            'INSERT INTO comments (projectCode, user, text, timestamp) VALUES (?, ?, ?, ?)',
+            'INSERT INTO comments (projectCode, user, message, dateAdded) VALUES (?, ?, ?, ?)',
             [code, username, commentText, now.toISOString()]
         );
         
