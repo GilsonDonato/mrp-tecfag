@@ -5607,9 +5607,9 @@
                 }
                 
                 if (response.ok && data.success) {
-                    alert("✅ Prazo de inatividade prorrogado com sucesso por +7 dias!");
+                    alert("✅ Prazo prorrogado com sucesso por +7 dias!");
                     try {
-                        await loadProjects();
+                        loadProjectsDB();
                         if (activeProjectCode) {
                             openProjectModal(activeProjectCode);
                         }

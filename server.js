@@ -1211,10 +1211,10 @@ app.post('/api/projects/:code/extend', authenticateToken, async (req, res) => {
         if (!project) return res.status(404).json({ error: 'Projeto não encontrado.' });
         
         const now = new Date();
-        const newInteractionDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
         
-        await dbRun('UPDATE projects SET crm_last_interaction_date = ?, lastUpdate = ? WHERE code = ?', [
-            newInteractionDate.toISOString(),
+        await dbRun('UPDATE projects SET faseEntryDate = ?, crm_last_interaction_date = ?, lastUpdate = ? WHERE code = ?', [
+            now.toISOString(),
+            now.toISOString(),
             now.toISOString(),
             code
         ]);
