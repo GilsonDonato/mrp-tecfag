@@ -5580,6 +5580,13 @@
                 return;
             }
             
+            const btn = document.getElementById('btn-prorrogar-prazo');
+            const originalText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '⏱️ <span>Prorrogando...</span>';
+            }
+            
             try {
                 const token = localStorage.getItem('tecfag_session_token');
                 const response = await fetch(`/api/projects/${activeProjectCode}/extend`, {
@@ -5590,17 +5597,36 @@
                     },
                     body: JSON.stringify({ justification })
                 });
-                const data = await response.json();
-                if (response.ok) {
+                
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch(e) {
+                    const text = await response.text().catch(() => '');
+                    data = { error: text || `Erro HTTP ${response.status}` };
+                }
+                
+                if (response.ok && data.success) {
                     alert("✅ Prazo de inatividade prorrogado com sucesso por +7 dias!");
-                    await loadProjects();
-                    openProjectModal(activeProjectCode);
+                    try {
+                        await loadProjects();
+                        if (activeProjectCode) {
+                            openProjectModal(activeProjectCode);
+                        }
+                    } catch (reloadErr) {
+                        console.error("Erro ao atualizar interface após prorrogação:", reloadErr);
+                    }
                 } else {
-                    alert("❌ Erro ao prorrogar prazo: " + (data.error || 'Erro desconhecido.'));
+                    alert("❌ Erro ao prorrogar prazo: " + (data.error || data.message || `Status HTTP ${response.status}`));
                 }
             } catch (err) {
-                console.error(err);
-                alert("❌ Erro de conexão ao tentar prorrogar prazo.");
+                console.error('[ERRO PRORROGAR PRAZO]', err);
+                alert("❌ Erro de conexão com o servidor: " + (err.message || 'Verifique sua conexão e tente novamente.'));
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
             }
         }
 
