@@ -1238,7 +1238,7 @@ app.post('/api/projects/:code/extend', authenticateToken, async (req, res) => {
             [code, username, now.toISOString(), actionText]
         );
         
-        res.json({ success: true, newInteractionDate: newInteractionDate.toISOString() });
+        res.json({ success: true, newInteractionDate: now.toISOString() });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
