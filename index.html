@@ -7276,8 +7276,8 @@
                         inputEl.appendChild(opt);
                     });
 
-                    // Se for o seletor de sub-tipo, adiciona o evento de mudança
-                    if (fieldLabel.includes('Sub-tipo')) {
+                    // Se for o seletor de sub-tipo ou formato da embalagem, adiciona o evento de mudança
+                    if (fieldLabel.includes('Sub-tipo') || fieldLabel.includes('Formato da Embalagem')) {
                         inputEl.addEventListener('change', () => {
                             toggleDynamicSubtypes(inputEl.value);
                             applyConditionalFieldRules();
@@ -7356,6 +7356,27 @@
 
         // Regras de restrição de campos e validações dinâmicas dependentes
         function applyConditionalFieldRules() {
+            // Regra condicional para Segmento 5 (Empacotamento: VFFS vs Flow Pack)
+            const bagStyleEl = document.getElementById('prj-dosagem-bag-style');
+            if (bagStyleEl) {
+                const isFlowpack = bagStyleEl.value === 'Flow Pack Horizontal';
+                
+                const vffsGroups = document.querySelectorAll('#dynamic-fields-grid .dynamic-field-group[data-category="VFFS"]');
+                const flowpackGroups = document.querySelectorAll('#dynamic-fields-grid .dynamic-field-group[data-category="Flowpack"]');
+                
+                vffsGroups.forEach(g => {
+                    g.style.display = isFlowpack ? 'none' : 'block';
+                    const inp = g.querySelector('input, select');
+                    if (inp) inp.disabled = isFlowpack;
+                });
+                
+                flowpackGroups.forEach(g => {
+                    g.style.display = isFlowpack ? 'block' : 'none';
+                    const inp = g.querySelector('input, select');
+                    if (inp) inp.disabled = !isFlowpack;
+                });
+            }
+
             const shrinkSubtypeEl = document.getElementById('prj-shrink-subtype');
             const filmTypeEl = document.querySelector('[data-field-name="Tipo de Filme Termoencolhível*"]') || document.querySelector('[data-field-name="Tipo de Filme Termoencolhível"]');
             
@@ -7835,30 +7856,52 @@
                 defaultSkuDetails = 'Ideal para envases pontuais operados por pedal pneumático.';
                 
             } else if (segment === 'DOSAGEM_EMPACOTAMENTO') {
-                const bagStyle = document.getElementById('prj-dosagem-bag-style').value;
-                const sensitivity = document.getElementById('prj-dosagem-sensitivity').value;
-                const printer = document.getElementById('prj-dosagem-printer').value;
+                const bagStyleEl = document.getElementById('prj-dosagem-bag-style');
+                const bagStyle = bagStyleEl ? bagStyleEl.value : '';
+                const sensitivityEl = document.getElementById('prj-dosagem-sensitivity');
+                const sensitivity = (sensitivityEl && !sensitivityEl.disabled) ? sensitivityEl.value : '';
+                const printerEl = document.getElementById('prj-dosagem-printer');
+                const printer = (printerEl && !printerEl.disabled) ? printerEl.value : '';
                 
-                if (bagStyle === 'Standup') {
+                if (bagStyle === 'Flow Pack Horizontal') {
+                    const mordenteEl = document.querySelector('[data-field-name="Tipo de Movimento do Mordente Transversal*"]');
+                    const mordente = mordenteEl ? mordenteEl.value : '';
+                    const gasEl = document.querySelector('[data-field-name="Injeção de Gás Inerte (Atmosfera Modificada / MAP)?"]');
+                    const gas = gasEl ? gasEl.value : '';
+                    
+                    if (mordente && mordente.includes('Box Motion')) {
+                        isCustom = true;
+                        customReasons.push('Mordente tipo Box Motion (requer servomotores sincronizados para selagem hermética e pacotes altos)');
+                    }
+                    if (gas && gas.includes('Sim')) {
+                        isCustom = true;
+                        customReasons.push('Injeção de Gás MAP integrada (requer tubulações de injeção, reguladores e bicos sob medida)');
+                    }
+                    if (!isCustom) {
+                        suggestedSku = 'FLOWPACK-HORIZ-250 (Embaladora Flow Pack Horizontal Automática)';
+                        defaultSkuDetails = 'Ideal para produtos sólidos individuais ou em bandejas (doces, sabonetes, picolés, barras, peças).';
+                    }
+                } else if (bagStyle.includes('Stand-up')) {
                     isCustom = true;
                     customReasons.push('Embalagem tipo Stand-up Pouch (exige alimentador e sistema abridor de zíper pneumático)');
-                }
-                if (sensitivity === 'Alta') {
-                    isCustom = true;
-                    customReasons.push('Produto de altíssima fragilidade (requer calhas inclinadas de baixa queda para evitar quebra)');
-                }
-                if (printer === 'Termotransferência') {
-                    isCustom = true;
-                    customReasons.push('Datador TTO de alta resolução integrado (exige suporte de montagem e sincronismo de película)');
-                }
-                
-                if (!isCustom) {
-                    if (bagStyle === 'Stick') {
-                        suggestedSku = 'VFFS-STICK-4 (Empacotadora Stick 4 Vias)';
-                        defaultSkuDetails = 'Solução de alta velocidade para sachês stick monodose (pós, grãos ou líquidos sob consulta).';
-                    } else {
-                        suggestedSku = 'VFFS-BAL-320 (Empacotadora Vertical com Balança de Múltiplos Cabeçotes)';
-                        defaultSkuDetails = 'Excelente custo-benefício para produtos granulares comuns.';
+                } else {
+                    if (sensitivity === 'Altíssima' || sensitivity === 'Alta') {
+                        isCustom = true;
+                        customReasons.push('Produto de altíssima fragilidade (requer calhas inclinadas de baixa queda para evitar quebra)');
+                    }
+                    if (printer === 'Termotransferência' || (printer && printer.includes('Termotransferência'))) {
+                        isCustom = true;
+                        customReasons.push('Datador TTO de alta resolução integrado (exige suporte de montagem e sincronismo de película)');
+                    }
+                    
+                    if (!isCustom) {
+                        if (bagStyle.includes('Stick')) {
+                            suggestedSku = 'VFFS-STICK-4 (Empacotadora Stick 4 Vias)';
+                            defaultSkuDetails = 'Solução de alta velocidade para sachês stick monodose (pós, grãos ou líquidos sob consulta).';
+                        } else {
+                            suggestedSku = 'VFFS-BAL-320 (Empacotadora Vertical com Balança de Múltiplos Cabeçotes)';
+                            defaultSkuDetails = 'Excelente custo-benefício para produtos granulares comuns.';
+                        }
                     }
                 }
                 
@@ -13945,11 +13988,10 @@
                 `,
                 DOSAGEM_EMPACOTAMENTO: `
                     <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>
-                    • <strong>Qual o estado físico do produto? (Línguido, pastoso, pó ou grãos?).</strong> [CRÍTICO]<br>
-                    • Quais as <strong>dimensões finais da embalagem cheia</strong> (largura x altura em mm)?<br>
-                    • Qual o formato: Almofada, Sanfonado, Stand-up Pouch, Flow Pack ou Stick?<br>
-                    • A arte do filme tem fotocélula (marca preta) ou é liso/transparente?<br>
-                    • Qual o tipo de solda (lisa, estriada, 3 ou 4 soldas) e velocidade (ppm) desejada?
+                    • <strong>Qual o formato:</strong> Flow Pack Horizontal ou Vertical VFFS (Almofada, Sanfonado, Stand-up, Stick)?<br>
+                    • <strong>Para Flow Pack:</strong> Quais as dimensões do produto (C x L x A em mm), tipo de alimentação (manual por esteira ou automático) e se a bobina é superior ou inferior?<br>
+                    • <strong>Para Vertical VFFS:</strong> Qual o estado físico do produto (pó, grãos, líquidos) e tipo de dosador superior (balança, rosca, copo, pistão)?<br>
+                    • <strong>Filme & Solda:</strong> A arte tem fotocélula (tarja preta), qual o tipo de filme (BOPP, PE, laminado) e velocidade (ppm) desejada?
                 `,
                 ENVASE: `
                     <strong>Perguntas Essenciais para fazer ao cliente:</strong><br>

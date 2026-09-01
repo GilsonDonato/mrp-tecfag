@@ -6911,8 +6911,11 @@ DIRETRIZES DE ENGENHARIA POR SEGMENTO:
    - Essencial: Tipo de gelificante (pectina, gelatina ou amido), formato do molde (3D, teflon, silicone), capacidade em kg/hora, temperatura de dosagem e tipo de agente desmoldante (óleo/amido).
 4. "DOSAGEM_SEMIAUTOMATICA" (Dosadores Semiautomáticos):
    - Essencial: Faixa de dosagem (gramas ou ml), comportamento de fluidez/viscosidade e se o produto gera pó em suspensão (necessidade de bico com exaustão ou gaveta corta-fluxo).
-5. "DOSAGEM_EMPACOTAMENTO" (Empacotamento Automático VFFS/Flow Pack):
-   - Essencial: Largura máxima da bobina do filme plástico, tipo de material do filme (Laminado, PE, PP, Papel), dimensões do sachê final, tipo de solda e se o filme possui impressão (necessidade de fotocélula).
+5. "DOSAGEM_EMPACOTAMENTO" (Empacotamento Automático VFFS / Flow Pack):
+   - Se Formato for "Flow Pack Horizontal":
+     • Essencial: Dimensões do produto (Comprimento x Largura x Altura em mm), sistema de alimentação do produto (esteira de talas/manual ou automático), posição da bobina (superior ou inferior) e tipo de mordente (rotativo ou box motion). NUNCA exija dosador superior ou sensibilidade à queda para Flow Pack!
+   - Se Formato for Vertical (VFFS, Stand-up, Stick):
+     • Essencial: Tipo de dosador superior (balança, rosca, copo ou pistão), dimensões do sachê, tipo de material do filme (Laminado, PE, PP, Papel), tipo de solda e se o filme possui fotocélula.
 6. "ENVASE" (Envasadoras Automáticas de Líquidos/Pastosos):
    - Essencial: Comportamento de viscosidade (baixo, médio, alto), temperatura de envase, presença de pedaços/sólidos no líquido, diâmetro do gargalo, corrosividade/PH ácido do produto (Inox 316L) e se gera espuma (necessidade de bico mergulhador).
 7. "FECHAMENTO_TAMPAGEM" (Tampadoras, Rosqueadoras, Indução):

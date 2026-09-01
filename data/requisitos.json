@@ -433,52 +433,88 @@
   },
   {
     "segmento": "5. Empacotamento Automático",
-    "subtipo": "Empacotadoras VFFS / Flow Pack / Stick",
+    "subtipo": "Geral",
     "campo": "Formato da Embalagem*",
     "tipo": "Seleção (Select)",
     "opcoes": "VFFS Vertical Almofada / Travesseiro; VFFS Vertical Sanfonado / Fundo Chato; Stand-up Pouch (Pré-formado ou com Zíper); Flow Pack Horizontal; Sachê tipo Stick",
     "origem": "Atual",
-    "justificativa": "Define a arquitetura física (VFFS vs Flowpack vs Stick)."
+    "justificativa": "Define a arquitetura física da máquina (Vertical VFFS vs Flow Pack Horizontal vs Stick)."
   },
   {
     "segmento": "5. Empacotamento Automático",
-    "subtipo": "Empacotadoras",
+    "subtipo": "VFFS",
     "campo": "Equipamento de Dosagem Superior Acoplado*",
     "tipo": "Seleção (Select)",
-    "opcoes": "Balança Multicabeçote (Grãos/Snacks); Dosador de Rosca Sem Fim (Pós); Copo Volumétrico (Grãos); Bomba de Pistão (Líquidos)",
+    "opcoes": "Balança Multicabeçote (Grãos/Snacks); Dosador de Rosca Sem Fim (Pós); Copo Volumétrico (Grãos); Bomba de Pistão (Líquidos); Sem dosador (Alimentação manual)",
     "origem": "Proposto Engenharia (Zero Erros)",
     "justificativa": "A empacotadora apenas forma o plástico. A engenharia precisa desenhar o suporte mecânico de acordo com o peso e formato do dosador superior."
   },
   {
     "segmento": "5. Empacotamento Automático",
-    "subtipo": "Empacotadoras",
-    "campo": "Dimensões Finais da Embalagem Cheia (Largura x Altura mm)*",
-    "tipo": "Texto",
-    "opcoes": "-",
-    "origem": "Proposto Melhorado (UX)",
-    "justificativa": "Substitui 'Largura da bobina'. O cliente não sabe a bobina, mas sabe a embalagem final. A engenharia calcula o resto."
+    "subtipo": "Flowpack",
+    "campo": "Sistema de Alimentação do Produto (Flow Pack)*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Manual por Esteira de Talas / Empurradores; Alimentador Automático / Magazine de Produto; Esteira Sincronizada em Linha Contínua; Alimentador Rotativo / Centrífugo; Alimentação por Gravidade / Rampa Inclinada",
+    "origem": "Proposto Engenharia Flowpack",
+    "justificativa": "Define o tipo e comprimento da esteira de entrada do produto na embaladora horizontal."
   },
   {
     "segmento": "5. Empacotamento Automático",
-    "subtipo": "Empacotadoras",
+    "subtipo": "Flowpack",
+    "campo": "Posição da Bobina do Filme*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Bobina Superior (Padrão - Produtos Regulares/Sólidos/Bandejas); Bobina Inferior / Invertida (Produtos Irregulares, Macios, Úmidos ou Pesados)",
+    "origem": "Proposto Engenharia Flowpack",
+    "justificativa": "Bobina inferior (invertida) puxa o filme por baixo para produtos que não podem deslizar em mesas formadoras."
+  },
+  {
+    "segmento": "5. Empacotamento Automático",
+    "subtipo": "Flowpack",
+    "campo": "Tipo de Movimento do Mordente Transversal*",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Mordente Rotativo Simples (Padrão / Alta Velocidade); Mordente Rotativo Duplo (Altíssima Velocidade); Mordente Box Motion / D-Cam (Selagem Hermética / Pacotes Altos / MAP)",
+    "origem": "Proposto Engenharia Flowpack",
+    "justificativa": "Box Motion garante tempo de solda prolongado e acomoda produtos de maior altura com vedação estanque."
+  },
+  {
+    "segmento": "5. Empacotamento Automático",
+    "subtipo": "Flowpack",
+    "campo": "Injeção de Gás Inerte (Atmosfera Modificada / MAP)?",
+    "tipo": "Seleção (Select)",
+    "opcoes": "Não (Ar ambiente); Sim (Injeção de Gás para Aumento de Shelf-life)",
+    "origem": "Proposto Engenharia Flowpack",
+    "justificativa": "Requer tubulação de injeção de gás antes do fechamento transversal do mordente."
+  },
+  {
+    "segmento": "5. Empacotamento Automático",
+    "subtipo": "Geral",
+    "campo": "Dimensões do Produto / Embalagem (C x L x A em mm)*",
+    "tipo": "Texto",
+    "opcoes": "-",
+    "origem": "Proposto Melhorado (UX)",
+    "justificativa": "Para Flow Pack: Comprimento x Largura x Altura do produto. Para VFFS: Largura x Altura do pacote."
+  },
+  {
+    "segmento": "5. Empacotamento Automático",
+    "subtipo": "Geral",
     "campo": "Arte Impressa possui Fotocélula (Tarja preta)?",
     "tipo": "Seleção (Select)",
-    "opcoes": "Sim; Não (Filme liso ou arte contínua)",
+    "opcoes": "Sim (Filme impresso com marca de registro); Não (Filme transparente / liso / contínuo)",
     "origem": "Proposto Novo",
     "justificativa": "Define a necessidade de sensores ópticos de leitura de passo."
   },
   {
     "segmento": "5. Empacotamento Automático",
-    "subtipo": "Empacotadoras",
+    "subtipo": "Geral",
     "campo": "Tipo de Solda/Selagem*",
     "tipo": "Seleção (Select)",
-    "opcoes": "Solda Lisa (PE simples); Solda Estriada (Laminados / Barreira); 3 Soldas (Almofada / 3 Soldas Laterais / Flow Pack); 4 Soldas Laterais (Quad-seal); Solda Fria (Cold Seal); De acordo com projeto do cliente",
+    "opcoes": "Solda Estriada / Recartilhada (Laminados / BOPP); Solda Lisa (PE simples / Impulso); Solda Fria (Cold Seal); De acordo com projeto do cliente",
     "origem": "Atual",
     "justificativa": "Define o recartilhado / frisos dos mordentes e temperatura do controle PID."
   },
   {
     "segmento": "5. Empacotamento Automático",
-    "subtipo": "Empacotadoras",
+    "subtipo": "Geral",
     "campo": "Tipo de Datador Requerido*",
     "tipo": "Seleção (Select)",
     "opcoes": "Hot Stamping (Fita térmica simples); Inkjet Integrado; Termotransferência (TTO - Dados variáveis/barras); Não exige datador",
@@ -487,16 +523,16 @@
   },
   {
     "segmento": "5. Empacotamento Automático",
-    "subtipo": "Empacotadoras",
+    "subtipo": "VFFS",
     "campo": "Sensibilidade do Produto à Queda*",
     "tipo": "Seleção (Select)",
     "opcoes": "Resistente (Grãos, feijão, arroz, parafusos); Média (Biscoitos, snacks, torradas); Altíssima (Requer calhas inclinadas de baixa queda)",
     "origem": "Atual",
-    "justificativa": "Produtos frágeis exigem calhas inclinadas de baixa queda e mordentes especiais."
+    "justificativa": "Produtos frágeis em máquinas verticais exigem calhas inclinadas de baixa queda e mordentes especiais."
   },
   {
     "segmento": "5. Empacotamento Automático",
-    "subtipo": "Empacotadoras",
+    "subtipo": "Geral",
     "campo": "Composição e Espessura da Bobina de Filme",
     "tipo": "Texto",
     "opcoes": "-",
@@ -505,7 +541,7 @@
   },
   {
     "segmento": "5. Empacotamento Automático",
-    "subtipo": "Empacotadoras",
+    "subtipo": "Geral",
     "campo": "Velocidade Requerida de Produção (Pacotes/minuto - ppm)",
     "tipo": "Número",
     "opcoes": "-",
