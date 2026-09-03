@@ -9647,14 +9647,19 @@
 
                     let obsHistoryHTML = '';
                     if (obsList.length > 0) {
-                        obsList.forEach(obs => {
+                        obsList.forEach((obs, obsIdx) => {
                             const dateStr = new Date(obs.date).toLocaleString('pt-BR');
                             const userLabel = obs.user === 'sistema' ? '💾 Legado' : `👤 ${obs.user}`;
                             obsHistoryHTML += `
                                 <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 8px 10px; border-radius: 5px; margin-bottom: 8px; font-size: 0.76rem; line-height: 1.4;">
-                                    <div style="display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--text-secondary); margin-bottom: 4px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 2px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.68rem; color: var(--text-secondary); margin-bottom: 4px; border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 2px;">
                                         <span style="font-weight: bold; color: var(--primary);">${userLabel}</span>
-                                        <span>${dateStr}</span>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <span>${dateStr}</span>
+                                            <button type="button" onclick="deleteProjectObservation(${obsIdx})" title="Excluir esta observação do histórico" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; border-radius: 4px; cursor: pointer; font-size: 0.68rem; padding: 2px 6px; display: inline-flex; align-items: center; gap: 3px;" onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'">
+                                                🗑️ Excluir
+                                            </button>
+                                        </div>
                                     </div>
                                     <div style="color: #cbd5e1; white-space: pre-wrap; word-break: break-word;">${obs.text}</div>
                                 </div>
@@ -10136,6 +10141,74 @@
             } catch (err) {
                 console.error('Erro ao salvar observações técnicas:', err);
                 alert('Erro de conexão ao salvar observações.');
+            }
+        }
+
+        // Exclui uma observação específica do histórico técnico
+        async function deleteProjectObservation(obsIndex) {
+            if (!confirm("Tem certeza de que deseja apagar esta observação do histórico técnico deste card?")) {
+                return;
+            }
+            
+            const project = state.projects.find(p => p.code === activeProjectCode);
+            if (!project) return;
+            
+            let updatedDiagnostico = '';
+            if (project.diagnostico) {
+                try {
+                    if (project.diagnostico.trim().startsWith('{')) {
+                        const parsed = JSON.parse(project.diagnostico);
+                        
+                        let currentList = [];
+                        if (parsed.observations) {
+                            if (Array.isArray(parsed.observations)) {
+                                currentList = parsed.observations;
+                            } else if (typeof parsed.observations === 'string' && parsed.observations.trim() !== '') {
+                                currentList = [{
+                                    text: parsed.observations,
+                                    user: 'sistema',
+                                    date: project.dateCreated || new Date().toISOString()
+                                }];
+                            }
+                        }
+                        
+                        if (obsIndex >= 0 && obsIndex < currentList.length) {
+                            currentList.splice(obsIndex, 1);
+                            parsed.observations = currentList;
+                            updatedDiagnostico = JSON.stringify(parsed);
+                        }
+                    }
+                } catch(e) {
+                    console.error("Erro ao remover observação:", e);
+                }
+            }
+            
+            if (!updatedDiagnostico) return;
+            
+            const token = localStorage.getItem('tecfag_session_token');
+            try {
+                const response = await fetch(`/api/projects/${activeProjectCode}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ 
+                        diagnostico: updatedDiagnostico
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    project.diagnostico = updatedDiagnostico;
+                    alert('✅ Observação excluída com sucesso!');
+                    openProjectModal(activeProjectCode);
+                } else {
+                    alert('Erro ao excluir observação: ' + (data.error || 'Erro desconhecido'));
+                }
+            } catch (err) {
+                console.error('Erro ao excluir observação:', err);
+                alert('Erro de conexão ao excluir observação.');
             }
         }
 
