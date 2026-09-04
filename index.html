@@ -435,7 +435,7 @@
         /* KPI Dashboard Grid */
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
+            grid-template-columns: repeat(7, 1fr);
             gap: 16px;
             margin-bottom: 25px;
         }
@@ -453,36 +453,96 @@
             flex-direction: column;
         }
 
-        .kpi-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background-color: var(--kpi-color, var(--primary));
-        }
-
         .kpi-title {
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             color: var(--text-secondary);
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            font-weight: 700;
+            margin-bottom: 8px;
         }
 
         .kpi-value {
-            font-size: 2rem;
+            font-size: 2.2rem;
             font-weight: 800;
-            margin: 8px 0 2px;
+            color: var(--kpi-color, var(--text-primary));
+            line-height: 1;
+            margin-bottom: 8px;
         }
 
         .kpi-desc {
             font-size: 0.75rem;
-            color: var(--text-secondary);
+            color: var(--text-muted);
         }
 
-        /* High-tech Animations */
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: var(--kpi-color, var(--primary));
+        }
+
+        .kpi-card.has-alert {
+            animation: pulse-border 2s infinite;
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* Scanline HUD animation */
+        .industrial-telemetry-hud {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .industrial-telemetry-hud::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        @keyframes scanline-anim {
+            0% { transform: translateY(-100vh); }
+            100% { transform: translateY(100vh); }
+        }
+
+        /* KANBAN BOARD */
+        .kanban-board {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(210px, 1fr));
+            gap: 14px;
+            align-items: start;
+            overflow-x: auto;
+            padding-bottom: 15px;
+        }
+
+        .kanban-column {
+            background-color: rgba(15, 22, 39, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 14px;
+            min-height: 550px;
+            min-width: 210px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
         @keyframes blink {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.4; transform: scale(0.9); }
@@ -531,32 +591,6 @@
                 rgba(255, 255, 255, 0) 20%
             );
             animation: scanline-anim 8s linear infinite;
-        }
-
-        @keyframes scanline-anim {
-            0% { transform: translateY(-100vh); }
-            100% { transform: translateY(100vh); }
-        }
-
-        /* KANBAN BOARD */
-        .kanban-board {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 14px;
-            align-items: start;
-        }
-
-        .kanban-column {
-            background-color: rgba(15, 22, 39, 0.65);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 14px;
-            min-height: 550px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
         }
 
         .column-header {
