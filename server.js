@@ -237,6 +237,66 @@ function initializeDatabase() {
             created_at TEXT NOT NULL
         )`);
 
+        // Tabela de Configurações / Migrações do Sistema
+        db.run(`CREATE TABLE IF NOT EXISTS system_migrations (
+            name TEXT PRIMARY KEY,
+            applied_at TEXT NOT NULL
+        )`, (err) => {
+            if (!err) {
+                db.get("SELECT name FROM system_migrations WHERE name = 'split_phase1_v1'", async (err, row) => {
+                    if (!err && !row) {
+                        console.log('[MIGRATION] Aplicando migração da divisão da Fase 1 para Fase 1 (Engenharia) e Fase 2 (Comercial)...');
+                        try {
+                            // 1. Shift Fases 6 -> 7, 5 -> 6, 4 -> 5, 3 -> 4, 2 -> 3
+                            await dbRun("UPDATE projects SET fase = 7 WHERE fase = 6");
+                            await dbRun("UPDATE projects SET fase = 6 WHERE fase = 5");
+                            await dbRun("UPDATE projects SET fase = 5 WHERE fase = 4");
+                            await dbRun("UPDATE projects SET fase = 4 WHERE fase = 3");
+                            await dbRun("UPDATE projects SET fase = 3 WHERE fase = 2");
+                            
+                            // 2. Atualizar histórico de fases
+                            await dbRun("UPDATE project_phase_history SET fase = 7 WHERE fase = 6");
+                            await dbRun("UPDATE project_phase_history SET fase = 6 WHERE fase = 5");
+                            await dbRun("UPDATE project_phase_history SET fase = 5 WHERE fase = 4");
+                            await dbRun("UPDATE project_phase_history SET fase = 4 WHERE fase = 3");
+                            await dbRun("UPDATE project_phase_history SET fase = 3 WHERE fase = 2");
+
+                            // 3. Atualizar projetos da Fase 1 que já passaram da Engenharia
+                            const f1Projects = await dbAll("SELECT code, checklist FROM projects WHERE fase = 1");
+                            for (const p of f1Projects) {
+                                let chk = {};
+                                try { chk = p.checklist ? JSON.parse(p.checklist) : {}; } catch(e) {}
+                                if (chk.customizacao && (chk.aprovacao || chk.contrato)) {
+                                    await dbRun("UPDATE projects SET fase = 2 WHERE code = ?", [p.code]);
+                                    await dbRun("INSERT INTO project_phase_history (projectCode, fase, entryDate) VALUES (?, 2, ?)", [p.code, new Date().toISOString()]);
+                                }
+                            }
+
+                            // 4. Atualizar prazos limites nos projetos existentes
+                            const allPrjs = await dbAll("SELECT code, prazos FROM projects");
+                            for (const p of allPrjs) {
+                                let pz = {};
+                                try { pz = p.prazos ? JSON.parse(p.prazos) : {}; } catch(e) {}
+                                const newPz = {
+                                    fase1: pz.fase1 !== undefined ? (pz.fase1 === 7 ? 3 : pz.fase1) : 3,
+                                    fase2: pz.fase2 !== undefined ? (pz.fase2 === 51 ? 5 : pz.fase2) : 5,
+                                    fase3: pz.fase3 !== undefined ? pz.fase3 : (pz.fase2 || 51),
+                                    fase4: pz.fase4 !== undefined ? pz.fase4 : (pz.fase3 || 59),
+                                    fase5: pz.fase5 !== undefined ? pz.fase5 : (pz.fase4 || 15)
+                                };
+                                await dbRun("UPDATE projects SET prazos = ? WHERE code = ?", [JSON.stringify(newPz), p.code]);
+                            }
+
+                            await dbRun("INSERT INTO system_migrations (name, applied_at) VALUES ('split_phase1_v1', ?)", [new Date().toISOString()]);
+                            console.log('[MIGRATION] Migração da Fase 1 e renumeração de fases concluída com sucesso!');
+                        } catch(migErr) {
+                            console.error('[MIGRATION ERROR]', migErr.message);
+                        }
+                    }
+                });
+            }
+        });
+
         // Migração para adicionar extração de texto em instalações existentes
         db.run("ALTER TABLE supplier_resources ADD COLUMN extracted_text TEXT", (err) => {
             if (err && !err.message.includes("duplicate column name")) {
@@ -882,21 +942,23 @@ async function sendPhaseChangeEmail(project, oldFase, newFase) {
     }
 
     const faseNomes = {
-        1: 'Fase 1: Vendas & Escopo',
-        2: 'Fase 2: Compras Acompanhamento Produção/Embarque',
-        3: 'Fase 3: Transp. Maritimo/Nacionalização',
-        4: 'Fase 4: Instalação & SAT',
-        5: 'Fase 5: Concluído ("Joinha" SAT assinado)',
-        6: 'Fase 6: Cancelado/Perdido'
+        1: 'Fase 1: Engenharia de Aplicação & Escopo',
+        2: 'Fase 2: Comercial & Contrato',
+        3: 'Fase 3: Compras & Produção Internacional',
+        4: 'Fase 4: Recebimento, Estoque e Roteamento',
+        5: 'Fase 5: Entrega, Instalação e SAT',
+        6: 'Fase 6: Concluído ("Joinha" SAT assinado)',
+        7: 'Fase 7: Cancelado / Perdido'
     };
 
     const destMap = {
-        1: process.env.EMAIL_VENDAS || 'vendas14@tecfag.com.br, vendas20@tecfag.com.br, vendas21@tecfag.com.br, vendas4@tecfag.com.br, vendas17@tecfag.com.br, vendas19@tecfag.com.br',
-        2: process.env.EMAIL_COMPRAS || 'gilson@tecfag.com.br',
-        3: process.env.EMAIL_ESTOQUE || 'almoxarifado2@tecfag.com.br',
-        4: process.env.EMAIL_TECNICO || 'assistencia@tecfag.com.br',
-        5: process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br',
-        6: process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br'
+        1: process.env.EMAIL_ENGENHARIA || 'assistencia@tecfag.com.br, projetos@grupo.tecfag.com.br',
+        2: process.env.EMAIL_VENDAS || 'vendas14@tecfag.com.br, vendas20@tecfag.com.br, vendas21@tecfag.com.br, vendas4@tecfag.com.br, vendas17@tecfag.com.br, vendas19@tecfag.com.br',
+        3: process.env.EMAIL_COMPRAS || 'gilson@tecfag.com.br',
+        4: process.env.EMAIL_ESTOQUE || 'almoxarifado2@tecfag.com.br',
+        5: process.env.EMAIL_TECNICO || 'assistencia@tecfag.com.br',
+        6: process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br',
+        7: process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br'
     };
 
     // Extrair o criador (vendedor) do card de dentro da estrutura do checklist
@@ -1087,18 +1149,22 @@ async function sendAutoHygieneWarningEmails() {
         }
         
         const now = new Date();
-        const projects = await dbAll("SELECT code, client, pm, crm_last_interaction_date, faseEntryDate, prazos, checklist FROM projects WHERE fase = 1");
+        const projects = await dbAll("SELECT code, client, pm, fase, crm_last_interaction_date, faseEntryDate, prazos, checklist FROM projects WHERE fase IN (1, 2)");
         
-        const overdueBySeller = {};
+        const overdueByUser = {};
         
         for (const p of projects) {
             let checklistObj = {};
             try { checklistObj = p.checklist ? JSON.parse(p.checklist) : {}; } catch(e) {}
+            
             const seller = checklistObj.diagnostico_user || p.pm || 'admin';
+            const targetRecipient = (p.fase === 1) ? 'engenharia' : seller;
             
             let prazos = {};
             try { prazos = p.prazos ? JSON.parse(p.prazos) : {}; } catch(e) {}
-            const limitDays = (prazos && prazos.fase1 !== undefined) ? parseInt(prazos.fase1) : 7;
+            
+            const defaultLimit = (p.fase === 1) ? 3 : 5;
+            const limitDays = (prazos && prazos[`fase${p.fase}`] !== undefined) ? parseInt(prazos[`fase${p.fase}`]) : defaultLimit;
             
             const lastInteractionStr = p.crm_last_interaction_date || p.faseEntryDate;
             const lastInteractionDate = new Date(lastInteractionStr);
@@ -1109,12 +1175,14 @@ async function sendAutoHygieneWarningEmails() {
                 const delayDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
                 const daysToCancel = 20 - delayDays;
                 
-                if (!overdueBySeller[seller]) {
-                    overdueBySeller[seller] = [];
+                if (!overdueByUser[targetRecipient]) {
+                    overdueByUser[targetRecipient] = [];
                 }
-                overdueBySeller[seller].push({
+                overdueByUser[targetRecipient].push({
                     code: p.code,
                     client: p.client,
+                    fase: p.fase,
+                    faseName: p.fase === 1 ? '1. Engenharia de Aplicação & Escopo' : '2. Comercial & Contrato',
                     delayDays,
                     daysToCancel: daysToCancel > 0 ? daysToCancel : 0
                 });
@@ -1131,31 +1199,34 @@ async function sendAutoHygieneWarningEmails() {
             }
         });
         
-        for (const [seller, list] of Object.entries(overdueBySeller)) {
+        for (const [targetUser, list] of Object.entries(overdueByUser)) {
             if (list.length === 0) continue;
             
-            let sellerEmail = seller;
-            if (!sellerEmail.includes('@')) {
-                const userRow = await dbGet('SELECT email FROM users WHERE username = ?', [seller]);
+            let targetEmail = targetUser;
+            if (targetUser === 'engenharia') {
+                targetEmail = process.env.EMAIL_ENGENHARIA || 'assistencia@tecfag.com.br';
+            } else if (!targetEmail.includes('@')) {
+                const userRow = await dbGet('SELECT email FROM users WHERE username = ?', [targetUser]);
                 if (userRow && userRow.email) {
-                    sellerEmail = userRow.email;
+                    targetEmail = userRow.email;
                 } else {
-                    sellerEmail = `${seller}@tecfag.com.br`;
+                    targetEmail = `${targetUser}@tecfag.com.br`;
                 }
             }
             
             let html = `
                 <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px;">
                     <h2 style="color: #ef4444; border-bottom: 2px solid #ef4444; padding-bottom: 8px; margin-top: 0;">⚠️ Alerta de Higiene do Funil: Cards Atrasados</h2>
-                    <p>Olá <strong>${seller}</strong>,</p>
-                    <p>Os projetos listados abaixo na <strong>Fase de Vendas</strong> estão atrasados e correm risco de <strong>cancelamento automático por inatividade</strong> se nenhuma ação for tomada.</p>
+                    <p>Olá <strong>${targetUser}</strong>,</p>
+                    <p>Os projetos industriais listados abaixo estão com prazo estourado e correm risco de <strong>cancelamento automático por inatividade</strong> se nenhuma ação for tomada.</p>
                     
                     <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
                         <thead>
                             <tr style="background-color: #f3f4f6;">
                                 <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left;">Projeto</th>
                                 <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left;">Cliente</th>
-                                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">Dias Atrasado</th>
+                                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left;">Fase Atual</th>
+                                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">Atraso</th>
                                 <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: center;">Tempo p/ Cancelar</th>
                             </tr>
                         </thead>
@@ -1167,7 +1238,8 @@ async function sendAutoHygieneWarningEmails() {
                             <tr>
                                 <td style="padding: 8px; border: 1px solid #cbd5e1;"><code>${item.code}</code></td>
                                 <td style="padding: 8px; border: 1px solid #cbd5e1;">${item.client}</td>
-                                <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center; color: #ef4444; font-weight: bold;">${item.delayDays} dias</td>
+                                <td style="padding: 8px; border: 1px solid #cbd5e1; font-size: 12px;">${item.faseName}</td>
+                                <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center; color: #ef4444; font-weight: bold;">+${item.delayDays} dias</td>
                                 <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: center; font-weight: bold;">${item.daysToCancel} dias</td>
                             </tr>
                 `;
@@ -1186,18 +1258,18 @@ async function sendAutoHygieneWarningEmails() {
             
             await transporter.sendMail({
                 from: `"MRP Tecfag" <${process.env.SMTP_USER}>`,
-                to: sellerEmail,
+                to: targetEmail,
                 subject: `⚠️ [MRP Tecfag] Alerta de Higiene: ${list.length} cards pendentes de ação`,
                 html
             });
-            console.log(`[AUTO-HIGIENE EMAIL] Alerta enviado com sucesso para ${sellerEmail} (${list.length} cards)`);
+            console.log(`[AUTO-HIGIENE EMAIL] Alerta enviado com sucesso para ${targetEmail} (${list.length} cards)`);
         }
     } catch (err) {
         console.error("[AUTO-HIGIENE EMAIL ERROR] Falha ao enviar e-mails de alerta:", err.message);
     }
 }
 
-// POST /api/projects/:code/extend - Prorroga o prazo do projeto por +7 dias
+// POST /api/projects/:code/extend - Prorroga dinamicamente o prazo do projeto
 app.post('/api/projects/:code/extend', authenticateToken, async (req, res) => {
     const { code } = req.params;
     const { justification } = req.body;
@@ -1219,36 +1291,47 @@ app.post('/api/projects/:code/extend', authenticateToken, async (req, res) => {
             code
         ]);
         
-        const username = req.user ? req.user.username : 'Vendedor';
-        const commentText = `⏱️ **Prazo de inatividade prorrogado por +7 dias.** Justificativa: ${justification}`;
+        const username = req.user ? req.user.username : 'Usuário';
+        let extensionLabel = "+7 dias";
+        let phaseRoleText = "da etapa atual";
+        
+        if (project.fase === 1) {
+            extensionLabel = "+3 dias";
+            phaseRoleText = "técnico da Engenharia de Escopo";
+        } else if (project.fase === 2) {
+            extensionLabel = "+5 dias";
+            phaseRoleText = "comercial de Vendas & Contrato";
+        }
+        
+        const commentText = `⏱️ **Prazo ${phaseRoleText} prorrogado por ${extensionLabel}.** Justificativa: ${justification}`;
         await dbRun(
             'INSERT INTO comments (projectCode, user, message, dateAdded) VALUES (?, ?, ?, ?)',
             [code, username, commentText, now.toISOString()]
         );
         
-        const logText = `<strong>[PRAZO PRORROGADO]</strong> Vendedor <strong>${username}</strong> prorrogou o prazo do projeto <code>${code}</code>. Justificativa: ${justification}`;
+        const logText = `<strong>[PRAZO PRORROGADO]</strong> Usuário <strong>${username}</strong> prorrogou o prazo ${phaseRoleText} do projeto <code>${code}</code> (${extensionLabel}). Justificativa: ${justification}`;
         await dbRun(
             'INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)',
             [now.toISOString(), '#d97706', logText]
         );
         
-        const actionText = `Prorrogou o prazo de inatividade por +7 dias. Justificativa: ${justification}`;
+        const actionText = `Prorrogou o prazo ${phaseRoleText} (${extensionLabel}). Justificativa: ${justification}`;
         await dbRun(
             'INSERT INTO project_audit_trail (projectCode, user, timestamp, action) VALUES (?, ?, ?, ?)',
             [code, username, now.toISOString(), actionText]
         );
         
-        res.json({ success: true, newInteractionDate: now.toISOString() });
+        res.json({ success: true, newInteractionDate: now.toISOString(), phase: project.fase, extensionLabel });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Rotina de Auto-Higiene do Funil (Mover cards atrasados da Fase 1 para a Fase 6 após 20 dias)
+// Rotina de Auto-Higiene do Funil (Mover cards atrasados da Fase 1 ou Fase 2 para a Fase 7 após 20 dias)
 async function runAutoPipelineHygiene() {
     try {
         const now = new Date();
-        const projects = await dbAll("SELECT code, faseEntryDate, crm_last_interaction_date, prazos, client FROM projects WHERE fase = 1");
+        const projects = await dbAll("SELECT code, fase, faseEntryDate, crm_last_interaction_date, prazos, client FROM projects WHERE fase IN (1, 2)");
         
         for (const p of projects) {
             let prazos = {};
@@ -1256,7 +1339,8 @@ async function runAutoPipelineHygiene() {
                 prazos = p.prazos ? JSON.parse(p.prazos) : {};
             } catch(e) {}
             
-            const limitDays = (prazos && prazos.fase1 !== undefined) ? parseInt(prazos.fase1) : 7;
+            const defaultLimit = (p.fase === 1) ? 3 : 5;
+            const limitDays = (prazos && prazos[`fase${p.fase}`] !== undefined) ? parseInt(prazos[`fase${p.fase}`]) : defaultLimit;
             const lastInteractionStr = p.crm_last_interaction_date || p.faseEntryDate;
             const lastInteractionDate = new Date(lastInteractionStr);
             const deadlineDate = new Date(lastInteractionDate.getTime() + limitDays * 24 * 60 * 60 * 1000);
@@ -1266,12 +1350,12 @@ async function runAutoPipelineHygiene() {
             const cancelDateThreshold = new Date(deadlineDate.getTime() + gracePeriodMs);
             
             if (now >= cancelDateThreshold) {
-                console.log(`[AUTO-HIGIENE] Cancelando projeto ${p.code} por inatividade superior a 20 dias de atraso na Fase 1.`);
+                console.log(`[AUTO-HIGIENE] Cancelando projeto ${p.code} por inatividade superior a 20 dias de atraso na Fase ${p.fase}.`);
                 
-                const motivo = "Cancelamento Automático por Inatividade (> 20 dias de atraso na Fase 1)";
+                const motivo = `Cancelamento Automático por Inatividade (> 20 dias de atraso na Fase ${p.fase})`;
                 const updateQuery = `
                     UPDATE projects SET 
-                        fase = 6, 
+                        fase = 7, 
                         motivoPerda = ?, 
                         lastUpdate = ?, 
                         validation_status = 'HOMOLOGADA'
@@ -1282,11 +1366,11 @@ async function runAutoPipelineHygiene() {
                 // Gravar histórico de fase
                 await dbRun(
                     'INSERT INTO project_phase_history (projectCode, fase, entryDate) VALUES (?, ?, ?)',
-                    [p.code, 6, now.toISOString()]
+                    [p.code, 7, now.toISOString()]
                 );
                 
                 // Gravar log de auditoria
-                const logText = `<strong>[AUTO-HIGIENE]</strong> Projeto <code>${p.code}</code> de <strong>${p.client}</strong> foi cancelado automaticamente por inatividade superior a 20 dias de atraso na Fase 1.`;
+                const logText = `<strong>[AUTO-HIGIENE]</strong> Projeto <code>${p.code}</code> de <strong>${p.client}</strong> foi cancelado automaticamente por inatividade superior a 20 dias de atraso na Fase ${p.fase}.`;
                 await dbRun(
                     'INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)',
                     [now.toISOString(), '#ef4444', logText]
@@ -1294,7 +1378,7 @@ async function runAutoPipelineHygiene() {
                 
                 await dbRun(
                     'INSERT INTO project_audit_trail (projectCode, user, timestamp, action) VALUES (?, ?, ?, ?)',
-                    [p.code, 'Sistema (Auto-Higiene)', now.toISOString(), 'Cancelamento automático por inatividade na Fase 1.']
+                    [p.code, 'Sistema (Auto-Higiene)', now.toISOString(), `Cancelamento automático por inatividade na Fase ${p.fase}.`]
                 );
             }
         }
@@ -1579,7 +1663,7 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
         let totalLost = 0;
         let delayedCount = 0;
         
-        const faseDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0 };
+        const faseDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
         const delayedProjects = [];
 
         // CRM Stats
@@ -1600,7 +1684,7 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
             const seller = checklistObj.diagnostico_user || 'admin';
             const value = parseFloat(p.crm_value) || 0;
 
-            if (fase === 5) {
+            if (fase === 6) {
                 totalFinished++;
                 crmWonValue += value;
                 
@@ -1608,12 +1692,12 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
                 if (!sellersMap[seller]) sellersMap[seller] = { seller, totalValue: 0, count: 0 };
                 sellersMap[seller].totalValue += value;
                 sellersMap[seller].count += 1;
-            } else if (fase === 6) {
+            } else if (fase === 7) {
                 totalLost++;
             } else {
                 totalActive++;
 
-                if ([1, 7, 8].includes(fase)) {
+                if ([1, 2].includes(fase)) {
                     crmTotalValue += value;
 
                     // Check Negligence
@@ -1621,9 +1705,7 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
                     if (lastInteraction) {
                         const diffTime = Math.abs(new Date() - new Date(lastInteraction));
                         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                        let limitDays = 3;
-                        if (fase === 7) limitDays = 5;
-                        if (fase === 8) limitDays = 7;
+                        const limitDays = fase === 1 ? 3 : 5;
                         
                         if (diffDays >= limitDays) {
                             negligenceList.push({
@@ -1642,7 +1724,7 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
                     prazosObj = p.prazos ? JSON.parse(p.prazos) : {};
                 } catch(e) {}
 
-                const defaults = { 1: 7, 2: 51, 3: 59, 4: 15, 7: 10, 8: 15 };
+                const defaults = { 1: 3, 2: 5, 3: 51, 4: 59, 5: 15 };
                 const deadlineDays = prazosObj[`fase${fase}`] !== undefined ? parseInt(prazosObj[`fase${fase}`]) : (defaults[fase] || 7);
                 
                 const entryDateStr = p.faseEntryDate || p.lastUpdate || new Date().toISOString();
@@ -1652,12 +1734,11 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
                     delayedCount++;
                     
                     const phaseResponsible = {
-                        1: 'Vendas / Engenharia',
-                        7: 'Comercial (Proposta)',
-                        8: 'Comercial (Contrato)',
-                        2: 'Compras',
-                        3: 'Estoque',
-                        4: 'Técnico'
+                        1: 'Engenharia de Aplicação',
+                        2: 'Engenharia de Vendas',
+                        3: 'Compras & Importação',
+                        4: 'Almoxarifado & Estoque',
+                        5: 'Instalação & SAT'
                     };
 
                     delayedProjects.push({
@@ -1704,17 +1785,18 @@ app.get('/api/metrics/lead-time', authenticateToken, async (req, res) => {
         const history = await dbAll('SELECT fase, durationDays FROM project_phase_history WHERE durationDays IS NOT NULL');
         
         // Obter projetos ativos para somar o tempo em andamento
-        const activeProjects = await dbAll('SELECT code, fase, faseEntryDate FROM projects WHERE fase NOT IN (5, 6)');
+        const activeProjects = await dbAll('SELECT code, fase, faseEntryDate FROM projects WHERE fase NOT IN (6, 7)');
         
         const phaseNomes = {
-            1: 'Vendas & Diagnóstico',
-            2: 'Importação',
-            3: 'Oficina',
-            4: 'Instalação & SAT'
+            1: 'Engenharia de Aplicação & Escopo',
+            2: 'Comercial & Contrato',
+            3: 'Compras & Produção Internacional',
+            4: 'Recebimento, Estoque e Roteamento',
+            5: 'Entrega, Instalação e SAT'
         };
 
-        const sums = { 1: 0, 2: 0, 3: 0, 4: 0 };
-        const counts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+        const sums = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
 
         // Somar tempos das transições passadas finalizadas
         history.forEach(h => {
@@ -1735,7 +1817,7 @@ app.get('/api/metrics/lead-time', authenticateToken, async (req, res) => {
         });
 
         const leadTimes = [];
-        for (let f = 1; f <= 4; f++) {
+        for (let f = 1; f <= 5; f++) {
             const avg = counts[f] > 0 ? parseFloat((sums[f] / counts[f]).toFixed(1)) : 0.0;
             leadTimes.push({
                 fase: f,
@@ -6058,7 +6140,7 @@ app.put('/api/projects/:code', async (req, res) => {
             }
         }
 
-        // Trava física para impedir transição de fase sem a reunião de alinhamento técnico concluída
+        // Trava física para impedir transição de fase sem a reunião de alinhamento técnico concluída (Fase 1 -> Fase 2)
         if (fase !== undefined && parseInt(fase) >= 2 && parseInt(oldProject.fase) === 1) {
             let isCustomizacaoDone = false;
             if (checklist && checklist.customizacao !== undefined) {
@@ -6070,7 +6152,23 @@ app.put('/api/projects/:code', async (req, res) => {
             }
             
             if (!isCustomizacaoDone) {
-                return res.status(400).json({ error: '🔴 BLOQUEIO TÉCNICO: Não é permitido evoluir o projeto para a Fase de Compras sem antes concluir a Reunião de Alinhamento Técnico (Comitê de Engenharia / Brainstorming).' });
+                return res.status(400).json({ error: '🔴 BLOQUEIO TÉCNICO: Não é permitido evoluir o projeto para a Fase Comercial sem antes concluir a Customização do Escopo Técnico da Engenharia.' });
+            }
+        }
+
+        // Trava física para impedir transição para Compras sem Contrato Assinado (Fase 2 -> Fase 3)
+        if (fase !== undefined && parseInt(fase) >= 3 && parseInt(oldProject.fase) <= 2) {
+            let isContratoDone = false;
+            if (checklist && checklist.contrato !== undefined) {
+                isContratoDone = !!checklist.contrato;
+            } else {
+                let oldChecklist = {};
+                try { oldChecklist = oldProject.checklist ? JSON.parse(oldProject.checklist) : {}; } catch(e){}
+                isContratoDone = !!oldChecklist.contrato;
+            }
+            
+            if (!isContratoDone) {
+                return res.status(400).json({ error: '🔴 BLOQUEIO COMERCIAL: Não é permitido evoluir o projeto para a Fase de Compras sem antes registrar o Contrato Assinado.' });
             }
         }
 
@@ -6089,7 +6187,7 @@ app.put('/api/projects/:code', async (req, res) => {
             await recordAuditLog(code, auditUser, `Alterou a Rota de "${oldProject.route || '-'}" para "${route || '-'}"`);
         }
         if (fase !== undefined && parseInt(fase) !== parseInt(oldFase)) {
-            const faseNomesBrief = { 1: 'Vendas', 2: 'Importação', 3: 'Oficina', 4: 'Instalação & SAT', 5: 'Concluído', 6: 'Cancelado' };
+            const faseNomesBrief = { 1: 'Engenharia', 2: 'Comercial', 3: 'Importação', 4: 'Oficina', 5: 'Instalação & SAT', 6: 'Concluído', 7: 'Cancelado' };
             await recordAuditLog(code, auditUser, `Mudou o projeto da fase "${faseNomesBrief[oldFase] || oldFase}" para "${faseNomesBrief[fase] || fase}"`);
         }
         if (tech !== undefined && tech !== oldProject.tech) {
