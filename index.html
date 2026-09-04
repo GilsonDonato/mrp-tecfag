@@ -5690,26 +5690,54 @@
             // Filtro de Dúvida Pendente
             const statusFilter = document.getElementById('kanban-status-filter');
             const statusVal = statusFilter ? statusFilter.value : 'all';
+            const userStr = localStorage.getItem('tecfag_user');
+            const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
+
             if (statusVal === 'pending') {
-                const userStr = localStorage.getItem('tecfag_user');
-                const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
                 filteredPrjs = filteredPrjs.filter(project => {
                     const isCreator = project.checklist && project.checklist.diagnostico_user === currentUser;
-                    const hasPendingComment = project.crm_last_comment_user && 
-                        project.crm_last_comment_user !== (project.checklist ? project.checklist.diagnostico_user : '');
-                    return hasPendingComment && (isCreator || currentRole === 'ALL' || currentRole === 'GERENTE');
+                    const hasPendingComment = project.crm_last_comment_user && project.crm_last_comment_user !== currentUser;
+                    if (currentRole === 'ALL' || currentRole === 'GERENTE' || currentRole === 'DIRETOR') {
+                        return !!project.crm_last_comment_user;
+                    }
+                    if (currentRole === 'ENGENHARIA') {
+                        return hasPendingComment || (project.crm_last_comment_user && project.fase === 1);
+                    }
+                    if (currentRole === 'VENDAS' || currentRole === 'GERENTE_COMERCIAL') {
+                        return isCreator && hasPendingComment;
+                    }
+                    return hasPendingComment;
                 });
             }
 
-            // Filtro de Cargo / Função (Responsabilidade / Gargalo)
+            // Filtro de Cargo / Função (Responsabilidade / Gargalo com Visibilidade Compartilhada)
             if (currentRole && currentRole !== 'ALL' && currentRole !== 'DIRETOR') {
-                filteredPrjs = filteredPrjs.filter(p => {
-                    const bottleneck = getBottleneckRole(p);
-                    if (currentRole === 'GERENTE_COMERCIAL') {
-                        return bottleneck === 'VENDAS';
-                    }
-                    return bottleneck === currentRole;
-                });
+                // Se o usuário fez busca por texto ou filtrou por dúvidas pendentes, mantém todos os correspondentes visíveis
+                if (!searchQuery && statusVal !== 'pending') {
+                    filteredPrjs = filteredPrjs.filter(p => {
+                        const bottleneck = getBottleneckRole(p);
+                        const isCreator = p.checklist && p.checklist.diagnostico_user === currentUser;
+                        const hasChat = !!p.crm_last_comment_user;
+
+                        if (currentRole === 'VENDAS' || currentRole === 'GERENTE_COMERCIAL') {
+                            // Vendedor acompanha:
+                            // 1. O que está na vez de Vendas;
+                            // 2. Seus próprios projetos na Fase 1 (onde Engenharia está analisando);
+                            // 3. Seus projetos que possuem chat/interação ativa.
+                            return bottleneck === 'VENDAS' || (isCreator && p.fase === 1) || (isCreator && hasChat);
+                        }
+
+                        if (currentRole === 'ENGENHARIA') {
+                            // Engenharia acompanha:
+                            // 1. O que está na vez da Engenharia;
+                            // 2. Todos os projetos da Fase 1 (Engenharia de Vendas & Escopo);
+                            // 3. Qualquer projeto com chat/interação ativa.
+                            return bottleneck === 'ENGENHARIA' || p.fase === 1 || hasChat;
+                        }
+
+                        return bottleneck === currentRole || hasChat;
+                    });
+                }
             }
 
             return filteredPrjs;
@@ -8699,12 +8727,40 @@
                 const userStr = localStorage.getItem('tecfag_user');
                 const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
                 const isCreator = project.checklist && project.checklist.diagnostico_user === currentUser;
-                if (project.crm_last_comment_user && project.crm_last_comment_user !== (project.checklist ? project.checklist.diagnostico_user : '')) {
-                    if (isCreator || currentRole === 'ALL' || currentRole === 'GERENTE') {
+                
+                if (project.crm_last_comment_user) {
+                    const lastUser = project.crm_last_comment_user;
+                    const isLastFromMe = (lastUser === currentUser);
+                    
+                    if (!isLastFromMe) {
+                        let badgeText = "💬 Nova Mensagem";
+                        let badgeBg = "rgba(16, 185, 129, 0.12)";
+                        let badgeColor = "#10b981";
+                        let badgeBorder = "rgba(16, 185, 129, 0.25)";
+                        
+                        if (currentRole === 'ENGENHARIA' && lastUser === (project.checklist ? project.checklist.diagnostico_user : '')) {
+                            badgeText = "💬 Resposta do Vendedor";
+                            badgeBg = "rgba(14, 165, 233, 0.15)";
+                            badgeColor = "#38bdf8";
+                            badgeBorder = "rgba(14, 165, 233, 0.3)";
+                        } else if (currentRole === 'VENDAS' || currentRole === 'GERENTE_COMERCIAL') {
+                            badgeText = "💬 Dúvida Pendente";
+                            badgeBg = "rgba(245, 158, 11, 0.15)";
+                            badgeColor = "#f59e0b";
+                            badgeBorder = "rgba(245, 158, 11, 0.3)";
+                        } else if (currentRole === 'ALL' || currentRole === 'GERENTE' || currentRole === 'DIRETOR') {
+                            badgeText = `💬 Msg de ${getFriendlyUserName(lastUser)}`;
+                        }
+                        
                         commentBadgeHtml = `
-                            <div class="crm-message-badge crm-pulse" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-top: 5px; display: inline-flex; align-items: center; gap: 4px;">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                Dúvida Pendente
+                            <div class="crm-message-badge crm-pulse" style="background: ${badgeBg}; color: ${badgeColor}; border: 1px solid ${badgeBorder}; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-top: 5px; display: inline-flex; align-items: center; gap: 4px;" title="Última mensagem enviada por ${getFriendlyUserName(lastUser)}">
+                                ${badgeText}
+                            </div>
+                        `;
+                    } else {
+                        commentBadgeHtml = `
+                            <div class="crm-message-badge" style="background: rgba(148, 163, 184, 0.08); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.18); font-size: 0.65rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; margin-top: 5px; display: inline-flex; align-items: center; gap: 4px;" title="Você enviou a última mensagem neste card">
+                                💬 Chat Ativo
                             </div>
                         `;
                     }
@@ -8811,12 +8867,19 @@
                 const matchesFase = filterFase === 'ALL' || p.fase === parseInt(filterFase);
                 
                 let matchesRole = true;
-                if (currentRole && currentRole !== 'ALL' && currentRole !== 'DIRETOR') {
+                if (currentRole && currentRole !== 'ALL' && currentRole !== 'DIRETOR' && !searchVal) {
                     const bottleneck = getBottleneckRole(p);
-                    if (currentRole === 'GERENTE_COMERCIAL') {
-                        matchesRole = bottleneck === 'VENDAS';
+                    const userStr = localStorage.getItem('tecfag_user');
+                    const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
+                    const isCreator = p.checklist && p.checklist.diagnostico_user === currentUser;
+                    const hasChat = !!p.crm_last_comment_user;
+
+                    if (currentRole === 'VENDAS' || currentRole === 'GERENTE_COMERCIAL') {
+                        matchesRole = bottleneck === 'VENDAS' || (isCreator && p.fase === 1) || (isCreator && hasChat);
+                    } else if (currentRole === 'ENGENHARIA') {
+                        matchesRole = bottleneck === 'ENGENHARIA' || p.fase === 1 || hasChat;
                     } else {
-                        matchesRole = bottleneck === currentRole;
+                        matchesRole = bottleneck === currentRole || hasChat;
                     }
                 }
                 
