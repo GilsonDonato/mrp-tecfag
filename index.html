@@ -20,11 +20,12 @@
             /* Status Fases */
             --color-fase1: #0ea5e9; /* Engenharia de Escopo (Ciano/Azul) */
             --color-fase2: #6366f1; /* Comercial & Contrato (Índigo) */
-            --color-fase3: #f59e0b; /* Compras e Importação (Âmbar/Laranja) */
-            --color-fase4: #06b6d4; /* Recebimento e Estoque (Azul Petróleo) */
-            --color-fase5: #d946ef; /* Instalação & SAT (Magenta/Roxo) */
-            --color-fase6: #10b981; /* Concluído / Joinha (Verde) */
-            --color-fase7: #ef4444; /* Cancelado / Perdido (Vermelho) */
+            --color-fase3: #ec4899; /* Proforma, Câmbio & Sinal (Pink) */
+            --color-fase4: #f59e0b; /* Compras, Produção & Embarque (Âmbar) */
+            --color-fase5: #06b6d4; /* Transporte Marítimo & Nacionalização (Turquesa) */
+            --color-fase6: #8b5cf6; /* Oficina, Instalação, Setup & SAT (Violeta) */
+            --color-fase7: #10b981; /* Concluído / Joinha (Verde) */
+            --color-fase8: #ef4444; /* Cancelado / Perdido (Vermelho) */
         }
 
         body.theme-light {
@@ -522,7 +523,7 @@
         /* KANBAN BOARD */
         .kanban-board {
             display: grid;
-            grid-template-columns: repeat(7, minmax(210px, 1fr));
+            grid-template-columns: repeat(8, minmax(215px, 1fr));
             gap: 14px;
             align-items: start;
             overflow-x: auto;
@@ -2106,28 +2107,33 @@
                     <div class="kpi-desc">SLA: 5d | Contrato & Vendas</div>
                 </div>
                 <div class="kpi-card" style="--kpi-color: var(--color-fase3);">
-                    <div class="kpi-title">3. Compras & Imp.</div>
+                    <div class="kpi-title">3. Proforma & Câmbio</div>
                     <div class="kpi-value" id="kpi-fase3">0</div>
-                    <div class="kpi-desc">SLA: 51d | Importação</div>
+                    <div class="kpi-desc">SLA: 5d | Sinal 30% & SWIFT</div>
                 </div>
                 <div class="kpi-card" style="--kpi-color: var(--color-fase4);">
-                    <div class="kpi-title">4. Oficina & Estoque</div>
+                    <div class="kpi-title">4. Compras & Prod.</div>
                     <div class="kpi-value" id="kpi-fase4">0</div>
-                    <div class="kpi-desc">SLA: 59d | Bipagem & Setup</div>
+                    <div class="kpi-desc">SLA: 55d | Fabricação & BL</div>
                 </div>
                 <div class="kpi-card" style="--kpi-color: var(--color-fase5);">
-                    <div class="kpi-title">5. Instalação / SAT</div>
+                    <div class="kpi-title">5. Transporte & Nac.</div>
                     <div class="kpi-value" id="kpi-fase5">0</div>
-                    <div class="kpi-desc">SLA: 15d | Técnico de Campo</div>
+                    <div class="kpi-desc">SLA: 55d | DI & Chegada</div>
                 </div>
                 <div class="kpi-card" style="--kpi-color: var(--color-fase6);">
-                    <div class="kpi-title">6. Concluídos</div>
+                    <div class="kpi-title">6. Oficina & SAT</div>
                     <div class="kpi-value" id="kpi-fase6">0</div>
-                    <div class="kpi-desc">Aceites ("Joinha" SAT)</div>
+                    <div class="kpi-desc">SLA: 10d | Setup & Start-up</div>
                 </div>
                 <div class="kpi-card" style="--kpi-color: var(--color-fase7);">
-                    <div class="kpi-title">7. Cancelado</div>
+                    <div class="kpi-title">7. Concluídos</div>
                     <div class="kpi-value" id="kpi-fase7">0</div>
+                    <div class="kpi-desc">Aceites ("Joinha" SAT)</div>
+                </div>
+                <div class="kpi-card" style="--kpi-color: var(--color-fase8);">
+                    <div class="kpi-title">8. Cancelados</div>
+                    <div class="kpi-value" id="kpi-fase8">0</div>
                     <div class="kpi-desc">Inativos / Perdidos</div>
                 </div>
             </div>
@@ -2190,7 +2196,7 @@
             <!-- Pipeline Board -->
             <div class="kanban-board" id="kanban-board-wrapper">
                 <!-- Coluna 1: Engenharia de Escopo -->
-                <div class="kanban-column" id="col-fase1">
+                <div class="kanban-column crm-col" id="col-fase1">
                     <div class="column-header" style="--column-color: var(--color-fase1)">
                         <h3>1. Engenharia</h3>
                         <span class="column-counter" id="count-fase1">0</span>
@@ -2198,52 +2204,60 @@
                     <div class="column-cards" id="cards-fase1"></div>
                 </div>
                 <!-- Coluna 2: Comercial & Contrato -->
-                <div class="kanban-column" id="col-fase2">
+                <div class="kanban-column crm-col" id="col-fase2">
                     <div class="column-header" style="--column-color: var(--color-fase2)">
                         <h3>2. Comercial</h3>
                         <span class="column-counter" id="count-fase2">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase2"></div>
                 </div>
-                <!-- Coluna 3: Compras & Importação -->
-                <div class="kanban-column" id="col-fase3">
+                <!-- Coluna 3: Proforma, Câmbio & Sinal -->
+                <div class="kanban-column mrp-col" id="col-fase3">
                     <div class="column-header" style="--column-color: var(--color-fase3)">
-                        <h3>3. Importação</h3>
+                        <h3>3. Proforma & Câmbio</h3>
                         <span class="column-counter" id="count-fase3">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase3"></div>
                 </div>
-                <!-- Coluna 4: Oficina & Estoque -->
-                <div class="kanban-column" id="col-fase4">
+                <!-- Coluna 4: Compras, Produção & Embarque -->
+                <div class="kanban-column mrp-col" id="col-fase4">
                     <div class="column-header" style="--column-color: var(--color-fase4)">
-                        <h3>4. Oficina</h3>
+                        <h3>4. Compras & Prod.</h3>
                         <span class="column-counter" id="count-fase4">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase4"></div>
                 </div>
-                <!-- Coluna 5: Instalação & SAT -->
-                <div class="kanban-column" id="col-fase5">
+                <!-- Coluna 5: Transporte Marítimo & Nacionalização -->
+                <div class="kanban-column mrp-col" id="col-fase5">
                     <div class="column-header" style="--column-color: var(--color-fase5)">
-                        <h3>5. Instalação & SAT</h3>
+                        <h3>5. Transporte & Nac.</h3>
                         <span class="column-counter" id="count-fase5">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase5"></div>
                 </div>
-                <!-- Coluna 6: Concluído -->
-                <div class="kanban-column" id="col-fase6">
+                <!-- Coluna 6: Oficina, Instalação & SAT -->
+                <div class="kanban-column mrp-col" id="col-fase6">
                     <div class="column-header" style="--column-color: var(--color-fase6)">
-                        <h3>6. Concluído</h3>
+                        <h3>6. Oficina & SAT</h3>
                         <span class="column-counter" id="count-fase6">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase6"></div>
                 </div>
-                <!-- Coluna 7: Cancelado -->
+                <!-- Coluna 7: Concluído -->
                 <div class="kanban-column" id="col-fase7">
                     <div class="column-header" style="--column-color: var(--color-fase7)">
-                        <h3>7. Cancelado</h3>
+                        <h3>7. Concluído</h3>
                         <span class="column-counter" id="count-fase7">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase7"></div>
+                </div>
+                <!-- Coluna 8: Cancelado -->
+                <div class="kanban-column" id="col-fase8">
+                    <div class="column-header" style="--column-color: var(--color-fase8)">
+                        <h3>8. Cancelado</h3>
+                        <span class="column-counter" id="count-fase8">0</span>
+                    </div>
+                    <div class="column-cards" id="cards-fase8"></div>
                 </div>
             </div>
         </div>
@@ -2259,11 +2273,12 @@
                             <option value="ALL">Fase: Todas</option>
                             <option value="1">1. Engenharia de Aplicação & Escopo</option>
                             <option value="2">2. Comercial & Contrato</option>
-                            <option value="3">3. Compras e Produção Internacional</option>
-                            <option value="4">4. Recebimento, Estoque e Roteamento</option>
-                            <option value="5">5. Entrega, Instalação e SAT</option>
-                            <option value="6">6. Concluído ("Joinha" Aceito)</option>
-                            <option value="7">7. Cancelado / Perdido</option>
+                            <option value="3">3. Proforma, Câmbio & Pagamento Inicial</option>
+                            <option value="4">4. Compras, Produção & Embarque</option>
+                            <option value="5">5. Transporte Marítimo & Nacionalização</option>
+                            <option value="6">6. Oficina, Instalação, Setup & SAT</option>
+                            <option value="7">7. Concluído ("Joinha" Aceito)</option>
+                            <option value="8">8. Cancelado / Perdido</option>
                         </select>
                     </div>
                 </div>
@@ -2645,7 +2660,7 @@
                         <div style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px; margin-bottom: 10px;">
                             <h4 style="font-size: 0.85rem; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;">Prazos Limites por Etapa (Travados - Não Editáveis)</h4>
                         </div>
-                        <div class="form-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">
+                        <div class="form-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
                             <div class="form-group">
                                 <label for="prj-days-fase1">Fase 1: Eng. & Escopo (dias)*</label>
                                 <input type="number" id="prj-days-fase1" class="form-control" value="3" readonly required>
@@ -2655,16 +2670,20 @@
                                 <input type="number" id="prj-days-fase2" class="form-control" value="5" readonly required>
                             </div>
                             <div class="form-group">
-                                <label for="prj-days-fase3">Fase 3: Compras & Prod. (dias)*</label>
-                                <input type="number" id="prj-days-fase3" class="form-control" value="51" readonly required>
+                                <label for="prj-days-fase3">Fase 3: Proforma & Câmbio (dias)*</label>
+                                <input type="number" id="prj-days-fase3" class="form-control" value="5" readonly required>
                             </div>
                             <div class="form-group">
-                                <label for="prj-days-fase4">Fase 4: Recebimento & Est. (dias)*</label>
-                                <input type="number" id="prj-days-fase4" class="form-control" value="59" readonly required>
+                                <label for="prj-days-fase4">Fase 4: Compras & Prod. (dias)*</label>
+                                <input type="number" id="prj-days-fase4" class="form-control" value="55" readonly required>
                             </div>
                             <div class="form-group">
-                                <label for="prj-days-fase5">Fase 5: Instalação & SAT (dias)*</label>
-                                <input type="number" id="prj-days-fase5" class="form-control" value="15" readonly required>
+                                <label for="prj-days-fase5">Fase 5: Transporte & Nac. (dias)*</label>
+                                <input type="number" id="prj-days-fase5" class="form-control" value="55" readonly required>
+                            </div>
+                            <div class="form-group">
+                                <label for="prj-days-fase6">Fase 6: Oficina & SAT (dias)*</label>
+                                <input type="number" id="prj-days-fase6" class="form-control" value="10" readonly required>
                             </div>
                         </div>
 
@@ -3138,6 +3157,51 @@
                         Salvar Template
                     </button>
                 </div>
+
+                <!-- Matriz de Prazos Limites (SLAs por Fase) -->
+                <div style="margin-top: 35px; border-top: 1px solid var(--border-color); padding-top: 25px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                        <div style="background: rgba(14, 165, 233, 0.15); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                        <div>
+                            <h3 style="color: var(--primary); margin: 0; font-size: 1.15rem;">Matriz de Prazos Limites (SLAs Padrão)</h3>
+                            <p style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px;">Estrutura padronizada de prazos em dias para cada fase da esteira de automação industrial (Total: 133 dias).</p>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                        <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid var(--color-fase1); border-radius: 8px; padding: 14px;">
+                            <div style="font-size: 0.75rem; color: var(--color-fase1); font-weight: bold; text-transform: uppercase;">Fase 1: Engenharia & Escopo</div>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">3 dias</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Engenharia | Diagnóstico & Viabilidade</div>
+                        </div>
+                        <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid var(--color-fase2); border-radius: 8px; padding: 14px;">
+                            <div style="font-size: 0.75rem; color: var(--color-fase2); font-weight: bold; text-transform: uppercase;">Fase 2: Comercial & Contrato</div>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">5 dias</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Vendas | Aprovação & Assinatura</div>
+                        </div>
+                        <div style="background: rgba(236, 72, 153, 0.08); border: 1px solid var(--color-fase3); border-radius: 8px; padding: 14px;">
+                            <div style="font-size: 0.75rem; color: var(--color-fase3); font-weight: bold; text-transform: uppercase;">Fase 3: Proforma & Câmbio</div>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">5 dias</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Compras | Sinal 30% & SWIFT</div>
+                        </div>
+                        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid var(--color-fase4); border-radius: 8px; padding: 14px;">
+                            <div style="font-size: 0.75rem; color: var(--color-fase4); font-weight: bold; text-transform: uppercase;">Fase 4: Compras & Produção</div>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">55 dias</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Compras | Fabricação, Saldo 70% & BL</div>
+                        </div>
+                        <div style="background: rgba(6, 182, 212, 0.08); border: 1px solid var(--color-fase5); border-radius: 8px; padding: 14px;">
+                            <div style="font-size: 0.75rem; color: var(--color-fase5); font-weight: bold; text-transform: uppercase;">Fase 5: Transporte & Nac.</div>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">55 dias</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Estoque | Transit Time, DI & Chegada</div>
+                        </div>
+                        <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid var(--color-fase6); border-radius: 8px; padding: 14px;">
+                            <div style="font-size: 0.75rem; color: var(--color-fase6); font-weight: bold; text-transform: uppercase;">Fase 6: Oficina & SAT</div>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">10 dias</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Técnico | Setup, Start-up & Aceite</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
@@ -3193,6 +3257,7 @@
                                 <!-- Notas adicionais -->
                             </div>
                         </div>
+                        <!-- Fase 1 -->
                         <div class="checklist-group" style="--group-color: var(--color-fase1)">
                             <div class="checklist-group-title">Fase 1: Engenharia de Aplicação & Escopo (Resp: Engenharia - SLA 3 dias)</div>
                             <div class="checklist-items">
@@ -3251,75 +3316,107 @@
 
                         <!-- Fase 3 -->
                         <div class="checklist-group" style="--group-color: var(--color-fase3)">
-                            <div class="checklist-group-title">Fase 3: Compras e Produção Internacional (Resp: Compras - SLA 51 dias)</div>
+                            <div class="checklist-group-title">Fase 3: Proforma, Câmbio & Pagamento Inicial (Resp: Compras - SLA 5 dias)</div>
                             <div class="checklist-items">
-                                <div class="checklist-item" id="chk-pagamento" onclick="toggleCheckItem('pagamento')">
+                                <div class="checklist-item" id="chk-proforma" onclick="toggleCheckItem('proforma')">
                                     <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                    <span class="checklist-label">8. Pagamento da Invoice Efetuado ao Fornecedor</span>
-                                    <div class="step-attach-area" id="attach-step-pagamento" onclick="event.stopPropagation()"></div>
+                                    <span class="checklist-label">8. Validação da Proforma Invoice <strong style="color: #ec4899;">[COMPRAS]</strong></span>
+                                    <div class="step-attach-area" id="attach-step-proforma" onclick="event.stopPropagation()"></div>
                                 </div>
-                                <div class="checklist-item" id="chk-producao" onclick="toggleCheckItem('producao')">
+                                <div class="checklist-item" id="chk-cambio_sinal" onclick="toggleCheckItem('cambio_sinal')">
                                     <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                    <span class="checklist-label">9. Monitoramento de Fabricação (Janela 40-50 dias)</span>
-                                    <div class="step-attach-area" id="attach-step-producao" onclick="event.stopPropagation()"></div>
+                                    <span class="checklist-label">9. Fechamento de Câmbio (Sinal 30%) <strong style="color: #ec4899;">[COMPRAS]</strong></span>
+                                    <div class="step-attach-area" id="attach-step-cambio_sinal" onclick="event.stopPropagation()"></div>
                                 </div>
-                                <div class="checklist-item" id="chk-embarque" onclick="toggleCheckItem('embarque')">
+                                <div class="checklist-item" id="chk-swift_pagamento" onclick="toggleCheckItem('swift_pagamento')">
                                     <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                    <span class="checklist-label">10. Liberação de Embarque e Rastreio Logístico</span>
-                                    <div class="step-attach-area" id="attach-step-embarque" onclick="event.stopPropagation()"></div>
-                                </div>
-                                <div class="checklist-item" id="chk-fedex" onclick="toggleCheckItem('fedex')">
-                                    <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                    <span class="checklist-label">11. Recebimento de Documentos Originais via FedEx</span>
-                                    <div class="step-attach-area" id="attach-step-fedex" onclick="event.stopPropagation()"></div>
+                                    <span class="checklist-label">10. Envio do Comprovante SWIFT <strong style="color: #ec4899;">[COMPRAS]</strong></span>
+                                    <div class="step-attach-area" id="attach-step-swift_pagamento" onclick="event.stopPropagation()"></div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Fase 4 -->
                         <div class="checklist-group" style="--group-color: var(--color-fase4)">
-                            <div class="checklist-group-title">Fase 4: Recebimento, Estoque e Roteamento (Resp: Estoque - SLA 59 dias)</div>
+                            <div class="checklist-group-title">Fase 4: Compras, Produção & Embarque (Resp: Compras - SLA 55 dias)</div>
                             <div class="checklist-items">
-                                <div class="checklist-item" id="chk-desembaraco" onclick="toggleCheckItem('desembaraco')">
+                                <div class="checklist-item" id="chk-producao" onclick="toggleCheckItem('producao')">
                                     <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                    <span class="checklist-label">12. Desembaraço Aduaneiro & Chegada Física Tecfag</span>
-                                    <div class="step-attach-area" id="attach-step-desembaraco" onclick="event.stopPropagation()"></div>
+                                    <span class="checklist-label">11. Monitoramento de Fabricação (Janela 40-50 dias) <strong style="color: #f59e0b;">[COMPRAS]</strong></span>
+                                    <div class="step-attach-area" id="attach-step-producao" onclick="event.stopPropagation()"></div>
                                 </div>
-                                <div class="checklist-item" id="chk-vistoria" onclick="toggleCheckItem('vistoria')">
+                                <div class="checklist-item" id="chk-embarque" onclick="toggleCheckItem('embarque')">
                                     <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                    <span class="checklist-label">13. Vistoria Técnica e Registro de Avaria Realizados</span>
-                                    <div class="step-attach-area" id="attach-step-vistoria" onclick="event.stopPropagation()"></div>
+                                    <span class="checklist-label">12. Liberação de Embarque e Rastreio Logístico <strong style="color: #f59e0b;">[COMPRAS]</strong></span>
+                                    <div class="step-attach-area" id="attach-step-embarque" onclick="event.stopPropagation()"></div>
                                 </div>
-                                <div class="checklist-item" id="chk-travas" onclick="toggleCheckItem('travas')">
+                                <div class="checklist-item" id="chk-pagamento" onclick="toggleCheckItem('pagamento')">
                                     <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                    <span class="checklist-label">14. Registro ERP (SKU-PRJ) & Etiquetagem Vermelha</span>
-                                    <div class="step-attach-area" id="attach-step-travas" onclick="event.stopPropagation()"></div>
+                                    <span class="checklist-label">13. Pagamento de Saldo (70%) & Liberação BL <strong style="color: #f59e0b;">[COMPRAS]</strong></span>
+                                    <div class="step-attach-area" id="attach-step-pagamento" onclick="event.stopPropagation()"></div>
                                 </div>
-                                <div class="checklist-item" id="chk-direcionamento" onclick="toggleCheckItem('direcionamento')">
+                                <div class="checklist-item" id="chk-fedex" onclick="toggleCheckItem('fedex')">
                                     <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                    <span class="checklist-label">15. Roteamento Físico de Direcionamento Definido</span>
-                                    <div class="step-attach-area" id="attach-step-direcionamento" onclick="event.stopPropagation()"></div>
+                                    <span class="checklist-label">14. Recebimento de Documentos Originais via FedEx <strong style="color: #f59e0b;">[COMPRAS]</strong></span>
+                                    <div class="step-attach-area" id="attach-step-fedex" onclick="event.stopPropagation()"></div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Fase 5 -->
                         <div class="checklist-group" style="--group-color: var(--color-fase5)">
-                            <div class="checklist-group-title">Fase 5: Entrega, Instalação e SAT (Resp: Técnico - SLA 15 dias)</div>
+                            <div class="checklist-group-title">Fase 5: Transporte Marítimo & Nacionalização (Resp: Estoque - SLA 55 dias)</div>
                             <div class="checklist-items">
+                                <div class="checklist-item" id="chk-transporte_maritimo" onclick="toggleCheckItem('transporte_maritimo')">
+                                    <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                    <span class="checklist-label">15. Acompanhamento de Transit Time Marítimo <strong style="color: #06b6d4;">[ESTOQUE]</strong></span>
+                                    <div class="step-attach-area" id="attach-step-transporte_maritimo" onclick="event.stopPropagation()"></div>
+                                </div>
+                                <div class="checklist-item" id="chk-desembaraco" onclick="toggleCheckItem('desembaraco')">
+                                    <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                    <span class="checklist-label">16. Desembaraço Aduaneiro (DI Registrada) <strong style="color: #06b6d4;">[ESTOQUE]</strong></span>
+                                    <div class="step-attach-area" id="attach-step-desembaraco" onclick="event.stopPropagation()"></div>
+                                </div>
+                                <div class="checklist-item" id="chk-chegada_tecfag" onclick="toggleCheckItem('chegada_tecfag')">
+                                    <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                    <span class="checklist-label">17. Chegada Física ao Almoxarifado Tecfag <strong style="color: #06b6d4;">[ESTOQUE]</strong></span>
+                                    <div class="step-attach-area" id="attach-step-chegada_tecfag" onclick="event.stopPropagation()"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fase 6 -->
+                        <div class="checklist-group" style="--group-color: var(--color-fase6)">
+                            <div class="checklist-group-title">Fase 6: Oficina, Instalação, Setup & SAT (Resp: Técnico - SLA 10 dias)</div>
+                            <div class="checklist-items">
+                                <div class="checklist-item" id="chk-vistoria" onclick="toggleCheckItem('vistoria')">
+                                    <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                    <span class="checklist-label">18. Vistoria Técnica e Registro de Avaria Realizados <strong style="color: #8b5cf6;">[TÉCNICO / ESTOQUE]</strong></span>
+                                    <div class="step-attach-area" id="attach-step-vistoria" onclick="event.stopPropagation()"></div>
+                                </div>
+                                <div class="checklist-item" id="chk-travas" onclick="toggleCheckItem('travas')">
+                                    <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                    <span class="checklist-label">19. Registro ERP (SKU-PRJ) & Etiquetagem Vermelha <strong style="color: #06b6d4;">[ESTOQUE]</strong></span>
+                                    <div class="step-attach-area" id="attach-step-travas" onclick="event.stopPropagation()"></div>
+                                </div>
+                                <div class="checklist-item" id="chk-direcionamento" onclick="toggleCheckItem('direcionamento')">
+                                    <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                    <span class="checklist-label">20. Roteamento Físico de Direcionamento Definido <strong style="color: #06b6d4;">[ESTOQUE]</strong></span>
+                                    <div class="step-attach-area" id="attach-step-direcionamento" onclick="event.stopPropagation()"></div>
+                                </div>
                                 <div class="checklist-item" id="chk-logistica_saida" onclick="toggleCheckItem('logistica_saida')">
                                     <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                    <span class="checklist-label">16. Validação Técnica, Item Aprovado</span>
+                                    <span class="checklist-label">21. Setup e Validação Técnica em Bancada <strong style="color: #8b5cf6;">[TÉCNICO]</strong></span>
                                     <div class="step-attach-area" id="attach-step-logistica_saida" onclick="event.stopPropagation()"></div>
                                 </div>
                                 <div class="checklist-item" id="chk-startup" onclick="toggleCheckItem('startup')">
                                     <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                    <span class="checklist-label">17. Montagem e Start-up Técnico Concluídos no Cliente</span>
+                                    <span class="checklist-label">22. Montagem e Start-up Técnico Concluídos no Cliente <strong style="color: #8b5cf6;">[TÉCNICO]</strong></span>
                                     <div class="step-attach-area" id="attach-step-startup" onclick="event.stopPropagation()"></div>
                                 </div>
                                 <div class="checklist-item" id="chk-sat" onclick="toggleCheckItem('sat')">
                                     <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                    <span class="checklist-label">18. Teste SAT e Assinatura do Termo ("Joinha" final)</span>
+                                    <span class="checklist-label">23. Teste SAT e Assinatura do Termo ("Joinha" final) <strong style="color: #8b5cf6;">[TÉCNICO]</strong></span>
                                     <div class="step-attach-area" id="attach-step-sat" onclick="event.stopPropagation()"></div>
                                 </div>
                             </div>
@@ -3343,28 +3440,32 @@
                         <!-- PRAZOS DO PROJETO -->
                         <div class="detail-card" style="margin-bottom: 20px;">
                             <h4 style="color: var(--primary); margin-bottom: 15px;">Cronograma & Prazos Limites (Travados)</h4>
-                            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                                 <div class="form-group">
-                                    <label for="modal-deadline-fase1">1. Eng. & Escopo (dias)</label>
+                                    <label for="modal-deadline-fase1">1. Eng. (dias)</label>
                                     <input type="number" class="form-control" id="modal-deadline-fase1" readonly>
                                 </div>
                                 <div class="form-group">
-                                    <label for="modal-deadline-fase2">2. Comercial & Contrato (dias)</label>
+                                    <label for="modal-deadline-fase2">2. Comercial (dias)</label>
                                     <input type="number" class="form-control" id="modal-deadline-fase2" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="modal-deadline-fase3">3. Proforma (dias)</label>
+                                    <input type="number" class="form-control" id="modal-deadline-fase3" readonly>
                                 </div>
                             </div>
                             <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                                 <div class="form-group">
-                                    <label for="modal-deadline-fase3">3. Compras (dias)</label>
-                                    <input type="number" class="form-control" id="modal-deadline-fase3" readonly>
-                                </div>
-                                <div class="form-group">
-                                    <label for="modal-deadline-fase4">4. Estoque (dias)</label>
+                                    <label for="modal-deadline-fase4">4. Compras (dias)</label>
                                     <input type="number" class="form-control" id="modal-deadline-fase4" readonly>
                                 </div>
                                 <div class="form-group">
-                                    <label for="modal-deadline-fase5">5. SAT (dias)</label>
+                                    <label for="modal-deadline-fase5">5. Transporte (dias)</label>
                                     <input type="number" class="form-control" id="modal-deadline-fase5" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="modal-deadline-fase6">6. SAT (dias)</label>
+                                    <input type="number" class="form-control" id="modal-deadline-fase6" readonly>
                                 </div>
                             </div>
                         </div>
@@ -4367,21 +4468,21 @@
                         let totalFinished = 0;
                         let totalLost = 0;
                         let delayedCount = 0;
-                        const faseDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
+                        const faseDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0 };
                         const delayedProjects = [];
 
                         projects.forEach(p => {
                             const fase = parseInt(p.fase) || 1;
                             faseDistribution[fase] = (faseDistribution[fase] || 0) + 1;
 
-                            if (fase === 6) {
+                            if (fase === 7) {
                                 totalFinished++;
-                            } else if (fase === 7) {
+                            } else if (fase === 8) {
                                 totalLost++;
                             } else {
                                 totalActive++;
 
-                                const defaults = { 1: 3, 2: 5, 3: 51, 4: 59, 5: 15 };
+                                const defaults = { 1: 3, 2: 5, 3: 5, 4: 55, 5: 55, 6: 10 };
                                 let deadlineDays = defaults[fase];
                                 if (p.prazos) {
                                     const parsedPrazos = typeof p.prazos === 'string' ? JSON.parse(p.prazos) : p.prazos;
@@ -4398,9 +4499,10 @@
                                     const phaseResponsible = {
                                         1: 'Engenharia de Aplicação',
                                         2: 'Comercial & Contrato',
-                                        3: 'Compras & Importação',
-                                        4: 'Estoque / Almoxarifado',
-                                        5: 'Técnico Instalador'
+                                        3: 'Proforma, Câmbio & Pag. Sinal',
+                                        4: 'Compras & Produção',
+                                        5: 'Transporte & Nacionalização',
+                                        6: 'Oficina & Instalação'
                                     };
                                     delayedProjects.push({
                                         code: p.code,
@@ -5655,8 +5757,17 @@
             if (!activeProjectCode) return;
             const project = state.projects.find(p => p.code === activeProjectCode);
             const currentFase = project ? parseInt(project.fase) : 1;
-            const daysAdded = currentFase === 1 ? 3 : 5;
-            const phaseLabel = currentFase === 1 ? 'Engenharia (+3 dias)' : 'Comercial (+5 dias)';
+            const phaseConfig = {
+                1: { days: 3, label: 'Engenharia (+3 dias)' },
+                2: { days: 5, label: 'Comercial (+5 dias)' },
+                3: { days: 5, label: 'Proforma & Câmbio (+5 dias)' },
+                4: { days: 55, label: 'Compras & Produção (+55 dias)' },
+                5: { days: 55, label: 'Transporte & Nacionalização (+55 dias)' },
+                6: { days: 10, label: 'Oficina & Instalação (+10 dias)' }
+            };
+            const config = phaseConfig[currentFase] || { days: 5, label: `Fase ${currentFase}` };
+            const daysAdded = config.days;
+            const phaseLabel = config.label;
             
             const justification = prompt(`Digite uma justificativa para prorrogar o prazo da ${phaseLabel} do projeto (obrigatório):`);
             if (justification === null) return; 
@@ -6096,18 +6207,19 @@
                 document.getElementById('metrics-delayed-count').innerText = data.delayedCount;
                 document.getElementById('metrics-lost').innerText = data.totalLost;
 
-                // Gráfico de Distribuição por Fase (7 Fases)
+                // Gráfico de Distribuição por Fase (8 Fases)
                 const chartArea = document.getElementById('metrics-fase-chart');
                 chartArea.innerHTML = "";
 
                 const phaseLabels = {
                     1: '1. Eng. Aplicação & Escopo',
                     2: '2. Comercial & Contrato',
-                    3: '3. Compras & Produção Int.',
-                    4: '4. Recebimento & Estoque',
-                    5: '5. Instalação & SAT',
-                    6: '6. Concluído',
-                    7: '7. Cancelado / Perdido'
+                    3: '3. Proforma & Câmbio',
+                    4: '4. Compras & Produção',
+                    5: '5. Transporte & Nac.',
+                    6: '6. Oficina & SAT',
+                    7: '7. Concluído',
+                    8: '8. Cancelado / Perdido'
                 };
 
                 const phaseColors = {
@@ -6117,10 +6229,11 @@
                     4: 'var(--color-fase4)',
                     5: 'var(--color-fase5)',
                     6: 'var(--color-fase6)',
-                    7: 'var(--color-fase7)'
+                    7: 'var(--color-fase7)',
+                    8: 'var(--color-fase8)'
                 };
 
-                const chartPhases = [1, 2, 3, 4, 5, 6, 7];
+                const chartPhases = [1, 2, 3, 4, 5, 6, 7, 8];
                 let maxVal = 0;
                 chartPhases.forEach(f => {
                     const count = data.faseDistribution[f] || 0;
@@ -6173,9 +6286,10 @@
                         const phaseLabelsBrief = {
                             1: 'Eng. Aplicação',
                             2: 'Comercial',
-                            3: 'Compras',
-                            4: 'Estoque',
-                            5: 'Instalação'
+                            3: 'Proforma & Câmbio',
+                            4: 'Compras & Prod.',
+                            5: 'Transporte & Nac.',
+                            6: 'Oficina & SAT'
                         };
                         const rowHtml = `
                             <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-primary);">
@@ -6278,7 +6392,8 @@
                             2: 'var(--color-fase2)',
                             3: 'var(--color-fase3)',
                             4: 'var(--color-fase4)',
-                            5: 'var(--color-fase5)'
+                            5: 'var(--color-fase5)',
+                            6: 'var(--color-fase6)'
                         };
                         ltData.forEach(item => {
                             const percent = (item.avgDays / maxAvgDays) * 100;
@@ -6352,20 +6467,23 @@
                     tech: 'Téc. Anderson Lima',
                     serial: 'SN-MESA-102, SN-CONT-102, -',
                     route: 'Rota A, Rota B, -',
-                    fase: 4, // Recebimento & Estoque
+                    fase: 5, // Transporte Marítimo & Nacionalização
                     checklist: {
                         diagnostico: true, customizacao: true, cotacao: true,
                         fluxograma: true, planta_baixa: true, aprovacao: true, contrato: true,
-                        pagamento: true, producao: true, embarque: true, fedex: true,
-                        desembaraco: true, vistoria: true, travas: false, direcionamento: false,
+                        proforma: true, cambio_sinal: true, swift_pagamento: true,
+                        producao: true, embarque: true, pagamento: true, fedex: true,
+                        transporte_maritimo: true, desembaraco: true, chegada_tecfag: false,
+                        vistoria: false, travas: false, direcionamento: false,
                         logistica_saida: false, startup: false, sat: false
                     },
                     prazos: {
                         fase1: 3,
                         fase2: 5,
-                        fase3: 51,
-                        fase4: 59,
-                        fase5: 15
+                        fase3: 5,
+                        fase4: 55,
+                        fase5: 55,
+                        fase6: 10
                     },
                     faseEntryDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
                     lastUpdate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
@@ -6385,20 +6503,23 @@
                     tech: 'Téc. Juliano Reis',
                     serial: 'SN-SORTER-4481-AM',
                     route: 'B',
-                    fase: 5, // Instalação & SAT
+                    fase: 6, // Oficina, Instalação & SAT
                     checklist: {
                         diagnostico: true, customizacao: true, cotacao: true,
                         fluxograma: true, planta_baixa: true, aprovacao: true, contrato: true,
-                        pagamento: true, producao: true, embarque: true, fedex: true,
-                        desembaraco: true, vistoria: true, travas: true, direcionamento: true,
+                        proforma: true, cambio_sinal: true, swift_pagamento: true,
+                        producao: true, embarque: true, pagamento: true, fedex: true,
+                        transporte_maritimo: true, desembaraco: true, chegada_tecfag: true,
+                        vistoria: true, travas: true, direcionamento: true,
                         logistica_saida: true, startup: true, sat: false
                     },
                     prazos: {
                         fase1: 3,
                         fase2: 5,
-                        fase3: 51,
-                        fase4: 59,
-                        fase5: 15
+                        fase3: 5,
+                        fase4: 55,
+                        fase5: 55,
+                        fase6: 10
                     },
                     faseEntryDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
                     lastUpdate: new Date().toISOString()
@@ -6413,20 +6534,23 @@
                     tech: 'Téc. Bruno Fagundes',
                     serial: '-',
                     route: '-',
-                    fase: 3, // Importação & Compras
+                    fase: 4, // Compras, Produção & Embarque
                     checklist: {
                         diagnostico: true, customizacao: true, cotacao: true,
                         fluxograma: true, planta_baixa: true, aprovacao: true, contrato: true,
-                        pagamento: true, producao: true, embarque: false, fedex: false,
-                        desembaraco: false, vistoria: false, travas: false, direcionamento: false,
+                        proforma: true, cambio_sinal: true, swift_pagamento: true,
+                        producao: true, embarque: false, pagamento: false, fedex: false,
+                        transporte_maritimo: false, desembaraco: false, chegada_tecfag: false,
+                        vistoria: false, travas: false, direcionamento: false,
                         logistica_saida: false, startup: false, sat: false
                     },
                     prazos: {
                         fase1: 3,
                         fase2: 5,
-                        fase3: 51,
-                        fase4: 59,
-                        fase5: 15
+                        fase3: 5,
+                        fase4: 55,
+                        fase5: 55,
+                        fase6: 10
                     },
                     faseEntryDate: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000).toISOString(),
                     lastUpdate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
@@ -6441,20 +6565,23 @@
                     tech: 'Téc. Anderson Lima',
                     serial: 'SN-BG-8832-SM',
                     route: 'C',
-                    fase: 6, // Concluído
+                    fase: 7, // Concluído (SAT)
                     checklist: {
                         diagnostico: true, customizacao: true, cotacao: true,
                         fluxograma: true, planta_baixa: true, aprovacao: true, contrato: true,
-                        pagamento: true, producao: true, embarque: true, fedex: true,
-                        desembaraco: true, vistoria: true, travas: true, direcionamento: true,
+                        proforma: true, cambio_sinal: true, swift_pagamento: true,
+                        producao: true, embarque: true, pagamento: true, fedex: true,
+                        transporte_maritimo: true, desembaraco: true, chegada_tecfag: true,
+                        vistoria: true, travas: true, direcionamento: true,
                         logistica_saida: true, startup: true, sat: true
                     },
                     prazos: {
                         fase1: 3,
                         fase2: 5,
-                        fase3: 51,
-                        fase4: 59,
-                        fase5: 15
+                        fase3: 5,
+                        fase4: 55,
+                        fase5: 55,
+                        fase6: 10
                     },
                     faseEntryDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
                     lastUpdate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
@@ -6469,21 +6596,24 @@
                     tech: 'Téc. Bruno Fagundes',
                     serial: '-',
                     route: '-',
-                    fase: 7, // Perdido/Cancelado
+                    fase: 8, // Cancelado / Venda Perdida
                     motivoPerda: 'Concorrente Apresentou Solução Melhor/Mais Barata',
                     checklist: {
                         diagnostico: true, customizacao: false, cotacao: true,
                         fluxograma: false, planta_baixa: false, aprovacao: false, contrato: false,
-                        pagamento: false, producao: false, embarque: false, fedex: false,
-                        desembaraco: false, vistoria: false, travas: false, direcionamento: false,
+                        proforma: false, cambio_sinal: false, swift_pagamento: false,
+                        producao: false, embarque: false, pagamento: false, fedex: false,
+                        transporte_maritimo: false, desembaraco: false, chegada_tecfag: false,
+                        vistoria: false, travas: false, direcionamento: false,
                         logistica_saida: false, startup: false, sat: false
                     },
                     prazos: {
                         fase1: 3,
                         fase2: 5,
-                        fase3: 51,
-                        fase4: 59,
-                        fase5: 15
+                        fase3: 5,
+                        fase4: 55,
+                        fase5: 55,
+                        fase6: 10
                     },
                     faseEntryDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
                     lastUpdate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString()
@@ -6586,8 +6716,8 @@
 
         // Tasks bottlenecks
         function getBottleneckRole(project) {
-            if (project.fase === 7) return "PERDIDO";
-            if (project.fase === 6) return "CONCLUIDO";
+            if (project.fase === 8) return "PERDIDO";
+            if (project.fase === 7) return "CONCLUIDO";
             if (!project.checklist.diagnostico) return "VENDAS";
             if (!project.checklist.customizacao) return "ENGENHARIA";
             if (!project.checklist.cotacao) return "ENGENHARIA";
@@ -6595,8 +6725,11 @@
             if (!project.checklist.planta_baixa) return "ENGENHARIA";
             if (!project.checklist.aprovacao) return "VENDAS";
             if (!project.checklist.contrato) return "VENDAS";
-            if (!project.checklist.pagamento || !project.checklist.producao || !project.checklist.embarque || !project.checklist.fedex) return "COMPRAS";
-            if (!project.checklist.desembaraco || !project.checklist.vistoria || !project.checklist.travas || !project.checklist.direcionamento || project.serial === '-') return "ESTOQUE";
+            if (!project.checklist.proforma || !project.checklist.cambio_sinal || !project.checklist.swift_pagamento) return "COMPRAS";
+            if (!project.checklist.producao || !project.checklist.embarque || !project.checklist.pagamento || !project.checklist.fedex) return "COMPRAS";
+            if (!project.checklist.transporte_maritimo || !project.checklist.desembaraco || !project.checklist.chegada_tecfag) return "ESTOQUE";
+            if (!project.checklist.vistoria) return "TECNICO";
+            if (!project.checklist.travas || !project.checklist.direcionamento || project.serial === '-') return "ESTOQUE";
             if (!project.checklist.logistica_saida || !project.checklist.startup || !project.checklist.sat) return "TECNICO";
             return "GERENTE";
         }
@@ -6654,13 +6787,13 @@
             const columns = document.querySelectorAll('#kanban-board-wrapper .kanban-column');
             columns.forEach(col => {
                 if (type === 'sales') {
-                    if (col.classList.contains('crm-col') || col.id === 'col-fase5' || col.id === 'col-fase6') {
+                    if (col.classList.contains('crm-col') || col.id === 'col-fase7' || col.id === 'col-fase8') {
                         col.classList.remove('hidden');
                     } else {
                         col.classList.add('hidden');
                     }
                 } else if (type === 'prod') {
-                    if (col.classList.contains('mrp-col') || col.id === 'col-fase5' || col.id === 'col-fase6') {
+                    if (col.classList.contains('mrp-col') || col.id === 'col-fase7' || col.id === 'col-fase8') {
                         col.classList.remove('hidden');
                     } else {
                         col.classList.add('hidden');
@@ -7635,19 +7768,21 @@
             }
         }
 
-        // Reseta os campos numéricos de duração com os padrões travados (3, 5, 51, 59, 15 dias)
+        // Reseta os campos numéricos de duração com os padrões travados (3, 5, 5, 55, 55, 10 dias)
         function resetDaysFields() {
             const f1 = document.getElementById('prj-days-fase1');
             const f2 = document.getElementById('prj-days-fase2');
             const f3 = document.getElementById('prj-days-fase3');
             const f4 = document.getElementById('prj-days-fase4');
             const f5 = document.getElementById('prj-days-fase5');
+            const f6 = document.getElementById('prj-days-fase6');
 
             if (f1) f1.value = 3;
             if (f2) f2.value = 5;
-            if (f3) f3.value = 51;
-            if (f4) f4.value = 59;
-            if (f5) f5.value = 15;
+            if (f3) f3.value = 5;
+            if (f4) f4.value = 55;
+            if (f5) f5.value = 55;
+            if (f6) f6.value = 10;
         }
 
         // Toggles de Sub-tipos nos Segmentos (Mantidos para compatibilidade legada se necessário)
@@ -8469,9 +8604,10 @@
                 const prazos = {
                     fase1: 3,
                     fase2: 5,
-                    fase3: 51,
-                    fase4: 59,
-                    fase5: 15
+                    fase3: 5,
+                    fase4: 55,
+                    fase5: 55,
+                    fase6: 10
                 };
 
                 const token = localStorage.getItem('tecfag_session_token');
@@ -8747,6 +8883,7 @@
             if (document.getElementById('kpi-fase5')) document.getElementById('kpi-fase5').innerText = countFase(5);
             if (document.getElementById('kpi-fase6')) document.getElementById('kpi-fase6').innerText = countFase(6);
             if (document.getElementById('kpi-fase7')) document.getElementById('kpi-fase7').innerText = countFase(7);
+            if (document.getElementById('kpi-fase8')) document.getElementById('kpi-fase8').innerText = countFase(8);
 
             // Contadores de colunas individuais
             if (document.getElementById('count-fase1')) document.getElementById('count-fase1').innerText = countFase(1);
@@ -8756,11 +8893,12 @@
             if (document.getElementById('count-fase5')) document.getElementById('count-fase5').innerText = countFase(5);
             if (document.getElementById('count-fase6')) document.getElementById('count-fase6').innerText = countFase(6);
             if (document.getElementById('count-fase7')) document.getElementById('count-fase7').innerText = countFase(7);
+            if (document.getElementById('count-fase8')) document.getElementById('count-fase8').innerText = countFase(8);
 
             // High-Tech HUD update
             let activeMachinesCount = 0;
             state.projects.forEach(p => {
-                if (p.fase !== 6 && p.fase !== 7) { // Excludes Concluded and Lost
+                if (p.fase !== 7 && p.fase !== 8) { // Excludes Concluded and Lost
                     if (p.machines && Array.isArray(p.machines)) {
                         activeMachinesCount += p.machines.length;
                     } else {
@@ -8795,7 +8933,7 @@
 
         // Alerta Crítico: Mais de 7 dias sem atualização
         function checkCriticalWarning(project) {
-            if (project.fase === 6 || project.fase === 7) return false;
+            if (project.fase === 7 || project.fase === 8) return false;
             if (!project.lastUpdate) return false;
             const diffTime = Math.abs(new Date() - new Date(project.lastUpdate));
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -8804,7 +8942,7 @@
 
         // Kanban Board columns
         function renderKanban() {
-            const phasesList = [1, 2, 3, 4, 5, 6, 7];
+            const phasesList = [1, 2, 3, 4, 5, 6, 7, 8];
             phasesList.forEach(i => {
                 const el = document.getElementById(`cards-fase${i}`);
                 if (el) el.innerHTML = '';
@@ -8830,17 +8968,18 @@
                 let responsibleText = "";
                 if (project.fase === 1) responsibleText = "Eng. Aplicação & Escopo";
                 else if (project.fase === 2) responsibleText = "Comercial & Contrato";
-                else if (project.fase === 3) responsibleText = "Compras & Prod. Int.";
-                else if (project.fase === 4) responsibleText = "Recebimento & Estoque";
-                else if (project.fase === 5) responsibleText = "Instalação & SAT";
-                else if (project.fase === 6) responsibleText = "Concluído";
-                else if (project.fase === 7) responsibleText = "Cancelado / Perdido";
+                else if (project.fase === 3) responsibleText = "Proforma, Câmbio & Pag. Sinal";
+                else if (project.fase === 4) responsibleText = "Compras & Prod. Internacional";
+                else if (project.fase === 5) responsibleText = "Transporte & Nacionalização";
+                else if (project.fase === 6) responsibleText = "Oficina, Setup & SAT";
+                else if (project.fase === 7) responsibleText = "Concluído";
+                else if (project.fase === 8) responsibleText = "Cancelado / Perdido";
 
                 // Prazos do Kanban
                 let deadlineStr = "-";
                 let deadlineClass = "";
                 let deadlineLabel = "";
-                if (project.fase >= 1 && project.fase <= 5) {
+                if (project.fase >= 1 && project.fase <= 6) {
                     const daysLimit = project.prazos ? parseInt(project.prazos[`fase${project.fase}`]) : null;
                     if (daysLimit !== null && !isNaN(daysLimit)) {
                         const entryDate = project.faseEntryDate ? new Date(project.faseEntryDate) : (project.lastUpdate ? new Date(project.lastUpdate) : new Date());
@@ -8956,7 +9095,7 @@
                 const card = document.createElement('div');
                 
                 let extraClass = "";
-                if (project.fase === 7) {
+                if (project.fase === 8) {
                     extraClass = "project-card-lost";
                 }
                 card.className = `project-card ${isMyBottleneck ? 'highlighted-role' : ''} ${extraClass}`;
@@ -8987,13 +9126,13 @@
                             <span>Fase Atual:</span>
                             <span class="responsible-label">${responsibleText}</span>
                         </div>
-                        ${(project.fase !== 6 && project.fase !== 7) ? `
+                        ${(project.fase !== 7 && project.fase !== 8) ? `
                             <div class="project-deadline-box ${deadlineClass}">
                                 <span>Prazo Fase:</span>
                                 <strong>${deadlineStr}${deadlineLabel}</strong>
                             </div>
                         ` : ''}
-                        ${project.fase === 7 ? `
+                        ${project.fase === 8 ? `
                             <div class="project-deadline-box deadline-overdue" style="background-color: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);">
                                 <span>Motivo de Perda:</span>
                                 <strong style="font-size: 0.72rem; word-break: break-word;">${project.motivoPerda || 'Não informado'}</strong>
@@ -9083,11 +9222,12 @@
             const faseTextos = {
                 1: '1. Eng. Aplicação',
                 2: '2. Comercial',
-                3: '3. Compras & Imp.',
-                4: '4. Recebimento',
-                5: '5. Instalação & SAT',
-                6: '6. Concluído',
-                7: '7. Cancelado'
+                3: '3. Proforma & Câmbio',
+                4: '4. Compras & Prod.',
+                5: '5. Transporte & Nac.',
+                6: '6. Oficina & SAT',
+                7: '7. Concluído',
+                8: '8. Cancelado'
             };
 
             const faseClasses = {
@@ -9097,7 +9237,8 @@
                 4: 'var(--color-fase4)',
                 5: 'var(--color-fase5)',
                 6: 'var(--color-fase6)',
-                7: 'var(--color-fase7)'
+                7: 'var(--color-fase7)',
+                8: 'var(--color-fase8)'
             };
 
             filtered.forEach(p => {
@@ -9129,7 +9270,7 @@
 
                 let badgeHtml = `
                     <span class="badge-fase" style="background-color: ${faseClasses[p.fase]}20; color: ${faseClasses[p.fase]}; border: 1px solid ${faseClasses[p.fase]}40;">
-                        ${faseTextos[p.fase]}
+                        ${faseTextos[p.fase] || 'Fase ' + p.fase}
                     </span>
                 `;
                 
@@ -9143,8 +9284,8 @@
 
                 // Cálculo do Prazo
                 let deadlineHtml = '<span style="color: var(--text-secondary); font-weight: 500;">-</span>';
-                if (p.fase >= 1 && p.fase <= 5) {
-                    const defaults = { 1: 3, 2: 5, 3: 51, 4: 59, 5: 15 };
+                if (p.fase >= 1 && p.fase <= 6) {
+                    const defaults = { 1: 3, 2: 5, 3: 5, 4: 55, 5: 55, 6: 10 };
                     let deadlineDays = defaults[p.fase];
                     if (p.prazos) {
                         try {
@@ -9163,9 +9304,9 @@
                     } else {
                         deadlineHtml = `<span style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.25); font-weight: bold; font-size: 0.72rem;">${remaining}d restantes</span>`;
                     }
-                } else if (p.fase === 6) {
-                    deadlineHtml = `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.25); font-weight: bold; font-size: 0.72rem;">Concluído</span>`;
                 } else if (p.fase === 7) {
+                    deadlineHtml = `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.25); font-weight: bold; font-size: 0.72rem;">Concluído</span>`;
+                } else if (p.fase === 8) {
                     deadlineHtml = `<span style="background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); font-weight: 500; font-size: 0.72rem;">Cancelado</span>`;
                 }
 
@@ -9469,16 +9610,20 @@
             
             document.getElementById('modal-project-subtitle').innerText = `Gerente: ${project.pm || '-'} | Vendedor: ${creator} | Técnico: ${project.tech || '-'}`;
             
-            // Exibir botão de prorrogação se estiver na Fase 1 (Engenharia) ou Fase 2 (Comercial)
+            // Exibir botão de prorrogação se estiver nas Fases 1 a 6 (ativas)
             const btnProrrogar = document.getElementById('btn-prorrogar-prazo');
             if (btnProrrogar) {
                 const currentFase = parseInt(project.fase);
-                btnProrrogar.style.display = (currentFase === 1 || currentFase === 2) ? 'flex' : 'none';
-                if (currentFase === 1) {
-                    btnProrrogar.title = "Prorrogar o prazo da engenharia por +3 dias";
-                } else if (currentFase === 2) {
-                    btnProrrogar.title = "Prorrogar o prazo comercial por +5 dias";
-                }
+                btnProrrogar.style.display = (currentFase >= 1 && currentFase <= 6) ? 'flex' : 'none';
+                const phaseLabelsMap = {
+                    1: "Prorrogar o prazo da Fase 1 (Engenharia) por +3 dias",
+                    2: "Prorrogar o prazo da Fase 2 (Comercial) por +5 dias",
+                    3: "Prorrogar o prazo da Fase 3 (Proforma & Câmbio) por +5 dias",
+                    4: "Prorrogar o prazo da Fase 4 (Compras & Produção) por +55 dias",
+                    5: "Prorrogar o prazo da Fase 5 (Transporte & Nac.) por +55 dias",
+                    6: "Prorrogar o prazo da Fase 6 (Oficina & SAT) por +10 dias"
+                };
+                btnProrrogar.title = phaseLabelsMap[currentFase] || "Prorrogar prazo da fase atual";
             }
             
             // Gerar imagem do QR Code
@@ -10168,7 +10313,7 @@
 
             // Lógica de Visibilidade Condicional e Auto-check de Pronta Entrega
             const isLocalStock = (project.equipment_origin === 'Pronta Entrega (Estoque Local)');
-            const importSteps = ['pagamento', 'producao', 'embarque', 'fedex', 'desembaraco'];
+            const importSteps = ['proforma', 'cambio_sinal', 'swift_pagamento', 'producao', 'embarque', 'pagamento', 'fedex', 'transporte_maritimo', 'desembaraco', 'chegada_tecfag'];
             if (isLocalStock) {
                 importSteps.forEach(k => {
                     project.checklist[k] = true;
@@ -10192,10 +10337,12 @@
                     }
 
                     const taskRoleMap = {
-                        diagnostico: "VENDAS", customizacao: "ENGENHARIA", aprovacao: "VENDAS",
-                        cotacao: "ENGENHARIA", fluxograma: "ENGENHARIA", contrato: "VENDAS", planta_baixa: "ENGENHARIA",
-                        pagamento: "COMPRAS", producao: "COMPRAS", embarque: "COMPRAS", fedex: "COMPRAS",
-                        desembaraco: "ESTOQUE", vistoria: "ESTOQUE", travas: "ESTOQUE", direcionamento: "ESTOQUE",
+                        diagnostico: "VENDAS", customizacao: "ENGENHARIA", cotacao: "ENGENHARIA", fluxograma: "ENGENHARIA", planta_baixa: "ENGENHARIA",
+                        aprovacao: "VENDAS", contrato: "VENDAS",
+                        proforma: "COMPRAS", cambio_sinal: "COMPRAS", swift_pagamento: "COMPRAS",
+                        producao: "COMPRAS", embarque: "COMPRAS", pagamento: "COMPRAS", fedex: "COMPRAS",
+                        transporte_maritimo: "ESTOQUE", desembaraco: "ESTOQUE", chegada_tecfag: "ESTOQUE",
+                        vistoria: "TECNICO", travas: "ESTOQUE", direcionamento: "ESTOQUE",
                         logistica_saida: "TECNICO", startup: "TECNICO", sat: "TECNICO"
                     };
 
@@ -10218,9 +10365,10 @@
             // Prazos no modal (Travados - Não Editáveis)
             if (document.getElementById('modal-deadline-fase1')) document.getElementById('modal-deadline-fase1').value = project.prazos ? (project.prazos.fase1 || 3) : 3;
             if (document.getElementById('modal-deadline-fase2')) document.getElementById('modal-deadline-fase2').value = project.prazos ? (project.prazos.fase2 || 5) : 5;
-            if (document.getElementById('modal-deadline-fase3')) document.getElementById('modal-deadline-fase3').value = project.prazos ? (project.prazos.fase3 || 51) : 51;
-            if (document.getElementById('modal-deadline-fase4')) document.getElementById('modal-deadline-fase4').value = project.prazos ? (project.prazos.fase4 || 59) : 59;
-            if (document.getElementById('modal-deadline-fase5')) document.getElementById('modal-deadline-fase5').value = project.prazos ? (project.prazos.fase5 || 15) : 15;
+            if (document.getElementById('modal-deadline-fase3')) document.getElementById('modal-deadline-fase3').value = project.prazos ? (project.prazos.fase3 || 5) : 5;
+            if (document.getElementById('modal-deadline-fase4')) document.getElementById('modal-deadline-fase4').value = project.prazos ? (project.prazos.fase4 || 55) : 55;
+            if (document.getElementById('modal-deadline-fase5')) document.getElementById('modal-deadline-fase5').value = project.prazos ? (project.prazos.fase5 || 55) : 55;
+            if (document.getElementById('modal-deadline-fase6')) document.getElementById('modal-deadline-fase6').value = project.prazos ? (project.prazos.fase6 || 10) : 10;
 
             // Load Stage Attachments from IndexedDB
             renderAttachments();
@@ -10242,7 +10390,7 @@
             const lostBtn = document.getElementById('btn-mark-lost');
             const lostAlertArea = document.getElementById('modal-lost-reason-alert');
             
-            if (project.fase === 7) {
+            if (project.fase === 8) {
                 if (lostBtn) {
                     lostBtn.innerText = "Reativar Projeto";
                     lostBtn.style.backgroundColor = "#10b981";
@@ -11810,10 +11958,12 @@
             }
 
             const taskRoleMap = {
-                diagnostico: "VENDAS", customizacao: "ENGENHARIA", aprovacao: "VENDAS",
-                cotacao: "ENGENHARIA", fluxograma: "ENGENHARIA", contrato: "VENDAS", planta_baixa: "ENGENHARIA",
-                pagamento: "COMPRAS", producao: "COMPRAS", embarque: "COMPRAS", fedex: "COMPRAS",
-                desembaraco: "ESTOQUE", vistoria: "ESTOQUE", travas: "ESTOQUE", direcionamento: "ESTOQUE",
+                diagnostico: "VENDAS", customizacao: "ENGENHARIA", cotacao: "ENGENHARIA", fluxograma: "ENGENHARIA", planta_baixa: "ENGENHARIA",
+                aprovacao: "VENDAS", contrato: "VENDAS",
+                proforma: "COMPRAS", cambio_sinal: "COMPRAS", swift_pagamento: "COMPRAS",
+                producao: "COMPRAS", embarque: "COMPRAS", pagamento: "COMPRAS", fedex: "COMPRAS",
+                transporte_maritimo: "ESTOQUE", desembaraco: "ESTOQUE", chegada_tecfag: "ESTOQUE",
+                vistoria: "TECNICO", travas: "ESTOQUE", direcionamento: "ESTOQUE",
                 logistica_saida: "TECNICO", startup: "TECNICO", sat: "TECNICO"
             };
 
@@ -11847,20 +11997,23 @@
             const itemPhases = {
                 diagnostico: 1, customizacao: 1, cotacao: 1, fluxograma: 1, planta_baixa: 1,
                 aprovacao: 2, contrato: 2,
-                pagamento: 3, producao: 3, embarque: 3, fedex: 3,
-                desembaraco: 4, vistoria: 4, travas: 4, direcionamento: 4,
-                logistica_saida: 5, startup: 5, sat: 5
+                proforma: 3, cambio_sinal: 3, swift_pagamento: 3,
+                producao: 4, embarque: 4, pagamento: 4, fedex: 4,
+                transporte_maritimo: 5, desembaraco: 5, chegada_tecfag: 5,
+                vistoria: 6, travas: 6, direcionamento: 6,
+                logistica_saida: 6, startup: 6, sat: 6
             };
             const currentItemPhase = itemPhases[key];
             const isChecking = !currentlyChecked;
+
+            const importTasks = ['proforma', 'cambio_sinal', 'swift_pagamento', 'producao', 'embarque', 'pagamento', 'fedex', 'transporte_maritimo', 'desembaraco', 'chegada_tecfag'];
 
             if (isChecking) {
                 // Verificar se todas as etapas das fases anteriores estão concluídas
                 for (const k of Object.keys(itemPhases)) {
                     if (itemPhases[k] < currentItemPhase) {
                         if (!project.checklist[k]) {
-                            const isImportTask = ['pagamento', 'producao', 'embarque', 'fedex', 'desembaraco'].includes(k);
-                            if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && isImportTask) {
+                            if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && importTasks.includes(k)) {
                                 continue;
                             }
                             alert(`Atenção: Não é permitido iniciar as etapas da Fase ${currentItemPhase} se as etapas das fases anteriores ainda não foram totalmente concluídas.`);
@@ -11873,8 +12026,7 @@
                 for (const k of Object.keys(itemPhases)) {
                     if (itemPhases[k] > currentItemPhase) {
                         if (project.checklist[k]) {
-                            const isImportTask = ['pagamento', 'producao', 'embarque', 'fedex', 'desembaraco'].includes(k);
-                            if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && isImportTask) {
+                            if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && importTasks.includes(k)) {
                                 continue;
                             }
                             alert(`Atenção: Não é permitido reabrir uma etapa da Fase ${currentItemPhase} se existem etapas concluídas nas fases seguintes (Fase ${itemPhases[k]} em diante). Primeiro desmarque as etapas das fases seguintes.`);
@@ -11884,7 +12036,7 @@
                 }
             }
 
-            // Se clicar no item 15 (direcionamento)
+            // Se clicar no item direcionamento
             if (key === 'direcionamento') {
                 const isChecking = !currentlyChecked;
                 if (isChecking) {
@@ -11943,18 +12095,20 @@
                 delete project.checklist[key + '_date'];
             }
             
-            // Pipeline routing
+            // Pipeline routing (8 fases)
             let oldFase = project.fase;
             let newFase = oldFase;
             
             if (project.checklist.sat) {
-                newFase = 6; // Concluído
-            } else if (project.checklist.logistica_saida || project.checklist.startup) {
-                newFase = 5; // Instalação & SAT
-            } else if (project.checklist.desembaraco || project.checklist.vistoria || project.checklist.travas || project.checklist.direcionamento) {
-                newFase = 4; // Recebimento & Estoque
-            } else if (project.checklist.pagamento || project.checklist.producao || project.checklist.embarque || project.checklist.fedex) {
-                newFase = 3; // Compras & Importação
+                newFase = 7; // Concluído (SAT)
+            } else if (project.checklist.vistoria || project.checklist.travas || project.checklist.direcionamento || project.checklist.logistica_saida || project.checklist.startup) {
+                newFase = 6; // Oficina, Instalação, Setup & SAT
+            } else if (project.checklist.transporte_maritimo || project.checklist.desembaraco || project.checklist.chegada_tecfag) {
+                newFase = 5; // Transporte Marítimo & Nacionalização
+            } else if (project.checklist.producao || project.checklist.embarque || project.checklist.pagamento || project.checklist.fedex) {
+                newFase = 4; // Compras, Produção & Embarque
+            } else if (project.checklist.proforma || project.checklist.cambio_sinal || project.checklist.swift_pagamento) {
+                newFase = 3; // Proforma, Câmbio & Pagamento Inicial
             } else if (project.checklist.aprovacao || project.checklist.contrato) {
                 newFase = 2; // Comercial & Contrato
             } else {
@@ -12004,7 +12158,7 @@
                     });
 
                     const bottleneck = getBottleneckRole({...project, fase: newFase});
-                    if (newFase !== 6 && newFase !== 7) {
+                    if (newFase !== 7 && newFase !== 8) {
                         const alertText = `<strong>[ALERTA AUTOMÁTICO]</strong> Processo encaminhado para o responsável: <strong>${bottleneck}</strong>.`;
                         await fetch('/api/logs', {
                             method: 'POST',
@@ -12134,23 +12288,24 @@
                 let finalFase = project.fase;
                 let updatedChecklist = { ...project.checklist };
 
-                const fase1To3Completed = [
+                const fase1To5Completed = [
                     'diagnostico', 'customizacao', 'cotacao', 'fluxograma', 'planta_baixa',
                     'aprovacao', 'contrato',
-                    'pagamento', 'producao', 'embarque', 'fedex'
+                    'proforma', 'cambio_sinal', 'swift_pagamento',
+                    'producao', 'embarque', 'pagamento', 'fedex',
+                    'transporte_maritimo', 'desembaraco', 'chegada_tecfag'
                 ].every(k => project.checklist[k] === true);
 
                 const allMachinesHaveSerial = updatedMachines.every(m => m.serial !== '-');
                 const someMachinesJustGotSerial = updatedMachines.some((m, idx) => m.serial !== '-' && (project.machines && project.machines[idx] ? project.machines[idx].serial === '-' : true));
 
-                if (fase1To3Completed) {
+                if (fase1To5Completed) {
                     if (allMachinesHaveSerial && someMachinesJustGotSerial) {
-                        updatedChecklist.desembaraco = true;
                         updatedChecklist.vistoria = true;
                         updatedChecklist.travas = true;
                         
-                        if (finalFase < 4) {
-                            finalFase = 4;
+                        if (finalFase < 6) {
+                            finalFase = 6;
                         }
                     }
 
@@ -12348,7 +12503,7 @@
             }
 
             const updateBody = {
-                fase: 7,
+                fase: 8,
                 motivoPerda: reasonText,
                 lastUpdate: new Date().toISOString()
             };
@@ -12397,11 +12552,12 @@
             const phaseLabels = {
                 1: 'Fase 1: Engenharia de Aplicação & Escopo',
                 2: 'Fase 2: Comercial & Contrato',
-                3: 'Fase 3: Compras e Produção Internacional',
-                4: 'Fase 4: Recebimento, Estoque e Roteamento',
-                5: 'Fase 5: Entrega, Instalação e SAT',
-                6: 'Concluído (SAT)',
-                7: 'Cancelado / Venda Perdida'
+                3: 'Fase 3: Proforma, Câmbio & Pagamento Inicial',
+                4: 'Fase 4: Compras, Produção & Embarque',
+                5: 'Fase 5: Transporte Marítimo & Nacionalização',
+                6: 'Fase 6: Oficina, Instalação, Setup & SAT',
+                7: 'Fase 7: Concluído (SAT)',
+                8: 'Fase 8: Cancelado / Venda Perdida'
             };
 
             // Checklist label descriptions mapping
@@ -12413,17 +12569,22 @@
                 'planta_baixa': '5. Desenho da Planta Baixa da Linha (PDF/DWG)',
                 'aprovacao': '6. Escopo Aprovado pelo Cliente',
                 'contrato': '7. Contrato Assinado / Upload de Documento Realizado',
-                'pagamento': '8. Pagamento da Invoice Efetuado ao Fornecedor',
-                'producao': '9. Monitoramento de Fabricação (Janela 40-50 dias)',
-                'embarque': '10. Liberação de Embarque e Rastreio Logístico',
-                'fedex': '11. Recebimento de Documentos Originais via FedEx',
-                'desembaraco': '12. Desembaraço Aduaneiro & Chegada Física Tecfag',
-                'vistoria': '13. Vistoria Técnica e Registro de Avaria Realizados',
-                'travas': '14. Registro ERP (SKU-PRJ) & Etiquetagem Vermelha',
-                'direcionamento': '15. Roteamento Físico de Direcionamento Definido',
-                'logistica_saida': '16. Validação Técnica, Item Aprovado',
-                'startup': '17. Montagem e Start-up Técnico Concluídos no Cliente',
-                'sat': '18. Teste SAT e Assinatura do Termo ("Joinha" final)'
+                'proforma': '8. Proforma Invoice Recebida & Conferida',
+                'cambio_sinal': '9. Fechamento de Câmbio do Sinal (30%)',
+                'swift_pagamento': '10. Comprovante SWIFT Pagamento Inicial Enviado',
+                'producao': '11. Monitoramento de Fabricação na Origem',
+                'embarque': '12. Liberação de Embarque e Prontidão de Carga',
+                'pagamento': '13. Fechamento Câmbio & SWIFT Saldo Final (70%)',
+                'fedex': '14. Recebimento de BL / Documentos Originais (FedEx)',
+                'transporte_maritimo': '15. Rastreio de Transporte Marítimo / Trânsito Internacional',
+                'desembaraco': '16. Registro da DI / Desembaraço Aduaneiro Concluído',
+                'chegada_tecfag': '17. Chegada Física do Contêiner na Tecfag & Descarga',
+                'vistoria': '18. Vistoria Técnica e Registro de Avaria / Desova',
+                'travas': '19. Registro ERP (SKU-PRJ) & Etiquetagem Vermelha',
+                'direcionamento': '20. Roteamento Físico de Direcionamento Definido',
+                'logistica_saida': '21. Validação Técnica, Item Aprovado & Expedição',
+                'startup': '22. Montagem e Start-up Técnico no Cliente',
+                'sat': '23. Teste SAT e Assinatura do Termo ("Joinha" final)'
             };
 
             // Build print content
@@ -12438,17 +12599,20 @@
             const phases = [
                 { title: 'Fase 1: Engenharia de Aplicação & Escopo', items: ['diagnostico', 'customizacao', 'cotacao', 'fluxograma', 'planta_baixa'] },
                 { title: 'Fase 2: Comercial & Contrato', items: ['aprovacao', 'contrato'] },
-                { title: 'Fase 3: Compras e Produção Internacional', items: ['pagamento', 'producao', 'embarque', 'fedex'] },
-                { title: 'Fase 4: Recebimento, Estoque e Roteamento', items: ['desembaraco', 'vistoria', 'travas', 'direcionamento'] },
-                { title: 'Fase 5: Entrega, Instalação e SAT', items: ['logistica_saida', 'startup', 'sat'] }
+                { title: 'Fase 3: Proforma, Câmbio & Pagamento Inicial', items: ['proforma', 'cambio_sinal', 'swift_pagamento'] },
+                { title: 'Fase 4: Compras, Produção & Embarque', items: ['producao', 'embarque', 'pagamento', 'fedex'] },
+                { title: 'Fase 5: Transporte Marítimo & Nacionalização', items: ['transporte_maritimo', 'desembaraco', 'chegada_tecfag'] },
+                { title: 'Fase 6: Oficina, Instalação, Setup & SAT', items: ['vistoria', 'travas', 'direcionamento', 'logistica_saida', 'startup', 'sat'] }
             ];
+
+            const importTasks = ['proforma', 'cambio_sinal', 'swift_pagamento', 'producao', 'embarque', 'pagamento', 'fedex', 'transporte_maritimo', 'desembaraco', 'chegada_tecfag'];
 
             phases.forEach(ph => {
                 let sectionHtml = '';
                 let itemsCount = 0;
                 
                 ph.items.forEach(item => {
-                    const isImportTask = ['pagamento', 'producao', 'embarque', 'fedex', 'desembaraco'].includes(item);
+                    const isImportTask = importTasks.includes(item);
                     if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && isImportTask) {
                         return; // Pular exibição das tarefas de importação em pronta entrega
                     }

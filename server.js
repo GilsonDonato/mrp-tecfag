@@ -294,6 +294,48 @@ function initializeDatabase() {
                         }
                     }
                 });
+
+                db.get("SELECT name FROM system_migrations WHERE name = 'expand_8_phases_v1'", async (err, row) => {
+                    if (!err && !row) {
+                        console.log('[MIGRATION] Aplicando migração para 8 Fases e nova matriz de SLAs (Proforma, Câmbio, Compras 55d, Transporte 55d, Oficina 10d)...');
+                        try {
+                            // 1. Shift Fases: 7 -> 8, 6 -> 7, 5 -> 6, 4 -> 5, 3 -> 4
+                            await dbRun("UPDATE projects SET fase = 8 WHERE fase = 7");
+                            await dbRun("UPDATE projects SET fase = 7 WHERE fase = 6");
+                            await dbRun("UPDATE projects SET fase = 6 WHERE fase = 5");
+                            await dbRun("UPDATE projects SET fase = 5 WHERE fase = 4");
+                            await dbRun("UPDATE projects SET fase = 4 WHERE fase = 3");
+                            
+                            // 2. Atualizar histórico de fases
+                            await dbRun("UPDATE project_phase_history SET fase = 8 WHERE fase = 7");
+                            await dbRun("UPDATE project_phase_history SET fase = 7 WHERE fase = 6");
+                            await dbRun("UPDATE project_phase_history SET fase = 6 WHERE fase = 5");
+                            await dbRun("UPDATE project_phase_history SET fase = 5 WHERE fase = 4");
+                            await dbRun("UPDATE project_phase_history SET fase = 4 WHERE fase = 3");
+
+                            // 3. Atualizar prazos limites nos projetos existentes
+                            const allPrjs = await dbAll("SELECT code, prazos FROM projects");
+                            for (const p of allPrjs) {
+                                let pz = {};
+                                try { pz = p.prazos ? JSON.parse(p.prazos) : {}; } catch(e) {}
+                                const newPz = {
+                                    fase1: 3,
+                                    fase2: 5,
+                                    fase3: 5,
+                                    fase4: 55,
+                                    fase5: 55,
+                                    fase6: 10
+                                };
+                                await dbRun("UPDATE projects SET prazos = ? WHERE code = ?", [JSON.stringify(newPz), p.code]);
+                            }
+
+                            await dbRun("INSERT INTO system_migrations (name, applied_at) VALUES ('expand_8_phases_v1', ?)", [new Date().toISOString()]);
+                            console.log('[MIGRATION] Migração para 8 Fases e nova matriz de prazos concluída com sucesso!');
+                        } catch(migErr) {
+                            console.error('[MIGRATION ERROR]', migErr.message);
+                        }
+                    }
+                });
             }
         });
 
@@ -960,21 +1002,23 @@ async function sendPhaseChangeEmail(project, oldFase, newFase) {
     const faseNomes = {
         1: 'Fase 1: Engenharia de Aplicação & Escopo',
         2: 'Fase 2: Comercial & Contrato',
-        3: 'Fase 3: Compras & Produção Internacional',
-        4: 'Fase 4: Recebimento, Estoque e Roteamento',
-        5: 'Fase 5: Entrega, Instalação e SAT',
-        6: 'Fase 6: Concluído ("Joinha" SAT assinado)',
-        7: 'Fase 7: Cancelado / Perdido'
+        3: 'Fase 3: Proforma, Câmbio & Pagamento Inicial',
+        4: 'Fase 4: Compras, Produção & Embarque',
+        5: 'Fase 5: Transporte Marítimo & Nacionalização',
+        6: 'Fase 6: Oficina, Instalação, Setup & SAT',
+        7: 'Fase 7: Concluído ("Joinha" SAT assinado)',
+        8: 'Fase 8: Cancelado / Perdido'
     };
 
     const destMap = {
         1: process.env.EMAIL_ENGENHARIA || 'assistencia@tecfag.com.br, projetos@grupo.tecfag.com.br',
         2: process.env.EMAIL_VENDAS || 'vendas14@tecfag.com.br, vendas20@tecfag.com.br, vendas21@tecfag.com.br, vendas4@tecfag.com.br, vendas17@tecfag.com.br, vendas19@tecfag.com.br',
         3: process.env.EMAIL_COMPRAS || 'gilson@tecfag.com.br',
-        4: process.env.EMAIL_ESTOQUE || 'almoxarifado2@tecfag.com.br',
-        5: process.env.EMAIL_TECNICO || 'assistencia@tecfag.com.br',
-        6: process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br',
-        7: process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br'
+        4: process.env.EMAIL_COMPRAS || 'gilson@tecfag.com.br',
+        5: process.env.EMAIL_ESTOQUE || 'almoxarifado2@tecfag.com.br',
+        6: process.env.EMAIL_TECNICO || 'assistencia@tecfag.com.br',
+        7: process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br',
+        8: process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br'
     };
 
     // Extrair o criador (vendedor) do card de dentro da estrutura do checklist
@@ -1313,10 +1357,22 @@ app.post('/api/projects/:code/extend', authenticateToken, async (req, res) => {
         
         if (project.fase === 1) {
             extensionLabel = "+3 dias";
-            phaseRoleText = "técnico da Engenharia de Escopo";
+            phaseRoleText = "técnico da Engenharia de Escopo (Fase 1)";
         } else if (project.fase === 2) {
             extensionLabel = "+5 dias";
-            phaseRoleText = "comercial de Vendas & Contrato";
+            phaseRoleText = "comercial de Vendas & Contrato (Fase 2)";
+        } else if (project.fase === 3) {
+            extensionLabel = "+5 dias";
+            phaseRoleText = "de Proforma, Câmbio & Pagamento Inicial (Fase 3)";
+        } else if (project.fase === 4) {
+            extensionLabel = "+55 dias";
+            phaseRoleText = "de Compras, Produção & Embarque (Fase 4)";
+        } else if (project.fase === 5) {
+            extensionLabel = "+55 dias";
+            phaseRoleText = "de Transporte Marítimo & Nacionalização (Fase 5)";
+        } else if (project.fase === 6) {
+            extensionLabel = "+10 dias";
+            phaseRoleText = "de Oficina, Setup & SAT (Fase 6)";
         }
         
         const logText = `<strong>[PRAZO PRORROGADO]</strong> Usuário <strong>${username}</strong> prorrogou o prazo ${phaseRoleText} do projeto <code>${code}</code> (${extensionLabel}). Justificativa: ${justification}`;
@@ -1365,7 +1421,7 @@ async function runAutoPipelineHygiene() {
                 const motivo = `Cancelamento Automático por Inatividade (> 20 dias de atraso na Fase ${p.fase})`;
                 const updateQuery = `
                     UPDATE projects SET 
-                        fase = 7, 
+                        fase = 8, 
                         motivoPerda = ?, 
                         lastUpdate = ?, 
                         validation_status = 'HOMOLOGADA'
@@ -1376,7 +1432,7 @@ async function runAutoPipelineHygiene() {
                 // Gravar histórico de fase
                 await dbRun(
                     'INSERT INTO project_phase_history (projectCode, fase, entryDate) VALUES (?, ?, ?)',
-                    [p.code, 7, now.toISOString()]
+                    [p.code, 8, now.toISOString()]
                 );
                 
                 // Gravar log de auditoria
@@ -1638,12 +1694,14 @@ async function sendWebhookNotification(event, details) {
             message = `🆕 **[NOVO PROJETO CADASTRADO]**\n**Código**: \`${details.code}\`\n**Cliente**: \`${details.client}\`\n**PM/Responsável**: \`${details.pm}\`\n**SKU Original**: \`${details.sku}\`\n**Data**: \`${timestamp}\``;
         } else if (event === 'PHASE_CHANGE') {
             const phaseLabels = {
-                1: 'Fase 1: Vendas / Escopo',
-                2: 'Fase 2: Importação / Compras',
-                3: 'Fase 3: Recebimento / Almoxarifado',
-                4: 'Fase 4: Instalação / Técnico',
-                5: 'Concluído (SAT)',
-                6: 'Cancelado / Perdido'
+                1: 'Fase 1: Engenharia de Aplicação & Escopo',
+                2: 'Fase 2: Comercial & Contrato',
+                3: 'Fase 3: Proforma, Câmbio & Pagamento Inicial',
+                4: 'Fase 4: Compras, Produção & Embarque',
+                5: 'Fase 5: Transporte Marítimo & Nacionalização',
+                6: 'Fase 6: Oficina, Instalação, Setup & SAT',
+                7: 'Concluído ("Joinha" SAT)',
+                8: 'Cancelado / Perdido'
             };
             const oldPhaseLabel = phaseLabels[details.oldFase] || `Fase ${details.oldFase}`;
             const newPhaseLabel = phaseLabels[details.newFase] || `Fase ${details.newFase}`;
@@ -1683,7 +1741,7 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
         let totalLost = 0;
         let delayedCount = 0;
         
-        const faseDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
+        const faseDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0 };
         const delayedProjects = [];
 
         // CRM Stats
@@ -1704,7 +1762,7 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
             const seller = checklistObj.diagnostico_user || 'admin';
             const value = parseFloat(p.crm_value) || 0;
 
-            if (fase === 6) {
+            if (fase === 7) {
                 totalFinished++;
                 crmWonValue += value;
                 
@@ -1712,12 +1770,12 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
                 if (!sellersMap[seller]) sellersMap[seller] = { seller, totalValue: 0, count: 0 };
                 sellersMap[seller].totalValue += value;
                 sellersMap[seller].count += 1;
-            } else if (fase === 7) {
+            } else if (fase === 8) {
                 totalLost++;
             } else {
                 totalActive++;
 
-                if ([1, 2].includes(fase)) {
+                if ([1, 2, 3].includes(fase)) {
                     crmTotalValue += value;
 
                     // Check Negligence
@@ -1744,7 +1802,7 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
                     prazosObj = p.prazos ? JSON.parse(p.prazos) : {};
                 } catch(e) {}
 
-                const defaults = { 1: 3, 2: 5, 3: 51, 4: 59, 5: 15 };
+                const defaults = { 1: 3, 2: 5, 3: 5, 4: 55, 5: 55, 6: 10 };
                 const deadlineDays = prazosObj[`fase${fase}`] !== undefined ? parseInt(prazosObj[`fase${fase}`]) : (defaults[fase] || 7);
                 
                 const entryDateStr = p.faseEntryDate || p.lastUpdate || new Date().toISOString();
@@ -1754,11 +1812,12 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
                     delayedCount++;
                     
                     const phaseResponsible = {
-                        1: 'Engenharia de Aplicação',
-                        2: 'Engenharia de Vendas',
-                        3: 'Compras & Importação',
-                        4: 'Almoxarifado & Estoque',
-                        5: 'Instalação & SAT'
+                        1: 'Engenharia de Aplicação & Escopo',
+                        2: 'Comercial & Contrato',
+                        3: 'Proforma, Câmbio & Pagamento Inicial',
+                        4: 'Compras, Produção & Embarque',
+                        5: 'Transporte Marítimo & Nacionalização',
+                        6: 'Oficina, Instalação, Setup & SAT'
                     };
 
                     delayedProjects.push({
@@ -6185,7 +6244,7 @@ app.put('/api/projects/:code', async (req, res) => {
             }
         }
 
-        // Trava física para impedir transição para Compras sem Contrato Assinado (Fase 2 -> Fase 3)
+        // Trava física para impedir transição para Proforma & Câmbio sem Contrato Assinado (Fase 2 -> Fase 3)
         if (fase !== undefined && parseInt(fase) >= 3 && parseInt(oldProject.fase) <= 2) {
             let isContratoDone = false;
             if (checklist && checklist.contrato !== undefined) {
@@ -6197,7 +6256,26 @@ app.put('/api/projects/:code', async (req, res) => {
             }
             
             if (!isContratoDone) {
-                return res.status(400).json({ error: '🔴 BLOQUEIO COMERCIAL: Não é permitido evoluir o projeto para a Fase de Compras sem antes registrar o Contrato Assinado.' });
+                return res.status(400).json({ error: '🔴 BLOQUEIO COMERCIAL: Não é permitido evoluir o projeto para a Fase de Proforma & Câmbio sem antes registrar o Contrato Assinado.' });
+            }
+        }
+
+        // Trava física para impedir transição para Compras & Produção sem Proforma e Sinal 30% (Fase 3 -> Fase 4)
+        if (fase !== undefined && parseInt(fase) >= 4 && parseInt(oldProject.fase) <= 3) {
+            let isProformaDone = false;
+            let isSwiftDone = false;
+            if (checklist) {
+                isProformaDone = !!checklist.proforma;
+                isSwiftDone = !!(checklist.swift_pagamento || checklist.cambio_sinal);
+            } else {
+                let oldChecklist = {};
+                try { oldChecklist = oldProject.checklist ? JSON.parse(oldProject.checklist) : {}; } catch(e){}
+                isProformaDone = !!oldChecklist.proforma;
+                isSwiftDone = !!(oldChecklist.swift_pagamento || oldChecklist.cambio_sinal);
+            }
+            
+            if (!isProformaDone || !isSwiftDone) {
+                return res.status(400).json({ error: '🔴 BLOQUEIO FINANCEIRO: Não é permitido evoluir o projeto para a Fase de Compras & Produção sem antes validar a Proforma Invoice e registrar o Comprovante SWIFT/Fechamento de Câmbio do Sinal (30%).' });
             }
         }
 
@@ -6216,7 +6294,7 @@ app.put('/api/projects/:code', async (req, res) => {
             await recordAuditLog(code, auditUser, `Alterou a Rota de "${oldProject.route || '-'}" para "${route || '-'}"`);
         }
         if (fase !== undefined && parseInt(fase) !== parseInt(oldFase)) {
-            const faseNomesBrief = { 1: 'Engenharia', 2: 'Comercial', 3: 'Importação', 4: 'Oficina', 5: 'Instalação & SAT', 6: 'Concluído', 7: 'Cancelado' };
+            const faseNomesBrief = { 1: 'Engenharia', 2: 'Comercial', 3: 'Proforma & Câmbio', 4: 'Compras & Produção', 5: 'Transporte & Nacionalização', 6: 'Oficina & SAT', 7: 'Concluído', 8: 'Cancelado' };
             await recordAuditLog(code, auditUser, `Mudou o projeto da fase "${faseNomesBrief[oldFase] || oldFase}" para "${faseNomesBrief[fase] || fase}"`);
         }
         if (tech !== undefined && tech !== oldProject.tech) {
