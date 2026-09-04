@@ -5737,8 +5737,12 @@
             // Filtro de Vendedor
             if (activeSellerFilter !== 'all') {
                 filteredPrjs = filteredPrjs.filter(p => {
-                    const creator = p.checklist ? p.checklist.diagnostico_user : null;
-                    return creator === activeSellerFilter;
+                    const sellerName = getProjectSeller(p);
+                    const friendlyFilter = getFriendlyUserName(activeSellerFilter);
+                    const creator = (p.checklist && p.checklist.diagnostico_user) || '';
+                    return creator === activeSellerFilter || 
+                           sellerName.toLowerCase() === friendlyFilter.toLowerCase() || 
+                           sellerName.toLowerCase() === activeSellerFilter.toLowerCase();
                 });
             }
 
@@ -5751,8 +5755,9 @@
                     const clientMatch = p.client && p.client.toLowerCase().includes(searchQuery);
                     const codeMatch = p.code && p.code.toLowerCase().includes(searchQuery);
                     const skuMatch = p.sku && p.sku.toLowerCase().includes(searchQuery);
+                    const sellerMatch = getProjectSeller(p).toLowerCase().includes(searchQuery);
                     const cnpjMatch = cleanQueryCnpj && p.cnpj && p.cnpj.replace(/\D/g, '').includes(cleanQueryCnpj);
-                    return clientMatch || codeMatch || skuMatch || cnpjMatch;
+                    return clientMatch || codeMatch || skuMatch || sellerMatch || cnpjMatch;
                 });
             }
 
@@ -5761,16 +5766,22 @@
             const statusVal = statusFilter ? statusFilter.value : 'all';
             const userStr = localStorage.getItem('tecfag_user');
             const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
+            const friendlyCurrent = getFriendlyUserName(currentUser).toLowerCase();
 
             if (statusVal === 'pending') {
                 filteredPrjs = filteredPrjs.filter(project => {
-                    const isCreator = project.checklist && project.checklist.diagnostico_user === currentUser;
-                    const hasPendingComment = project.crm_last_comment_user && project.crm_last_comment_user !== currentUser;
+                    const isCreator = (project.checklist && project.checklist.diagnostico_user === currentUser) ||
+                                      (getProjectSeller(project).toLowerCase() === friendlyCurrent);
+                    const hasValidComment = project.crm_last_comment_user && 
+                                           project.crm_last_comment_user !== 'Sistema' && 
+                                           project.crm_last_comment_user !== 'Sistema Tecfag (IA)';
+                    const hasPendingComment = hasValidComment && project.crm_last_comment_user !== currentUser;
+                    
                     if (currentRole === 'ALL' || currentRole === 'GERENTE' || currentRole === 'DIRETOR') {
-                        return !!project.crm_last_comment_user;
+                        return hasValidComment;
                     }
                     if (currentRole === 'ENGENHARIA') {
-                        return hasPendingComment || (project.crm_last_comment_user && (project.fase === 1 || project.fase === 2));
+                        return hasPendingComment || (hasValidComment && (project.fase === 1 || project.fase === 2));
                     }
                     if (currentRole === 'VENDAS' || currentRole === 'GERENTE_COMERCIAL') {
                         return isCreator && hasPendingComment;
@@ -5785,8 +5796,11 @@
                 if (!searchQuery && statusVal !== 'pending') {
                     filteredPrjs = filteredPrjs.filter(p => {
                         const bottleneck = getBottleneckRole(p);
-                        const isCreator = p.checklist && p.checklist.diagnostico_user === currentUser;
-                        const hasChat = !!p.crm_last_comment_user;
+                        const isCreator = (p.checklist && p.checklist.diagnostico_user === currentUser) ||
+                                          (getProjectSeller(p).toLowerCase() === friendlyCurrent);
+                        const hasChat = !!p.crm_last_comment_user && 
+                                        p.crm_last_comment_user !== 'Sistema' && 
+                                        p.crm_last_comment_user !== 'Sistema Tecfag (IA)';
 
                         if (currentRole === 'VENDAS' || currentRole === 'GERENTE_COMERCIAL') {
                             // Vendedor acompanha:
@@ -7149,25 +7163,80 @@
         }
 
         function getFriendlyUserName(username) {
-            if (!username) return 'S/V';
+            if (!username || username === '-' || username === '--' || username === 'S/V' || username === 'null' || username === 'undefined') return 'S/V';
             const u = username.toLowerCase().trim();
             if (u === 'admin') return 'Admin';
-            if (u === 'vendas' || u === 'vendas14@tecfag.com.br') return 'Diana';
-            if (u === 'vendas1' || u === 'vendas21@tecfag.com.br') return 'Alex';
-            if (u === 'vendas2' || u === 'vendas4@tecfag.com.br') return 'Jhordan';
-            if (u === 'vendas3' || u === 'vendas17@tecfag.com.br') return 'Nardeli';
-            if (u === 'vendas4' || u === 'vendas19@tecfag.com.br') return 'Lucas';
+            if (u === 'vendas' || u === 'vendas14@tecfag.com.br' || u === 'diana' || u.includes('diana')) return 'Diana';
+            if (u === 'vendas1' || u === 'vendas21@tecfag.com.br' || u === 'alex' || u.includes('alex')) return 'Alex';
+            if (u === 'vendas2' || u === 'vendas4@tecfag.com.br' || u === 'jhordan' || u.includes('jhordan')) return 'Jhordan';
+            if (u === 'vendas3' || u === 'vendas17@tecfag.com.br' || u === 'nardeli' || u.includes('nardeli')) return 'Nardeli';
+            if (u === 'vendas4' || u === 'vendas19@tecfag.com.br' || u === 'lucas' || u.includes('lucas')) return 'Lucas';
             if (u === 'gerente') return 'Gerente';
-            if (u === 'gerente_comercial') return 'Comercial';
-            if (u === 'joao.lanza') return 'J. Lanza';
+            if (u === 'gerente_comercial' || u === 'comercial') return 'Comercial';
+            if (u === 'joao.lanza' || u === 'joao lanza' || u === 'lanza') return 'J. Lanza';
             if (u === 'engenharia') return 'Engenharia';
             if (u === 'compras') return 'Compras';
             if (u === 'estoque') return 'Estoque';
-            if (u === 'tecnico') return 'Técnico';
-            if (u === 'vendas6' || u === 'vendas6@tecfag.com.br') return 'Patricia';
-            if (u === 'suporte2' || u === 'suporte2@tecfag.com.br') return 'Tarcisio';
-            if (u === 'heilio' || u === 'assistencia6@tecfag.com.br') return 'Heilio';
+            if (u === 'tecnico' || u === 'técnico') return 'Técnico';
+            if (u === 'vendas6' || u === 'vendas6@tecfag.com.br' || u === 'patricia' || u === 'patrícia' || u.includes('patricia') || u.includes('patrícia')) return 'Patricia';
+            if (u === 'suporte2' || u === 'suporte2@tecfag.com.br' || u === 'tarcisio' || u === 'tarcísio' || u.includes('tarcisio')) return 'Tarcisio';
+            if (u === 'heilio' || u === 'assistencia6@tecfag.com.br' || u.includes('heilio')) return 'Heilio';
+            if (u === 'fernando') return 'Fernando';
+            if (u === 'roberto' || u === 'roberto.eng') return 'Eng. Roberto';
             return username;
+        }
+
+        function getProjectSeller(project) {
+            if (!project) return 'S/V';
+            
+            // 1. Checklist diagnostico_user
+            if (project.checklist && project.checklist.diagnostico_user && project.checklist.diagnostico_user !== '-' && project.checklist.diagnostico_user !== '--' && project.checklist.diagnostico_user !== 'S/V') {
+                const friendly = getFriendlyUserName(project.checklist.diagnostico_user);
+                if (friendly && friendly !== 'S/V' && friendly !== '-') return friendly;
+            }
+            
+            // 2. Direct seller / vendedor / creator properties
+            const directFields = [project.seller, project.vendedor, project.creator];
+            for (let f of directFields) {
+                if (f && f !== '-' && f !== '--') {
+                    const friendly = getFriendlyUserName(f);
+                    if (friendly && friendly !== 'S/V' && friendly !== '-') return friendly;
+                }
+            }
+            
+            // 3. Contact / Representative / Client Info fields
+            const contactCandidates = [project.contact, project.representante, project.contato_comercial, project.contact_name];
+            for (let c of contactCandidates) {
+                if (c && typeof c === 'string') {
+                    const cTrimmed = c.trim();
+                    const friendly = getFriendlyUserName(cTrimmed);
+                    if (friendly && friendly !== 'S/V' && friendly !== cTrimmed) {
+                        return friendly;
+                    }
+                    const lower = cTrimmed.toLowerCase();
+                    if (lower.includes('diana') || lower.includes('vendas14')) return 'Diana';
+                    if (lower.includes('alex') || lower.includes('vendas21')) return 'Alex';
+                    if (lower.includes('jhordan') || lower.includes('vendas4@')) return 'Jhordan';
+                    if (lower.includes('nardeli') || lower.includes('vendas17')) return 'Nardeli';
+                    if (lower.includes('lucas') || lower.includes('vendas19')) return 'Lucas';
+                    if (lower.includes('patricia') || lower.includes('patrícia') || lower.includes('vendas6')) return 'Patricia';
+                    if (lower.includes('gerente')) return 'Gerente';
+                }
+            }
+            
+            // 4. Checklist other sales steps
+            if (project.checklist) {
+                if (project.checklist.aprovacao_user && project.checklist.aprovacao_user !== '-' && project.checklist.aprovacao_user !== 'admin') {
+                    const friendly = getFriendlyUserName(project.checklist.aprovacao_user);
+                    if (friendly && friendly !== 'S/V') return friendly;
+                }
+                if (project.checklist.contrato_user && project.checklist.contrato_user !== '-' && project.checklist.contrato_user !== 'admin') {
+                    const friendly = getFriendlyUserName(project.checklist.contrato_user);
+                    if (friendly && friendly !== 'S/V') return friendly;
+                }
+            }
+            
+            return 'S/V';
         }
 
         // Geração Automática de Código Único de Projeto
@@ -8767,10 +8836,7 @@
                     }
                 }
                 
-                let cardCreator = 'S/V';
-                if (project.checklist && project.checklist.diagnostico_user) {
-                    cardCreator = getFriendlyUserName(project.checklist.diagnostico_user);
-                }
+                let cardCreator = getProjectSeller(project);
 
                 // Indicadores de CRM
                 let crmAlertHtml = "";
@@ -8804,11 +8870,16 @@
 
                 const userStr = localStorage.getItem('tecfag_user');
                 const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
-                const isCreator = project.checklist && project.checklist.diagnostico_user === currentUser;
+                const friendlyCurrent = getFriendlyUserName(currentUser).toLowerCase();
+                const isCreator = (project.checklist && project.checklist.diagnostico_user === currentUser) ||
+                                  (cardCreator.toLowerCase() === friendlyCurrent);
                 
-                if (project.crm_last_comment_user) {
+                if (project.crm_last_comment_user && 
+                    project.crm_last_comment_user !== 'Sistema' && 
+                    project.crm_last_comment_user !== 'Sistema Tecfag (IA)') {
                     const lastUser = project.crm_last_comment_user;
-                    const isLastFromMe = (lastUser === currentUser);
+                    const isLastFromMe = (lastUser.toLowerCase() === currentUser.toLowerCase() || 
+                                          getFriendlyUserName(lastUser).toLowerCase() === friendlyCurrent);
                     
                     if (!isLastFromMe) {
                         let badgeText = "💬 Nova Mensagem";
@@ -8816,7 +8887,10 @@
                         let badgeColor = "#10b981";
                         let badgeBorder = "rgba(16, 185, 129, 0.25)";
                         
-                        if (currentRole === 'ENGENHARIA' && lastUser === (project.checklist ? project.checklist.diagnostico_user : '')) {
+                        const isLastFromSeller = (lastUser === (project.checklist ? project.checklist.diagnostico_user : '')) ||
+                                                 (getFriendlyUserName(lastUser).toLowerCase() === cardCreator.toLowerCase());
+                        
+                        if (currentRole === 'ENGENHARIA' && isLastFromSeller) {
                             badgeText = "💬 Resposta do Vendedor";
                             badgeBg = "rgba(14, 165, 233, 0.15)";
                             badgeColor = "#38bdf8";
@@ -8934,10 +9008,12 @@
             const filterFase = document.getElementById('filter-fase').value;
 
             const filtered = state.projects.filter(p => {
+                const sellerStr = getProjectSeller(p).toLowerCase();
                 const matchesSearch = p.code.toLowerCase().includes(searchVal) ||
                                       p.client.toLowerCase().includes(searchVal) ||
                                       p.pm.toLowerCase().includes(searchVal) ||
-                                      p.diagnostico.toLowerCase().includes(searchVal);
+                                      p.diagnostico.toLowerCase().includes(searchVal) ||
+                                      sellerStr.includes(searchVal);
                 
                 const matchesFase = filterFase === 'ALL' || p.fase === parseInt(filterFase);
                 
@@ -8946,8 +9022,12 @@
                     const bottleneck = getBottleneckRole(p);
                     const userStr = localStorage.getItem('tecfag_user');
                     const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
-                    const isCreator = p.checklist && p.checklist.diagnostico_user === currentUser;
-                    const hasChat = !!p.crm_last_comment_user;
+                    const friendlyCurrent = getFriendlyUserName(currentUser).toLowerCase();
+                    const isCreator = (p.checklist && p.checklist.diagnostico_user === currentUser) ||
+                                      (sellerStr === friendlyCurrent);
+                    const hasChat = !!p.crm_last_comment_user && 
+                                    p.crm_last_comment_user !== 'Sistema' && 
+                                    p.crm_last_comment_user !== 'Sistema Tecfag (IA)';
 
                     if (currentRole === 'VENDAS' || currentRole === 'GERENTE_COMERCIAL') {
                         matchesRole = bottleneck === 'VENDAS' || (isCreator && (p.fase === 1 || p.fase === 2)) || (isCreator && hasChat);
@@ -9194,13 +9274,14 @@
             const userStr = localStorage.getItem('tecfag_user');
             const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
             
-            const currentSeller = project.checklist ? project.checklist.diagnostico_user : '';
-            const friendlyName = getFriendlyUserName(currentSeller);
+            let currentSeller = (project.checklist && project.checklist.diagnostico_user) ? project.checklist.diagnostico_user : '';
+            const resolvedSeller = (typeof getProjectSeller === 'function') ? getProjectSeller(project) : '';
+            const friendlyName = (resolvedSeller && resolvedSeller !== 'S/V') ? resolvedSeller : (currentSeller ? getFriendlyUserName(currentSeller) : 'Sem Vendedor');
 
-            const isCreator = project.checklist && (
-                currentSeller === currentUser ||
-                friendlyName.toLowerCase() === currentUser.toLowerCase() ||
-                getFriendlyUserName(currentUser).toLowerCase() === friendlyName.toLowerCase()
+            const isCreator = (
+                (currentSeller && currentSeller === currentUser) ||
+                (friendlyName && friendlyName.toLowerCase() === currentUser.toLowerCase()) ||
+                (friendlyName && getFriendlyUserName(currentUser).toLowerCase() === friendlyName.toLowerCase())
             );
             
             const userRole = currentRole;
@@ -9228,11 +9309,22 @@
                 { username: 'gerente', label: 'Gerente (gerente)' }
             ];
 
+            // Se currentSeller estiver vazio mas resolvedSeller apontar para vendedor conhecido
+            if (!currentSeller && resolvedSeller && resolvedSeller !== 'S/V') {
+                const match = sellerList.find(s => s.label.toLowerCase().includes(resolvedSeller.toLowerCase()));
+                if (match) {
+                    currentSeller = match.username;
+                }
+            }
+
             if (currentSeller && !sellerList.find(s => s.username === currentSeller)) {
                 sellerList.push({ username: currentSeller, label: `${friendlyName} (${currentSeller})` });
             }
 
             let selectHtml = `<select id="tag-edit-seller-select" class="form-control" style="background: rgba(16, 185, 129, 0.05); color: #cbd5e1; border: 1px solid rgba(16, 185, 129, 0.2); font-size: 0.76rem; padding: 2px 4px; border-radius: 4px; font-weight: bold; width: auto; display: inline-block; cursor: pointer;">`;
+            if (!currentSeller) {
+                selectHtml += `<option value="" selected>Selecione um Vendedor...</option>`;
+            }
             sellerList.forEach(s => {
                 const selected = s.username === currentSeller ? 'selected' : '';
                 selectHtml += `<option value="${s.username}" ${selected}>${s.label}</option>`;
@@ -9334,11 +9426,14 @@
             document.getElementById('modal-project-title').innerText = `${project.code} - ${project.client}${project.project_name ? ' | ' + project.project_name : ''}`;
             
             let creator = '-';
-            if (project.checklist && project.checklist.diagnostico_user) {
+            if (typeof getProjectSeller === 'function') {
+                creator = getProjectSeller(project);
+            } else if (project.checklist && project.checklist.diagnostico_user) {
                 creator = getFriendlyUserName(project.checklist.diagnostico_user);
             }
+            if (!creator || creator === 'S/V') creator = '-';
             
-            document.getElementById('modal-project-subtitle').innerText = `Gerente: ${project.pm} | Vendedor: ${creator} | Técnico: ${project.tech}`;
+            document.getElementById('modal-project-subtitle').innerText = `Gerente: ${project.pm || '-'} | Vendedor: ${creator} | Técnico: ${project.tech || '-'}`;
             
             // Exibir botão de prorrogação se estiver na Fase 1 (Engenharia) ou Fase 2 (Comercial)
             const btnProrrogar = document.getElementById('btn-prorrogar-prazo');
@@ -12658,7 +12753,7 @@
                     const obsDocumentacao = s.obs_documentacao || '-';
                     const obsStartup = s.obs_startup || '-';
                     
-                    const diagUser = (project.checklist && project.checklist.diagnostico_user) || 'Engenharia Comercial';
+                    const diagUser = (typeof getProjectSeller === 'function' && getProjectSeller(project) && getProjectSeller(project) !== 'S/V') ? getProjectSeller(project) : ((project.checklist && project.checklist.diagnostico_user) ? getFriendlyUserName(project.checklist.diagnostico_user) : 'Engenharia Comercial');
                     const diagDate = (project.checklist && project.checklist.diagnostico_date) ? new Date(project.checklist.diagnostico_date).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
                     
                     let statusBanner = '';
@@ -13208,7 +13303,13 @@
             const project = state.projects.find(p => p.code === activeProjectCode);
             if (!project) return;
 
-            const seller = project.checklist ? project.checklist.diagnostico_user : null;
+            let seller = (project.checklist && project.checklist.diagnostico_user) ? project.checklist.diagnostico_user : null;
+            if (!seller && typeof getProjectSeller === 'function') {
+                const resolved = getProjectSeller(project);
+                if (resolved && resolved !== 'S/V') {
+                    seller = resolved;
+                }
+            }
             if (!seller) {
                 alert('Este projeto não possui um vendedor atribuído no Diagnóstico Técnico.');
                 return;

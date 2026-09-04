@@ -888,7 +888,23 @@ app.put('/api/config/gemini', authenticateToken, async (req, res) => {
 // GET /api/users/:username/phone - Retorna o telefone de um usuário específico
 app.get('/api/users/:username/phone', authenticateToken, async (req, res) => {
     try {
-        const user = await dbGet('SELECT phone FROM users WHERE username = ?', [req.params.username]);
+        const uName = (req.params.username || '').trim();
+        let user = await dbGet('SELECT phone FROM users WHERE username = ? COLLATE NOCASE', [uName]);
+        if (!user) {
+            const aliasMap = {
+                'diana': 'vendas',
+                'alex': 'vendas1',
+                'jhordan': 'vendas2',
+                'nardeli': 'vendas3',
+                'lucas': 'vendas4',
+                'patricia': 'vendas6',
+                'patrícia': 'vendas6'
+            };
+            const mapped = aliasMap[uName.toLowerCase()];
+            if (mapped) {
+                user = await dbGet('SELECT phone FROM users WHERE username = ? COLLATE NOCASE', [mapped]);
+            }
+        }
         if (!user) {
             return res.status(404).json({ error: 'Usuário não encontrado.' });
         }
@@ -1303,12 +1319,6 @@ app.post('/api/projects/:code/extend', authenticateToken, async (req, res) => {
             phaseRoleText = "comercial de Vendas & Contrato";
         }
         
-        const commentText = `⏱️ **Prazo ${phaseRoleText} prorrogado por ${extensionLabel}.** Justificativa: ${justification}`;
-        await dbRun(
-            'INSERT INTO comments (projectCode, user, message, dateAdded) VALUES (?, ?, ?, ?)',
-            [code, username, commentText, now.toISOString()]
-        );
-        
         const logText = `<strong>[PRAZO PRORROGADO]</strong> Usuário <strong>${username}</strong> prorrogou o prazo ${phaseRoleText} do projeto <code>${code}</code> (${extensionLabel}). Justificativa: ${justification}`;
         await dbRun(
             'INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)',
@@ -1412,9 +1422,19 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
 
         // Filtrar por vendedor se o usuário logado tiver a role VENDAS (exceto vendas6)
         if (req.user && req.user.role === 'VENDAS' && req.user.username !== 'vendas6' && req.user.username !== 'vendas6@tecfag.com.br') {
+            const u = req.user.username.toLowerCase();
             formatted = formatted.filter(p => {
-                const creator = p.checklist ? p.checklist.diagnostico_user : null;
-                return creator === req.user.username;
+                const creator = (p.checklist && p.checklist.diagnostico_user) ? p.checklist.diagnostico_user.toLowerCase() : '';
+                const contact = (p.contact || '').toLowerCase();
+                
+                if (creator === u) return true;
+                if (u === 'vendas' && (creator.includes('diana') || contact.includes('diana') || contact.includes('vendas14'))) return true;
+                if (u === 'vendas1' && (creator.includes('alex') || contact.includes('alex') || contact.includes('vendas21'))) return true;
+                if (u === 'vendas2' && (creator.includes('jhordan') || contact.includes('jhordan') || contact.includes('vendas4@'))) return true;
+                if (u === 'vendas3' && (creator.includes('nardeli') || contact.includes('nardeli') || contact.includes('vendas17'))) return true;
+                if (u === 'vendas4' && (creator.includes('lucas') || contact.includes('lucas') || contact.includes('vendas19'))) return true;
+                if (u === 'vendas6' && (creator.includes('patricia') || creator.includes('patrícia') || contact.includes('patricia') || contact.includes('patrícia') || contact.includes('vendas6'))) return true;
+                return false;
             });
         }
 
@@ -6001,7 +6021,23 @@ app.post('/api/projects', async (req, res) => {
             return res.status(400).json({ error: 'Já existe um projeto cadastrado com o código ' + code });
         }
 
-        const validationStatus = calculateProjectValidationStatus({ checklist });
+        let finalChecklist = checklist ? (typeof checklist === 'string' ? JSON.parse(checklist) : { ...checklist }) : {};
+        if (!finalChecklist.diagnostico_user || finalChecklist.diagnostico_user === '-' || finalChecklist.diagnostico_user === '' || finalChecklist.diagnostico_user === 'S/V') {
+            if (req.user && req.user.username && req.user.username !== 'admin') {
+                finalChecklist.diagnostico_user = req.user.username;
+            } else if (contact) {
+                const cLower = contact.toLowerCase();
+                if (cLower.includes('diana') || cLower.includes('vendas14')) finalChecklist.diagnostico_user = 'vendas';
+                else if (cLower.includes('alex') || cLower.includes('vendas21')) finalChecklist.diagnostico_user = 'vendas1';
+                else if (cLower.includes('jhordan') || cLower.includes('vendas4@')) finalChecklist.diagnostico_user = 'vendas2';
+                else if (cLower.includes('nardeli') || cLower.includes('vendas17')) finalChecklist.diagnostico_user = 'vendas3';
+                else if (cLower.includes('lucas') || cLower.includes('vendas19')) finalChecklist.diagnostico_user = 'vendas4';
+                else if (cLower.includes('patricia') || cLower.includes('patrícia') || cLower.includes('vendas6')) finalChecklist.diagnostico_user = 'vendas6';
+                else if (cLower.includes('gerente')) finalChecklist.diagnostico_user = 'gerente';
+            }
+        }
+
+        const validationStatus = calculateProjectValidationStatus({ checklist: finalChecklist });
         const sql = `INSERT INTO projects (
             code, client, contact, pm, diagnostico, sku, tech, serial, route, fase, 
             checklist, prazos, faseEntryDate, lastUpdate, motivoPerda, machines,
@@ -6023,7 +6059,7 @@ app.post('/api/projects', async (req, res) => {
             serial || '-',
             route || '-',
             fase || 1,
-            JSON.stringify(checklist || {}),
+            JSON.stringify(finalChecklist),
             JSON.stringify(prazos || {}),
             faseEntryDate || new Date().toISOString(),
             lastUpdate || new Date().toISOString(),
@@ -6082,13 +6118,6 @@ app.post('/api/projects', async (req, res) => {
                 'Sistema Tecfag (IA)',
                 commentMsg,
                 commentDate
-            ]);
-            
-            // Atualiza o último comentário no projeto
-            await dbRun('UPDATE projects SET crm_last_comment_user = ?, crm_last_interaction_date = ? WHERE code = ?', [
-                'Sistema Tecfag (IA)',
-                commentDate,
-                code
             ]);
 
             // Grava no log global de auditoria
