@@ -625,11 +625,14 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-left: 4px solid var(--phase-color, var(--border-color));
             border-radius: 8px;
-            padding: 14px;
+            padding: 12px;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0,0,0,0.25);
             position: relative;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-sizing: border-box;
+            overflow: hidden;
+            word-wrap: break-word;
         }
 
         .project-card:hover {
@@ -650,9 +653,6 @@
             to { box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 16px var(--phase-color); }
         }
 
-
-
-
         .project-card.project-card-lost {
             opacity: 0.65;
             border-left: 4px solid #ef4444;
@@ -663,25 +663,38 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
+            gap: 6px;
             margin-bottom: 8px;
+            flex-wrap: wrap;
         }
 
         .project-client-name {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 700;
             color: #f8fafc;
-            line-height: 1.2;
+            line-height: 1.25;
+            flex: 1 1 50%;
+            min-width: 0;
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
 
         .project-code-badge {
             font-family: monospace;
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             font-weight: 700;
             background-color: #1a2233;
             color: var(--primary);
-            padding: 2px 5px;
+            padding: 2px 6px;
             border-radius: 4px;
             border: 1px solid var(--border-color);
+            white-space: nowrap;
+            flex-shrink: 0;
+            max-width: 100%;
+            box-sizing: border-box;
+            display: inline-flex;
+            align-items: center;
+            margin-left: auto;
         }
 
         .project-card-body {
@@ -2127,7 +2140,10 @@
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         Buscar:
                     </span>
-                    <input type="text" id="kanban-search-filter" oninput="applyKanbanFilters()" placeholder="Buscar por Cliente, Código ou SKU..." style="flex: 1; background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; outline: none; transition: border-color 0.2s;">
+                    <div style="position: relative; flex: 1; display: flex; align-items: center;">
+                        <input type="search" id="kanban-search-filter" name="kanban_search_prevent_autofill" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="toggleKanbanSearchClear(); applyKanbanFilters();" placeholder="Buscar por Cliente, Código ou SKU..." style="width: 100%; background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 28px 6px 12px; font-size: 0.8rem; outline: none; transition: border-color 0.2s;">
+                        <button type="button" id="btn-clear-kanban-search" onclick="clearKanbanSearch()" style="display: none; position: absolute; right: 8px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 2px 4px; font-size: 0.85rem; line-height: 1;" title="Limpar busca">✕</button>
+                    </div>
                 </div>
 
                 <!-- Filtro de Vendedores -->
@@ -2238,7 +2254,7 @@
                 <div class="flex-between" style="margin-bottom: 20px;">
                     <h3>Banco de Projetos Industriais</h3>
                     <div style="display: flex; gap: 12px;">
-                        <input type="text" class="form-control" id="search-prj" placeholder="Buscar projeto, cliente..." oninput="renderProjectsTable()" style="padding: 8px 16px;">
+                        <input type="search" class="form-control" id="search-prj" name="search_prj_prevent_autofill" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Buscar projeto, cliente..." oninput="renderProjectsTable()" style="padding: 8px 16px;">
                         <select class="form-control" id="filter-fase" onchange="renderProjectsTable()" style="padding: 8px 16px;">
                             <option value="ALL">Fase: Todas</option>
                             <option value="1">1. Engenharia de Aplicação & Escopo</option>
@@ -5718,7 +5734,25 @@
         let lockHeartbeatInterval = null;
         let setupSelectedFiles = [];
 
+        function toggleKanbanSearchClear() {
+            const searchInput = document.getElementById('kanban-search-filter');
+            const clearBtn = document.getElementById('btn-clear-kanban-search');
+            if (clearBtn && searchInput) {
+                clearBtn.style.display = searchInput.value ? 'block' : 'none';
+            }
+        }
+
+        function clearKanbanSearch() {
+            const searchInput = document.getElementById('kanban-search-filter');
+            if (searchInput) {
+                searchInput.value = '';
+                toggleKanbanSearchClear();
+                applyKanbanFilters();
+            }
+        }
+
         function applyKanbanFilters() {
+            toggleKanbanSearchClear();
             const sellerFilterEl = document.getElementById('kanban-seller-filter');
             activeSellerFilter = sellerFilterEl ? sellerFilterEl.value : 'all';
             updateKPIs();
