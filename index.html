@@ -102,9 +102,52 @@
             border-color: #cbd5e1 !important;
         }
         
-        /* Contraste do texto branco no botão da barra lateral ativo */
-        .nav-item.active button {
-            color: #ffffff !important;
+        /* Estilo de Impressão Oficial para Ficha Técnica PDF */
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+            body * {
+                visibility: hidden;
+            }
+            #film-spec-pdf-modal, #film-spec-pdf-modal * {
+                visibility: visible;
+            }
+            #login-container, aside, main, #pouch-calc-modal, .no-print, header, nav, .sidebar {
+                display: none !important;
+            }
+            #film-spec-pdf-modal {
+                display: block !important;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                background: #ffffff !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                z-index: 999999 !important;
+            }
+            #film-spec-pdf-modal .modal-content {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 10px !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+            #film-spec-print-area {
+                width: 100% !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
         }
 
         * {
@@ -1947,7 +1990,25 @@
             <li class="nav-item" id="menu-pouch-calc" onclick="openPouchCalcModal()">
                 <button>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
-                    Calculadora de Embalagem
+                    1. Calculadora Embalagem
+                </button>
+            </li>
+            <li class="nav-item" id="menu-doser-calc" onclick="openDoserCalcModal()">
+                <button style="color: #4ade80;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    2. Validador de Dosagem
+                </button>
+            </li>
+            <li class="nav-item" id="menu-box-calc" onclick="openBoxCalcModal()">
+                <button style="color: #f59e0b;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                    3. Seladoras Caixas FX
+                </button>
+            </li>
+            <li class="nav-item" id="menu-pallet-calc" onclick="openPalletCalcModal()">
+                <button style="color: #a855f7;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                    4. Paletização PBR
                 </button>
             </li>
         </ul>
@@ -2068,13 +2129,26 @@
                 <p id="main-subtitle">Gestão ponta a ponta: do alinhamento do escopo comercial à instalação física final.</p>
             </div>
             <div class="header-actions">
-                <button class="btn btn-secondary" onclick="toggleTheme()" id="btn-theme-toggle" style="padding: 10px; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; margin-right: 8px;" title="Alternar Tema Claro/Escuro">
+                <button class="btn btn-secondary" onclick="toggleTheme()" id="btn-theme-toggle" style="padding: 10px; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; margin-right: 4px;" title="Alternar Tema Claro/Escuro">
                     <svg id="theme-toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" style="transition: transform 0.3s ease;">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                     </svg>
                 </button>
-                <button class="btn btn-secondary" onclick="seedProjectMockData()" id="btn-seed">Simular Projetos</button>
-                <button class="btn" onclick="switchTab('cadprj')">
+                <div style="display: flex; gap: 4px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); padding: 3px; border-radius: 8px;">
+                    <button class="btn btn-secondary" onclick="openPouchCalcModal()" style="font-size: 0.72rem; padding: 6px 10px; border: none; background: transparent; color: #38bdf8; font-weight: 700; display: flex; align-items: center; gap: 4px;" title="Simulador de Embalagem 3D & Bobina">
+                        🧮 Embalagem
+                    </button>
+                    <button class="btn btn-secondary" onclick="openDoserCalcModal()" style="font-size: 0.72rem; padding: 6px 10px; border: none; background: transparent; color: #4ade80; font-weight: 700; display: flex; align-items: center; gap: 4px;" title="Validador de Dosagem & Rosca/Pistão Tecfag">
+                        ⚖️ Dosagem
+                    </button>
+                    <button class="btn btn-secondary" onclick="openBoxCalcModal()" style="font-size: 0.72rem; padding: 6px 10px; border: none; background: transparent; color: #f59e0b; font-weight: 700; display: flex; align-items: center; gap: 4px;" title="Validador de Caixas FX-5050/6050 Tecfag">
+                        📦 Seladora Caixas
+                    </button>
+                    <button class="btn btn-secondary" onclick="openPalletCalcModal()" style="font-size: 0.72rem; padding: 6px 10px; border: none; background: transparent; color: #a855f7; font-weight: 700; display: flex; align-items: center; gap: 4px;" title="Simulador de Paletização PBR & Carga de Esteiras">
+                        🏗️ Paletização PBR
+                    </button>
+                </div>
+                <button class="btn" onclick="switchTab('cadprj')" style="margin-left: 4px;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Novo Projeto
                 </button>
@@ -2094,6 +2168,31 @@
 
         <!-- TAB 1: PIPELINE / KANBAN -->
         <div id="tab-dash" class="tab-content active">
+            <!-- BANNER PRINCIPAL DE FERRAMENTAS DE ENGENHARIA TECFAG -->
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-left: 4px solid var(--primary); border-radius: 8px; padding: 12px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; backdrop-filter: blur(8px);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.2rem;">🛠️</span>
+                    <div>
+                        <strong style="color: var(--text-primary); font-size: 0.85rem; font-weight: 800; display: block; text-transform: uppercase; letter-spacing: 0.5px;">Ferramentas & Simuladores de Engenharia Tecfag</strong>
+                        <span style="color: var(--text-secondary); font-size: 0.72rem;">Validação de viabilidade comercial e enquadramento em máquinas 100% Standard</span>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; flex: 1; max-width: 750px;">
+                    <button class="btn btn-secondary" onclick="openPouchCalcModal()" style="font-size: 0.75rem; padding: 8px 12px; border: 1px solid rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1); color: #38bdf8; font-weight: 700; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Simulador de Embalagem 3D & Bobina">
+                        🧮 1. Embalagem 3D
+                    </button>
+                    <button class="btn btn-secondary" onclick="openDoserCalcModal()" style="font-size: 0.75rem; padding: 8px 12px; border: 1px solid rgba(74, 222, 128, 0.4); background: rgba(74, 222, 128, 0.1); color: #4ade80; font-weight: 700; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Validador de Dosagem & Rosca/Pistão Tecfag">
+                        ⚖️ 2. Dosagem & Rosca
+                    </button>
+                    <button class="btn btn-secondary" onclick="openBoxCalcModal()" style="font-size: 0.75rem; padding: 8px 12px; border: 1px solid rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.1); color: #f59e0b; font-weight: 700; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Validador de Caixas FX-5050/6050 Tecfag">
+                        📦 3. Seladoras Caixas
+                    </button>
+                    <button class="btn btn-secondary" onclick="openPalletCalcModal()" style="font-size: 0.75rem; padding: 8px 12px; border: 1px solid rgba(168, 85, 247, 0.4); background: rgba(168, 85, 247, 0.1); color: #a855f7; font-weight: 700; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Simulador de Paletização PBR & Carga de Esteiras">
+                        🏗️ 4. Paletização PBR
+                    </button>
+                </div>
+            </div>
+
             <!-- KPIs -->
             <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
                 <div class="kpi-card" style="--kpi-color: var(--color-fase1);">
@@ -4148,93 +4247,693 @@
         </div>
     </div>
 
-    <!-- MODAL DE CALCULADORA DE EMBALAGEM -->
+    <!-- MODAL DE CALCULADORA DE EMBALAGEM & SIMULADOR 3D -->
     <div class="modal-overlay" id="pouch-calc-modal" style="z-index: 1240;">
-        <div class="modal" style="width: 900px; max-width: 95vw; padding: 25px;">
+        <div class="modal" style="width: 1050px; max-width: 95vw; max-height: 92vh; overflow-y: auto; padding: 25px;">
             <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="color: var(--text-primary); font-size: 1.1rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
-                    🧮 Calculadora de Embalagem & Bobina de Filme
-                </h3>
+                <div>
+                    <h3 style="color: var(--text-primary); font-size: 1.15rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        🧮 Calculadora & Simulador 3D de Embalagens Tecfag
+                    </h3>
+                    <small style="color: var(--text-secondary); font-size: 0.72rem;">Dimensionamento de Bobina, Passo e Geometria 3D para Empacotadoras VFFS, Flow Pack e Doypack</small>
+                </div>
                 <button class="btn-icon" onclick="closePouchCalcModal()">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
             
-            <div class="modal-body" style="padding: 0; display: grid; grid-template-columns: 1fr 1.2fr; gap: 25px;">
-                <!-- Painel de Inputs e Resultados -->
-                <div style="display: flex; flex-direction: column; gap: 15px;">
-                    <p style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4; margin: 0;">
-                        Configure as dimensões da embalagem para calcular a largura total da bobina de filme flexível e o passo (comprimento) necessário.
-                    </p>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Face Frontal (W):</label>
-                            <input type="number" id="pouch-face" class="form-control" value="120" oninput="updatePouchCalculations()">
-                        </div>
-                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Altura Útil (H):</label>
-                            <input type="number" id="pouch-height" class="form-control" value="150" oninput="updatePouchCalculations()">
-                        </div>
-                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Aba Solda Esq. (A_e):</label>
-                            <input type="number" id="pouch-left-flap" class="form-control" value="60" oninput="updatePouchCalculations()">
-                        </div>
-                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Aba Solda Dir. (A_d):</label>
-                            <input type="number" id="pouch-right-flap" class="form-control" value="60" oninput="updatePouchCalculations()">
-                        </div>
-                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Solda Lateral Esq. (S_e):</label>
-                            <input type="number" id="pouch-left-weld" class="form-control" value="10" oninput="updatePouchCalculations()">
-                        </div>
-                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Solda Lateral Dir. (S_d):</label>
-                            <input type="number" id="pouch-right-weld" class="form-control" value="10" oninput="updatePouchCalculations()">
-                        </div>
-                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Solda Superior:</label>
-                            <input type="number" id="pouch-top-weld" class="form-control" value="15" oninput="updatePouchCalculations()">
-                        </div>
-                        <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Solda Inferior:</label>
-                            <input type="number" id="pouch-bottom-weld" class="form-control" value="15" oninput="updatePouchCalculations()">
-                        </div>
+            <div class="modal-body" style="padding: 0; display: flex; flex-direction: column; gap: 18px;">
+                <!-- GALERIA VISUAL DE 17 MODELOS DE EMBALAGEM -->
+                <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;">
+                            1. Selecione o Modelo de Embalagem (17 Tipologias Tecfag)
+                        </span>
+                        <span id="pouch-selected-model-name" style="font-size: 0.72rem; font-weight: bold; color: #4ade80; background: rgba(74, 222, 128, 0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(74, 222, 128, 0.2);">
+                            Pillow Bag (Almofada Padrão)
+                        </span>
                     </div>
-                    
-                    <!-- Resultados -->
-                    <div style="background-color: var(--bg-base); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px;">
-                            <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Largura Total Bobina</span>
-                            <span id="pouch-res-film-width" style="font-size: 1.25rem; font-weight: 800; color: #3b82f6;">-- mm</span>
+
+                    <div id="pouch-types-gallery" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; max-height: 160px; overflow-y: auto; padding-right: 4px;">
+                        <!-- Gerado dinamicamente por JS -->
+                    </div>
+
+                    <!-- Seletor dos 5 Formatos de Stick Pack (Aparece logo abaixo dos cards da Galeria quando Sachê Palito for clicado) -->
+                    <div id="pouch-stick-variant-group" style="display: none; margin-top: 10px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 10px; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span style="font-size: 0.72rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; display: flex; align-items: center; gap: 6px;">
+                                ✂️ Escolha o Acabamento & Corte do Sachê Stick (Stick Pack):
+                            </span>
+                            <span style="font-size: 0.65rem; color: var(--text-secondary);">5 Formatos Industriais</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px;">
-                            <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Comprimento / Passo</span>
-                            <span id="pouch-res-pitch" style="font-size: 1.25rem; font-weight: 800; color: #10b981;">-- mm</span>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px;" id="stick-variant-buttons">
+                            <button type="button" class="btn btn-sm stick-variant-btn" data-style="standard" onclick="setStickStyle('standard')" style="background: #38bdf8; color: #0f172a; font-weight: bold; font-size: 0.7rem; border: 1px solid #38bdf8; border-radius: 6px; padding: 6px 8px;">1. Serrilhado</button>
+                            <button type="button" class="btn btn-sm stick-variant-btn" data-style="straight" onclick="setStickStyle('straight')" style="background: rgba(255,255,255,0.04); color: #cbd5e1; font-size: 0.7rem; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 6px 8px;">2. Corte Reto</button>
+                            <button type="button" class="btn btn-sm stick-variant-btn" data-style="diagonal" onclick="setStickStyle('diagonal')" style="background: rgba(255,255,255,0.04); color: #cbd5e1; font-size: 0.7rem; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 6px 8px;">3. Canto Angulado</button>
+                            <button type="button" class="btn btn-sm stick-variant-btn" data-style="rounded" onclick="setStickStyle('rounded')" style="background: rgba(255,255,255,0.04); color: #cbd5e1; font-size: 0.7rem; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 6px 8px;">4. Arredondados</button>
+                            <button type="button" class="btn btn-sm stick-variant-btn" data-style="bottle" onclick="setStickStyle('bottle')" style="background: rgba(255,255,255,0.04); color: #cbd5e1; font-size: 0.7rem; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 6px 8px;">5. Garrafinha / Bico</button>
                         </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px;">
-                            <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Sobreposição Traseira</span>
-                            <span id="pouch-res-overlap" style="font-size: 1.1rem; font-weight: 800; color: #f59e0b;">-- mm</span>
+                        <input type="hidden" id="pouch-stick-style" value="standard">
+                    </div>
+
+                    <!-- Seletor de Tipo de Corte da Faca (Borda Externa) + Textura da Solda dos Mordentes -->
+                    <div id="pouch-seal-type-group" style="display: flex; margin-top: 10px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 10px; flex-direction: column; gap: 10px;">
+                        
+                        <!-- Linha 1: Corte da Faca na Borda do Filme (Foto 1 vs Foto 2) -->
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <span style="font-size: 0.72rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; display: flex; align-items: center; gap: 6px;">
+                                    ✂️ Corte da Faca na Borda do Filme (Topo / Fundo):
+                                </span>
+                                <span style="font-size: 0.65rem; color: #94a3b8;">Geometria de Corte VFFS / Flow Pack</span>
+                            </div>
+                            <div style="display: flex; gap: 8px;" id="seal-cut-buttons">
+                                <button type="button" class="btn btn-sm seal-cut-btn" data-cut="serrated" onclick="setSealCutStyle('serrated')" style="background: #38bdf8; color: #0f172a; font-weight: bold; font-size: 0.72rem; border: 1px solid #38bdf8; border-radius: 6px; padding: 6px 12px; flex: 1;">
+                                    1. Corte Serrilhado Zig-Zag ▲▼▲▼ (Dente de Serra - Foto 1)
+                                </button>
+                                <button type="button" class="btn btn-sm seal-cut-btn" data-cut="straight" onclick="setSealCutStyle('straight')" style="background: rgba(255,255,255,0.04); color: #cbd5e1; font-size: 0.72rem; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 6px 12px; flex: 1;">
+                                    2. Corte Reto Liso ──────── (Faca Plana - Foto 2)
+                                </button>
+                            </div>
+                            <input type="hidden" id="pouch-seal-cut-style" value="serrated">
                         </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Largura Pacote Pronto</span>
-                            <span id="pouch-res-width" style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary);">-- mm</span>
+
+                        <!-- Linha 2: Textura da Solda dos Mordentes -->
+                        <div style="display: flex; flex-direction: column; gap: 6px; border-top: 1px dashed rgba(56, 189, 248, 0.2); padding-top: 8px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <span style="font-size: 0.70rem; font-weight: 700; color: #cbd5e1; text-transform: uppercase; display: flex; align-items: center; gap: 6px;">
+                                    🔥 Textura de Prensagem da Solda (Mordentes):
+                                </span>
+                                <span style="font-size: 0.65rem; color: #94a3b8;">Ranhuras de Selagem</span>
+                            </div>
+                            <div style="display: flex; gap: 8px;" id="seal-texture-buttons">
+                                <button type="button" class="btn btn-sm seal-texture-btn" data-tex="hatched" onclick="setSealTextureStyle('hatched')" style="background: #38bdf8; color: #0f172a; font-weight: bold; font-size: 0.70rem; border: 1px solid #38bdf8; border-radius: 6px; padding: 5px 12px; flex: 1;">
+                                    1. Solda Frisada Ranhurada (Frisos Xadrez / Canaletas)
+                                </button>
+                                <button type="button" class="btn btn-sm seal-texture-btn" data-tex="smooth" onclick="setSealTextureStyle('smooth')" style="background: rgba(255,255,255,0.04); color: #cbd5e1; font-size: 0.70rem; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 5px 12px; flex: 1;">
+                                    2. Solda Lisa Plana (Superfície Sem Frisos)
+                                </button>
+                            </div>
+                            <input type="hidden" id="pouch-seal-texture-style" value="hatched">
                         </div>
+
                     </div>
                 </div>
-                
-                <!-- SVG Diagram Panel -->
-                <div style="background-color: var(--bg-base); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; display: flex; align-items: center; justify-content: center; min-height: 380px; position: relative;">
-                    <div style="position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 4px; font-size: 0.65rem; color: var(--text-secondary); background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); z-index: 10;">
-                        <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 10px; height: 10px; background: repeating-linear-gradient(45deg, #64748b, #64748b 1px, transparent 1px, transparent 4px); border: 1px solid var(--border-color);"></div> Área de Solda</div>
-                        <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 10px; height: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color);"></div> Área Útil</div>
+
+                <!-- CONTEÚDO PRINCIPAL: INPUTS + VISUALIZADOR 2D/3D -->
+                <div style="display: grid; grid-template-columns: 1fr 1.25fr; gap: 20px; align-items: start;">
+                    <!-- PAINEL DA ESQUERDA: PARÂMETROS E RESULTADOS -->
+                    <div style="display: flex; flex-direction: column; gap: 14px;">
+                        <!-- Entradas de Cotas -->
+                        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
+                            <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; display: block; margin-bottom: 10px;">
+                                📏 Cotas Dimensionais (mm)
+                            </span>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                                    <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Face Frontal (W):</label>
+                                    <input type="number" id="pouch-face" class="form-control" value="120" oninput="updatePouchCalculations()">
+                                </div>
+                                <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                                    <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Altura Útil (H):</label>
+                                    <input type="number" id="pouch-height" class="form-control" value="150" oninput="updatePouchCalculations()">
+                                </div>
+                                
+                                <!-- Fole / Sanfona / Fundo (Visível para modelos com fole) -->
+                                <div class="form-group" id="pouch-group-gusset" style="display: flex; flex-direction: column; gap: 4px;">
+                                    <label style="font-size: 0.68rem; font-weight: 700; color: #38bdf8; text-transform: uppercase;">Fole / Sanfona (G):</label>
+                                    <input type="number" id="pouch-gusset" class="form-control" value="40" oninput="updatePouchCalculations()">
+                                </div>
+                                
+                                <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                                    <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Solda Traseira (S_t):</label>
+                                    <input type="number" id="pouch-back-weld" class="form-control" value="15" oninput="updatePouchCalculations()">
+                                </div>
+                                <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                                    <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Solda Superior:</label>
+                                    <input type="number" id="pouch-top-weld" class="form-control" value="15" oninput="updatePouchCalculations()">
+                                </div>
+                                <div class="form-group" style="display: flex; flex-direction: column; gap: 4px;">
+                                    <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Solda Inferior:</label>
+                                    <input type="number" id="pouch-bottom-weld" class="form-control" value="15" oninput="updatePouchCalculations()">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Opções de Acessórios & Filme -->
+                        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+                            <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                                ✨ Acessórios & Espessura do Filme
+                            </span>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.72rem; color: #cbd5e1;">
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="checkbox" id="pouch-acc-eurohole" onchange="updatePouchCalculations()"> Eurofuro (Chapéu de Bispo)
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="checkbox" id="pouch-acc-roundhole" onchange="updatePouchCalculations()"> Furo Redondo Circular (Passador)
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="checkbox" id="pouch-acc-handle" onchange="updatePouchCalculations()"> Alça de Pega (Carry Handle)
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="checkbox" id="pouch-acc-valve" onchange="updatePouchCalculations()"> Válvula Desgaseificadora (Café)
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="checkbox" id="pouch-acc-ziplock" onchange="updatePouchCalculations()"> Fecho Zip Lock (Zíper Reabrível)
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="checkbox" id="pouch-acc-spout" onchange="updatePouchCalculations()"> Bocal Dosador c/ Tampa (Spout)
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="checkbox" id="pouch-acc-resealtape" onchange="updatePouchCalculations()"> Fita Reposicionável (Biscoitos/Pão)
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="checkbox" id="pouch-acc-quadseal" onchange="updatePouchCalculations()"> Quad Seal (4 Soldas de Canto)
+                                </label>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 10px; margin-top: 6px;">
+                                <div class="form-group" style="display: flex; flex-direction: column; gap: 2px;">
+                                    <label style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase;">Material do Filme:</label>
+                                    <select id="pouch-film-material" class="form-control" style="font-size: 0.72rem;" onchange="updatePouchCalculations()">
+                                        <option value="BOPP">BOPP Liso (Densidade 0.90 g/cm³)</option>
+                                        <option value="PET_PE">PET / PE Laminado (Densidade 1.10 g/cm³)</option>
+                                        <option value="ALU">Laminado Alumínio (Densidade 1.35 g/cm³)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="display: flex; flex-direction: column; gap: 2px;">
+                                    <label style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase;">Espessura (Micras µm):</label>
+                                    <input type="number" id="pouch-film-microns" class="form-control" value="60" style="font-size: 0.72rem;" oninput="updatePouchCalculations()">
+                                </div>
+                            </div>
+
+                            <!-- Parâmetros de Conversão / Fornecimento (Flexografia vs Sacos Prontos) -->
+                            <div style="background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 10px; margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                                <span id="pouch-converter-panel-title" style="font-size: 0.70rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; display: flex; align-items: center; gap: 6px;">
+                                    🏭 Parâmetros para o Fabricante de Filme (Flexografia):
+                                </span>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div class="form-group" style="display: flex; flex-direction: column; gap: 2px;">
+                                        <label id="pouch-label-unwind" style="font-size: 0.63rem; color: var(--text-secondary);">Sentido Desenrolamento / Acondicionamento:</label>
+                                        <select id="pouch-film-unwind" class="form-control" style="font-size: 0.68rem;" onchange="updatePouchCalculations()">
+                                            <option value="Posição 1: Cabeça 1º / Externa (VFFS)">Posição 1: Cabeça 1º / Externa (VFFS)</option>
+                                            <option value="Posição 2: Pé 1º / Externa">Posição 2: Pé 1º / Externa</option>
+                                            <option value="Posição 3: Cabeça 1º / Interna">Posição 3: Cabeça 1º / Interna</option>
+                                            <option value="Posição 4: Pé 1º / Interna">Posição 4: Pé 1º / Interna</option>
+                                            <option value="Posição 5: Lado Direito 1º (Flow Pack)">Posição 5: Lado Direito 1º (Flow Pack)</option>
+                                            <option value="Posição 6: Lado Esquerdo 1º (Flow Pack)">Posição 6: Lado Esquerdo 1º (Flow Pack)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" style="display: flex; flex-direction: column; gap: 2px;">
+                                        <label id="pouch-label-core" style="font-size: 0.63rem; color: var(--text-secondary);">Diâmetro do Tubete / Abertura de Boca:</label>
+                                        <select id="pouch-film-core" class="form-control" style="font-size: 0.68rem;" onchange="updatePouchCalculations()">
+                                            <option value="3 polegadas (76 mm) - Padrão">3 Polegadas (76 mm) - Padrão</option>
+                                            <option value="6 polegadas (152 mm)">6 Polegadas (152 mm)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div class="form-group" style="display: flex; flex-direction: column; gap: 2px;">
+                                        <label style="font-size: 0.63rem; color: var(--text-secondary);">Tratamento Corona:</label>
+                                        <select id="pouch-film-corona" class="form-control" style="font-size: 0.68rem;" onchange="updatePouchCalculations()">
+                                            <option value="Tratamento Corona Externo (Face Impressa)">Externo (Face Impressa)</option>
+                                            <option value="Tratamento Corona Interno">Interno</option>
+                                            <option value="Ambos os Lados Tratados">Ambos os Lados</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" style="display: flex; flex-direction: column; gap: 2px;">
+                                        <label style="font-size: 0.63rem; color: var(--text-secondary);">Acabamento:</label>
+                                        <select id="pouch-film-finish" class="form-control" style="font-size: 0.68rem;" onchange="updatePouchCalculations()">
+                                            <option value="Brilhante (Gloss Finish)">Brilhante (Gloss Finish)</option>
+                                            <option value="Fosco Matte (Matte Finish)">Fosco Matte (Matte Finish)</option>
+                                            <option value="Metalizado (Alu-Look)">Metalizado (Alu-Look)</option>
+                                            <option value="Soft Touch Aveludado">Soft Touch Aveludado</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card de Resultados de Engenharia -->
+                        <div style="background-color: var(--bg-base); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">
+                                <span id="pouch-res-label-film-width" style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Largura Total Bobina</span>
+                                <span id="pouch-res-film-width" style="font-size: 1.25rem; font-weight: 800; color: #3b82f6;">-- mm</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">
+                                <span id="pouch-res-label-pitch" style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Comprimento / Passo (Fotocélula)</span>
+                                <span id="pouch-res-pitch" style="font-size: 1.25rem; font-weight: 800; color: #10b981;">-- mm</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">
+                                <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Volume Útil Estimado</span>
+                                <span id="pouch-res-volume" style="font-size: 1.25rem; font-weight: 800; color: #38bdf8;">-- cm³</span>
+                            </div>
+                            <div id="pouch-res-row-yield" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span id="pouch-res-label-yield" style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Rendimento Estimado</span>
+                                <span id="pouch-res-yield" style="font-size: 1.05rem; font-weight: 800; color: #f59e0b;">-- pacotes / kg</span>
+                            </div>
+                        </div>
                     </div>
-                    <svg id="pouch-svg-diagram" width="100%" height="340" viewBox="0 0 500 300" style="background: transparent;"></svg>
+
+                    <!-- PAINEL DA DIREITA: SIMULADOR GRAFICO DUPLO 2D / 3D -->
+                    <div style="background-color: var(--bg-base); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 10px; min-height: 420px;">
+                        <!-- Seletor de Abas de Visão -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" id="btn-pouch-view-2d" onclick="switchPouchView('2d')" style="padding: 6px 14px; font-size: 0.75rem; font-weight: bold; background: var(--primary); color: #fff; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                                    📐 Plano da Bobina (2D)
+                                </button>
+                                <button type="button" id="btn-pouch-view-3d" onclick="switchPouchView('3d')" style="padding: 6px 14px; font-size: 0.75rem; font-weight: bold; background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                                    📦 Embalagem Pronta (Simulador 3D)
+                                </button>
+                            </div>
+                            <span style="font-size: 0.65rem; color: var(--text-secondary);">Renderização vetorial em tempo real</span>
+                        </div>
+
+                        <!-- BANNER HUD TÉCNICO DEDICADO (FORA DA ÁREA DE DESENHO GRÁFICO) -->
+                        <div id="pouch-hud-banner" style="background: rgba(15, 23, 42, 0.75); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 14px; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span id="pouch-hud-icon" style="font-size: 1.3rem;">📦</span>
+                                <div>
+                                    <div id="pouch-hud-title" style="font-size: 0.88rem; font-weight: bold; color: var(--primary-light, #38bdf8);">Continuous Bag (Tira Contínua)</div>
+                                    <div id="pouch-hud-dims" style="font-size: 0.76rem; color: var(--text-muted, #94a3b8);">80 × 100 mm</div>
+                                </div>
+                            </div>
+                            <div id="pouch-hud-spec" style="font-size: 0.74rem; text-align: right; color: var(--text-secondary);">
+                                <span id="pouch-hud-vol" style="font-weight: bold; color: #10b981;">150 cm³</span> | <span id="pouch-hud-film" style="color: #60a5fa;">Bobina 180mm | Passo 130mm</span>
+                            </div>
+                        </div>
+
+                        <!-- Renderizador SVG 2D -->
+                        <div id="pouch-render-container-2d" style="display: flex; align-items: center; justify-content: center; height: 380px; position: relative;">
+                            <div style="position: absolute; top: 5px; right: 5px; display: flex; flex-direction: column; gap: 4px; font-size: 0.62rem; color: var(--text-secondary); background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); z-index: 10;">
+                                <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 10px; height: 10px; background: repeating-linear-gradient(45deg, #64748b, #64748b 1px, transparent 1px, transparent 4px); border: 1px solid var(--border-color);"></div> Área de Solda</div>
+                                <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 10px; height: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color);"></div> Área Útil</div>
+                            </div>
+                            <svg id="pouch-svg-diagram-2d" width="100%" height="370" viewBox="0 0 500 350" style="background: transparent;"></svg>
+                        </div>
+
+                        <!-- Renderizador SVG 3D -->
+                        <div id="pouch-render-container-3d" style="display: none; align-items: center; justify-content: center; height: 380px; position: relative;">
+                            <div style="position: absolute; top: 5px; right: 5px; display: flex; flex-direction: column; gap: 4px; font-size: 0.62rem; color: var(--text-secondary); background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); z-index: 10;">
+                                <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 10px; height: 10px; background: #3b82f6; border-radius: 2px;"></div> Corpo Cheio em 3D</div>
+                                <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 10px; height: 10px; background: #94a3b8; border-radius: 2px;"></div> Soldas Seladas</div>
+                            </div>
+                            <svg id="pouch-svg-diagram-3d" width="100%" height="370" viewBox="0 0 500 370" style="background: transparent;"></svg>
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
-                <button class="btn btn-secondary" onclick="closePouchCalcModal()">Fechar</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button type="button" class="btn" onclick="openFilmSpecPDFModal()" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); color: #fff; font-weight: bold; border-radius: 6px; padding: 8px 16px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; border: none; cursor: pointer;">
+                        📄 Gerar Ficha Técnica para Fabricante (PDF)
+                    </button>
+                    <button type="button" class="btn" onclick="shareFilmSpecWhatsApp()" style="background: #22c55e; color: #fff; font-weight: bold; border-radius: 6px; padding: 8px 16px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; border: none; cursor: pointer;">
+                        📲 Enviar Resumo no WhatsApp
+                    </button>
+                    <button type="button" class="btn" onclick="saveFilmSpecToMRP()" style="background: rgba(255,255,255,0.06); color: #cbd5e1; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 16px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        💾 Salvar Projeto no MRP
+                    </button>
+                </div>
+                <button class="btn btn-secondary" onclick="closePouchCalcModal()">Fechar Calculadora</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE FICHA TÉCNICA OFICIAL DO FABRICANTE DE BOBINAS (PDF/IMPRESSÃO) -->
+    <div id="film-spec-pdf-modal" class="modal" style="display: none; align-items: center; justify-content: center; z-index: 10000; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
+        <div class="modal-content" style="background: #ffffff; color: #0f172a; width: 92%; max-width: 950px; max-height: 92vh; overflow-y: auto; border-radius: 12px; padding: 25px; font-family: 'Inter', system-ui, sans-serif; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+            <!-- Ações Superiores do Relatório (Ocultas na impressão) -->
+            <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px;">
+                <div>
+                    <span style="font-size: 1.1rem; font-weight: 800; color: #0f172a;">📄 Ficha Técnica Industrial para Convertedor de Filme</span>
+                    <span style="display: block; font-size: 0.75rem; color: #64748b;">Pronto para Envio ao Fabricante de Filme Flexível / Gráfica Flexográfica</span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" onclick="window.print()" style="background: #0284c7; color: #ffffff; font-weight: bold; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; display: flex; align-items: center; gap: 6px;">
+                        🖨️ Imprimir / Salvar PDF
+                    </button>
+                    <button type="button" onclick="downloadFilmSpecPDF()" style="background: #16a34a; color: #ffffff; font-weight: bold; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; display: flex; align-items: center; gap: 6px;">
+                        📥 Baixar PDF (Nova Aba)
+                    </button>
+                    <button type="button" onclick="closeFilmSpecPDFModal()" style="background: #e2e8f0; color: #334155; font-weight: bold; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.82rem;">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+
+            <!-- DOCUMENTO IMPRESSO OFICIAL TECFAG (TIMBRADO) -->
+            <div id="film-spec-print-area">
+                <!-- Cabeçalho Timbrado -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #0284c7; padding-bottom: 12px; margin-bottom: 20px;">
+                    <div>
+                        <h1 style="margin: 0; font-size: 1.6rem; font-weight: 900; color: #0284c7; letter-spacing: -0.5px;">TECFAG MÁQUINAS</h1>
+                        <span style="font-size: 0.75rem; font-weight: 700; color: #475569; text-transform: uppercase;">Engenharia de Automação & Embalagens Industriais</span>
+                        <span style="display: block; font-size: 0.70rem; color: #64748b;">Laudo Técnico de Especificação de Bobinas Flexíveis</span>
+                    </div>
+                    <div style="text-align: right; font-size: 0.75rem; color: #334155;">
+                        <div style="font-weight: bold; color: #0f172a;">FICHA TÉCNICA Nº <span id="spec-doc-id">FT-2026-8842</span></div>
+                        <div>Data: <span id="spec-doc-date">--</span></div>
+                        <div>Status: <strong style="color: #16a34a;">APROVADO PARA RODAR</strong></div>
+                    </div>
+                </div>
+
+                <!-- Tabela de Dados Gerais do Cliente e Máquina -->
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.8rem;">
+                    <tbody>
+                        <tr style="background: #f8fafc;">
+                            <td style="padding: 8px 12px; border: 1px solid #cbd5e1; font-weight: bold; width: 18%;">Cliente / Projeto:</td>
+                            <td style="padding: 8px 12px; border: 1px solid #cbd5e1;" id="spec-client-name">Cliente Tecfag Industrial</td>
+                            <td style="padding: 8px 12px; border: 1px solid #cbd5e1; font-weight: bold; width: 18%;">Modelo de Máquina:</td>
+                            <td style="padding: 8px 12px; border: 1px solid #cbd5e1;" id="spec-machine-name">Empacotadora VFFS Tecfag</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 12px; border: 1px solid #cbd5e1; font-weight: bold;">Tipologia Embalagem:</td>
+                            <td style="padding: 8px 12px; border: 1px solid #cbd5e1; font-weight: bold; color: #0284c7;" id="spec-pouch-type">Almofada (Pillow Bag)</td>
+                            <td style="padding: 8px 12px; border: 1px solid #cbd5e1; font-weight: bold;">Produto a Envasar:</td>
+                            <td style="padding: 8px 12px; border: 1px solid #cbd5e1;" id="spec-product-name">Grãos / Pós / Alimentício</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Gabarito Gráfico Duplo 2D e 3D -->
+                <div style="display: grid; grid-template-columns: 1.1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #f8fafc;">
+                        <span style="font-size: 0.75rem; font-weight: bold; color: #0f172a; display: block; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+                            📐 GABARITO TÉCNICO DA BOBINA PLANO 2D (Cotas e Margens em mm)
+                        </span>
+                        <div id="spec-svg-container-2d" style="width: 100%; height: 240px;"></div>
+                    </div>
+
+                    <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #f8fafc;">
+                        <span style="font-size: 0.75rem; font-weight: bold; color: #0f172a; display: block; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+                            📦 EMBALAGEM PRONTA E SELADA (Simulador 3D Final)
+                        </span>
+                        <div id="spec-svg-container-3d" style="width: 100%; height: 240px;"></div>
+                    </div>
+                </div>
+
+                <!-- Tabela de Especificações Obrigatórias do Fabricante do Filme -->
+                <div style="margin-bottom: 20px;">
+                    <h3 style="font-size: 0.9rem; font-weight: 800; color: #0284c7; margin: 0 0 10px 0; text-transform: uppercase; border-bottom: 2px solid #0284c7; padding-bottom: 4px;">
+                        🏭 CHECKLIST CRÍTICO DE CONVERSÃO FLEXOGRÁFICA (FABRICANTE DO FILME)
+                    </h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                        <thead>
+                            <tr style="background: #0284c7; color: #ffffff;">
+                                <th style="padding: 8px; text-align: left; border: 1px solid #0284c7;">Parâmetro Técnico</th>
+                                <th style="padding: 8px; text-align: left; border: 1px solid #0284c7;">Especificação de Engenharia</th>
+                                <th style="padding: 8px; text-align: left; border: 1px solid #0284c7;">Instrução de Rodagem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-weight: bold;">Largura Total da Bobina:</td>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-weight: bold; color: #0284c7;" id="spec-val-filmwidth">270 mm</td>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1;">Tolerância máxima permitida: ±1.0 mm</td>
+                            </tr>
+                            <tr style="background: #f8fafc;">
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-weight: bold;">Passo de Corte (Fotocélula):</td>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-weight: bold; color: #16a34a;" id="spec-val-pitch">180 mm</td>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1;">Distância exata entre tacas de corte</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-weight: bold;">Sentido de Desenrolamento:</td>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-weight: bold;" id="spec-val-unwind">Posição 1: Cabeça 1º / Leitura Externa</td>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1;">Alinhamento mandril empacotadora VFFS</td>
+                            </tr>
+                            <tr style="background: #f8fafc;">
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-weight: bold;">Diâmetro Interno do Tubete:</td>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-weight: bold;" id="spec-val-core">3 Polegadas (76 mm)</td>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1;">Tubete rígido de papelão padrão</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-weight: bold;">Material & Estrutura:</td>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1;" id="spec-val-material">BOPP Liso (Densidade 0.90 g/cm³)</td>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1;" id="spec-val-microns">60 Micras (µm)</td>
+                            </tr>
+                            <tr style="background: #f8fafc;">
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-weight: bold;">Tratamento Corona & Acabamento:</td>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1;" id="spec-val-corona">Tratamento Corona Externo</td>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1;" id="spec-val-finish">Brilhante (Gloss)</td>
+                            </tr>
+                            <tr id="spec-tr-yield">
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-weight: bold;">Rendimento Estimado por kg:</td>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-weight: bold; color: #d97706;" id="spec-val-yield">342 pacotes / kg</td>
+                                <td style="padding: 6px 10px; border: 1px solid #cbd5e1;">Cálculo baseado na densidade do polímero</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Rodapé de Assinaturas e Termos -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px; padding-top: 15px; border-top: 1px solid #cbd5e1; font-size: 0.75rem;">
+                    <div style="text-align: center;">
+                        <div style="border-bottom: 1px solid #000; height: 35px; margin-bottom: 5px;"></div>
+                        <strong>ENGENHARIA TECFAG MÁQUINAS</strong>
+                        <span style="display: block; color: #64748b;">Validação Técnica da Empacotadora</span>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="border-bottom: 1px solid #000; height: 35px; margin-bottom: 5px;"></div>
+                        <strong>ACEITE DO CONVERTEDOR / FABRICANTE DO FILME</strong>
+                        <span style="display: block; color: #64748b;">Aprovação da Bobina para Impressão</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: VALIDADOR DE DOSAGEM & CABEÇOTE TECFAG (ROSCA, PISTÃO, BALANÇA) -->
+    <div class="modal-overlay" id="doser-calc-modal" style="z-index: 1250; display: none;">
+        <div class="modal" style="width: 900px; max-width: 95vw; max-height: 90vh; overflow-y: auto; padding: 25px;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="color: #4ade80; font-size: 1.15rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        ⚖️ Simulador de Dosagem & Seleção de Cabeçote Tecfag
+                    </h3>
+                    <small style="color: var(--text-secondary); font-size: 0.72rem;">Validação da densidade ($g/cm^3$), viscosidade e vazão para enquadramento na linha Standard Tecfag sem customização</small>
+                </div>
+                <button class="btn-icon" onclick="closeDoserCalcModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
+                <!-- PARÂMETROS DO PRODUTO -->
+                <div style="display: flex; flex-direction: column; gap: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #4ade80; text-transform: uppercase;">1. Propriedades Físicas do Produto</span>
+                    
+                    <div class="form-group">
+                        <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Estado Físico / Consistência:</label>
+                        <select id="doser-product-type" class="form-control" style="font-size: 0.75rem;" onchange="updateDoserCalculations()">
+                            <option value="powders">Pó Fino / Condimento / Farinha (Dosador de Rosca)</option>
+                            <option value="grains">Grão / Achocolatado / Semente (Balança Linear)</option>
+                            <option value="liquids">Líquido Fluido / Água / Suco (Pistão Pneumático)</option>
+                            <option value="pasty">Molho Pastoso / Creme / Xampu (Pistão Aquecido)</option>
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Dose Alvo (g ou ml):</label>
+                            <input type="number" id="doser-target-dose" class="form-control" value="250" oninput="updateDoserCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Densidade ($g/cm^3$):</label>
+                            <input type="number" step="0.05" id="doser-density" class="form-control" value="0.75" oninput="updateDoserCalculations()">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Meta de Velocidade (Doses / minuto):</label>
+                        <input type="number" id="doser-speed-bpm" class="form-control" value="35" oninput="updateDoserCalculations()">
+                    </div>
+
+                    <div style="background: rgba(74, 222, 128, 0.05); border: 1px solid rgba(74, 222, 128, 0.2); border-radius: 6px; padding: 10px; font-size: 0.7rem; color: #cbd5e1; line-height: 1.4;">
+                        <strong>💡 Regra de Engenharia Tecfag:</strong> Produtos com densidade $< 0.3g/cm^3$ (pós muito aerados) exigem funil agitador duplo para evitar cavernamentos sem requerer customização.
+                    </div>
+                </div>
+
+                <!-- DIAGNÓSTICO & RECOMENDAÇÃO TECFAG -->
+                <div style="display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">2. Recomendação Tecfag Standard</span>
+
+                    <div style="background: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px;">
+                        <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Volume Calculado da Dose:</span>
+                        <span id="doser-res-volume" style="font-size: 1.2rem; font-weight: 800; color: #38bdf8;">333 cm³ (0,33 L)</span>
+                    </div>
+
+                    <div style="background: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px;">
+                        <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Módulo Dosador Standard Selecionado:</span>
+                        <span id="doser-res-head-type" style="font-size: 1.05rem; font-weight: 800; color: #4ade80;">Rosca Helicoidal Tecfag Ø45 mm</span>
+                    </div>
+
+                    <div style="background: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px;">
+                        <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Tempo Disponível por Dose:</span>
+                        <span id="doser-res-cycle-time" style="font-size: 1.1rem; font-weight: 800; color: #f59e0b;">1,71 s por dose</span>
+                    </div>
+
+                    <div id="doser-res-status-box" style="padding: 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; text-align: center; background: rgba(74, 222, 128, 0.15); border: 1px solid #4ade80; color: #4ade80;">
+                        ✅ VIABILIDADE TÉCNICA APROVADA: MÁQUINA 100% STANDARD
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                <button class="btn btn-secondary" onclick="closeDoserCalcModal()">Fechar Validador</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: VALIDADOR DE CAIXAS DE PAPELÃO & SELADORAS FX-SERIES TECFAG -->
+    <div class="modal-overlay" id="box-calc-modal" style="z-index: 1250; display: none;">
+        <div class="modal" style="width: 900px; max-width: 95vw; max-height: 90vh; overflow-y: auto; padding: 25px;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="color: #f59e0b; font-size: 1.15rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        📦 Validador de Envelope de Caixa & Seladoras FX Tecfag
+                    </h3>
+                    <small style="color: var(--text-secondary); font-size: 0.72rem;">Verificação de envelope mecânico (C×L×A) nas Seladoras de Fita Padrão FX-5050 e FX-6050 sem alteração de fábrica</small>
+                </div>
+                <button class="btn-icon" onclick="closeBoxCalcModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
+                <!-- DIMENSÕES DA CAIXA -->
+                <div style="display: flex; flex-direction: column; gap: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #f59e0b; text-transform: uppercase;">1. Dimensões da Caixa RSC (mm)</span>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Comprimento (C):</label>
+                            <input type="number" id="box-dim-c" class="form-control" value="400" oninput="updateBoxCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Largura (L):</label>
+                            <input type="number" id="box-dim-l" class="form-control" value="300" oninput="updateBoxCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Altura (A):</label>
+                            <input type="number" id="box-dim-a" class="form-control" value="250" oninput="updateBoxCalculations()">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Peso Total da Caixa Cheia (kg):</label>
+                        <input type="number" id="box-weight-kg" class="form-control" value="12" oninput="updateBoxCalculations()">
+                    </div>
+
+                    <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 6px; padding: 10px; font-size: 0.7rem; color: #cbd5e1; line-height: 1.4;">
+                        <strong>📏 Envelopes da Linha FX Tecfag:</strong><br>
+                        • <strong>FX-5050</strong>: Largura máx $500\text{mm}$ | Altura máx $500\text{mm}$<br>
+                        • <strong>FX-6050</strong>: Largura máx $600\text{mm}$ | Altura máx $500\text{mm}$
+                    </div>
+                </div>
+
+                <!-- RESULTADO DE COMPATIBILIDADE MECÂNICA -->
+                <div style="display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">2. Diagnóstico de Compatibilidade Mecânica</span>
+
+                    <div style="background: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px;">
+                        <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Modelo de Seladora de Caixas Indicado:</span>
+                        <span id="box-res-model" style="font-size: 1.15rem; font-weight: 800; color: #4ade80;">Tecfag FX-5050 (Fita Superior & Inferior)</span>
+                    </div>
+
+                    <div style="background: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px;">
+                        <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Folga Lateral na Guia Mecânica:</span>
+                        <span id="box-res-clearance" style="font-size: 1.05rem; font-weight: 800; color: #38bdf8;">100 mm de folga disponível</span>
+                    </div>
+
+                    <div id="box-res-status-box" style="padding: 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; text-align: center; background: rgba(74, 222, 128, 0.15); border: 1px solid #4ade80; color: #4ade80;">
+                        ✅ ENVELOPE MECÂNICO 100% DENTRO DO PADRÃO STANDARD
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                <button class="btn btn-secondary" onclick="closeBoxCalcModal()">Fechar Validador</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: SIMULADOR DE PALETIZAÇÃO PBR & CARGA DE ESTEIRA -->
+    <div class="modal-overlay" id="pallet-calc-modal" style="z-index: 1250; display: none;">
+        <div class="modal" style="width: 900px; max-width: 95vw; max-height: 90vh; overflow-y: auto; padding: 25px;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="color: #a855f7; font-size: 1.15rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        🏗️ Simulador de Paletização PBR & Carga de Esteiras
+                    </h3>
+                    <small style="color: var(--text-secondary); font-size: 0.72rem;">Arranjo de caixas no palete Padrão Brasil ($1200\times1000\text{mm}$) e verificação de peso por metro linear</small>
+                </div>
+                <button class="btn-icon" onclick="closePalletCalcModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
+                <!-- ENTRADAS DO PALETE -->
+                <div style="display: flex; flex-direction: column; gap: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #a855f7; text-transform: uppercase;">1. Dimensões da Carga</span>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Comprimento (mm):</label>
+                            <input type="number" id="pallet-box-c" class="form-control" value="400" oninput="updatePalletCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Largura (mm):</label>
+                            <input type="number" id="pallet-box-l" class="form-control" value="300" oninput="updatePalletCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Altura (mm):</label>
+                            <input type="number" id="pallet-box-a" class="form-control" value="250" oninput="updatePalletCalculations()">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Peso/Caixa (kg):</label>
+                            <input type="number" id="pallet-box-weight" class="form-control" value="10" oninput="updatePalletCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Nº de Camadas:</label>
+                            <input type="number" id="pallet-layers" class="form-control" value="5" oninput="updatePalletCalculations()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DIAGNÓSTICO DO PALETE & ESTEIRA -->
+                <div style="display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">2. Resultados da Paletização PBR</span>
+
+                    <div style="background: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Caixas por Camada:</span>
+                        <span id="pallet-res-per-layer" style="font-size: 1.1rem; font-weight: 800; color: #a855f7;">10 caixas / camada</span>
+                    </div>
+
+                    <div style="background: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Total de Caixas no Palete:</span>
+                        <span id="pallet-res-total-boxes" style="font-size: 1.1rem; font-weight: 800; color: #38bdf8;">50 caixas</span>
+                    </div>
+
+                    <div style="background: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Peso Total Paletizado:</span>
+                        <span id="pallet-res-total-weight" style="font-size: 1.1rem; font-weight: 800; color: #4ade80;">500 kg (Palete PBR)</span>
+                    </div>
+
+                    <div id="pallet-res-status-box" style="padding: 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; text-align: center; background: rgba(74, 222, 128, 0.15); border: 1px solid #4ade80; color: #4ade80;">
+                        ✅ APROVEITAMENTO DO PALETE: DENTRO DO PERÍMETRO PBR
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                <button class="btn btn-secondary" onclick="closePalletCalcModal()">Fechar Validador</button>
             </div>
         </div>
     </div>
@@ -4976,11 +5675,188 @@
             return labels[role] || role;
         }
 
-        // Calculadora de Embalagem & Bobina de Filme
+        // CALCULADORA & SIMULADOR 3D DE EMBALAGENS TECFAG (17 MODELOS)
+        let pouchState = {
+            selectedType: 'pillow',
+            currentView: '2d'
+        };
+
+        const POUCH_TYPES = [
+            { id: '3side', name: 'Sachê 3 Soldas (3-Side Seal)', hasGusset: false, isPreMade: false, desc: 'Sachê plano formado a partir de bobina VFFS Tecfag' },
+            { id: '4side', name: 'Sachê 4 Soldas (4-Side Seal)', hasGusset: false, isPreMade: false, desc: 'Sachê plano formado a partir de bobina VFFS Tecfag' },
+            { id: 'pillow', name: 'Pacote Almofada (Pillow Bag)', hasGusset: false, isPreMade: false, desc: 'Embalagem padrão VFFS/Flow Pack formada de bobina' },
+            { id: 'gusset', name: 'Pacote Sanfonado (Gusset Bag)', hasGusset: true, isPreMade: false, desc: 'Pacote com fole lateral formado a partir de bobina VFFS' },
+            { id: 'doypack', name: 'Doypack (Stand-up Pouch)', hasGusset: true, isPreMade: true, desc: 'Saco pronto pré-formado para Envasadora/Seladora Tecfag' },
+            { id: 'flatbottom', name: 'Fundo Plano (Flat Bottom / Box)', hasGusset: true, isPreMade: false, desc: 'Embalagem tipo tijolo formada a partir de bobina VFFS' },
+            { id: 'stick', name: 'Sachê Stick (Stick Pack)', hasGusset: false, isPreMade: false, desc: 'Sachê estreito formado a partir de bobina VFFS' },
+            { id: 'continuous', name: 'Tira Contínua (Continuous Bag)', hasGusset: false, isPreMade: false, desc: 'Tira de sachês em corrente formada a partir de bobina' }
+        ];
+
+        function initPouchGallery() {
+            const container = document.getElementById('pouch-types-gallery');
+            if (!container) return;
+            container.innerHTML = '';
+
+            POUCH_TYPES.forEach(item => {
+                const card = document.createElement('div');
+                const isSelected = item.id === pouchState.selectedType;
+                card.style = `
+                    padding: 8px 10px;
+                    border-radius: 6px;
+                    background: ${isSelected ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255,255,255,0.03)'};
+                    border: 1px solid ${isSelected ? '#3b82f6' : 'var(--border-color)'};
+                    cursor: pointer;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    transition: all 0.2s ease;
+                `;
+                
+                card.onclick = () => selectPouchType(item.id);
+                card.onmouseover = () => {
+                    if (item.id !== pouchState.selectedType) {
+                        card.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                        card.style.background = 'rgba(255,255,255,0.06)';
+                    }
+                };
+                card.onmouseout = () => {
+                    if (item.id !== pouchState.selectedType) {
+                        card.style.borderColor = 'var(--border-color)';
+                        card.style.background = 'rgba(255,255,255,0.03)';
+                    }
+                };
+
+                card.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 0.72rem; font-weight: bold; color: ${isSelected ? '#60a5fa' : 'var(--text-primary)'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${item.name.split('(')[0]}
+                        </span>
+                        ${isSelected ? '<span style="font-size: 0.6rem; color: #4ade80;">✓</span>' : ''}
+                    </div>
+                    <span style="font-size: 0.62rem; color: var(--text-secondary); line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                        ${item.desc}
+                    </span>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function selectPouchType(typeId) {
+            pouchState.selectedType = typeId;
+            const tInfo = POUCH_TYPES.find(t => t.id === typeId) || POUCH_TYPES[2];
+            
+            // Atualizar badge do nome
+            const badge = document.getElementById('pouch-selected-model-name');
+            if (badge) badge.innerText = tInfo.name;
+
+            // Mostrar/Ocultar campo de fole e seletor de acabamento Stick
+            const gussetGroup = document.getElementById('pouch-group-gusset');
+            if (gussetGroup) {
+                gussetGroup.style.display = tInfo.hasGusset ? 'flex' : 'none';
+            }
+
+            const stickGroup = document.getElementById('pouch-stick-variant-group');
+            if (stickGroup) {
+                stickGroup.style.display = (typeId === 'stick') ? 'flex' : 'none';
+            }
+
+            const sealGroup = document.getElementById('pouch-seal-type-group');
+            if (sealGroup) {
+                sealGroup.style.display = (typeId !== 'stick' && typeId !== 'continuous') ? 'flex' : 'none';
+            }
+
+            // Marcar checkboxes padrão conforme modelo
+            const euroCheck = document.getElementById('pouch-acc-eurohole');
+            const handleCheck = document.getElementById('pouch-acc-handle');
+            const valveCheck = document.getElementById('pouch-acc-valve');
+            const fingerCheck = document.getElementById('pouch-acc-tear');
+            const zipCheck = document.getElementById('pouch-acc-ziplock');
+            const spoutCheck = document.getElementById('pouch-acc-spout');
+            const quadCheck = document.getElementById('pouch-acc-quadseal');
+
+            if (typeId === 'doypack' && zipCheck) zipCheck.checked = true;
+            if (typeId === 'spout' && spoutCheck) spoutCheck.checked = true;
+            if ((typeId === 'quadseal' || typeId === 'flatbottom') && quadCheck) quadCheck.checked = true;
+            if (typeId === 'eurohole' && euroCheck) euroCheck.checked = true;
+            if (typeId === 'handle' && handleCheck) handleCheck.checked = true;
+            if (typeId === 'valve' && valveCheck) valveCheck.checked = true;
+            if (typeId === 'fingergrip' && fingerCheck) fingerCheck.checked = true;
+
+            initPouchGallery();
+            updatePouchCalculations();
+        }
+
+        function setStickStyle(style) {
+            const hiddenInput = document.getElementById('pouch-stick-style');
+            if (hiddenInput) hiddenInput.value = style;
+
+            const btns = document.querySelectorAll('.stick-variant-btn');
+            btns.forEach(b => {
+                if (b.getAttribute('data-style') === style) {
+                    b.style.background = '#38bdf8';
+                    b.style.color = '#0f172a';
+                    b.style.fontWeight = 'bold';
+                    b.style.borderColor = '#38bdf8';
+                } else {
+                    b.style.background = 'rgba(255,255,255,0.04)';
+                    b.style.color = '#cbd5e1';
+                    b.style.fontWeight = 'normal';
+                    b.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+                }
+            });
+
+            updatePouchCalculations();
+        }
+
+        function setSealCutStyle(cutStyle) {
+            const hiddenInput = document.getElementById('pouch-seal-cut-style');
+            if (hiddenInput) hiddenInput.value = cutStyle;
+
+            const btns = document.querySelectorAll('.seal-cut-btn');
+            btns.forEach(b => {
+                if (b.getAttribute('data-cut') === cutStyle) {
+                    b.style.background = '#38bdf8';
+                    b.style.color = '#0f172a';
+                    b.style.fontWeight = 'bold';
+                    b.style.borderColor = '#38bdf8';
+                } else {
+                    b.style.background = 'rgba(255,255,255,0.04)';
+                    b.style.color = '#cbd5e1';
+                    b.style.fontWeight = 'normal';
+                    b.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+                }
+            });
+
+            updatePouchCalculations();
+        }
+
+        function setSealTextureStyle(textureStyle) {
+            const hiddenInput = document.getElementById('pouch-seal-texture-style');
+            if (hiddenInput) hiddenInput.value = textureStyle;
+
+            const btns = document.querySelectorAll('.seal-texture-btn');
+            btns.forEach(b => {
+                if (b.getAttribute('data-tex') === textureStyle) {
+                    b.style.background = '#38bdf8';
+                    b.style.color = '#0f172a';
+                    b.style.fontWeight = 'bold';
+                    b.style.borderColor = '#38bdf8';
+                } else {
+                    b.style.background = 'rgba(255,255,255,0.04)';
+                    b.style.color = '#cbd5e1';
+                    b.style.fontWeight = 'normal';
+                    b.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+                }
+            });
+
+            updatePouchCalculations();
+        }
+
         function openPouchCalcModal() {
             const modal = document.getElementById('pouch-calc-modal');
             if (modal) {
                 modal.classList.add('active');
+                initPouchGallery();
                 updatePouchCalculations();
             }
         }
@@ -4992,129 +5868,1035 @@
             }
         }
 
+        function switchPouchView(view) {
+            pouchState.currentView = view;
+            const btn2d = document.getElementById('btn-pouch-view-2d');
+            const btn3d = document.getElementById('btn-pouch-view-3d');
+            const container2d = document.getElementById('pouch-render-container-2d');
+            const container3d = document.getElementById('pouch-render-container-3d');
+
+            if (view === '2d') {
+                btn2d.style.background = 'var(--primary)';
+                btn2d.style.color = '#fff';
+                btn2d.style.border = 'none';
+
+                btn3d.style.background = 'rgba(255,255,255,0.05)';
+                btn3d.style.color = 'var(--text-secondary)';
+                btn3d.style.border = '1px solid var(--border-color)';
+
+                container2d.style.display = 'flex';
+                container3d.style.display = 'none';
+            } else {
+                btn3d.style.background = 'var(--primary)';
+                btn3d.style.color = '#fff';
+                btn3d.style.border = 'none';
+
+                btn2d.style.background = 'rgba(255,255,255,0.05)';
+                btn2d.style.color = 'var(--text-secondary)';
+                btn2d.style.border = '1px solid var(--border-color)';
+
+                container3d.style.display = 'flex';
+                container2d.style.display = 'none';
+            }
+            updatePouchCalculations();
+        }
+
         function updatePouchCalculations() {
-            const face = parseFloat(document.getElementById('pouch-face').value) || 0;
-            const height = parseFloat(document.getElementById('pouch-height').value) || 0;
-            const leftFlap = parseFloat(document.getElementById('pouch-left-flap').value) || 0;
-            const rightFlap = parseFloat(document.getElementById('pouch-right-flap').value) || 0;
-            const leftWeld = parseFloat(document.getElementById('pouch-left-weld').value) || 0;
-            const rightWeld = parseFloat(document.getElementById('pouch-right-weld').value) || 0;
-            const topWeld = parseFloat(document.getElementById('pouch-top-weld').value) || 0;
-            const bottomWeld = parseFloat(document.getElementById('pouch-bottom-weld').value) || 0;
+            const face = parseFloat(document.getElementById('pouch-face').value) || 120;
+            const height = parseFloat(document.getElementById('pouch-height').value) || 150;
+            const gusset = parseFloat(document.getElementById('pouch-gusset').value) || 40;
+            const backWeld = parseFloat(document.getElementById('pouch-back-weld').value) || 15;
+            const topWeld = parseFloat(document.getElementById('pouch-top-weld').value) || 15;
+            const bottomWeld = parseFloat(document.getElementById('pouch-bottom-weld').value) || 15;
+            const microns = parseFloat(document.getElementById('pouch-film-microns').value) || 60;
+            const matSelect = document.getElementById('pouch-film-material');
+            const filmMat = matSelect ? matSelect.value : 'BOPP';
 
-            const totalWidth = leftWeld + leftFlap + face + rightFlap + rightWeld;
+            // Densidades em g/cm³
+            const densities = { BOPP: 0.90, PET_PE: 1.10, ALU: 1.35 };
+            const density = densities[filmMat] || 0.90;
+
+            const tInfo = POUCH_TYPES.find(t => t.id === pouchState.selectedType) || POUCH_TYPES[2];
+
+            // Cálculo da Largura da Bobina conforme o modelo
+            let totalWidth = 0;
+            if (pouchState.selectedType === '3side' || pouchState.selectedType === '4side') {
+                totalWidth = (face * 2) + (backWeld * 2);
+            } else if (pouchState.selectedType === 'stick') {
+                totalWidth = (face * 2) + backWeld;
+            } else if (tInfo.hasGusset) {
+                totalWidth = (face * 2) + (gusset * 2) + (backWeld * 2);
+            } else {
+                // Pillow Bag padrão
+                totalWidth = (face * 2) + (backWeld * 2);
+            }
+
             const totalLength = topWeld + height + bottomWeld;
-            const overlap = (leftFlap + rightFlap) - face;
 
-            document.getElementById('pouch-res-film-width').innerText = totalWidth.toFixed(0) + ' mm';
-            document.getElementById('pouch-res-pitch').innerText = totalLength.toFixed(0) + ' mm';
-            document.getElementById('pouch-res-overlap').innerText = overlap.toFixed(0) + ' mm';
-            document.getElementById('pouch-res-width').innerText = face.toFixed(0) + ' mm';
+            // Cálculo de Volume Estimado em cm³ (Conversão de mm³ para cm³ / mL)
+            let volumeCm3 = 0;
+            if (tInfo.hasGusset) {
+                volumeCm3 = (face * height * gusset * 0.75) / 1000;
+            } else if (pouchState.selectedType === 'triangle') {
+                volumeCm3 = ((face * height * face) / 6) / 1000;
+            } else {
+                volumeCm3 = (face * height * (face * 0.35) * 0.75) / 1000;
+            }
 
-            // Draw SVG
-            const svg = document.getElementById('pouch-svg-diagram');
+            // Cálculo de Rendimento (Pacotes por kg de filme)
+            // Área de filme por pacote em m²
+            const areaM2 = (totalWidth / 1000) * (totalLength / 1000);
+            // Peso de 1 pacote em gramas: Área(m²) * espessura(mm) * densidade(g/cm³) * 1000
+            const thicknessMm = microns / 1000;
+            const weightGrams = areaM2 * (thicknessMm / 10) * density * 10000;
+            const yieldBagsPerKg = weightGrams > 0 ? Math.round(1000 / weightGrams) : 0;
+
+            // Atualizar UI de Resultados (Tratamento especial para Sacos Prontos Doypack)
+            const labelW = document.getElementById('pouch-res-label-film-width');
+            const labelH = document.getElementById('pouch-res-label-pitch');
+            const labelY = document.getElementById('pouch-res-label-yield');
+            const panelTitle = document.getElementById('pouch-converter-panel-title');
+            const labelUnwind = document.getElementById('pouch-label-unwind');
+            const labelCore = document.getElementById('pouch-label-core');
+
+            const rowYield = document.getElementById('pouch-res-row-yield');
+
+            if (tInfo.isPreMade) {
+                if (labelW) labelW.innerText = 'Largura do Saco Pronto (W)';
+                if (labelH) labelH.innerText = 'Altura do Saco Pronto (H)';
+                if (panelTitle) panelTitle.innerText = '📦 Parâmetros do Fornecedor de Sacos Prontos (Pre-Made Pouch):';
+                if (labelUnwind) labelUnwind.innerText = 'Acondicionamento para Envase:';
+                if (labelCore) labelCore.innerText = 'Condição da Boca / Zíper:';
+
+                document.getElementById('pouch-res-film-width').innerText = Math.round(face) + ' mm';
+                document.getElementById('pouch-res-pitch').innerText = Math.round(height) + ' mm';
+                if (rowYield) rowYield.style.display = 'none';
+            } else {
+                if (labelW) labelW.innerText = 'Largura Total Bobina';
+                if (labelH) labelH.innerText = 'Comprimento / Passo (Fotocélula)';
+                if (labelY) labelY.innerText = 'Rendimento Estimado (pacotes/kg)';
+                if (panelTitle) panelTitle.innerText = '🏭 Parâmetros para o Fabricante de Filme (Flexografia):';
+                if (labelUnwind) labelUnwind.innerText = 'Sentido Desenrolamento:';
+                if (labelCore) labelCore.innerText = 'Diâmetro do Tubete (Core):';
+
+                document.getElementById('pouch-res-film-width').innerText = Math.round(totalWidth) + ' mm';
+                document.getElementById('pouch-res-pitch').innerText = Math.round(totalLength) + ' mm';
+                if (rowYield) rowYield.style.display = 'flex';
+                document.getElementById('pouch-res-yield').innerText = yieldBagsPerKg.toLocaleString('pt-BR') + ' pacotes/kg';
+                document.getElementById('pouch-res-yield').style.color = '#f59e0b';
+            }
+            document.getElementById('pouch-res-volume').innerText = Math.round(volumeCm3).toLocaleString('pt-BR') + ' cm³ (' + (volumeCm3/1000).toFixed(2) + ' L)';
+
+            // Atualizar Banner HUD Superior (Fora do desenho)
+            const hudIcon = document.getElementById('pouch-hud-icon');
+            const hudTitle = document.getElementById('pouch-hud-title');
+            const hudDims = document.getElementById('pouch-hud-dims');
+            const hudVol = document.getElementById('pouch-hud-vol');
+            const hudFilm = document.getElementById('pouch-hud-film');
+
+            if (hudIcon) hudIcon.innerText = tInfo.icon || '📦';
+            if (hudTitle) hudTitle.innerText = tInfo.name;
+            if (hudDims) hudDims.innerText = `${Math.round(face)} × ${Math.round(height)} mm` + (tInfo.hasGusset ? ` (Fole ${Math.round(gusset)}mm)` : '');
+            if (hudVol) hudVol.innerText = `${Math.round(volumeCm3).toLocaleString('pt-BR')} cm³ (${(volumeCm3/1000).toFixed(2)} L)`;
+            if (hudFilm) {
+                if (tInfo.isPreMade) {
+                    hudFilm.innerText = `SACO PRONTO PRÉ-FORMADO (${Math.round(face)}×${Math.round(height)}mm) | ENVASE & SELAGEM TECFAG`;
+                    hudFilm.style.color = '#4ade80';
+                } else {
+                    hudFilm.innerText = `Bobina ${Math.round(totalWidth)}mm | Passo ${Math.round(totalLength)}mm`;
+                    hudFilm.style.color = '#60a5fa';
+                }
+            }
+
+            // Renderizar SVG 2D e SVG 3D
+            renderPouch2DSVG(totalWidth, totalLength, face, height, gusset, backWeld, topWeld, bottomWeld, tInfo);
+            renderPouch3DSVG(face, height, gusset, topWeld, bottomWeld, tInfo);
+        }
+
+        // RENDERIZADOR 2D (Plano da Bobina)
+        function renderPouch2DSVG(totalW, totalL, face, height, gusset, backWeld, topWeld, bottomWeld, tInfo) {
+            const svg = document.getElementById('pouch-svg-diagram-2d');
             if (!svg) return;
 
-            // Define viewport sizes
-            const svgW = 460;
-            const svgH = 330;
+            const svgW = 480;
+            const svgH = 350;
             svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
 
-            // Margins in SVG
-            const padX = 60;
-            const padY = 65;
+            const padX = 50;
+            const padY = 55;
             const plotW = svgW - 2 * padX;
             const plotH = svgH - 2 * padY;
 
-            // Scale factors
-            const scaleX = totalWidth > 0 ? plotW / totalWidth : 1;
-            const scaleY = totalLength > 0 ? plotH / totalLength : 1;
+            const scaleX = totalW > 0 ? plotW / totalW : 1;
+            const scaleY = totalL > 0 ? plotH / totalL : 1;
 
-            // Coordinates
             const x0 = padX;
-            const x1 = x0 + leftWeld * scaleX;
-            const x2 = x1 + leftFlap * scaleX;
-            const x3 = x2 + face * scaleX;
-            const x4 = x3 + rightFlap * scaleX;
-            const x5 = x4 + rightWeld * scaleX;
+            const x5 = x0 + totalW * scaleX;
 
             const y0 = padY;
             const y1 = y0 + topWeld * scaleY;
             const y2 = y1 + height * scaleY;
             const y3 = y2 + bottomWeld * scaleY;
 
-            // Hatching Pattern definition if not exists
-            let defs = svg.querySelector('defs');
-            if (!defs) {
-                defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-                defs.innerHTML = `
-                    <pattern id="pouch-hatch" width="6" height="6" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-                        <line x1="0" y1="0" x2="0" y2="6" style="stroke: var(--text-secondary); stroke-width: 1;" />
+            let html = `
+                <defs>
+                    <pattern id="pouch-hatch-2d" width="6" height="6" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                        <line x1="0" y1="0" x2="0" y2="6" style="stroke: #64748b; stroke-width: 0.8;" />
                     </pattern>
-                `;
-                svg.appendChild(defs);
+                </defs>
+            `;
+
+            // Desenhar contorno do plano da bobina
+            html += `<rect x="${x0}" y="${y0}" width="${x5-x0}" height="${y3-y0}" fill="rgba(255,255,255,0.03)" stroke="var(--border-color)" stroke-width="1.5" />`;
+
+            // Faixas de Solda Topo e Fundo
+            html += `<rect x="${x0}" y="${y0}" width="${x5-x0}" height="${y1-y0}" fill="url(#pouch-hatch-2d)" stroke="var(--border-color)" stroke-width="1" />`;
+            html += `<rect x="${x0}" y="${y2}" width="${x5-x0}" height="${y3-y2}" fill="url(#pouch-hatch-2d)" stroke="var(--border-color)" stroke-width="1" />`;
+
+            // Desenhar Acessórios no Plano 2D (Eurofuro ou Furo Redondo)
+            const hasEuro2D = document.getElementById('pouch-acc-eurohole')?.checked;
+            const hasRound2D = document.getElementById('pouch-acc-roundhole')?.checked;
+            if ((hasEuro2D || tInfo.id === 'eurohole') && tInfo.id !== 'continuous') {
+                const ex2d = x0 + (x5 - x0) / 4;
+                const ey2d = y0 + (y1 - y0) / 2;
+                html += `<path d="M ${ex2d - 10} ${ey2d + 1} A 3 3 0 0 0 ${ex2d - 7} ${ey2d + 4} L ${ex2d + 7} ${ey2d + 4} A 3 3 0 0 0 ${ex2d + 10} ${ey2d + 1} A 2.5 2.5 0 0 0 ${ex2d + 8} ${ey2d - 2} L ${ex2d + 4} ${ey2d - 2} C ${ex2d + 3.5} ${ey2d - 5.5} ${ex2d - 3.5} ${ey2d - 5.5} ${ex2d - 4} ${ey2d - 2} L ${ex2d - 8} ${ey2d - 2} A 2.5 2.5 0 0 0 ${ex2d - 10} ${ey2d + 1} Z" fill="var(--bg-base)" stroke="#38bdf8" stroke-width="1.2" />`;
+            } else if ((hasRound2D || tInfo.id === 'roundhole') && tInfo.id !== 'continuous') {
+                const ex2d = x0 + (x5 - x0) / 4;
+                const ey2d = y0 + (y1 - y0) / 2;
+                html += `<circle cx="${ex2d}" cy="${ey2d}" r="5" fill="var(--bg-base)" stroke="#38bdf8" stroke-width="1.2" />`;
             }
 
-            // Draw content
-            let html = '';
+            // Divisórias internas dependendo do modelo
+            if (tInfo.hasGusset) {
+                // Desenhar linhas do Fole
+                const xFace1End = x0 + face * scaleX;
+                const xGussetEnd = xFace1End + (gusset * 2) * scaleX;
 
-            // 1. Background sheets/rectangles
-            // Left weld area
-            html += `<rect x="${x0}" y="${y0}" width="${x1-x0}" height="${y3-y0}" fill="url(#pouch-hatch)" stroke="var(--border-color)" stroke-width="1" />`;
-            // Left flap (without welds)
-            html += `<rect x="${x1}" y="${y1}" width="${x2-x1}" height="${y2-y1}" fill="rgba(255,255,255,0.02)" stroke="var(--border-color)" stroke-width="1" />`;
-            // Face frontal
-            html += `<rect x="${x2}" y="${y1}" width="${x3-x2}" height="${y2-y1}" fill="rgba(255,255,255,0.05)" stroke="var(--border-color)" stroke-width="1" />`;
-            // Right flap
-            html += `<rect x="${x3}" y="${y1}" width="${x4-x3}" height="${y2-y1}" fill="rgba(255,255,255,0.02)" stroke="var(--border-color)" stroke-width="1" />`;
-            // Right weld area
-            html += `<rect x="${x4}" y="${y0}" width="${x5-x4}" height="${y3-y0}" fill="url(#pouch-hatch)" stroke="var(--border-color)" stroke-width="1" />`;
+                html += `<line x1="${xFace1End}" y1="${y0}" x2="${xFace1End}" y2="${y3}" stroke="#38bdf8" stroke-dasharray="3,3" stroke-width="1.5" />`;
+                html += `<line x1="${xGussetEnd}" y1="${y0}" x2="${xGussetEnd}" y2="${y3}" stroke="#38bdf8" stroke-dasharray="3,3" stroke-width="1.5" />`;
 
-            // Top horizontal weld area across the middle sections (or whole width)
-            html += `<rect x="${x1}" y="${y0}" width="${x4-x1}" height="${y1-y0}" fill="url(#pouch-hatch)" stroke="var(--border-color)" stroke-width="1" />`;
-            // Bottom horizontal weld area
-            html += `<rect x="${x1}" y="${y2}" width="${x4-x1}" height="${y3-y2}" fill="url(#pouch-hatch)" stroke="var(--border-color)" stroke-width="1" />`;
+                html += `<text x="${x0 + (xFace1End - x0)/2}" y="${y1 + (y2-y1)/2}" font-size="9" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Face Frontal</text>`;
+                html += `<text x="${xFace1End + (xGussetEnd - xFace1End)/2}" y="${y1 + (y2-y1)/2}" font-size="8" fill="#38bdf8" text-anchor="middle">Fole Lateral (${gusset}mm)</text>`;
+                html += `<text x="${xGussetEnd + (x5 - xGussetEnd)/2}" y="${y1 + (y2-y1)/2}" font-size="9" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">Face Traseira</text>`;
+            } else {
+                const xMid = x0 + (totalW / 2) * scaleX;
+                html += `<line x1="${xMid}" y1="${y0}" x2="${xMid}" y2="${y3}" stroke="#3b82f6" stroke-dasharray="3,3" stroke-width="1.5" />`;
 
-            // Dobras (Linhas tracejadas)
-            html += `<line x1="${x2}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#3b82f6" stroke-dasharray="3,3" stroke-width="1.5" />`;
-            html += `<line x1="${x3}" y1="${y1}" x2="${x3}" y2="${y2}" stroke="#3b82f6" stroke-dasharray="3,3" stroke-width="1.5" />`;
+                html += `<text x="${x0 + (xMid - x0)/2}" y="${y1 + (y2-y1)/2}" font-size="10" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">FACE FRONTAL</text>`;
+                html += `<text x="${xMid + (x5 - xMid)/2}" y="${y1 + (y2-y1)/2}" font-size="10" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">FACE TRASEIRA</text>`;
+            }
 
-            // Marca de Fotocélula (Registration Mark)
-            html += `<rect x="${x0 + 3}" y="${y2 + 3}" width="12" height="6" fill="#000000" stroke="#ffffff" stroke-width="0.5" />`;
-            html += `<text x="${x0 + 18}" y="${y2 + 8}" font-size="7" fill="var(--text-primary)" text-anchor="start" font-weight="bold">Fotocélula</text>`;
+            if (tInfo.isPreMade) {
+                // Desenhar Boca Aberta no Topo para Envase
+                const mouthY = y0 + (y1 - y0);
+                html += `<path d="M ${x0 + 15} ${mouthY} Q ${x0 + (x5 - x0)/2} ${mouthY + 12} ${x5 - 15} ${mouthY}" fill="none" stroke="#22c55e" stroke-width="2" stroke-dasharray="4,3" />`;
+                html += `<text x="${x0 + (x5 - x0)/2}" y="${mouthY - 4}" font-size="8" font-weight="bold" fill="#22c55e" text-anchor="middle">⬇ BOCA ABERTA PARA ENVASE NA MÁQUINA TECFAG</text>`;
 
-            // Dimension Helper Lines & Labels (horizontal at top)
-            // Left weld 10mm
-            html += drawHorizontalDim(x0, x1, y0 - 15, leftWeld + ' mm', 'var(--text-secondary)');
-            // 240mm (from left weld inner edge to right weld inner edge)
-            html += drawHorizontalDim(x1, x4, y0 - 32, (leftFlap + face + rightFlap) + ' mm', 'var(--text-primary)', true);
-            // Right weld 15mm
-            html += drawHorizontalDim(x4, x5, y0 - 15, rightWeld + ' mm', 'var(--text-secondary)');
+                // Cotas para Saco Pronto
+                html += drawHorizontalDim(x0, x5, y0 - 18, `Largura Saco Pronto: ${Math.round(face)} mm`, '#3b82f6');
+                html += drawVerticalDim(x0 - 18, y0, y3, `Altura Saco Pronto: ${Math.round(height)} mm`, '#10b981');
+            } else {
+                // Fotocélula da Bobina
+                html += `<rect x="${x0 + 5}" y="${y2 + 4}" width="14" height="7" fill="#000000" stroke="#ffffff" stroke-width="0.8" />`;
+                html += `<text x="${x0 + 24}" y="${y2 + 10}" font-size="7" fill="#ffffff" font-weight="bold">Fotocélula (${totalL}mm)</text>`;
 
-            // Horizontal inner widths (60mm, 120mm, 65mm) inside or below
-            html += drawHorizontalDim(x1, x2, y1 + 30, leftFlap + ' mm', 'var(--text-secondary)', false, true);
-            html += drawHorizontalDim(x2, x3, y1 + 30, face + ' mm', 'var(--text-primary)', false, true);
-            html += drawHorizontalDim(x3, x4, y1 + 30, rightFlap + ' mm', '#3b82f6', false, true);
+                // Cotas superiores da Bobina
+                html += drawHorizontalDim(x0, x5, y0 - 18, `Largura Bobina: ${Math.round(totalW)} mm`, '#3b82f6');
+                html += drawVerticalDim(x0 - 18, y0, y3, `Passo: ${Math.round(totalL)} mm`, '#10b981');
+            }
 
-            // Labels for areas
-            html += `<text x="${x1 + (x2-x1)/2}" y="${y1 + (y2-y1)/2 + 15}" font-size="8" fill="var(--text-secondary)" text-anchor="middle">Aba Esq.</text>`;
-            html += `<text x="${x2 + (x3-x2)/2}" y="${y1 + (y2-y1)/2 + 15}" font-size="10" font-weight="bold" fill="var(--text-primary)" text-anchor="middle">FACE FRONTAL</text>`;
-            html += `<text x="${x3 + (x4-x3)/2}" y="${y1 + (y2-y1)/2 + 15}" font-size="8" fill="var(--text-secondary)" text-anchor="middle">Aba Dir.</text>`;
+            svg.innerHTML = html;
+        }
 
-            // Vertical dimensions (on left)
-            // Top weld
-            html += drawVerticalDim(x0 - 15, y0, y1, topWeld + ' mm', 'var(--text-secondary)');
-            // Height
-            html += drawVerticalDim(x0 - 15, y1, y2, height + ' mm', 'var(--text-primary)');
-            // Bottom weld
-            html += drawVerticalDim(x0 - 15, y2, y3, bottomWeld + ' mm', 'var(--text-secondary)');
+        // RENDERIZADOR 3D ISOMÉTRICO REALISTA POR TIPOLOGIA
+        function renderPouch3DSVG(face, height, gusset, topWeld, bottomWeld, tInfo) {
+            const svg = document.getElementById('pouch-svg-diagram-3d');
+            if (!svg) return;
 
-            // Specific vertical bottom-right label for bottom weld height (e.g. 15mm)
-            html += drawVerticalDim(x5 + 15, y2, y3, bottomWeld + ' mm', 'var(--text-secondary)');
-            // Specific right weld width label
-            html += drawHorizontalDim(x4, x5, y3 + 15, rightWeld + ' mm', 'var(--text-secondary)');
+            const svgW = 480;
+            const svgH = 350;
+            svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
 
-            svg.innerHTML = defs.outerHTML + html;
+            const hasEuro = document.getElementById('pouch-acc-eurohole')?.checked;
+            const hasRoundHole = document.getElementById('pouch-acc-roundhole')?.checked;
+            const hasHandle = document.getElementById('pouch-acc-handle')?.checked;
+            const hasValve = document.getElementById('pouch-acc-valve')?.checked;
+            const hasTear = document.getElementById('pouch-acc-tear')?.checked;
+            const hasZip = document.getElementById('pouch-acc-ziplock')?.checked;
+            const hasSpout = document.getElementById('pouch-acc-spout')?.checked;
+            const hasTape = document.getElementById('pouch-acc-resealtape')?.checked;
+            const hasQuad = document.getElementById('pouch-acc-quadseal')?.checked;
+            const sealCutStyle = document.getElementById('pouch-seal-cut-style')?.value || 'serrated';
+            const sealTextureStyle = document.getElementById('pouch-seal-texture-style')?.value || 'hatched';
+
+            const cx = svgW / 2;
+            const cy = svgH / 2 + 10;
+
+            let w3d = Math.min(Math.max(face * 1.1, 100), 210);
+            let h3d = Math.min(Math.max(height * 1.1, 140), 230);
+
+            if (tInfo.id === 'stick') {
+                w3d = Math.min(Math.max(face * 1.4, 55), 85);
+                h3d = Math.min(Math.max(height * 1.1, 190), 250);
+            } else if (tInfo.id === 'continuous') {
+                w3d = Math.min(Math.max(face * 1.0, 110), 160);
+                h3d = 260;
+            }
+
+            const weldBorder = (hasEuro || tInfo.id === 'eurohole' || hasRoundHole || tInfo.id === 'roundhole' || hasHandle || tInfo.id === 'handle') ? 26 : 18;
+            const xLeft = cx - w3d / 2;
+            const xRight = cx + w3d / 2;
+            const yTop = cy - h3d / 2;
+            const yBottom = cy + h3d / 2;
+
+            let html = `
+                <defs>
+                    <linearGradient id="pouch-3d-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#3b82f6" />
+                        <stop offset="30%" stop-color="#2563eb" />
+                        <stop offset="70%" stop-color="#1d4ed8" />
+                        <stop offset="100%" stop-color="#1e3a8a" />
+                    </linearGradient>
+                    
+                    <linearGradient id="pouch-bulge-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="rgba(255,255,255,0.45)" />
+                        <stop offset="25%" stop-color="rgba(255,255,255,0.12)" />
+                        <stop offset="65%" stop-color="rgba(0,0,0,0.10)" />
+                        <stop offset="100%" stop-color="rgba(0,0,0,0.45)" />
+                    </linearGradient>
+
+                    <linearGradient id="pouch-vertical-sheen" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="rgba(255,255,255,0.25)" />
+                        <stop offset="50%" stop-color="rgba(255,255,255,0.02)" />
+                        <stop offset="100%" stop-color="rgba(0,0,0,0.30)" />
+                    </linearGradient>
+
+                    <linearGradient id="weld-flat-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#f1f5f9" />
+                        <stop offset="50%" stop-color="#cbd5e1" />
+                        <stop offset="100%" stop-color="#64748b" />
+                    </linearGradient>
+
+                    <pattern id="weld-hatch-pattern" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                        <line x1="0" y1="0" x2="0" y2="5" stroke="#334155" stroke-width="1.2" />
+                    </pattern>
+
+                    <pattern id="vacuum-emboss-pattern" width="6" height="6" patternUnits="userSpaceOnUse">
+                        <path d="M 0 3 L 3 0 L 6 3 L 3 6 Z" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.7" />
+                    </pattern>
+
+                    <filter id="pouch-shadow" x="-30%" y="-30%" width="160%" height="160%">
+                        <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000000" flood-opacity="0.5" />
+                    </filter>
+                    
+                    <filter id="inner-shadow-heavy" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.55" />
+                    </filter>
+                </defs>
+            `;
+
+            if (tInfo.id !== 'continuous') {
+                html += `<ellipse cx="${cx}" cy="${yBottom + 16}" rx="${w3d/2 + 12}" ry="10" fill="rgba(0,0,0,0.5)" filter="blur(6px)" />`;
+            }
+
+            if (tInfo.id === '3side') {
+                html += `<g filter="url(#pouch-shadow)">`;
+                html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1.2" />`;
+                
+                // Solda Esquerda
+                html += `<rect x="${xLeft}" y="${yTop}" width="${weldBorder}" height="${h3d}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                if (sealTextureStyle === 'hatched') {
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${weldBorder}" height="${h3d}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                }
+
+                // Solda Superior (dentes triangulares de serra se serrilhado)
+                if (sealCutStyle === 'serrated') {
+                    const toothW = 6;
+                    const count = Math.max(Math.floor(w3d / toothW), 8);
+                    const step = w3d / count;
+                    let pTop = `M ${xLeft} ${yTop + weldBorder} L ${xLeft} ${yTop}`;
+                    for (let i = 0; i < count; i++) {
+                        const tx1 = xLeft + i * step;
+                        const txMid = tx1 + step / 2;
+                        const tx2 = tx1 + step;
+                        pTop += ` L ${txMid} ${yTop - 4} L ${tx2} ${yTop}`;
+                    }
+                    pTop += ` L ${xRight} ${yTop + weldBorder} Z`;
+                    html += `<path d="${pTop}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    if (sealTextureStyle === 'hatched') {
+                        html += `<path d="${pTop}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                    }
+                } else {
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${weldBorder}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    if (sealTextureStyle === 'hatched') {
+                        html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${weldBorder}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                    }
+                }
+
+                // Solda Inferior (dentes triangulares de serra se serrilhado)
+                if (sealCutStyle === 'serrated') {
+                    const toothW = 6;
+                    const count = Math.max(Math.floor(w3d / toothW), 8);
+                    const step = w3d / count;
+                    let pBot = `M ${xLeft} ${yBottom - weldBorder} L ${xLeft} ${yBottom}`;
+                    for (let i = 0; i < count; i++) {
+                        const tx1 = xLeft + i * step;
+                        const txMid = tx1 + step / 2;
+                        const tx2 = tx1 + step;
+                        pBot += ` L ${txMid} ${yBottom + 4} L ${tx2} ${yBottom}`;
+                    }
+                    pBot += ` L ${xRight} ${yBottom - weldBorder} Z`;
+                    html += `<path d="${pBot}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    if (sealTextureStyle === 'hatched') {
+                        html += `<path d="${pBot}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                    }
+                } else {
+                    html += `<rect x="${xLeft}" y="${yBottom - weldBorder}" width="${w3d}" height="${weldBorder}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    if (sealTextureStyle === 'hatched') {
+                        html += `<rect x="${xLeft}" y="${yBottom - weldBorder}" width="${w3d}" height="${weldBorder}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                    }
+                }
+
+                // Dobra direita do filme (Sem solda na direita)
+                html += `<line x1="${xRight}" y1="${yTop}" x2="${xRight}" y2="${yBottom}" stroke="#e2e8f0" stroke-width="2" />`;
+                html += `<line x1="${xRight-1}" y1="${yTop}" x2="${xRight-1}" y2="${yBottom}" stroke="#ffffff" opacity="0.6" stroke-width="1" />`;
+
+                // Almofada 3D inflada interna
+                const innerX = xLeft + weldBorder;
+                const innerY = yTop + weldBorder;
+                const innerW = w3d - weldBorder - 2;
+                const innerH = h3d - (weldBorder * 2);
+                html += `<rect x="${innerX}" y="${innerY}" width="${innerW}" height="${innerH}" rx="8" fill="#1d4ed8" filter="url(#inner-shadow-heavy)" />`;
+                html += `<rect x="${innerX}" y="${innerY}" width="${innerW}" height="${innerH}" rx="8" fill="url(#pouch-3d-bg)" stroke="#60a5fa" stroke-width="1.2" />`;
+                html += `<rect x="${innerX}" y="${innerY}" width="${innerW}" height="${innerH}" rx="8" fill="url(#pouch-bulge-grad)" />`;
+                html += `<rect x="${innerX}" y="${innerY}" width="${innerW}" height="${innerH}" rx="8" fill="url(#pouch-vertical-sheen)" opacity="0.6" />`;
+                
+                const notchY = yTop + weldBorder + 18;
+                html += `<polygon points="${xLeft},${notchY-5} ${xLeft+7},${notchY} ${xLeft},${notchY+5}" fill="#ef4444" stroke="#7f1d1d" stroke-width="0.8" />`;
+                if (hasTear) {
+                    html += `<polygon points="${xRight},${notchY-5} ${xRight-7},${notchY} ${xRight},${notchY+5}" fill="#ef4444" stroke="#7f1d1d" stroke-width="0.8" />`;
+                }
+                html += `</g>`;
+            } 
+            else if (tInfo.id === '4side') {
+                html += `<g filter="url(#pouch-shadow)">`;
+                html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1.2" />`;
+
+                // Solda Esquerda
+                html += `<rect x="${xLeft}" y="${yTop}" width="${weldBorder}" height="${h3d}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                if (sealTextureStyle === 'hatched') {
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${weldBorder}" height="${h3d}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                }
+
+                // Solda Direita
+                html += `<rect x="${xRight - weldBorder}" y="${yTop}" width="${weldBorder}" height="${h3d}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                if (sealTextureStyle === 'hatched') {
+                    html += `<rect x="${xRight - weldBorder}" y="${yTop}" width="${weldBorder}" height="${h3d}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                }
+
+                // Solda Superior (dentes triangulares de serra se serrilhado)
+                if (sealCutStyle === 'serrated') {
+                    const toothW = 6;
+                    const count = Math.max(Math.floor(w3d / toothW), 8);
+                    const step = w3d / count;
+                    let pTop = `M ${xLeft} ${yTop + weldBorder} L ${xLeft} ${yTop}`;
+                    for (let i = 0; i < count; i++) {
+                        const tx1 = xLeft + i * step;
+                        const txMid = tx1 + step / 2;
+                        const tx2 = tx1 + step;
+                        pTop += ` L ${txMid} ${yTop - 4} L ${tx2} ${yTop}`;
+                    }
+                    pTop += ` L ${xRight} ${yTop + weldBorder} Z`;
+                    html += `<path d="${pTop}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    if (sealTextureStyle === 'hatched') {
+                        html += `<path d="${pTop}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                    }
+                } else {
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${weldBorder}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    if (sealTextureStyle === 'hatched') {
+                        html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${weldBorder}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                    }
+                }
+
+                // Solda Inferior (dentes triangulares de serra se serrilhado)
+                if (sealCutStyle === 'serrated') {
+                    const toothW = 6;
+                    const count = Math.max(Math.floor(w3d / toothW), 8);
+                    const step = w3d / count;
+                    let pBot = `M ${xLeft} ${yBottom - weldBorder} L ${xLeft} ${yBottom}`;
+                    for (let i = 0; i < count; i++) {
+                        const tx1 = xLeft + i * step;
+                        const txMid = tx1 + step / 2;
+                        const tx2 = tx1 + step;
+                        pBot += ` L ${txMid} ${yBottom + 4} L ${tx2} ${yBottom}`;
+                    }
+                    pBot += ` L ${xRight} ${yBottom - weldBorder} Z`;
+                    html += `<path d="${pBot}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    if (sealTextureStyle === 'hatched') {
+                        html += `<path d="${pBot}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                    }
+                } else {
+                    html += `<rect x="${xLeft}" y="${yBottom - weldBorder}" width="${w3d}" height="${weldBorder}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    if (sealTextureStyle === 'hatched') {
+                        html += `<rect x="${xLeft}" y="${yBottom - weldBorder}" width="${w3d}" height="${weldBorder}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                    }
+                }
+
+                const innerX = xLeft + weldBorder;
+                const innerY = yTop + weldBorder;
+                const innerW = w3d - (weldBorder * 2);
+                const innerH = h3d - (weldBorder * 2);
+                html += `<rect x="${innerX}" y="${innerY}" width="${innerW}" height="${innerH}" rx="8" fill="url(#pouch-3d-bg)" stroke="#60a5fa" stroke-width="1.2" filter="url(#inner-shadow-heavy)" />`;
+                html += `<rect x="${innerX}" y="${innerY}" width="${innerW}" height="${innerH}" rx="8" fill="url(#pouch-bulge-grad)" />`;
+                html += `<rect x="${innerX}" y="${innerY}" width="${innerW}" height="${innerH}" rx="8" fill="url(#pouch-vertical-sheen)" opacity="0.5" />`;
+                const notchY = yTop + weldBorder + 18;
+                html += `<polygon points="${xLeft},${notchY-5} ${xLeft+7},${notchY} ${xLeft},${notchY+5}" fill="#ef4444" />`;
+                html += `<polygon points="${xRight},${notchY-5} ${xRight-7},${notchY} ${xRight},${notchY+5}" fill="#ef4444" />`;
+                html += `</g>`;
+            }
+            else if (tInfo.id === 'continuous') {
+                const bagH = Math.floor((h3d - 20) / 3);
+                html += `<g filter="url(#pouch-shadow)">`;
+                for (let i = 0; i < 3; i++) {
+                    const bY = yTop + i * bagH;
+                    html += `<rect x="${xLeft}" y="${bY}" width="${w3d}" height="${bagH}" rx="3" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    const inX = xLeft + 12;
+                    const inY = bY + 8;
+                    const inW = w3d - 24;
+                    const inH = bagH - 16;
+                    html += `<rect x="${inX}" y="${inY}" width="${inW}" height="${inH}" rx="6" fill="url(#pouch-3d-bg)" stroke="#60a5fa" stroke-width="1" />`;
+                    html += `<rect x="${inX}" y="${inY}" width="${inW}" height="${inH}" rx="6" fill="url(#pouch-bulge-grad)" />`;
+                    if (i < 2) {
+                        const picoteY = bY + bagH;
+                        html += `<rect x="${xLeft - 2}" y="${picoteY - 4}" width="${w3d + 4}" height="8" fill="url(#weld-hatch-pattern)" opacity="0.8" />`;
+                        html += `<line x1="${xLeft - 4}" y1="${picoteY}" x2="${xRight + 4}" y2="${picoteY}" stroke="#ef4444" stroke-dasharray="4,3" stroke-width="2" />`;
+                        html += `<text x="${xRight + 8}" y="${picoteY + 3}" font-size="8" fill="#ef4444" font-weight="bold">✂ Picote</text>`;
+                    }
+                }
+                html += `</g>`;
+            }
+            else if (tInfo.id === 'doypack' || tInfo.id === 'zipper' || tInfo.id === 'doubledoypack') {
+                const dW = w3d * 0.9;
+                const dLeft = cx - dW/2;
+                const dRight = cx + dW/2;
+                html += `<g filter="url(#pouch-shadow)">`;
+                html += `<path d="M ${dLeft} ${yBottom} Q ${cx} ${yBottom + 26} ${dRight} ${yBottom} Q ${cx} ${yBottom - 14} ${dLeft} ${yBottom}" fill="#1e3a8a" stroke="#475569" stroke-width="1.8" />`;
+                const doyPoly = `${dLeft+10},${yTop+weldBorder} ${dRight-10},${yTop+weldBorder} ${dRight},${yBottom} ${dLeft},${yBottom}`;
+                html += `<polygon points="${doyPoly}" fill="url(#pouch-3d-bg)" stroke="#60a5fa" stroke-width="1.5" />`;
+                html += `<polygon points="${doyPoly}" fill="url(#pouch-bulge-grad)" />`;
+                html += `<polygon points="${doyPoly}" fill="url(#pouch-vertical-sheen)" opacity="0.4" />`;
+                html += `<rect x="${dLeft + 6}" y="${yTop}" width="${dW - 12}" height="${weldBorder}" rx="2" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                html += `<rect x="${dLeft + 6}" y="${yTop}" width="${dW - 12}" height="${weldBorder}" fill="url(#weld-hatch-pattern)" opacity="0.7" />`;
+                if (tInfo.id === 'zipper') {
+                    const zipY = yTop + weldBorder + 12;
+                    html += `<line x1="${dLeft + 12}" y1="${zipY}" x2="${dRight - 12}" y2="${zipY}" stroke="#e2e8f0" stroke-width="4" stroke-linecap="round" />`;
+                    html += `<line x1="${dLeft + 12}" y1="${zipY}" x2="${dRight - 12}" y2="${zipY}" stroke="#3b82f6" stroke-dasharray="3,2" stroke-width="2" />`;
+                    html += `<text x="${dRight - 45}" y="${zipY - 4}" font-size="7" fill="#60a5fa" font-weight="bold">Zíper Press-to-Close</text>`;
+                }
+                html += `</g>`;
+            }
+            else if (tInfo.id === 'spout') {
+                const dW = w3d * 0.85;
+                const dLeft = cx - dW/2;
+                const dRight = cx + dW/2;
+                html += `<g filter="url(#pouch-shadow)">`;
+                html += `<path d="M ${dLeft} ${yBottom} Q ${cx} ${yBottom + 24} ${dRight} ${yBottom} Q ${cx} ${yBottom - 12} ${dLeft} ${yBottom}" fill="#1e3a8a" stroke="#475569" stroke-width="1.5" />`;
+                const doyPoly = `${dLeft+35},${yTop+weldBorder} ${dRight-10},${yTop+weldBorder} ${dRight},${yBottom} ${dLeft},${yBottom}`;
+                html += `<polygon points="${doyPoly}" fill="url(#pouch-3d-bg)" stroke="#60a5fa" stroke-width="1.5" />`;
+                html += `<polygon points="${doyPoly}" fill="url(#pouch-bulge-grad)" />`;
+                html += `<rect x="${dLeft + 30}" y="${yTop}" width="${dW - 38}" height="${weldBorder}" rx="2" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                html += `<rect x="${dLeft + 30}" y="${yTop}" width="${dW - 38}" height="${weldBorder}" fill="url(#weld-hatch-pattern)" opacity="0.7" />`;
+                const spoutX = dLeft + 15;
+                const spoutY = yTop + 2;
+                html += `<polygon points="${spoutX-14},${spoutY+15} ${spoutX+14},${spoutY+2} ${spoutX+8},${spoutY-4} ${spoutX-18},${spoutY+8}" fill="url(#weld-flat-grad)" stroke="#334155" stroke-width="1" />`;
+                html += `<rect x="${spoutX - 6}" y="${spoutY - 14}" width="12" height="14" fill="#f8fafc" stroke="#475569" stroke-width="1.2" />`;
+                html += `<rect x="${spoutX - 9}" y="${spoutY - 26}" width="18" height="14" rx="2" fill="#ef4444" stroke="#b91c1c" stroke-width="1.2" />`;
+                html += `<line x1="${spoutX - 5}" y1="${spoutY - 26}" x2="${spoutX - 5}" y2="${spoutY - 12}" stroke="#ffffff" stroke-width="1" />`;
+                html += `<line x1="${spoutX}" y1="${spoutY - 26}" x2="${spoutX}" y2="${spoutY - 12}" stroke="#ffffff" stroke-width="1" />`;
+                html += `<line x1="${spoutX + 5}" y1="${spoutY - 26}" x2="${spoutX + 5}" y2="${spoutY - 12}" stroke="#ffffff" stroke-width="1" />`;
+                html += `</g>`;
+            }
+            else if (tInfo.id === 'vacuum') {
+                html += `<g filter="url(#pouch-shadow)">`;
+                html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="6" fill="url(#pouch-3d-bg)" stroke="#60a5fa" stroke-width="1.5" />`;
+                html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="6" fill="url(#vacuum-emboss-pattern)" />`;
+                html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="6" fill="url(#pouch-bulge-grad)" opacity="0.7" />`;
+                html += `<path d="M ${xLeft+15} ${yTop+20} Q ${cx} ${yTop+40} ${xRight-15} ${yTop+20}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" />`;
+                html += `<path d="M ${xLeft+15} ${yBottom-20} Q ${cx} ${yBottom-40} ${xRight-15} ${yBottom-20}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" />`;
+                html += `<rect x="${xLeft}" y="${yTop}" width="${weldBorder}" height="${h3d}" fill="url(#weld-hatch-pattern)" opacity="0.65" />`;
+                html += `<rect x="${xRight - weldBorder}" y="${yTop}" width="${weldBorder}" height="${h3d}" fill="url(#weld-hatch-pattern)" opacity="0.65" />`;
+                html += `<rect x="${xLeft}" y="${yBottom - weldBorder}" width="${w3d}" height="${weldBorder}" fill="url(#weld-hatch-pattern)" opacity="0.65" />`;
+                html += `</g>`;
+            }
+            else if (tInfo.id === 'flatbottom' || tInfo.id === 'quadseal') {
+                const d3d = 35;
+                html += `<g filter="url(#pouch-shadow)">`;
+                html += `<rect x="${xLeft}" y="${yTop}" width="${w3d - d3d}" height="${h3d}" fill="url(#pouch-3d-bg)" stroke="#60a5fa" stroke-width="1.5" />`;
+                html += `<rect x="${xLeft}" y="${yTop}" width="${w3d - d3d}" height="${h3d}" fill="url(#pouch-bulge-grad)" />`;
+                const sidePoly = `${xRight - d3d},${yTop} ${xRight},${yTop - 15} ${xRight},${yBottom - 15} ${xRight - d3d},${yBottom}`;
+                html += `<polygon points="${sidePoly}" fill="#1e3a8a" stroke="#475569" stroke-width="1.2" />`;
+                html += `<line x1="${xRight - d3d/2}" y1="${yTop - 7}" x2="${xRight - d3d/2}" y2="${yBottom - 7}" stroke="#38bdf8" stroke-dasharray="3,3" stroke-width="1" />`;
+                html += `<line x1="${xLeft}" y1="${yTop}" x2="${xLeft}" y2="${yBottom}" stroke="#cbd5e1" stroke-width="2" />`;
+                html += `<line x1="${xRight - d3d}" y1="${yTop}" x2="${xRight - d3d}" y2="${yBottom}" stroke="#cbd5e1" stroke-width="2" />`;
+                html += `<line x1="${xRight}" y1="${yTop - 15}" x2="${xRight}" y2="${yBottom - 15}" stroke="#94a3b8" stroke-width="2" />`;
+                const topH = weldBorder;
+                html += `<rect x="${xLeft - 2}" y="${yTop - topH}" width="${w3d - d3d + 4}" height="${topH}" rx="2" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                html += `<rect x="${xLeft - 2}" y="${yTop - topH}" width="${w3d - d3d + 4}" height="${topH}" fill="url(#weld-hatch-pattern)" opacity="0.7" />`;
+                html += `</g>`;
+            }
+            else if (tInfo.id === 'stick') {
+                // RENDERIZADOR ESPECÍFICO DE SACHÊ STICK PACK (5 MODELOS DO DIAGRAMA TÉCNICO)
+                const stickStyle = document.getElementById('pouch-stick-style')?.value || 'standard';
+                const weldH = weldBorder;
+                const seamX = cx;
+
+                html += `<g filter="url(#pouch-shadow)">`;
+
+                if (stickStyle === 'bottle') {
+                    // MODELO GARRAFINHA / BICO DOSADOR (6º modelo da imagem do cliente)
+                    const neckW = Math.max(w3d * 0.42, 24);
+                    const neckLeft = cx - neckW/2;
+                    const neckRight = cx + neckW/2;
+
+                    const bottleBody = `${xLeft},${yBottom} ${xLeft},${yTop + 45} ${neckLeft},${yTop + 20} ${neckLeft},${yTop} ${neckRight},${yTop} ${neckRight},${yTop + 20} ${xRight},${yTop + 45} ${xRight},${yBottom}`;
+                    html += `<polygon points="${bottleBody}" fill="url(#pouch-3d-bg)" stroke="#60a5fa" stroke-width="1.5" />`;
+                    html += `<polygon points="${bottleBody}" fill="url(#pouch-bulge-grad)" />`;
+                    html += `<polygon points="${bottleBody}" fill="url(#pouch-vertical-sheen)" opacity="0.5" />`;
+
+                    // Solda Traseira
+                    html += `<line x1="${seamX}" y1="${yTop+20}" x2="${seamX}" y2="${yBottom}" stroke="#ffffff" stroke-width="1" opacity="0.7" />`;
+
+                    // Solda do Bocal/Gargalo Superior
+                    html += `<rect x="${neckLeft - 2}" y="${yTop - weldH}" width="${neckW + 4}" height="${weldH}" rx="3" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    html += `<rect x="${neckLeft - 2}" y="${yTop - weldH}" width="${neckW + 4}" height="${weldH}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+
+                    // Picote V de fácil abertura no gargalo
+                    html += `<polygon points="${neckLeft},${yTop-weldH/2-3} ${neckLeft+5},${yTop-weldH/2} ${neckLeft},${yTop-weldH/2+3}" fill="#ef4444" />`;
+                    html += `<polygon points="${neckRight},${yTop-weldH/2-3} ${neckRight-5},${yTop-weldH/2} ${neckRight},${yTop-weldH/2+3}" fill="#ef4444" />`;
+
+                    // Solda Inferior Arredondada
+                    html += `<rect x="${xLeft - 3}" y="${yBottom}" width="${w3d + 6}" height="${weldH}" rx="4" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    html += `<rect x="${xLeft - 3}" y="${yBottom}" width="${w3d + 6}" height="${weldH}" rx="4" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                }
+                else if (stickStyle === 'rounded') {
+                    // CANTOS ARREDONDADOS (5º modelo da imagem do cliente)
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="14" fill="url(#pouch-3d-bg)" stroke="#60a5fa" stroke-width="1.5" />`;
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="14" fill="url(#pouch-bulge-grad)" />`;
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="14" fill="url(#pouch-vertical-sheen)" opacity="0.5" />`;
+
+                    html += `<rect x="${seamX - 3}" y="${yTop}" width="6" height="${h3d}" fill="url(#weld-flat-grad)" opacity="0.4" />`;
+                    html += `<line x1="${seamX}" y1="${yTop}" x2="${seamX}" y2="${yBottom}" stroke="#ffffff" stroke-width="1" opacity="0.7" />`;
+
+                    html += `<rect x="${xLeft - 3}" y="${yTop - weldH}" width="${w3d + 6}" height="${weldH}" rx="8" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    html += `<rect x="${xLeft - 3}" y="${yTop - weldH}" width="${w3d + 6}" height="${weldH}" rx="8" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                    html += `<rect x="${xLeft - 3}" y="${yBottom}" width="${w3d + 6}" height="${weldH}" rx="8" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    html += `<rect x="${xLeft - 3}" y="${yBottom}" width="${w3d + 6}" height="${weldH}" rx="8" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                }
+                else if (stickStyle === 'diagonal') {
+                    // CANTO ANGULADO EASY-TEAR (4º modelo da imagem do cliente)
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="4" fill="url(#pouch-3d-bg)" stroke="#60a5fa" stroke-width="1.5" />`;
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="4" fill="url(#pouch-bulge-grad)" />`;
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="4" fill="url(#pouch-vertical-sheen)" opacity="0.5" />`;
+
+                    html += `<line x1="${seamX}" y1="${yTop}" x2="${seamX}" y2="${yBottom}" stroke="#ffffff" stroke-width="1" opacity="0.7" />`;
+
+                    const diagW = 16;
+                    const topPath = `M ${xLeft-3} ${yTop} L ${xLeft-3} ${yTop-weldH} L ${xRight+3-diagW} ${yTop-weldH} L ${xRight+3} ${yTop-weldH+diagW} L ${xRight+3} ${yTop} Z`;
+                    html += `<path d="${topPath}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    html += `<path d="${topPath}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+
+                    html += `<line x1="${xRight+3-diagW}" y1="${yTop-weldH}" x2="${xRight+3}" y2="${yTop-weldH+diagW}" stroke="#ef4444" stroke-dasharray="2,2" stroke-width="2" />`;
+                    html += `<text x="${xRight-28}" y="${yTop-weldH+8}" font-size="7" fill="#ef4444" font-weight="bold">Easy Open</text>`;
+
+                    html += `<rect x="${xLeft - 3}" y="${yBottom}" width="${w3d + 6}" height="${weldH}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    html += `<rect x="${xLeft - 3}" y="${yBottom}" width="${w3d + 6}" height="${weldH}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                }
+                else if (stickStyle === 'straight') {
+                    // CORTE RETO LISO (3º modelo da imagem do cliente)
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="2" fill="url(#pouch-3d-bg)" stroke="#60a5fa" stroke-width="1.5" />`;
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="2" fill="url(#pouch-bulge-grad)" />`;
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="2" fill="url(#pouch-vertical-sheen)" opacity="0.5" />`;
+
+                    html += `<line x1="${seamX}" y1="${yTop}" x2="${seamX}" y2="${yBottom}" stroke="#ffffff" stroke-width="1" opacity="0.7" />`;
+
+                    html += `<rect x="${xLeft - 3}" y="${yTop - weldH}" width="${w3d + 6}" height="${weldH}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    html += `<rect x="${xLeft - 3}" y="${yTop - weldH}" width="${w3d + 6}" height="${weldH}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                    html += `<rect x="${xLeft - 3}" y="${yBottom}" width="${w3d + 6}" height="${weldH}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    html += `<rect x="${xLeft - 3}" y="${yBottom}" width="${w3d + 6}" height="${weldH}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                }
+                else {
+                    // SERRILHADO ZIG-ZAG PADRÃO (1º e 2º modelos da imagem do cliente)
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="4" fill="url(#pouch-3d-bg)" stroke="#60a5fa" stroke-width="1.5" />`;
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="4" fill="url(#pouch-bulge-grad)" />`;
+                    html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="4" fill="url(#pouch-vertical-sheen)" opacity="0.5" />`;
+
+                    html += `<line x1="${seamX}" y1="${yTop}" x2="${seamX}" y2="${yBottom}" stroke="#ffffff" stroke-width="1" opacity="0.7" />`;
+
+                    html += `<rect x="${xLeft - 3}" y="${yTop - weldH}" width="${w3d + 6}" height="${weldH}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    html += `<rect x="${xLeft - 3}" y="${yTop - weldH}" width="${w3d + 6}" height="${weldH}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                    html += `<rect x="${xLeft - 3}" y="${yBottom}" width="${w3d + 6}" height="${weldH}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    html += `<rect x="${xLeft - 3}" y="${yBottom}" width="${w3d + 6}" height="${weldH}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                }
+
+                html += `</g>`;
+            }
+            else {
+                const d3d = tInfo.hasGusset ? Math.min(Math.max(gusset * 0.8, 30), 55) : 30;
+                html += `<g filter="url(#pouch-shadow)">`;
+                if (tInfo.hasGusset) {
+                    const sidePoly = `${xRight},${yTop} ${xRight + d3d},${yTop - d3d/2} ${xRight + d3d},${yBottom - d3d/2} ${xRight},${yBottom}`;
+                    html += `<polygon points="${sidePoly}" fill="#1e3a8a" stroke="#1e293b" stroke-width="1.2" />`;
+                    html += `<line x1="${xRight + d3d/2}" y1="${yTop - d3d/4}" x2="${xRight + d3d/2}" y2="${yBottom - d3d/4}" stroke="#38bdf8" stroke-dasharray="3,3" stroke-width="1.2" />`;
+                }
+                html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="12" fill="url(#pouch-3d-bg)" stroke="#60a5fa" stroke-width="1.5" />`;
+                html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="12" fill="url(#pouch-bulge-grad)" />`;
+                html += `<rect x="${xLeft}" y="${yTop}" width="${w3d}" height="${h3d}" rx="12" fill="url(#pouch-vertical-sheen)" opacity="0.5" />`;
+                if (tInfo.id === 'pillow' || tInfo.id === 'gusset' || tInfo.id === 'stick') {
+                    const seamX = cx - 2;
+                    html += `<rect x="${seamX - 4}" y="${yTop}" width="8" height="${h3d}" fill="url(#weld-flat-grad)" opacity="0.4" />`;
+                    html += `<line x1="${seamX}" y1="${yTop}" x2="${seamX}" y2="${yBottom}" stroke="#ffffff" stroke-width="1.2" opacity="0.7" />`;
+                }
+                const weldH = weldBorder;
+                if (sealCutStyle === 'serrated') {
+                    // Desenha dentes triangulares de serra reais (▲▼▲▼) na borda superior do filme (como na Foto 1)
+                    const xS = xLeft - 4;
+                    const xE = xRight + 4;
+                    const wBar = xE - xS;
+                    const toothW = 6;
+                    const count = Math.max(Math.floor(wBar / toothW), 8);
+                    const step = wBar / count;
+
+                    let pTop = `M ${xS} ${yTop} L ${xS} ${yTop - weldH}`;
+                    for (let i = 0; i < count; i++) {
+                        const tx1 = xS + i * step;
+                        const txMid = tx1 + step / 2;
+                        const tx2 = tx1 + step;
+                        pTop += ` L ${txMid} ${yTop - weldH - 4} L ${tx2} ${yTop - weldH}`;
+                    }
+                    pTop += ` L ${xE} ${yTop} Z`;
+
+                    html += `<path d="${pTop}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    if (sealTextureStyle === 'hatched') {
+                        html += `<path d="${pTop}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                    }
+                } else {
+                    // Corte Reto Liso (─────) (como na Foto 2)
+                    html += `<rect x="${xLeft - 4}" y="${yTop - weldH}" width="${w3d + 8}" height="${weldH}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    if (sealTextureStyle === 'hatched') {
+                        html += `<rect x="${xLeft - 4}" y="${yTop - weldH}" width="${w3d + 8}" height="${weldH}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                    }
+                }
+
+                // Solda Inferior (Fundo)
+                if (sealCutStyle === 'serrated') {
+                    // Desenha dentes triangulares de serra reais (▲▼▲▼) na borda inferior do filme (como na Foto 1)
+                    const xS = xLeft - 4;
+                    const xE = xRight + 4;
+                    const wBar = xE - xS;
+                    const toothW = 6;
+                    const count = Math.max(Math.floor(wBar / toothW), 8);
+                    const step = wBar / count;
+
+                    let pBot = `M ${xS} ${yBottom} L ${xS} ${yBottom + weldH}`;
+                    for (let i = 0; i < count; i++) {
+                        const tx1 = xS + i * step;
+                        const txMid = tx1 + step / 2;
+                        const tx2 = tx1 + step;
+                        pBot += ` L ${txMid} ${yBottom + weldH + 4} L ${tx2} ${yBottom + weldH}`;
+                    }
+                    pBot += ` L ${xE} ${yBottom} Z`;
+
+                    html += `<path d="${pBot}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    if (sealTextureStyle === 'hatched') {
+                        html += `<path d="${pBot}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                    }
+                } else {
+                    // Corte Reto Liso (─────) (como na Foto 2)
+                    html += `<rect x="${xLeft - 4}" y="${yBottom}" width="${w3d + 8}" height="${weldH}" fill="url(#weld-flat-grad)" stroke="#475569" stroke-width="1" />`;
+                    if (sealTextureStyle === 'hatched') {
+                        html += `<rect x="${xLeft - 4}" y="${yBottom}" width="${w3d + 8}" height="${weldH}" fill="url(#weld-hatch-pattern)" opacity="0.75" />`;
+                    }
+                }
+                html += `</g>`;
+            }
+
+            // -------------------------------------------------------------
+            // OVERLAY DE ACESSÓRIOS (Eurofuro Fiel, Furo Redondo, Alça, Válvula)
+            // -------------------------------------------------------------
+            if ((hasEuro || tInfo.id === 'eurohole') && tInfo.id !== 'continuous') {
+                const ex = cx;
+                const ey = ['pillow', 'gusset', 'stick'].includes(tInfo.id) ? (yTop - 13) : (yTop + weldBorder / 2);
+                
+                // Desenho Fiel do Eurofuro (Chapéu de Bispo / Sombrero Slot conforme imagem enviada pelo cliente)
+                html += `<path d="
+                    M ${ex - 14} ${ey + 1}
+                    A 4 4 0 0 0 ${ex - 10} ${ey + 5}
+                    L ${ex + 10} ${ey + 5}
+                    A 4 4 0 0 0 ${ex + 14} ${ey + 1}
+                    A 3.5 3.5 0 0 0 ${ex + 11} ${ey - 2.5}
+                    L ${ex + 5} ${ey - 2.5}
+                    C ${ex + 4.5} ${ey - 7.5} ${ex - 4.5} ${ey - 7.5} ${ex - 5} ${ey - 2.5}
+                    L ${ex - 10} ${ey - 2.5}
+                    A 3.5 3.5 0 0 0 ${ex - 14} ${ey + 1}
+                    Z"
+                    fill="var(--bg-base)" stroke="#38bdf8" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" />`;
+            }
+            else if ((hasRoundHole || tInfo.id === 'roundhole') && tInfo.id !== 'continuous') {
+                const ex = cx;
+                const ey = ['pillow', 'gusset', 'stick'].includes(tInfo.id) ? (yTop - 13) : (yTop + weldBorder / 2);
+                
+                // Desenho Fiel do Furo Redondo Circular (Passador) conforme imagem enviada pelo cliente
+                html += `<circle cx="${ex}" cy="${ey}" r="6.5" fill="var(--bg-base)" stroke="#38bdf8" stroke-width="1.8" />`;
+            }
+
+            if ((hasHandle || tInfo.id === 'handle') && tInfo.id !== 'continuous') {
+                const hy = ['pillow', 'gusset', 'stick'].includes(tInfo.id) ? (yTop - 13) : (yTop + weldBorder / 2);
+                html += `<rect x="${cx - 26}" y="${hy - 5}" width="52" height="10" rx="5" fill="var(--bg-base)" stroke="#38bdf8" stroke-width="1.5" />`;
+            }
+
+            if ((hasValve || tInfo.id === 'valve') && tInfo.id !== 'continuous') {
+                const vx = cx;
+                const vy = yTop + 42;
+                html += `<circle cx="${vx}" cy="${vy}" r="11" fill="url(#weld-flat-grad)" stroke="#334155" stroke-width="1.5" />`;
+                html += `<circle cx="${vx}" cy="${vy}" r="7" fill="#cbd5e1" stroke="#475569" stroke-width="0.8" />`;
+                html += `<circle cx="${vx}" cy="${vy}" r="4" fill="#0f172a" />`;
+                html += `<line x1="${vx-2}" y1="${vy}" x2="${vx+2}" y2="${vy}" stroke="#ffffff" stroke-width="1" />`;
+                html += `<line x1="${vx}" y1="${vy-2}" x2="${vx}" y2="${vy+2}" stroke="#ffffff" stroke-width="1" />`;
+            }
+
+            // Fecho Zip Lock Reabrível (Trilho + Slider)
+            if (hasZip && tInfo.id !== 'continuous') {
+                const zy = yTop + 16;
+                const zw = w3d - 24;
+                const zx = cx - zw / 2;
+                html += `<rect x="${zx}" y="${zy - 4}" width="${zw}" height="8" rx="2" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2" />`;
+                html += `<line x1="${zx + 4}" y1="${zy - 1}" x2="${zx + zw - 4}" y2="${zy - 1}" stroke="#38bdf8" stroke-dasharray="3,2" stroke-width="1.2" />`;
+                html += `<line x1="${zx + 4}" y1="${zy + 1}" x2="${zx + zw - 4}" y2="${zy + 1}" stroke="#38bdf8" stroke-dasharray="3,2" stroke-width="1.2" />`;
+                html += `<rect x="${zx + zw - 14}" y="${zy - 5}" width="10" height="10" rx="2" fill="#ef4444" stroke="#7f1d1d" stroke-width="1" />`;
+                html += `<text x="${cx}" y="${zy + 12}" font-size="7" font-weight="bold" fill="#38bdf8" text-anchor="middle">Zip Lock Reabrível</text>`;
+            }
+
+            // Bocal Dosador com Tampa Rosca (Spout & Fitment)
+            if (hasSpout && tInfo.id !== 'continuous') {
+                const sx = cx + w3d / 4;
+                const sy = yTop - 10;
+                html += `<rect x="${sx - 6}" y="${sy - 10}" width="12" height="14" fill="#e2e8f0" stroke="#475569" stroke-width="1" />`;
+                html += `<line x1="${sx - 5}" y1="${sy - 6}" x2="${sx + 5}" y2="${sy - 6}" stroke="#94a3b8" stroke-width="1" />`;
+                html += `<line x1="${sx - 5}" y1="${sy - 2}" x2="${sx + 5}" y2="${sy - 2}" stroke="#94a3b8" stroke-width="1" />`;
+                html += `<rect x="${sx - 9}" y="${sy - 20}" width="18" height="12" rx="2" fill="#ef4444" stroke="#991b1b" stroke-width="1.2" />`;
+                html += `<text x="${sx}" y="${sy - 23}" font-size="7" font-weight="bold" fill="#ef4444" text-anchor="middle">Bocal (Spout)</text>`;
+            }
+
+            // Fita Reposicionável (Peel & Seal)
+            if (hasTape && tInfo.id !== 'continuous') {
+                const ty = yTop + 34;
+                const tw = Math.min(w3d * 0.65, 110);
+                const tx = cx - tw / 2;
+                html += `<rect x="${tx}" y="${ty}" width="${tw}" height="10" rx="3" fill="rgba(250, 204, 21, 0.2)" stroke="#facc15" stroke-width="1.2" />`;
+                html += `<text x="${cx}" y="${ty + 7.5}" font-size="7" font-weight="bold" fill="#facc15" text-anchor="middle">Fita Reposicionável (Peel & Seal)</text>`;
+            }
+
+            // Quad Seal (4 Soldas de Canto Verticais)
+            if (hasQuad && tInfo.id !== 'continuous') {
+                html += `<line x1="${xLeft + 6}" y1="${yTop}" x2="${xLeft + 6}" y2="${yBottom}" stroke="#38bdf8" stroke-dasharray="3,3" stroke-width="1.5" />`;
+                html += `<line x1="${xRight - 6}" y1="${yTop}" x2="${xRight - 6}" y2="${yBottom}" stroke="#38bdf8" stroke-dasharray="3,3" stroke-width="1.5" />`;
+            }
+
+            svg.innerHTML = html;
+        }
+
+        function openFilmSpecPDFModal() {
+            const modal = document.getElementById('film-spec-pdf-modal');
+            if (!modal) return;
+
+            // Preencher Data e ID do Documento
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const docId = 'FT-' + now.getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
+            
+            const elDocId = document.getElementById('spec-doc-id');
+            const elDocDate = document.getElementById('spec-doc-date');
+            if (elDocId) elDocId.innerText = docId;
+            if (elDocDate) elDocDate.innerText = dateStr;
+
+            // Obter informações do modelo selecionado
+            const tInfo = POUCH_TYPES.find(t => t.id === pouchState.selectedType) || POUCH_TYPES[2];
+            const pouchTypeEl = document.getElementById('spec-pouch-type');
+            if (pouchTypeEl) pouchTypeEl.innerText = tInfo.name;
+
+            // Copiar valores de resultados para o laudo impresso
+            const filmW = document.getElementById('pouch-res-film-width')?.innerText || '-- mm';
+            const pitch = document.getElementById('pouch-res-pitch')?.innerText || '-- mm';
+            const yieldVal = document.getElementById('pouch-res-yield')?.innerText || '-- pacotes/kg';
+            
+            const unwindVal = document.getElementById('pouch-film-unwind')?.value || 'Posição 1: Cabeça 1º / Leitura Externa';
+            const coreVal = document.getElementById('pouch-film-core')?.value || '3 Polegadas (76 mm)';
+            const matVal = document.getElementById('pouch-film-material')?.selectedOptions[0]?.text || 'BOPP Liso';
+            const micVal = (document.getElementById('pouch-film-microns')?.value || '60') + ' Micras (µm)';
+            const coronaVal = document.getElementById('pouch-film-corona')?.value || 'Tratamento Corona Externo';
+            const finishVal = document.getElementById('pouch-film-finish')?.value || 'Brilhante (Gloss)';
+
+            if (document.getElementById('spec-machine-name')) {
+                document.getElementById('spec-machine-name').innerText = tInfo.isPreMade 
+                    ? 'Envasadora & Seladora Rotativa de Sacos Prontos Tecfag' 
+                    : 'Empacotadora VFFS / Flow Pack Tecfag';
+            }
+
+            if (document.getElementById('spec-val-filmwidth')) document.getElementById('spec-val-filmwidth').innerText = filmW;
+            if (document.getElementById('spec-val-pitch')) document.getElementById('spec-val-pitch').innerText = pitch;
+            if (document.getElementById('spec-val-unwind')) document.getElementById('spec-val-unwind').innerText = tInfo.isPreMade ? 'Sacos Prontos Acondicionados em Caixas (Alimentador Magazine Tecfag)' : unwindVal;
+            if (document.getElementById('spec-val-core')) document.getElementById('spec-val-core').innerText = tInfo.isPreMade ? 'Boca Superior Aberta p/ Queda de Produto (Zíper Preservado)' : coreVal;
+            if (document.getElementById('spec-val-material')) document.getElementById('spec-val-material').innerText = matVal;
+            if (document.getElementById('spec-val-microns')) document.getElementById('spec-val-microns').innerText = micVal;
+            if (document.getElementById('spec-val-corona')) document.getElementById('spec-val-corona').innerText = coronaVal;
+            if (document.getElementById('spec-val-finish')) document.getElementById('spec-val-finish').innerText = finishVal;
+            
+            const trYield = document.getElementById('spec-tr-yield');
+            if (trYield) {
+                trYield.style.display = tInfo.isPreMade ? 'none' : 'table-row';
+            }
+            if (document.getElementById('spec-val-yield')) document.getElementById('spec-val-yield').innerText = yieldVal;
+
+            // Clonar os desenhos SVG 2D e 3D de forma segura (sem duplicar IDs no DOM)
+            const svg2D = document.getElementById('pouch-svg-diagram-2d');
+            const svg3D = document.getElementById('pouch-svg-diagram-3d');
+            const container2D = document.getElementById('spec-svg-container-2d');
+            const container3D = document.getElementById('spec-svg-container-3d');
+
+            if (svg2D && container2D) {
+                const clone2D = svg2D.cloneNode(true);
+                clone2D.id = 'spec-svg-diagram-2d-clone';
+                container2D.innerHTML = '';
+                container2D.appendChild(clone2D);
+            }
+            if (svg3D && container3D) {
+                const clone3D = svg3D.cloneNode(true);
+                clone3D.id = 'spec-svg-diagram-3d-clone';
+                container3D.innerHTML = '';
+                container3D.appendChild(clone3D);
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function closeFilmSpecPDFModal() {
+            const modal = document.getElementById('film-spec-pdf-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function downloadFilmSpecPDF() {
+            openFilmSpecPDFModal();
+            const printArea = document.getElementById('film-spec-print-area');
+            if (!printArea) return;
+
+            const printWin = window.open('', '_blank', 'width=950,height=850');
+            if (!printWin) {
+                alert('⚠️ O seu navegador bloqueou a janela pop-up. Por favor, permita pop-ups para gerar o arquivo PDF.');
+                return;
+            }
+
+            printWin.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Ficha Técnica de Bobina - Tecfag Máquinas</title>
+                    <meta charset="utf-8">
+                    <style>
+                        body { font-family: 'Inter', system-ui, sans-serif; background: #ffffff; color: #0f172a; padding: 25px; margin: 0; }
+                        @media print {
+                            body { padding: 0; }
+                            .no-print { display: none !important; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div style="margin-bottom: 20px; display: flex; justify-content: flex-end; gap: 10px;" class="no-print">
+                        <button onclick="window.print()" style="background: #0284c7; color: #ffffff; font-weight: bold; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                            🖨️ Salvar como PDF / Imprimir Documento
+                        </button>
+                    </div>
+                    ${printArea.innerHTML}
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() { window.print(); }, 400);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+        }
+
+        function shareFilmSpecWhatsApp() {
+            const tInfo = POUCH_TYPES.find(t => t.id === pouchState.selectedType) || POUCH_TYPES[2];
+            const face = document.getElementById('pouch-face')?.value || '120';
+            const height = document.getElementById('pouch-height')?.value || '150';
+            const gusset = document.getElementById('pouch-gusset')?.value || '40';
+            const vol = document.getElementById('pouch-res-volume')?.innerText || '';
+            const matVal = document.getElementById('pouch-film-material')?.selectedOptions[0]?.text || '';
+            const micVal = (document.getElementById('pouch-film-microns')?.value || '60') + 'µm';
+
+            let text = '';
+            if (tInfo.isPreMade) {
+                text = `*ESPECIFICAÇÃO DE SACO PRONTO PRÉ-FORMADO (TECFAG MÁQUINAS)*\n` +
+                       `------------------------------------\n` +
+                       `📦 *Modelo:* ${tInfo.name} (Saco Pronto Pre-made)\n` +
+                       `⚙️ *Aplicação:* Envasadora & Seladora Rotativa de Sacos Tecfag\n` +
+                       `📏 *Largura do Saco (W):* ${face} mm\n` +
+                       `📐 *Altura do Saco (H):* ${height} mm\n` +
+                       `📂 *Fole de Fundo (G):* ${gusset} mm\n` +
+                       `🧪 *Volume Útil Estimado:* ${vol}\n` +
+                       `👄 *Condição do Topo:* Boca aberta para envase por Ventosas (Zíper aberto)\n` +
+                       `🎞️ *Estrutura do Pouch:* ${matVal} (${micVal})\n` +
+                       `📦 *Acondicionamento:* Sacos empilhados alinhados em caixas para o magazine\n` +
+                       `------------------------------------\n` +
+                       `_Especificação gerada pelo MRP Tecfag para fornecedores de sacos prontos._`;
+            } else {
+                const filmW = document.getElementById('pouch-res-film-width')?.innerText || '';
+                const pitch = document.getElementById('pouch-res-pitch')?.innerText || '';
+                const yieldVal = document.getElementById('pouch-res-yield')?.innerText || '';
+                const unwindVal = document.getElementById('pouch-film-unwind')?.value || '';
+
+                text = `*FICHA TÉCNICA DE BOBINA TECFAG MÁQUINAS*\n` +
+                       `------------------------------------\n` +
+                       `📦 *Modelo:* ${tInfo.name}\n` +
+                       `⚙️ *Aplicação:* Empacotadora VFFS / Flow Pack Tecfag\n` +
+                       `📏 *Largura Bobina:* ${filmW}\n` +
+                       `📐 *Passo (Fotocélula):* ${pitch}\n` +
+                       `⚙️ *Sentido Desenrolamento:* ${unwindVal}\n` +
+                       `🎞️ *Material & Espessura:* ${matVal} (${micVal})\n` +
+                       `📊 *Rendimento Estimado:* ${yieldVal}\n` +
+                       `------------------------------------\n` +
+                       `_Especificação gerada pelo MRP Tecfag para convertedores de filme._`;
+            }
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('✅ Especificação copiada para a área de transferência! Você pode colar no WhatsApp ou E-mail.');
+                });
+            } else {
+                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+            }
+        }
+
+        function saveFilmSpecToMRP() {
+            const tInfo = POUCH_TYPES.find(t => t.id === pouchState.selectedType) || POUCH_TYPES[2];
+            const specData = {
+                id: 'spec_' + Date.now(),
+                date: new Date().toISOString(),
+                type: tInfo.name,
+                filmWidth: document.getElementById('pouch-res-film-width')?.innerText,
+                pitch: document.getElementById('pouch-res-pitch')?.innerText,
+                material: document.getElementById('pouch-film-material')?.value,
+                microns: document.getElementById('pouch-film-microns')?.value,
+                unwind: document.getElementById('pouch-film-unwind')?.value
+            };
+
+            const saved = JSON.parse(localStorage.getItem('tecfag_saved_film_specs') || '[]');
+            saved.push(specData);
+            localStorage.setItem('tecfag_saved_film_specs', JSON.stringify(saved));
+
+            alert('💾 Projeto de Embalagem salvo no MRP Tecfag com sucesso!');
         }
 
         function drawHorizontalDim(xStart, xEnd, y, label, color, drawOuterLines = false, cleanMode = false) {
@@ -5153,6 +6935,162 @@
             s += `<rect x="${x-25}" y="${yStart + (yEnd - yStart)/2 - 5}" width="50" height="10" fill="${textBgColor}" />`;
             s += `<text x="${x}" y="${yStart + (yEnd - yStart)/2 + 3}" font-size="8" fill="${color}" text-anchor="middle" transform="rotate(-90 ${x} ${yStart + (yEnd - yStart)/2})">${label}</text>`;
             return s;
+        }
+
+        // ==========================================
+        // SUÍTE DE ENGENHARIA DE VALIDAÇÃO TECFAG
+        // ==========================================
+
+        // 1. VALIDADOR DE DOSAGEM & CABEÇOTE TECFAG
+        function openDoserCalcModal() {
+            const modal = document.getElementById('doser-calc-modal');
+            if (modal) modal.style.display = 'flex';
+            updateDoserCalculations();
+        }
+
+        function closeDoserCalcModal() {
+            const modal = document.getElementById('doser-calc-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function updateDoserCalculations() {
+            const productType = document.getElementById('doser-product-type')?.value || 'powders';
+            const dose = parseFloat(document.getElementById('doser-target-dose')?.value) || 250;
+            const density = parseFloat(document.getElementById('doser-density')?.value) || 0.75;
+            const speedBpm = parseFloat(document.getElementById('doser-speed-bpm')?.value) || 35;
+
+            const volumeCm3 = dose / density;
+            const cycleTime = 60 / speedBpm;
+
+            document.getElementById('doser-res-volume').innerText = Math.round(volumeCm3) + ' cm³ (' + (volumeCm3/1000).toFixed(2) + ' L)';
+            document.getElementById('doser-res-cycle-time').innerText = cycleTime.toFixed(2) + ' s por dose';
+
+            let headName = '';
+            let isOk = true;
+            let statusText = '';
+
+            if (productType === 'powders') {
+                if (volumeCm3 < 50) headName = 'Rosca Helicoidal Tecfag Ø15 mm (Dosador Micro-Dose)';
+                else if (volumeCm3 < 250) headName = 'Rosca Helicoidal Tecfag Ø25 mm (Padrão 50-250g)';
+                else if (volumeCm3 < 1000) headName = 'Rosca Helicoidal Tecfag Ø45 mm (Padrão 250g-1kg)';
+                else headName = 'Rosca Helicoidal Tecfag Ø60 mm (Faixa Industrial 1-5kg)';
+
+                if (cycleTime < 0.8) {
+                    isOk = false;
+                    statusText = '⚠️ VELOCIDADE EXCEDE ROSCA SINGLE! Requer Servomotor Duplo ou 2 Cabeçotes Standard Tecfag';
+                } else {
+                    statusText = '✅ VIABILIDADE TÉCNICA APROVADA: ENVASE STANDARD TECFAG OK';
+                }
+            } else if (productType === 'grains') {
+                if (volumeCm3 < 500) headName = 'Balança Linear Tecfag 2 Cabeçotes (Caneca Vibração)';
+                else headName = 'Balança Multi-Cabeçote Tecfag 10/14 Cabeças';
+                statusText = '✅ VIABILIDADE TÉCNICA APROVADA: BALANÇA LINEAR TECFAG OK';
+            } else {
+                if (dose <= 500) headName = 'Módulo Pistão Pneumático Tecfag (Faixa 50 - 500 ml)';
+                else headName = 'Módulo Pistão Pneumático Tecfag (Faixa 500 - 5000 ml)';
+                statusText = '✅ VIABILIDADE TÉCNICA APROVADA: ENVASADORA PISTÃO TECFAG OK';
+            }
+
+            document.getElementById('doser-res-head-type').innerText = headName;
+            const statusBox = document.getElementById('doser-res-status-box');
+            if (statusBox) {
+                statusBox.innerText = statusText;
+                statusBox.style.background = isOk ? 'rgba(74, 222, 128, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+                statusBox.style.color = isOk ? '#4ade80' : '#fca5a5';
+                statusBox.style.borderColor = isOk ? '#4ade80' : '#ef4444';
+            }
+        }
+
+        // 2. VALIDADOR DE CAIXAS & SELADORAS FX TECFAG
+        function openBoxCalcModal() {
+            const modal = document.getElementById('box-calc-modal');
+            if (modal) modal.style.display = 'flex';
+            updateBoxCalculations();
+        }
+
+        function closeBoxCalcModal() {
+            const modal = document.getElementById('box-calc-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function updateBoxCalculations() {
+            const c = parseFloat(document.getElementById('box-dim-c')?.value) || 400;
+            const l = parseFloat(document.getElementById('box-dim-l')?.value) || 300;
+            const a = parseFloat(document.getElementById('box-dim-a')?.value) || 250;
+            const weight = parseFloat(document.getElementById('box-weight-kg')?.value) || 12;
+
+            let modelName = '';
+            let clearance = '';
+            let isOk = true;
+            let statusText = '';
+
+            if (l <= 500 && a <= 500) {
+                modelName = 'Tecfag FX-5050 (Seladora de Fita Superior & Inferior)';
+                clearance = (500 - l) + ' mm de folga na guias laterais';
+                statusText = '✅ ENVELOPE MECÂNICO 100% DENTRO DA SELADORA STANDARD FX-5050';
+            } else if (l <= 600 && a <= 500) {
+                modelName = 'Tecfag FX-6050 (Seladora para Caixas Largas)';
+                clearance = (600 - l) + ' mm de folga nas guias laterais';
+                statusText = '✅ ENVELOPE MECÂNICO 100% DENTRO DA SELADORA STANDARD FX-6050';
+            } else {
+                modelName = '⚠️ CAIXA EXCEDE ENVELOPE STANDARD!';
+                clearance = '0 mm (Excede limite de 600×500 mm)';
+                isOk = false;
+                statusText = '🛑 CAIXA FORA DO CATÁLOGO STANDARD! Reduzir dimensões da caixa de papelão.';
+            }
+
+            document.getElementById('box-res-model').innerText = modelName;
+            document.getElementById('box-res-clearance').innerText = clearance;
+
+            const statusBox = document.getElementById('box-res-status-box');
+            if (statusBox) {
+                statusBox.innerText = statusText;
+                statusBox.style.background = isOk ? 'rgba(74, 222, 128, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+                statusBox.style.color = isOk ? '#4ade80' : '#fca5a5';
+                statusBox.style.borderColor = isOk ? '#4ade80' : '#ef4444';
+            }
+        }
+
+        // 3. SIMULADOR DE PALETIZAÇÃO PBR
+        function openPalletCalcModal() {
+            const modal = document.getElementById('pallet-calc-modal');
+            if (modal) modal.style.display = 'flex';
+            updatePalletCalculations();
+        }
+
+        function closePalletCalcModal() {
+            const modal = document.getElementById('pallet-calc-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function updatePalletCalculations() {
+            const c = parseFloat(document.getElementById('pallet-box-c')?.value) || 400;
+            const l = parseFloat(document.getElementById('pallet-box-l')?.value) || 300;
+            const a = parseFloat(document.getElementById('pallet-box-a')?.value) || 250;
+            const w = parseFloat(document.getElementById('pallet-box-weight')?.value) || 10;
+            const layers = parseFloat(document.getElementById('pallet-layers')?.value) || 5;
+
+            // Palete PBR: 1200mm x 1000mm
+            const perLayer = Math.floor(1200 / c) * Math.floor(1000 / l);
+            const totalBoxes = perLayer * layers;
+            const totalWeight = totalBoxes * w;
+
+            document.getElementById('pallet-res-per-layer').innerText = perLayer + ' caixas / camada';
+            document.getElementById('pallet-res-total-boxes').innerText = totalBoxes + ' caixas no palete';
+            document.getElementById('pallet-res-total-weight').innerText = totalWeight + ' kg (Palete PBR)';
+
+            const statusBox = document.getElementById('pallet-res-status-box');
+            if (statusBox) {
+                if (perLayer > 0) {
+                    statusBox.innerText = '✅ ARRANJO PBR APROVADO: CAIXAS DENTRO DO PERÍMETRO DE 1200×1000mm';
+                    statusBox.style.background = 'rgba(74, 222, 128, 0.15)';
+                    statusBox.style.color = '#4ade80';
+                } else {
+                    statusBox.innerText = '⚠️ CAIXA MAIOR QUE O PALETE PBR (1200×1000mm)';
+                    statusBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    statusBox.style.color = '#fca5a5';
+                }
+            }
         }
 
         // Lógica de Consulta de NCM (BrasilAPI)
