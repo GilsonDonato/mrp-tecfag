@@ -2706,8 +2706,13 @@
 
                             <!-- Observações adicionais -->
                             <div class="form-group" style="margin-bottom: 15px;">
-                                <label for="prj-intake-observations">Observações Técnicas / Particularidades Relevantes</label>
-                                <textarea id="prj-intake-observations" class="form-control" style="height: 90px; resize: vertical;" placeholder="Descreva qualquer outra necessidade especial da máquina, do produto do cliente ou particularidade discutida..." oninput="runSkuSuggestionEngine()"></textarea>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <label for="prj-intake-observations" style="margin-bottom: 0;">Observações Técnicas / Particularidades Relevantes</label>
+                                    <button type="button" class="btn btn-secondary" onclick="loadSegmentQuestionnaireTemplate()" style="padding: 4px 10px; font-size: 0.72rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1); font-weight: bold; cursor: pointer;">
+                                        📋 Inserir Questionário Técnico do Segmento
+                                    </button>
+                                </div>
+                                <textarea id="prj-intake-observations" class="form-control" style="height: 120px; resize: vertical;" placeholder="Descreva qualquer outra necessidade especial da máquina, do produto do cliente ou clique em 'Inserir Questionário Técnico' para carregar a ficha do segmento..." oninput="runSkuSuggestionEngine()"></textarea>
                             </div>
 
                             <!-- HUD DO MOTOR DE SUGESTÕES DE SKU (Configurador Inteligente) -->
@@ -9588,6 +9593,12 @@
 
             if (container) container.style.display = 'block';
 
+            // Preenche automaticamente as Observações Técnicas com o Questionário do Segmento se estiver vazio
+            const obsEl = document.getElementById('prj-intake-observations');
+            if (obsEl && (!obsEl.value || obsEl.value.trim() === '' || obsEl.value.includes('📋 QUESTIONÁRIO TÉCNICO'))) {
+                loadSegmentQuestionnaireTemplate();
+            }
+
             // Executa a filtragem inicial de sub-tipos (se houver seletor de sub-tipo)
             if (grid) {
                 const subtypeSelector = grid.querySelector('select[id$="subtype"]');
@@ -9598,6 +9609,50 @@
                 }
                 applyConditionalFieldRules();
             }
+        }
+
+        // Função para carregar e preencher o Questionário Técnico em Observações Técnicas
+        function loadSegmentQuestionnaireTemplate() {
+            const segment = document.getElementById('prj-intake-segment')?.value;
+            const obsEl = document.getElementById('prj-intake-observations');
+            if (!obsEl) return;
+
+            if (!segment) {
+                alert('⚠️ Por favor, selecione primeiro o "Segmento de Equipamento Principal" no menu acima!');
+                return;
+            }
+
+            const templatesMap = {
+                "MISTURADORES": `📋 QUESTIONÁRIO TÉCNICO DE ENGENHARIA - MISTURADORES & MOINHOS:\n1. Tipo de Produto (Pó fino / Granulado / Pastoso / Pasta viscosa)?\n2. Densidade Aparente do Produto (g/cm³)?\n3. Capacidade de Carga Desejada por Batelada (kg ou Litros)?\n4. Necessidade de Camisa de Aquecimento / Resfriamento (Vapor / Água Térmica)?\n5. Material de Contato (Inox AISI 304 / Inox AISI 316L / Polido Sanflon)?\n6. Painel de Comando (Inversor de Frequência / IHM Touch / CLP Siemens)?`,
+                
+                "ENCAPSULADORAS": `📋 QUESTIONÁRIO TÉCNICO DE ENGENHARIA - ENCAPSULADORAS & FARMACÊUTICA:\n1. Tipo de Cápsula (Gelatina dura / Softgel / Vegetal Vcaps)?\n2. Tamanho do Molho/Cápsula (Nº 000 / 00 / 0 / 1 / 2 / 3 / 4)?\n3. Meta de Produção (Cápsulas por Hora / bpm)?\n4. Tipo de Alimentação (Pó Seco / Granulado / Microesferas Pellets)?\n5. Exigência de Sala Limpa / Controle de Umidade (HVAC / 45% UR)?`,
+                
+                "GOMAS": `📋 QUESTIONÁRIO TÉCNICO DE ENGENHARIA - GOMAS & BALAS GUMMY:\n1. Tipo de Base (Pectina / Gelatina / Ágar-Ágar / Sem Açúcar)?\n2. Formato e Peso Visual do Molde (Estrela, Urso, Cubo - g/unidade)?\n3. Capacidade de Cozimento & Dosagem (kg/hora)?\n4. Necessidade de Túnel de Resfriamento Continuo ou Salas de Cura?`,
+                
+                "DOSAGEM_SEMIAUTOMATICA": `📋 QUESTIONÁRIO TÉCNICO DE ENGENHARIA - DOSAGEM SEMIAUTOMÁTICA:\n1. Tipo de Produto (Pó aerado / Grãos / Pastoso / Suco)?\n2. Faixa de Peso por Dose (g ou ml - Min / Máx)?\n3. Tolerância Estatística Exigida (± g)?\n4. Acionamento (Pedal Elétrico / Sensor de Presença de Frasco)?`,
+                
+                "DOSAGEM_EMPACOTAMENTO": `📋 QUESTIONÁRIO TÉCNICO DE ENGENHARIA - EMPACOTAMENTO AUTOMÁTICO (VFFS / FLOW PACK / DOYPACK):\n1. Tipo de Embalagem (Almofada / Sanfonada / 3 Soldas / Stand-up Doypack / Stick)?\n2. Largura da Face Frontal (W mm) e Altura Útil (H mm)?\n3. Fole / Sanfona de Fundo (G mm)?\n4. Estrutura do Filme Flexível (BOPP Liso / PET-PE / Alumínio / Micras)?\n5. Velocidade de Envase Desejada (Pacotes por minuto)?\n6. Acessórios (Zíper / Eurohole / Injeção de Gás Nitrogênio / Datador)?`,
+                
+                "ENVASE": `📋 QUESTIONÁRIO TÉCNICO DE ENGENHARIA - ENVASADORAS DE LÍQUIDOS & PASTOSOS:\n1. Viscosidade do Produto (cP / cPs - Fluido / denso / denso com pedaços)?\n2. Geometria e Material do Frasco (PET / Vidro / PEAD / Bisnaga)?\n3. Capacidade dos Frascos (ml ou Litros - Mínimo e Máximo)?\n4. Temperatura de Envase (Envase a Frio / Envase Quente Hot Fill 85°C)?\n5. Sistema de Bicos (4 / 6 / 8 Bicos Corta-Gota Mergulhantes / Pneumáticos)?`,
+                
+                "FECHAMENTO_TAMPAGEM": `📋 QUESTIONÁRIO TÉCNICO DE ENGENHARIA - ROSQUEADORAS & TAMPADORES:\n1. Geometria da Tampa (Rosca Plástica / Guala / Crown Flip-top / Pressão)?\n2. Diâmetro da Tampa (mm) e Torque de Aperto (Nm)?\n3. Tipo de Alimentador (Tampador Vibratório / Elevador por Esteira)?`,
+                
+                "VACUO_TERMOFORMADORAS": `📋 QUESTIONÁRIO TÉCNICO DE ENGENHARIA - SELADORAS A VÁCUO & TERMOFORMADORAS:\n1. Tipo de Embalagem (Saco Náilon-Poli / Bandeja MAP / Skin Pack)?\n2. Dimensões do Produto Interno (L x C x A mm)?\n3. Meta de Pressão de Vácuo residual (mbar)?\n4. Injeção de Atmosfera Modificada (Gás N2 + CO2)?`,
+                
+                "ROTULADORAS": `📋 QUESTIONÁRIO TÉCNICO DE ENGENHARIA - ROTULADORAS & ETIQUETADORAS:\n1. Tipo de Rótulo (Autoadesivo em Bobina / Manga Sleeve Termoencolhível)?\n2. Formato do Frasco (Cilíndrico / Cônico / Plano / Bisnaga)?\n3. Posicionamento (Frente & Verso / Rótulo Envolvente 360° / Lacre de Segurança)?`,
+                
+                "TERMOENCOLHIVEL": `📋 QUESTIONÁRIO TÉCNICO DE ENGENHARIA - TERMOENCOLHÍVEIS & SELADORAS L:\n1. Tipo de Filme (Poliolefina POF / PVC Termoencolhível / PE Enfardamento)?\n2. Dimensões da Caixa / Pacote Único (C x L x A mm)?\n3. Velocidade da Linha (Pacotes por minuto)?`,
+                
+                "FINAL_LINHA": `📋 QUESTIONÁRIO TÉCNICO DE ENGENHARIA - FINAL DE LINHA & SELADORAS DE CAIXAS:\n1. Tipo de Caixa de Papelão (RSC Padrão Abas Superior/Inferior)?\n2. Dimensões da Caixa (Comprimento C x Largura L x Altura A mm)?\n3. Peso Total da Caixa Cheia (kg)?\n4. Fechamento (Fita Adesiva 50mm / Hotmelt Cola Quente)?`,
+                
+                "PROJETOS_ESPECIAIS": `📋 QUESTIONÁRIO TÉCNICO DE ENGENHARIA - PROJETOS ESPECIAIS & CUSTOMIZADOS:\n1. Descrição Detalhada da Dor do Cliente / Processo Atual?\n2. Limitações de Layout de Fábrica (Pé direito / Espaço L x C m)?\n3. Tensão da Rede Elétrica (220V Trifásico / 380V / 440V)?`,
+                
+                "SELADORAS_CONTINUAS": `📋 QUESTIONÁRIO TÉCNICO DE ENGENHARIA - SELADORAS CONTÍNUA DE SACOS:\n1. Tipo de Saco (Plástico PP / PE / Laminado Stand-up Doypack / Papel Kraft)?\n2. Posição de Selagem (Horizontal para Saco Deitado / Vertical para Saco em Pé com Líquido)?\n3. Tipo de Datador (Datador por Rolo de Tinta Quente Hot Ink / Inkjet HP Barcode)?`
+            };
+
+            const tpl = templatesMap[segment] || "📋 REGISTRO TÉCNICO DE ENGENHARIA:\n- Descreva os requisitos específicos do produto, dimensões e velocidade da máquina.";
+            obsEl.value = tpl;
+            runSkuSuggestionEngine();
         }
 
         function toggleDynamicSubtypes(selectedValue) {
