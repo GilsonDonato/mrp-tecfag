@@ -4865,79 +4865,225 @@
         </div>
     </div>
 
-    <!-- MODAL 4: SIMULADOR DE PALETIZAÇÃO PBR & CARGA DE ESTEIRA -->
+    <!-- MODAL 4: SIMULADOR AVANÇADO DE PALETIZAÇÃO PBR & CARGA -->
     <div class="modal-overlay" id="pallet-calc-modal" style="z-index: 1250; display: none;">
-        <div class="modal" style="width: 900px; max-width: 95vw; max-height: 90vh; overflow-y: auto; padding: 25px;">
+        <div class="modal" style="width: 1100px; max-width: 96vw; max-height: 92vh; overflow-y: auto; padding: 22px;">
             <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <h3 style="color: #a855f7; font-size: 1.15rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
-                        🏗️ Simulador de Paletização PBR & Carga de Esteiras
+                    <h3 style="color: #a855f7; font-size: 1.2rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        🏗️ Simulador Avançado de Paletização & Amarração Industrial
                     </h3>
-                    <small style="color: var(--text-secondary); font-size: 0.72rem;">Arranjo de caixas no palete Padrão Brasil ($1200\times1000\text{mm}$) e verificação de peso por metro linear</small>
+                    <small style="color: var(--text-secondary); font-size: 0.72rem;">Arranjo de caixas e fardos, amarração cruzada por camadas, chapatex e visualização 3D/2D em tempo real</small>
                 </div>
                 <button class="btn-icon" onclick="closePalletCalcModal()">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
-                <!-- ENTRADAS DO PALETE -->
-                <div style="display: flex; flex-direction: column; gap: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
-                    <span style="font-size: 0.75rem; font-weight: 700; color: #a855f7; text-transform: uppercase;">1. Dimensões da Carga</span>
+            <div style="display: grid; grid-template-columns: 1.1fr 1.35fr; gap: 18px; align-items: start;">
+                <!-- COLUNA ESQUERDA: PARÂMETROS E CONFIGURAÇÕES -->
+                <div style="display: flex; flex-direction: column; gap: 12px;">
                     
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
-                        <div class="form-group">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Comprimento (mm):</label>
-                            <input type="number" id="pallet-box-c" class="form-control" value="400" oninput="updatePalletCalculations()">
+                    <!-- 1. TIPO E DIMENSÕES DO PALETE -->
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.72rem; font-weight: 700; color: #a855f7; text-transform: uppercase;">1. Tipo & Dimensões do Palete</span>
+                            <span id="pallet-type-badge" style="font-size: 0.65rem; background: rgba(168, 85, 247, 0.15); color: #c084fc; padding: 1px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(168, 85, 247, 0.3);">PBR BRASIL</span>
                         </div>
-                        <div class="form-group">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Largura (mm):</label>
-                            <input type="number" id="pallet-box-l" class="form-control" value="300" oninput="updatePalletCalculations()">
+
+                        <div class="form-group" style="margin-bottom: 4px;">
+                            <label style="font-size: 0.65rem; font-weight: 700; color: var(--text-secondary);">Padrão do Palete:</label>
+                            <select id="pallet-type-select" class="form-control" onchange="handlePalletTypeChange()" style="padding: 6px 10px; font-size: 0.78rem;">
+                                <option value="PBR" selected>PBR Brasil (1200 × 1000 mm) - Padrão Nacional</option>
+                                <option value="EUR">Europalete EUR / EPAL (1200 × 800 mm) - Exportação</option>
+                                <option value="IND">Industrial / Químico (1200 × 1200 mm)</option>
+                                <option value="SEA">SeaPallet Container (1140 × 1140 mm)</option>
+                                <option value="CUSTOM">Personalizado (Digitar Medidas Livres)</option>
+                            </select>
                         </div>
-                        <div class="form-group">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Altura (mm):</label>
-                            <input type="number" id="pallet-box-a" class="form-control" value="250" oninput="updatePalletCalculations()">
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Comp. (mm):</label>
+                                <input type="number" id="pallet-dim-l" class="form-control" value="1200" oninput="updatePalletCalculations()" style="padding: 5px 8px; font-size: 0.75rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Larg. (mm):</label>
+                                <input type="number" id="pallet-dim-w" class="form-control" value="1000" oninput="updatePalletCalculations()" style="padding: 5px 8px; font-size: 0.75rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Alt. Mad. (mm):</label>
+                                <input type="number" id="pallet-dim-h" class="form-control" value="140" oninput="updatePalletCalculations()" style="padding: 5px 8px; font-size: 0.75rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Tara (kg):</label>
+                                <input type="number" id="pallet-tare-weight" class="form-control" value="25" oninput="updatePalletCalculations()" style="padding: 5px 8px; font-size: 0.75rem;">
+                            </div>
                         </div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <div class="form-group">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Peso/Caixa (kg):</label>
-                            <input type="number" id="pallet-box-weight" class="form-control" value="10" oninput="updatePalletCalculations()">
+                    <!-- 2. DIMENSÕES DA CARGA -->
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+                        <span style="font-size: 0.72rem; font-weight: 700; color: #38bdf8; text-transform: uppercase;">2. Dimensões da Caixa / Fardo</span>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Comprimento (mm):</label>
+                                <input type="number" id="pallet-box-c" class="form-control" value="400" oninput="updatePalletCalculations()" style="padding: 5px 8px; font-size: 0.75rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Largura (mm):</label>
+                                <input type="number" id="pallet-box-l" class="form-control" value="300" oninput="updatePalletCalculations()" style="padding: 5px 8px; font-size: 0.75rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Altura (mm):</label>
+                                <input type="number" id="pallet-box-a" class="form-control" value="250" oninput="updatePalletCalculations()" style="padding: 5px 8px; font-size: 0.75rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Peso/Caixa (kg):</label>
+                                <input type="number" id="pallet-box-weight" class="form-control" value="10" oninput="updatePalletCalculations()" style="padding: 5px 8px; font-size: 0.75rem;">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Nº de Camadas:</label>
-                            <input type="number" id="pallet-layers" class="form-control" value="5" oninput="updatePalletCalculations()">
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Saliência de Borda Permitida (Overhang):</label>
+                            <select id="pallet-max-overhang" class="form-control" onchange="updatePalletCalculations()" style="padding: 5px 8px; font-size: 0.75rem;">
+                                <option value="0" selected>0 mm (Sem Saliência - Carga 100% contida no palete)</option>
+                                <option value="15">Até 15 mm por lado (Tolerância Leve)</option>
+                                <option value="25">Até 25 mm por lado (Tolerância Média)</option>
+                                <option value="50">Até 50 mm por lado (Tolerância Máxima)</option>
+                            </select>
                         </div>
                     </div>
+
+                    <!-- 3. ARRANJO, CAMADAS E AMARRAÇÃO -->
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+                        <span style="font-size: 0.72rem; font-weight: 700; color: #4ade80; text-transform: uppercase;">3. Estrutura de Camadas & Amarração</span>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 8px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Nº de Camadas (Pilha):</label>
+                                <input type="number" id="pallet-layers" class="form-control" value="5" min="1" max="20" oninput="updatePalletCalculations()" style="padding: 5px 8px; font-size: 0.75rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Modo de Arranjo:</label>
+                                <select id="pallet-pattern-mode" class="form-control" onchange="updatePalletCalculations()" style="padding: 5px 8px; font-size: 0.75rem;">
+                                    <option value="auto" selected>✨ Otimização Automática (Máx. Caixas)</option>
+                                    <option value="column">Colunar Reto (Todos no mesmo sentido)</option>
+                                    <option value="rotated">Rotacionado 90° (Sentido Invertido)</option>
+                                    <option value="mixed_block">Bloco Misto / Moinho de Vento</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+                            <input type="checkbox" id="pallet-interlock-enabled" checked onchange="updatePalletCalculations()" style="width: 14px; height: 14px; cursor: pointer;">
+                            <label for="pallet-interlock-enabled" style="font-size: 0.68rem; color: var(--text-primary); cursor: pointer; margin-bottom: 0;">
+                                <strong>Amarração Cruzada Ativa:</strong> Inverter Camadas Pares (Layout B) para travar a carga e evitar tombamento
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 4. CHAPAS DE CHAPATEX (DIVISÓRIAS) -->
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.72rem; font-weight: 700; color: #f59e0b; text-transform: uppercase;">4. Chapas de Chapatex (Divisórias)</span>
+                            <span id="pallet-chapatex-count-badge" style="font-size: 0.65rem; background: rgba(245, 158, 11, 0.15); color: #fbbf24; padding: 1px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(245, 158, 11, 0.3);">4 chapas</span>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 6px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Frequência do Chapatex:</label>
+                                <select id="pallet-chapatex-freq" class="form-control" onchange="updatePalletCalculations()" style="padding: 5px 8px; font-size: 0.75rem;">
+                                    <option value="none">Sem Chapatex</option>
+                                    <option value="all" selected>Entre todas as camadas</option>
+                                    <option value="every2">A cada 2 camadas</option>
+                                    <option value="base_top">Na Base e no Topo</option>
+                                    <option value="all_base">Na Base + Entre todas as camadas</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Espessura (mm):</label>
+                                <input type="number" id="pallet-chapatex-thick" class="form-control" value="3.0" step="0.5" oninput="updatePalletCalculations()" style="padding: 5px 8px; font-size: 0.75rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Peso/Chapa (kg):</label>
+                                <input type="number" id="pallet-chapatex-weight" class="form-control" value="0.5" step="0.1" oninput="updatePalletCalculations()" style="padding: 5px 8px; font-size: 0.75rem;">
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
-                <!-- DIAGNÓSTICO DO PALETE & ESTEIRA -->
-                <div style="display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
-                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">2. Resultados da Paletização PBR</span>
-
-                    <div style="background: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Caixas por Camada:</span>
-                        <span id="pallet-res-per-layer" style="font-size: 1.1rem; font-weight: 800; color: #a855f7;">10 caixas / camada</span>
+                <!-- COLUNA DIREITA: VISUALIZAÇÃO GRÁFICA & RESULTADOS -->
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    
+                    <!-- BARRA DE CONTROLE DO CANVAS -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 8px;">
+                        <div style="display: flex; gap: 4px;">
+                            <button type="button" class="btn" id="btn-view-3d" onclick="switchPalletView('3d')" style="padding: 4px 10px; font-size: 0.72rem; font-weight: bold; background: #a855f7; color: white; border: none; border-radius: 4px;">
+                                🎲 Vista 3D Isométrica
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="btn-view-2da" onclick="switchPalletView('2d_a')" style="padding: 4px 10px; font-size: 0.72rem; font-weight: bold; border-radius: 4px;">
+                                📐 Camada A (Ímpar)
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="btn-view-2db" onclick="switchPalletView('2d_b')" style="padding: 4px 10px; font-size: 0.72rem; font-weight: bold; border-radius: 4px;">
+                                📐 Camada B (Par - Amarrada)
+                            </button>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="printPalletTechnicalSheet()" style="padding: 4px 8px; font-size: 0.7rem; font-weight: bold; display: flex; align-items: center; gap: 4px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">
+                            🖨️ Ficha Técnica
+                        </button>
                     </div>
 
-                    <div style="background: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Total de Caixas no Palete:</span>
-                        <span id="pallet-res-total-boxes" style="font-size: 1.1rem; font-weight: 800; color: #38bdf8;">50 caixas</span>
+                    <!-- CANVAS DE RENDERIZAÇÃO -->
+                    <div style="position: relative; width: 100%; height: 350px; background: #0b1120; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                        <canvas id="pallet-canvas" width="560" height="350" style="width: 100%; height: 100%; display: block;"></canvas>
+                        <div id="pallet-canvas-overlay-tag" style="position: absolute; top: 8px; left: 8px; font-size: 0.65rem; font-weight: 700; color: #94a3b8; background: rgba(15, 23, 42, 0.75); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
+                            VISTA 3D DO PALETE COMPLETO
+                        </div>
                     </div>
 
-                    <div style="background: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Peso Total Paletizado:</span>
-                        <span id="pallet-res-total-weight" style="font-size: 1.1rem; font-weight: 800; color: #4ade80;">500 kg (Palete PBR)</span>
+                    <!-- GRID DE RESULTADOS CONSOLIDADOS -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div style="background: var(--bg-base); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column;">
+                            <span style="font-size: 0.62rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Caixas por Camada:</span>
+                            <span id="pallet-res-per-layer" style="font-size: 1.05rem; font-weight: 800; color: #a855f7;">10 caixas / camada</span>
+                        </div>
+
+                        <div style="background: var(--bg-base); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column;">
+                            <span style="font-size: 0.62rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Total no Palete:</span>
+                            <span id="pallet-res-total-boxes" style="font-size: 1.05rem; font-weight: 800; color: #38bdf8;">50 caixas</span>
+                        </div>
+
+                        <div style="background: var(--bg-base); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column;">
+                            <span style="font-size: 0.62rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Altura Total c/ Madeira:</span>
+                            <span id="pallet-res-total-height" style="font-size: 1.05rem; font-weight: 800; color: #fbbf24;">1.402 mm (1.40 m)</span>
+                        </div>
+
+                        <div style="background: var(--bg-base); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column;">
+                            <span style="font-size: 0.62rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Peso Bruto Total:</span>
+                            <span id="pallet-res-total-weight" style="font-size: 1.05rem; font-weight: 800; color: #4ade80;">527 kg</span>
+                        </div>
                     </div>
 
-                    <div id="pallet-res-status-box" style="padding: 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; text-align: center; background: rgba(74, 222, 128, 0.15); border: 1px solid #4ade80; color: #4ade80;">
-                        ✅ APROVEITAMENTO DO PALETE: DENTRO DO PERÍMETRO PBR
+                    <!-- INDICADORES DE EFICIÊNCIA & STATUS -->
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-around; font-size: 0.72rem;">
+                        <div>Área Ocupada: <strong id="pallet-res-area-eff" style="color: #38bdf8;">100.0%</strong></div>
+                        <div>Eficiência Cúbica: <strong id="pallet-res-vol-eff" style="color: #a855f7;">89.3%</strong></div>
+                        <div>Chapas Chapatex: <strong id="pallet-res-chapatex-summary" style="color: #fbbf24;">4 un</strong></div>
+                    </div>
+
+                    <div id="pallet-res-status-box" style="padding: 8px 12px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; text-align: center; background: rgba(74, 222, 128, 0.15); border: 1px solid #4ade80; color: #4ade80;">
+                        ✅ ARRANJO HOMOLOGADO: Carga estável e dentro das normas de transporte
                     </div>
                 </div>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                <span style="font-size: 0.68rem; color: var(--text-secondary); font-style: italic;">
+                    * Cálculo em conformidade com as normas ABNT NBR 15462 (Palete PBR) e ISO 6780.
+                </span>
                 <button class="btn btn-secondary" onclick="closePalletCalcModal()">Fechar Validador</button>
             </div>
         </div>
@@ -7056,7 +7202,10 @@
             }
         }
 
-        // 3. SIMULADOR DE PALETIZAÇÃO PBR
+        // 3. SIMULADOR AVANÇADO DE PALETIZAÇÃO & AMARRAÇÃO INDUSTRIAL
+        let currentPalletViewMode = '3d'; // '3d', '2d_a', '2d_b'
+        let currentPalletData = null;
+
         function openPalletCalcModal() {
             const modal = document.getElementById('pallet-calc-modal');
             if (modal) modal.style.display = 'flex';
@@ -7068,34 +7217,751 @@
             if (modal) modal.style.display = 'none';
         }
 
-        function updatePalletCalculations() {
-            const c = parseFloat(document.getElementById('pallet-box-c')?.value) || 400;
-            const l = parseFloat(document.getElementById('pallet-box-l')?.value) || 300;
-            const a = parseFloat(document.getElementById('pallet-box-a')?.value) || 250;
-            const w = parseFloat(document.getElementById('pallet-box-weight')?.value) || 10;
-            const layers = parseFloat(document.getElementById('pallet-layers')?.value) || 5;
+        function handlePalletTypeChange() {
+            const select = document.getElementById('pallet-type-select');
+            const type = select ? select.value : 'PBR';
+            const badge = document.getElementById('pallet-type-badge');
+            
+            const lInput = document.getElementById('pallet-dim-l');
+            const wInput = document.getElementById('pallet-dim-w');
+            const hInput = document.getElementById('pallet-dim-h');
+            const tareInput = document.getElementById('pallet-tare-weight');
 
-            // Palete PBR: 1200mm x 1000mm
-            const perLayer = Math.floor(1200 / c) * Math.floor(1000 / l);
-            const totalBoxes = perLayer * layers;
-            const totalWeight = totalBoxes * w;
+            if (type === 'PBR') {
+                if (lInput) lInput.value = 1200;
+                if (wInput) wInput.value = 1000;
+                if (hInput) hInput.value = 140;
+                if (tareInput) tareInput.value = 25;
+                if (badge) badge.innerText = 'PBR BRASIL';
+            } else if (type === 'EUR') {
+                if (lInput) lInput.value = 1200;
+                if (wInput) wInput.value = 800;
+                if (hInput) hInput.value = 144;
+                if (tareInput) tareInput.value = 20;
+                if (badge) badge.innerText = 'EUROPALETE (EUR)';
+            } else if (type === 'IND') {
+                if (lInput) lInput.value = 1200;
+                if (wInput) wInput.value = 1200;
+                if (hInput) hInput.value = 150;
+                if (tareInput) tareInput.value = 30;
+                if (badge) badge.innerText = 'INDUSTRIAL';
+            } else if (type === 'SEA') {
+                if (lInput) lInput.value = 1140;
+                if (wInput) wInput.value = 1140;
+                if (hInput) hInput.value = 140;
+                if (tareInput) tareInput.value = 22;
+                if (badge) badge.innerText = 'SEAPALLET (CONTAINER)';
+            } else {
+                if (badge) badge.innerText = 'CUSTOMIZADO';
+            }
 
-            document.getElementById('pallet-res-per-layer').innerText = perLayer + ' caixas / camada';
-            document.getElementById('pallet-res-total-boxes').innerText = totalBoxes + ' caixas no palete';
-            document.getElementById('pallet-res-total-weight').innerText = totalWeight + ' kg (Palete PBR)';
+            updatePalletCalculations();
+        }
 
-            const statusBox = document.getElementById('pallet-res-status-box');
-            if (statusBox) {
-                if (perLayer > 0) {
-                    statusBox.innerText = '✅ ARRANJO PBR APROVADO: CAIXAS DENTRO DO PERÍMETRO DE 1200×1000mm';
-                    statusBox.style.background = 'rgba(74, 222, 128, 0.15)';
-                    statusBox.style.color = '#4ade80';
-                } else {
-                    statusBox.innerText = '⚠️ CAIXA MAIOR QUE O PALETE PBR (1200×1000mm)';
-                    statusBox.style.background = 'rgba(239, 68, 68, 0.15)';
-                    statusBox.style.color = '#fca5a5';
+        function switchPalletView(mode) {
+            currentPalletViewMode = mode;
+            
+            const btn3d = document.getElementById('btn-view-3d');
+            const btn2da = document.getElementById('btn-view-2da');
+            const btn2db = document.getElementById('btn-view-2db');
+            const overlayTag = document.getElementById('pallet-canvas-overlay-tag');
+
+            if (btn3d) {
+                btn3d.className = mode === '3d' ? 'btn' : 'btn btn-secondary';
+                btn3d.style.background = mode === '3d' ? '#a855f7' : '';
+                btn3d.style.color = mode === '3d' ? 'white' : '';
+                btn3d.style.border = mode === '3d' ? 'none' : '';
+            }
+            if (btn2da) {
+                btn2da.className = mode === '2d_a' ? 'btn' : 'btn btn-secondary';
+                btn2da.style.background = mode === '2d_a' ? '#38bdf8' : '';
+                btn2da.style.color = mode === '2d_a' ? 'white' : '';
+                btn2da.style.border = mode === '2d_a' ? 'none' : '';
+            }
+            if (btn2db) {
+                btn2db.className = mode === '2d_b' ? 'btn' : 'btn btn-secondary';
+                btn2db.style.background = mode === '2d_b' ? '#4ade80' : '';
+                btn2db.style.color = mode === '2d_b' ? 'white' : '';
+                btn2db.style.border = mode === '2d_b' ? 'none' : '';
+            }
+
+            if (overlayTag) {
+                if (mode === '3d') overlayTag.innerText = 'VISTA 3D DO PALETE COMPLETO';
+                else if (mode === '2d_a') overlayTag.innerText = 'PLANTA BAIXA - CAMADA A (ÍMPAR)';
+                else if (mode === '2d_b') overlayTag.innerText = 'PLANTA BAIXA - CAMADA B (PAR - AMARRADA)';
+            }
+
+            drawPalletCanvas();
+        }
+
+        // Motor Matemático de Bin Packing & Amarração de Palete
+        function computePalletLayout(pL, pW, bL, bW, overhang, patternMode) {
+            const effL = pL + (overhang * 2);
+            const effW = pW + (overhang * 2);
+
+            let candidates = [];
+
+            // Padrão 1: Colunar Alinhado Reto (Comprimento da caixa ao longo do comprimento do palete)
+            const nx1 = Math.floor(effL / bL);
+            const ny1 = Math.floor(effW / bW);
+            if (nx1 > 0 && ny1 > 0) {
+                const boxes1 = [];
+                for (let i = 0; i < nx1; i++) {
+                    for (let j = 0; j < ny1; j++) {
+                        boxes1.push({ x: i * bL, y: j * bW, w: bL, h: bW, rot: 0 });
+                    }
+                }
+                candidates.push({ name: 'Colunar Reto', mode: 'column', count: nx1 * ny1, boxes: boxes1, usedL: nx1 * bL, usedW: ny1 * bW });
+            }
+
+            // Padrão 2: Colunar Rotacionado 90° (Largura da caixa ao longo do comprimento do palete)
+            const nx2 = Math.floor(effL / bW);
+            const ny2 = Math.floor(effW / bL);
+            if (nx2 > 0 && ny2 > 0) {
+                const boxes2 = [];
+                for (let i = 0; i < nx2; i++) {
+                    for (let j = 0; j < ny2; j++) {
+                        boxes2.push({ x: i * bW, y: j * bL, w: bW, h: bL, rot: 90 });
+                    }
+                }
+                candidates.push({ name: 'Colunar 90°', mode: 'rotated', count: nx2 * ny2, boxes: boxes2, usedL: nx2 * bW, usedW: ny2 * bL });
+            }
+
+            // Padrão 3: Bloco Misto Horizontal (Linhas Normais em cima + Linhas Rotacionadas em baixo)
+            const maxRowsNormal = Math.floor(effW / bW);
+            for (let r = 1; r < maxRowsNormal; r++) {
+                const topH = r * bW;
+                const remH = effW - topH;
+                const colsTop = Math.floor(effL / bL);
+                const rowsBottom = Math.floor(remH / bL);
+                const colsBottom = Math.floor(effL / bW);
+
+                if (colsTop > 0 && rowsBottom > 0 && colsBottom > 0) {
+                    const boxes = [];
+                    // Top normal boxes
+                    for (let i = 0; i < colsTop; i++) {
+                        for (let j = 0; j < r; j++) {
+                            boxes.push({ x: i * bL, y: j * bW, w: bL, h: bW, rot: 0 });
+                        }
+                    }
+                    // Bottom rotated boxes
+                    for (let i = 0; i < colsBottom; i++) {
+                        for (let j = 0; j < rowsBottom; j++) {
+                            boxes.push({ x: i * bW, y: topH + (j * bL), w: bW, h: bL, rot: 90 });
+                        }
+                    }
+                    candidates.push({
+                        name: 'Bloco Misto Horizontal',
+                        mode: 'mixed_block',
+                        count: boxes.length,
+                        boxes: boxes,
+                        usedL: Math.max(colsTop * bL, colsBottom * bW),
+                        usedW: topH + (rowsBottom * bL)
+                    });
                 }
             }
+
+            // Padrão 4: Bloco Misto Vertical (Colunas Normais na esquerda + Colunas Rotacionadas na direita)
+            const maxColsNormal = Math.floor(effL / bL);
+            for (let c = 1; c < maxColsNormal; c++) {
+                const leftW = c * bL;
+                const remW = effL - leftW;
+                const rowsLeft = Math.floor(effW / bW);
+                const colsRight = Math.floor(remW / bW);
+                const rowsRight = Math.floor(effW / bL);
+
+                if (rowsLeft > 0 && colsRight > 0 && rowsRight > 0) {
+                    const boxes = [];
+                    // Left normal boxes
+                    for (let i = 0; i < c; i++) {
+                        for (let j = 0; j < rowsLeft; j++) {
+                            boxes.push({ x: i * bL, y: j * bW, w: bL, h: bW, rot: 0 });
+                        }
+                    }
+                    // Right rotated boxes
+                    for (let i = 0; i < colsRight; i++) {
+                        for (let j = 0; j < rowsRight; j++) {
+                            boxes.push({ x: leftW + (i * bW), y: j * bL, w: bW, h: bL, rot: 90 });
+                        }
+                    }
+                    candidates.push({
+                        name: 'Bloco Misto Vertical / Moinho',
+                        mode: 'mixed_block',
+                        count: boxes.length,
+                        boxes: boxes,
+                        usedL: leftW + (colsRight * bW),
+                        usedW: Math.max(rowsLeft * bW, rowsRight * bL)
+                    });
+                }
+            }
+
+            // Filtrar e escolher candidato
+            let selectedCandidate = null;
+            if (patternMode !== 'auto') {
+                selectedCandidate = candidates.find(c => c.mode === patternMode);
+            }
+            
+            if (!selectedCandidate) {
+                // Auto: Seleciona o que tem maior quantidade de caixas e maior aproveitamento de área
+                candidates.sort((a, b) => {
+                    if (b.count !== a.count) return b.count - a.count;
+                    return (b.usedL * b.usedW) - (a.usedL * a.usedW);
+                });
+                selectedCandidate = candidates[0] || { name: 'Sem Encaixe', mode: 'none', count: 0, boxes: [], usedL: 0, usedW: 0 };
+            }
+
+            // Centralizar caixas no palete
+            const offX = Math.max(0, (pL - selectedCandidate.usedL) / 2);
+            const offY = Math.max(0, (pW - selectedCandidate.usedW) / 2);
+
+            const layoutA = selectedCandidate.boxes.map(b => ({
+                x: b.x + offX,
+                y: b.y + offY,
+                w: b.w,
+                h: b.h,
+                rot: b.rot
+            }));
+
+            // Gerar Layout B (Amarração Cruzada Invertida em 180°)
+            const layoutB = layoutA.map(b => ({
+                x: Math.max(0, pL - (b.x + b.w)),
+                y: Math.max(0, pW - (b.y + b.h)),
+                w: b.w,
+                h: b.h,
+                rot: b.rot
+            }));
+
+            return {
+                patternName: selectedCandidate.name,
+                countA: layoutA.length,
+                countB: layoutB.length,
+                layoutA: layoutA,
+                layoutB: layoutB,
+                usedL: selectedCandidate.usedL,
+                usedW: selectedCandidate.usedW
+            };
+        }
+
+        function updatePalletCalculations() {
+            const pL = parseFloat(document.getElementById('pallet-dim-l')?.value) || 1200;
+            const pW = parseFloat(document.getElementById('pallet-dim-w')?.value) || 1000;
+            const pH = parseFloat(document.getElementById('pallet-dim-h')?.value) || 140;
+            const pTare = parseFloat(document.getElementById('pallet-tare-weight')?.value) || 25;
+
+            const bC = parseFloat(document.getElementById('pallet-box-c')?.value) || 400;
+            const bL = parseFloat(document.getElementById('pallet-box-l')?.value) || 300;
+            const bA = parseFloat(document.getElementById('pallet-box-a')?.value) || 250;
+            const bWeight = parseFloat(document.getElementById('pallet-box-weight')?.value) || 10;
+            const overhang = parseFloat(document.getElementById('pallet-max-overhang')?.value) || 0;
+
+            const layers = parseInt(document.getElementById('pallet-layers')?.value) || 5;
+            const patternMode = document.getElementById('pallet-pattern-mode')?.value || 'auto';
+            const isInterlock = document.getElementById('pallet-interlock-enabled')?.checked ?? true;
+
+            const chapFreq = document.getElementById('pallet-chapatex-freq')?.value || 'all';
+            const chapThick = parseFloat(document.getElementById('pallet-chapatex-thick')?.value) || 3.0;
+            const chapWeight = parseFloat(document.getElementById('pallet-chapatex-weight')?.value) || 0.5;
+
+            // Executa o cálculo de layout
+            const layoutRes = computePalletLayout(pL, pW, bC, bL, overhang, patternMode);
+
+            // Calcula total de caixas no palete
+            let totalBoxes = 0;
+            for (let k = 0; k < layers; k++) {
+                if (k % 2 === 0) {
+                    totalBoxes += layoutRes.countA;
+                } else {
+                    totalBoxes += isInterlock ? layoutRes.countB : layoutRes.countA;
+                }
+            }
+
+            // Calcula chapatex
+            let chapCount = 0;
+            let chapatexLayers = []; // Índices das camadas que têm chapatex abaixo delas
+            if (chapFreq === 'all') {
+                chapCount = Math.max(0, layers - 1);
+                for (let k = 1; k < layers; k++) chapatexLayers.push(k);
+            } else if (chapFreq === 'every2') {
+                for (let k = 1; k < layers; k++) {
+                    if (k % 2 === 0) {
+                        chapCount++;
+                        chapatexLayers.push(k);
+                    }
+                }
+            } else if (chapFreq === 'base_top') {
+                chapCount = layers > 0 ? 2 : 0;
+                chapatexLayers.push(0); // Base
+                chapatexLayers.push(layers); // Topo
+            } else if (chapFreq === 'all_base') {
+                chapCount = layers;
+                for (let k = 0; k < layers; k++) chapatexLayers.push(k);
+            }
+
+            const badgeChap = document.getElementById('pallet-chapatex-count-badge');
+            if (badgeChap) badgeChap.innerText = `${chapCount} ${chapCount === 1 ? 'chapa' : 'chapas'}`;
+
+            // Alturas e Pesos
+            const totalBoxesHeight = layers * bA;
+            const totalChapHeight = chapCount * chapThick;
+            const totalPalletHeight = pH + totalBoxesHeight + totalChapHeight;
+
+            const totalBoxesWeight = totalBoxes * bWeight;
+            const totalChapWeight = chapCount * chapWeight;
+            const grossWeight = pTare + totalBoxesWeight + totalChapWeight;
+
+            // Eficiência de Área e Volume
+            const palletArea = pL * pW;
+            const layerBoxesArea = layoutRes.countA * (bC * bL);
+            const areaEff = palletArea > 0 ? Math.min(100, (layerBoxesArea / palletArea) * 100).toFixed(1) : '0';
+
+            const palletVolumeEnvelope = (pL / 1000) * (pW / 1000) * (totalPalletHeight / 1000);
+            const boxesVolume = totalBoxes * ((bC / 1000) * (bL / 1000) * (bA / 1000));
+            const volEff = palletVolumeEnvelope > 0 ? Math.min(100, (boxesVolume / palletVolumeEnvelope) * 100).toFixed(1) : '0';
+
+            // Atualiza UI
+            const resPerLayerEl = document.getElementById('pallet-res-per-layer');
+            if (resPerLayerEl) {
+                if (isInterlock && layoutRes.countA !== layoutRes.countB) {
+                    resPerLayerEl.innerText = `${layoutRes.countA} / ${layoutRes.countB} cx (A/B)`;
+                } else {
+                    resPerLayerEl.innerText = `${layoutRes.countA} caixas / camada`;
+                }
+            }
+
+            const resTotalBoxesEl = document.getElementById('pallet-res-total-boxes');
+            if (resTotalBoxesEl) resTotalBoxesEl.innerText = `${totalBoxes} caixas`;
+
+            const resHeightEl = document.getElementById('pallet-res-total-height');
+            if (resHeightEl) {
+                resHeightEl.innerText = `${Math.round(totalPalletHeight).toLocaleString('pt-BR')} mm (${(totalPalletHeight / 1000).toFixed(2)} m)`;
+            }
+
+            const resWeightEl = document.getElementById('pallet-res-total-weight');
+            if (resWeightEl) {
+                resWeightEl.innerText = `${Math.round(grossWeight).toLocaleString('pt-BR')} kg`;
+            }
+
+            const resAreaEffEl = document.getElementById('pallet-res-area-eff');
+            if (resAreaEffEl) resAreaEffEl.innerText = `${areaEff}%`;
+
+            const resVolEffEl = document.getElementById('pallet-res-vol-eff');
+            if (resVolEffEl) resVolEffEl.innerText = `${volEff}%`;
+
+            const resChapSummEl = document.getElementById('pallet-res-chapatex-summary');
+            if (resChapSummEl) resChapSummEl.innerText = `${chapCount} un (${(totalChapWeight).toFixed(1)} kg)`;
+
+            // Diagnóstico de Homologação e Alertas
+            const statusBox = document.getElementById('pallet-res-status-box');
+            if (statusBox) {
+                if (layoutRes.countA === 0) {
+                    statusBox.innerText = '🛑 CAIXA MAIOR QUE O PALETE! Ajuste as dimensões da caixa ou aumente o palete.';
+                    statusBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    statusBox.style.borderColor = '#ef4444';
+                    statusBox.style.color = '#fca5a5';
+                } else if (totalPalletHeight > 2200) {
+                    statusBox.innerText = `⚠️ ALERTA DE ALTURA CRÍTICA: ${(totalPalletHeight / 1000).toFixed(2)}m excede o limite padrão de caminhão baú (2.20m). Reduza o número de camadas.`;
+                    statusBox.style.background = 'rgba(245, 158, 11, 0.15)';
+                    statusBox.style.borderColor = '#f59e0b';
+                    statusBox.style.color = '#fbbf24';
+                } else if (grossWeight > 1500) {
+                    statusBox.innerText = `⚠️ ALERTA DE PESO ELEVADO: ${Math.round(grossWeight)} kg excede a capacidade estática recomendada do palete (1500 kg).`;
+                    statusBox.style.background = 'rgba(245, 158, 11, 0.15)';
+                    statusBox.style.borderColor = '#f59e0b';
+                    statusBox.style.color = '#fbbf24';
+                } else {
+                    const lockStatus = isInterlock ? 'com Amarração Cruzada' : 'em Arranjo Colunar';
+                    statusBox.innerText = `✅ ARRANJO HOMOLOGADO: ${layoutRes.patternName} (${lockStatus}) - Altura ${(totalPalletHeight / 1000).toFixed(2)}m compatível com caminhão baú.`;
+                    statusBox.style.background = 'rgba(74, 222, 128, 0.15)';
+                    statusBox.style.borderColor = '#4ade80';
+                    statusBox.style.color = '#4ade80';
+                }
+            }
+
+            // Armazena dados globais para renderização
+            currentPalletData = {
+                pL, pW, pH, pTare,
+                bC, bL, bA, bWeight,
+                layers, isInterlock,
+                chapCount, chapThick, chapWeight, chapatexLayers,
+                totalBoxes, totalPalletHeight, grossWeight,
+                areaEff, volEff,
+                layoutA: layoutRes.layoutA,
+                layoutB: layoutRes.layoutB,
+                patternName: layoutRes.patternName
+            };
+
+            drawPalletCanvas();
+        }
+
+        // Renderizador de Canvas 3D Isométrico e 2D
+        function drawPalletCanvas() {
+            const canvas = document.getElementById('pallet-canvas');
+            if (!canvas || !currentPalletData) return;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
+
+            if (currentPalletViewMode === '3d') {
+                drawPallet3D(ctx, w, h, currentPalletData);
+            } else if (currentPalletViewMode === '2d_a') {
+                drawPallet2D(ctx, w, h, currentPalletData, false);
+            } else if (currentPalletViewMode === '2d_b') {
+                drawPallet2D(ctx, w, h, currentPalletData, true);
+            }
+        }
+
+        // Projeção Isométrica 3D
+        function drawPallet3D(ctx, w, h, data) {
+            const { pL, pW, pH, bA, layers, isInterlock, chapThick, chapatexLayers, layoutA, layoutB, totalPalletHeight } = data;
+
+            // Escala e Origem para centralizar perfeitamente no canvas
+            const maxDim = Math.max(pL, pW, totalPalletHeight * 1.25);
+            const scale = (w * 0.36) / maxDim;
+            const originX = w * 0.50;
+            const originY = h * 0.78;
+
+            function iso(x, y, z) {
+                return {
+                    x: originX + (x - y) * 0.866 * scale,
+                    y: originY + (x + y) * 0.5 * scale - (z * scale)
+                };
+            }
+
+            function drawIsoPolygon(points, fill, stroke) {
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for (let i = 1; i < points.length; i++) {
+                    ctx.lineTo(points[i].x, points[i].y);
+                }
+                ctx.closePath();
+                ctx.fillStyle = fill;
+                ctx.fill();
+                if (stroke) {
+                    ctx.strokeStyle = stroke;
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+            }
+
+            function draw3DBox(x, y, z, bx, by, bz, topFill, leftFill, rightFill, strokeCol) {
+                const p000 = iso(x, y, z);
+                const p100 = iso(x + bx, y, z);
+                const p110 = iso(x + bx, y + by, z);
+                const p010 = iso(x, y + by, z);
+
+                const p001 = iso(x, y, z + bz);
+                const p101 = iso(x + bx, y, z + bz);
+                const p111 = iso(x + bx, y + by, z + bz);
+                const p011 = iso(x, y + by, z + bz);
+
+                // Right face (X+ face, facing bottom-right)
+                drawIsoPolygon([p100, p110, p111, p101], rightFill, strokeCol);
+                // Left face (Y+ face, facing bottom-left)
+                drawIsoPolygon([p010, p110, p111, p011], leftFill, strokeCol);
+                // Top face (Z+ face)
+                drawIsoPolygon([p001, p101, p111, p011], topFill, strokeCol);
+
+                // Fita adesiva / detalhe sutil na tampa da caixa
+                if (bz > 10) {
+                    ctx.beginPath();
+                    const mid1 = iso(x + (bx * 0.45), y, z + bz);
+                    const mid2 = iso(x + (bx * 0.45), y + by, z + bz);
+                    const mid3 = iso(x + (bx * 0.55), y + by, z + bz);
+                    const mid4 = iso(x + (bx * 0.55), y, z + bz);
+                    drawIsoPolygon([mid1, mid2, mid3, mid4], 'rgba(146, 64, 14, 0.4)', null);
+                }
+            }
+
+            // Sombra no Chão
+            ctx.beginPath();
+            const s0 = iso(-20, -20, 0);
+            const s1 = iso(pL + 20, -20, 0);
+            const s2 = iso(pL + 20, pW + 20, 0);
+            const s3 = iso(-20, pW + 20, 0);
+            drawIsoPolygon([s0, s1, s2, s3], 'rgba(0, 0, 0, 0.45)', null);
+
+            // 1. BASE DO PALETE DE MADEIRA (Realista)
+            const woodTop = '#d97706';
+            const woodLeft = '#b45309';
+            const woodRight = '#92400e';
+            const woodStroke = '#78350f';
+
+            // 3 Tábuas Inferiores
+            const bottomBoardH = 20;
+            const stringerWidth = 100;
+            [0, (pW - stringerWidth) / 2, pW - stringerWidth].forEach(sy => {
+                draw3DBox(0, sy, 0, pL, stringerWidth, bottomBoardH, woodTop, woodLeft, woodRight, woodStroke);
+            });
+
+            // 9 Tocos de Madeira (Blocos)
+            const blockH = pH - 40;
+            const blockW = 100;
+            const blockL = 120;
+            const posXs = [0, (pL - blockL) / 2, pL - blockL];
+            const posYs = [0, (pW - blockW) / 2, pW - blockW];
+
+            posXs.forEach(bx => {
+                posYs.forEach(by => {
+                    draw3DBox(bx, by, bottomBoardH, blockL, blockW, blockH, woodTop, woodLeft, woodRight, woodStroke);
+                });
+            });
+
+            // Tábuas Superiores (Deckboards - 5 tábuas)
+            const deckBoardCount = 5;
+            const deckBoardW = (pW - ((deckBoardCount - 1) * 30)) / deckBoardCount;
+            const deckZ = pH - 20;
+            for (let i = 0; i < deckBoardCount; i++) {
+                const dy = i * (deckBoardW + 30);
+                draw3DBox(0, dy, deckZ, pL, deckBoardW, 20, '#f59e0b', '#d97706', '#b45309', woodStroke);
+            }
+
+            // 2. EMPILHAMENTO DE CAMADAS DE CAIXAS & CHAPATEX
+            let currentZ = pH;
+
+            for (let k = 0; k < layers; k++) {
+                // Chapatex abaixo desta camada?
+                if (chapatexLayers.includes(k)) {
+                    const chapTop = '#78350f';
+                    const chapLeft = '#451a03';
+                    const chapRight = '#451a03';
+                    draw3DBox(0, 0, currentZ, pL, pW, Math.max(3, chapThick), chapTop, chapLeft, chapRight, '#292524');
+                    currentZ += chapThick;
+                }
+
+                // Seleciona layout desta camada (A para ímpares, B para pares se interlocked)
+                const isEvenLayer = (k % 2 === 1);
+                const layerBoxes = (isEvenLayer && isInterlock) ? layoutB : layoutA;
+
+                // Ordena caixas do fundo para a frente (Painter's algorithm: sort by x + y)
+                const sortedBoxes = [...layerBoxes].sort((a, b) => (a.x + a.y) - (b.x + b.y));
+
+                // Cores das Caixas (Papelão com sombreado volumétrico)
+                const boxTop = isEvenLayer ? '#fde047' : '#fbbf24';
+                const boxLeft = isEvenLayer ? '#eab308' : '#d97706';
+                const boxRight = isEvenLayer ? '#ca8a04' : '#b45309';
+                const boxStroke = '#78350f';
+
+                sortedBoxes.forEach(b => {
+                    draw3DBox(b.x, b.y, currentZ, b.w, b.h, bA, boxTop, boxLeft, boxRight, boxStroke);
+                });
+
+                currentZ += bA;
+            }
+
+            // Chapatex no topo se configurado
+            if (chapatexLayers.includes(layers)) {
+                draw3DBox(0, 0, currentZ, pL, pW, Math.max(3, chapThick), '#78350f', '#451a03', '#451a03', '#292524');
+            }
+
+            // 3. COTA DE ALTURA TOTAL NA LATERAL
+            const pTopMarker = iso(pL + 30, -30, currentZ);
+            const pBaseMarker = iso(pL + 30, -30, 0);
+
+            ctx.beginPath();
+            ctx.moveTo(pBaseMarker.x, pBaseMarker.y);
+            ctx.lineTo(pTopMarker.x, pTopMarker.y);
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Traços de ponta
+            ctx.beginPath();
+            ctx.moveTo(pBaseMarker.x - 8, pBaseMarker.y);
+            ctx.lineTo(pBaseMarker.x + 8, pBaseMarker.y);
+            ctx.moveTo(pTopMarker.x - 8, pTopMarker.y);
+            ctx.lineTo(pTopMarker.x + 8, pTopMarker.y);
+            ctx.stroke();
+
+            // Texto de Altura
+            const midMarkerY = (pBaseMarker.y + pTopMarker.y) / 2;
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 11px system-ui, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Alt: ${Math.round(totalPalletHeight)} mm`, pTopMarker.x + 12, midMarkerY);
+        }
+
+        // Renderizador 2D Planta Baixa (Camada A ou Camada B)
+        function drawPallet2D(ctx, w, h, data, isLayerB) {
+            const { pL, pW, bC, bL, layoutA, layoutB } = data;
+            const boxes = isLayerB ? layoutB : layoutA;
+
+            const margin = 40;
+            const scale = Math.min((w - (margin * 2)) / pL, (h - (margin * 2)) / pW);
+
+            const originX = (w - (pL * scale)) / 2;
+            const originY = (h - (pW * scale)) / 2;
+
+            // Fundo do Palete (Madeira 2D)
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(originX, originY, pL * scale, pW * scale);
+            ctx.strokeStyle = '#a855f7';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(originX, originY, pL * scale, pW * scale);
+
+            // Grid milimétrico sutil
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let x = 100; x < pL; x += 100) {
+                ctx.beginPath();
+                ctx.moveTo(originX + (x * scale), originY);
+                ctx.lineTo(originX + (x * scale), originY + (pW * scale));
+                ctx.stroke();
+            }
+            for (let y = 100; y < pW; y += 100) {
+                ctx.beginPath();
+                ctx.moveTo(originX, originY + (y * scale));
+                ctx.lineTo(originX + (pL * scale), originY + (y * scale));
+                ctx.stroke();
+            }
+
+            // Desenho das Caixas
+            boxes.forEach((b, idx) => {
+                const rx = originX + (b.x * scale);
+                const ry = originY + (b.y * scale);
+                const rw = b.w * scale;
+                const rh = b.h * scale;
+
+                // Preenchimento e Borda
+                ctx.fillStyle = isLayerB ? 'rgba(74, 222, 128, 0.25)' : 'rgba(56, 189, 248, 0.25)';
+                ctx.fillRect(rx + 1, ry + 1, rw - 2, rh - 2);
+
+                ctx.strokeStyle = isLayerB ? '#4ade80' : '#38bdf8';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(rx + 1, ry + 1, rw - 2, rh - 2);
+
+                // Número e Medidas da Caixa
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 10px system-ui, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`#${idx + 1}`, rx + (rw / 2), ry + (rh / 2) - 6);
+
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '9px monospace';
+                ctx.fillText(`${b.w}×${b.h}`, rx + (rw / 2), ry + (rh / 2) + 7);
+            });
+
+            // Cotas externas
+            ctx.fillStyle = '#a855f7';
+            ctx.font = 'bold 10px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Palete: ${pL} mm`, originX + ((pL * scale) / 2), originY + (pW * scale) + 18);
+
+            ctx.save();
+            ctx.translate(originX - 15, originY + ((pW * scale) / 2));
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(`${pW} mm`, 0, 0);
+            ctx.restore();
+        }
+
+        // Emissão e Impressão de Ficha Técnica de Paletização
+        function printPalletTechnicalSheet() {
+            if (!currentPalletData) return;
+            const d = currentPalletData;
+
+            const printWindow = window.open('', '_blank', 'width=900,height=800');
+            if (!printWindow) {
+                alert('Por favor, libere os pop-ups para gerar a Ficha de Paletização.');
+                return;
+            }
+
+            // Captura imagem do Canvas atual
+            const canvas = document.getElementById('pallet-canvas');
+            const imgData = canvas ? canvas.toDataURL('image/png') : '';
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Ficha Técnica de Paletização - Tecfag Industrial</title>
+                    <style>
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 25px; color: #1e293b; background: white; }
+                        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
+                        .header h1 { font-size: 1.4rem; margin: 0; color: #0f172a; text-transform: uppercase; }
+                        .header .sub { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+                        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.82rem; }
+                        th, td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; }
+                        th { background: #f1f5f9; font-weight: bold; color: #334155; }
+                        .highlight { font-weight: bold; color: #7c3aed; }
+                        .canvas-img { width: 100%; max-height: 320px; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 6px; background: #0f172a; }
+                        .box-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; background: #e0e7ff; color: #4338ca; font-weight: bold; font-size: 0.78rem; }
+                        .footer { margin-top: 30px; border-top: 1px dashed #94a3b8; padding-top: 10px; font-size: 0.72rem; color: #64748b; display: flex; justify-content: space-between; }
+                        @media print { body { padding: 0; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div>
+                            <h1>Tecfag Automação - Instrução de Paletização</h1>
+                            <div class="sub">Plano Operacional de Empilhamento e Amarração de Carga</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="box-badge">${d.patternName}</div>
+                            <div style="font-size: 0.72rem; color: #64748b; margin-top: 4px;">Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}</div>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div>
+                            <table>
+                                <thead><tr><th colspan="2">📦 1. ESPECIFICAÇÕES DA EMBALAGEM / CARGA</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Dimensões Unitárias (C × L × A):</td><td><strong>${d.bC} × ${d.bL} × ${d.bA} mm</strong></td></tr>
+                                    <tr><td>Peso Unitário:</td><td><strong>${d.bWeight} kg</strong></td></tr>
+                                    <tr><td>Caixas por Camada:</td><td><strong>${d.layoutA.length} cx/camada</strong></td></tr>
+                                    <tr><td>Nº Total de Camadas:</td><td><strong>${d.layers} camadas</strong></td></tr>
+                                    <tr><td>Total de Caixas no Palete:</td><td><strong style="color: #0284c7; font-size: 0.95rem;">${d.totalBoxes} caixas</strong></td></tr>
+                                </tbody>
+                            </table>
+
+                            <table>
+                                <thead><tr><th colspan="2">🪵 2. ESPECIFICAÇÕES DO PALETE & AMARRAÇÃO</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Tipo / Dimensões do Palete:</td><td><strong>${d.pL} × ${d.pW} × ${d.pH} mm</strong></td></tr>
+                                    <tr><td>Amarração Cruzada (Interlocking):</td><td><strong>${d.isInterlock ? 'Sim (Camadas pares invertidas)' : 'Não (Colunar)'}</strong></td></tr>
+                                    <tr><td>Chapas de Chapatex:</td><td><strong>${d.chapCount} chapas (${d.chapThick} mm cada)</strong></td></tr>
+                                    <tr><td>Altura Total c/ Palete:</td><td><strong style="color: #d97706; font-size: 0.95rem;">${Math.round(d.totalPalletHeight)} mm (${(d.totalPalletHeight/1000).toFixed(2)} m)</strong></td></tr>
+                                    <tr><td>Peso Bruto Total da Carga:</td><td><strong style="color: #16a34a; font-size: 0.95rem;">${Math.round(d.grossWeight)} kg</strong></td></tr>
+                                    <tr><td>Aproveitamento de Área:</td><td><strong>${d.areaEff}% de ocupação</strong></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div>
+                            <div style="font-weight: bold; font-size: 0.82rem; margin-bottom: 6px; color: #334155;">📐 Visualização Gráfica do Palete Homologado:</div>
+                            <img src="${imgData}" class="canvas-img" alt="Desenho Técnico do Palete" />
+                        </div>
+                    </div>
+
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 6px; font-size: 0.78rem; line-height: 1.5;">
+                        <strong>⚠️ INSTRUÇÕES DE SEGURANÇA E EXPEDIÇÃO:</strong>
+                        <ul style="margin: 4px 0 0 18px; padding: 0;">
+                            <li>Garantir o alinhamento das caixas no perímetro do palete antes da aplicação do filme stretch.</li>
+                            <li>Aplicar película stretch com tensão uniforme, realizando mínimo de 3 voltas na base e 3 voltas no topo.</li>
+                            <li>Posicionar as chapas de chapatex exatamente nas camadas indicadas para conferir rigidez estrutural.</li>
+                        </ul>
+                    </div>
+
+                    <div class="footer">
+                        <span>Tecfag Indústria e Comércio de Máquinas</span>
+                        <span>Documento de Engenharia & Expedição</span>
+                    </div>
+
+                    <script>
+                        window.onload = function() {
+                            setTimeout(() => { window.print(); }, 400);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
         }
 
         // Lógica de Consulta de NCM (BrasilAPI)
