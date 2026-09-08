@@ -4980,10 +4980,12 @@
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Modo de Arranjo:</label>
                                     <select id="pallet-pattern-mode" class="form-control" onchange="updatePalletCalculations()" style="padding: 5px 8px; font-size: 0.75rem;">
-                                        <option value="auto" selected>✨ Otimização Automática (Máx. Caixas)</option>
-                                        <option value="column">Colunar Reto (Todos no mesmo sentido)</option>
-                                        <option value="rotated">Rotacionado 90° (Sentido Invertido)</option>
-                                        <option value="mixed_block">Bloco Misto / Moinho de Vento</option>
+                                        <option value="auto" selected>✨ Otimização Automática (Máx. Caixas e Amarração)</option>
+                                        <option value="mixed_block">🔀 Bloco Misto (Amarração Cruzada)</option>
+                                        <option value="pinwheel">🌀 Moinho de Vento / Pinwheel (Cantos Travados)</option>
+                                        <option value="cross_orthogonal">🔁 Alternado 90° (Camada A vs B Cruzadas)</option>
+                                        <option value="column">🧱 Colunar Reto (Alinhado)</option>
+                                        <option value="rotated">🔄 Rotacionado 90°</option>
                                     </select>
                                 </div>
                             </div>
@@ -7488,45 +7490,9 @@
 
             let candidates = [];
 
-            // Padrão 1: Colunar Alinhado Reto (Comprimento da caixa ao longo do comprimento do palete)
-            const nx1 = Math.floor(effL / bL);
-            const ny1 = Math.floor(effW / bW);
-            if (nx1 > 0 && ny1 > 0) {
-                const boxes1 = [];
-                const gapX = (distributeSpacing && nx1 > 1) ? (effL - (nx1 * bL)) / (nx1 - 1) : 0;
-                const offX = (!distributeSpacing || nx1 === 1) ? Math.max(0, (effL - (nx1 * bL)) / 2) : 0;
-                const gapY = (distributeSpacing && ny1 > 1) ? (effW - (ny1 * bW)) / (ny1 - 1) : 0;
-                const offY = (!distributeSpacing || ny1 === 1) ? Math.max(0, (effW - (ny1 * bW)) / 2) : 0;
-
-                for (let i = 0; i < nx1; i++) {
-                    for (let j = 0; j < ny1; j++) {
-                        boxes1.push({ x: offX + i * (bL + gapX), y: offY + j * (bW + gapY), w: bL, h: bW, rot: 0 });
-                    }
-                }
-                candidates.push({ name: 'Colunar Reto', mode: 'column', count: nx1 * ny1, boxes: boxes1, usedL: effL, usedW: effW });
-            }
-
-            // Padrão 2: Colunar Rotacionado 90° (Largura da caixa ao longo do comprimento do palete)
-            const nx2 = Math.floor(effL / bW);
-            const ny2 = Math.floor(effW / bL);
-            if (nx2 > 0 && ny2 > 0) {
-                const boxes2 = [];
-                const gapX = (distributeSpacing && nx2 > 1) ? (effL - (nx2 * bW)) / (nx2 - 1) : 0;
-                const offX = (!distributeSpacing || nx2 === 1) ? Math.max(0, (effL - (nx2 * bW)) / 2) : 0;
-                const gapY = (distributeSpacing && ny2 > 1) ? (effW - (ny2 * bL)) / (ny2 - 1) : 0;
-                const offY = (!distributeSpacing || ny2 === 1) ? Math.max(0, (effW - (ny2 * bL)) / 2) : 0;
-
-                for (let i = 0; i < nx2; i++) {
-                    for (let j = 0; j < ny2; j++) {
-                        boxes2.push({ x: offX + i * (bW + gapX), y: offY + j * (bL + gapY), w: bW, h: bL, rot: 90 });
-                    }
-                }
-                candidates.push({ name: 'Colunar 90°', mode: 'rotated', count: nx2 * ny2, boxes: boxes2, usedL: effL, usedW: effW });
-            }
-
-            // Padrão 3: Bloco Misto Horizontal (Linhas Normais em cima + Linhas Rotacionadas em baixo)
-            const maxRowsNormal = Math.floor(effW / bW);
-            for (let r = 1; r < maxRowsNormal; r++) {
+            // 1. Padrão Bloco Misto Horizontal (Linhas Normais em cima + Linhas Rotacionadas em baixo)
+            const maxRowsNormalH = Math.floor(effW / bW);
+            for (let r = 1; r < maxRowsNormalH; r++) {
                 const topH = r * bW;
                 const remH = effW - topH;
                 const colsTop = Math.floor(effL / bL);
@@ -7568,19 +7534,20 @@
                     }
 
                     candidates.push({
-                        name: distributeSpacing ? 'Bloco Misto Horizontal (Perímetro 100% Palete)' : 'Bloco Misto Horizontal',
+                        name: distributeSpacing ? 'Bloco Misto Horizontal (Amarração Cruzada)' : 'Bloco Misto Horizontal',
                         mode: 'mixed_block',
                         count: boxes.length,
                         boxes: boxes,
                         usedL: effL,
-                        usedW: effW
+                        usedW: effW,
+                        interlockScore: 10
                     });
                 }
             }
 
-            // Padrão 4: Bloco Misto Vertical (Colunas Normais na esquerda + Colunas Rotacionadas na direita)
-            const maxColsNormal = Math.floor(effL / bL);
-            for (let c = 1; c < maxColsNormal; c++) {
+            // 2. Padrão Bloco Misto Vertical (Colunas Normais na esquerda + Colunas Rotacionadas na direita)
+            const maxColsNormalV = Math.floor(effL / bL);
+            for (let c = 1; c < maxColsNormalV; c++) {
                 const leftW = c * bL;
                 const remW = effL - leftW;
                 const rowsLeft = Math.floor(effW / bW);
@@ -7622,12 +7589,114 @@
                     }
 
                     candidates.push({
-                        name: distributeSpacing ? 'Bloco Misto Vertical (Perímetro 100% Palete)' : 'Bloco Misto Vertical / Moinho',
+                        name: distributeSpacing ? 'Bloco Misto Vertical (Amarração Cruzada)' : 'Bloco Misto Vertical / Moinho',
                         mode: 'mixed_block',
                         count: boxes.length,
                         boxes: boxes,
                         usedL: effL,
-                        usedW: effW
+                        usedW: effW,
+                        interlockScore: 10
+                    });
+                }
+            }
+
+            // 3. Padrão Moinho de Vento / Pinwheel (4 Quadrantes em Espiral)
+            for (let topCount = 1; topCount * bL <= effL - bW; topCount++) {
+                for (let rightCount = 1; rightCount * bL <= effW - bW; rightCount++) {
+                    const innerL = effL - (2 * bW);
+                    const innerW = effW - (2 * bL);
+
+                    let innerBoxes = [];
+                    if (innerL >= bL && innerW >= bW) {
+                        const inX = Math.floor(innerL / bL);
+                        const inY = Math.floor(innerW / bW);
+                        for (let ix = 0; ix < inX; ix++) {
+                            for (let iy = 0; iy < inY; iy++) {
+                                innerBoxes.push({ x: bW + ix * bL, y: bL + iy * bW, w: bL, h: bW, rot: 0 });
+                            }
+                        }
+                    } else if (innerL >= bW && innerW >= bL) {
+                        const inX = Math.floor(innerL / bW);
+                        const inY = Math.floor(innerW / bL);
+                        for (let ix = 0; ix < inX; ix++) {
+                            for (let iy = 0; iy < inY; iy++) {
+                                innerBoxes.push({ x: bW + ix * bW, y: bL + iy * bL, w: bW, h: bL, rot: 90 });
+                            }
+                        }
+                    }
+
+                    const perimCount = (topCount * 2) + (rightCount * 2);
+                    const totalCount = perimCount + innerBoxes.length;
+
+                    if (totalCount >= 4) {
+                        const boxes = [];
+                        for (let i = 0; i < topCount; i++) boxes.push({ x: i * bL, y: effW - bW, w: bL, h: bW, rot: 0 });
+                        for (let j = 0; j < rightCount; j++) boxes.push({ x: effL - bW, y: effW - (j + 1) * bL, w: bW, h: bL, rot: 90 });
+                        for (let i = 0; i < topCount; i++) boxes.push({ x: effL - (i + 1) * bL, y: 0, w: bL, h: bW, rot: 0 });
+                        for (let j = 0; j < rightCount; j++) boxes.push({ x: 0, y: j * bL, w: bW, h: bL, rot: 90 });
+                        innerBoxes.forEach(ib => boxes.push(ib));
+
+                        candidates.push({
+                            name: 'Moinho de Vento / Pinwheel (Cantos Travados)',
+                            mode: 'pinwheel',
+                            count: boxes.length,
+                            boxes: boxes,
+                            usedL: effL,
+                            usedW: effW,
+                            interlockScore: 12
+                        });
+                    }
+                }
+            }
+
+            // 4. Padrão Colunar Reto (Comprimento da caixa ao longo do comprimento do palete)
+            const nx1 = Math.floor(effL / bL);
+            const ny1 = Math.floor(effW / bW);
+            if (nx1 > 0 && ny1 > 0) {
+                const boxes1 = [];
+                const gapX = (distributeSpacing && nx1 > 1) ? (effL - (nx1 * bL)) / (nx1 - 1) : 0;
+                const offX = (!distributeSpacing || nx1 === 1) ? Math.max(0, (effL - (nx1 * bL)) / 2) : 0;
+                const gapY = (distributeSpacing && ny1 > 1) ? (effW - (ny1 * bW)) / (ny1 - 1) : 0;
+                const offY = (!distributeSpacing || ny1 === 1) ? Math.max(0, (effW - (ny1 * bW)) / 2) : 0;
+
+                for (let i = 0; i < nx1; i++) {
+                    for (let j = 0; j < ny1; j++) {
+                        boxes1.push({ x: offX + i * (bL + gapX), y: offY + j * (bW + gapY), w: bL, h: bW, rot: 0 });
+                    }
+                }
+                candidates.push({ name: 'Colunar Reto', mode: 'column', count: nx1 * ny1, boxes: boxes1, usedL: effL, usedW: effW, interlockScore: 0 });
+            }
+
+            // 5. Padrão Colunar Rotacionado 90° (Largura da caixa ao longo do comprimento do palete)
+            const nx2 = Math.floor(effL / bW);
+            const ny2 = Math.floor(effW / bL);
+            if (nx2 > 0 && ny2 > 0) {
+                const boxes2 = [];
+                const gapX = (distributeSpacing && nx2 > 1) ? (effL - (nx2 * bW)) / (nx2 - 1) : 0;
+                const offX = (!distributeSpacing || nx2 === 1) ? Math.max(0, (effL - (nx2 * bW)) / 2) : 0;
+                const gapY = (distributeSpacing && ny2 > 1) ? (effW - (ny2 * bL)) / (ny2 - 1) : 0;
+                const offY = (!distributeSpacing || ny2 === 1) ? Math.max(0, (effW - (ny2 * bL)) / 2) : 0;
+
+                for (let i = 0; i < nx2; i++) {
+                    for (let j = 0; j < ny2; j++) {
+                        boxes2.push({ x: offX + i * (bW + gapX), y: offY + j * (bL + gapY), w: bW, h: bL, rot: 90 });
+                    }
+                }
+                candidates.push({ name: 'Colunar 90°', mode: 'rotated', count: nx2 * ny2, boxes: boxes2, usedL: effL, usedW: effW, interlockScore: 0 });
+            }
+
+            // 6. Padrão Alternado Ortogonal 90° (Camada A 0° / Camada B 90°)
+            if (nx1 > 0 && ny1 > 0 && nx2 > 0 && ny2 > 0) {
+                const colCand = candidates.find(c => c.mode === 'column');
+                if (colCand) {
+                    candidates.push({
+                        name: 'Alternado Cruzado 90° (Camada A 0° / B 90°)',
+                        mode: 'cross_orthogonal',
+                        count: colCand.count,
+                        boxes: colCand.boxes,
+                        usedL: effL,
+                        usedW: effW,
+                        interlockScore: 8
                     });
                 }
             }
@@ -7639,9 +7708,10 @@
             }
             
             if (!selectedCandidate) {
-                // Auto: Seleciona o que tem maior quantidade de caixas e maior aproveitamento de área
+                // Auto: Seleciona o que tem maior quantidade de caixas, desempatando por amarração (interlockScore) e ocupação de área
                 candidates.sort((a, b) => {
                     if (b.count !== a.count) return b.count - a.count;
+                    if (b.interlockScore !== a.interlockScore) return b.interlockScore - a.interlockScore;
                     return (b.usedL * b.usedW) - (a.usedL * a.usedW);
                 });
                 selectedCandidate = candidates[0] || { name: 'Sem Encaixe', mode: 'none', count: 0, boxes: [], usedL: 0, usedW: 0 };
@@ -7659,14 +7729,69 @@
                 rot: b.rot
             }));
 
-            // Gerar Layout B (Amarração Cruzada Invertida em 180°)
-            const layoutB = layoutA.map(b => ({
-                x: Math.max(0, pL - (b.x + b.w)),
-                y: Math.max(0, pW - (b.y + b.h)),
-                w: b.w,
-                h: b.h,
-                rot: b.rot
-            }));
+            // Gerar Layout B (Amarração Cruzada Inteligente)
+            let layoutB = [];
+            if (selectedCandidate.mode === 'mixed_block' || selectedCandidate.mode === 'pinwheel') {
+                // Inversão 180° inverte perfeitamente os blocos, cruzando 100% das juntas entre camadas
+                layoutB = layoutA.map(b => ({
+                    x: Math.max(0, pL - (b.x + b.w)),
+                    y: Math.max(0, pW - (b.y + b.h)),
+                    w: b.w,
+                    h: b.h,
+                    rot: b.rot
+                }));
+            } else if (selectedCandidate.mode === 'cross_orthogonal' || selectedCandidate.mode === 'column') {
+                // Para padrões colunares, Camada B é rotacionada em 90° (se couber) para quebrar o efeito chaminé
+                const altCand = candidates.find(c => c.mode === 'rotated') || candidates.find(c => c.mode === 'mixed_block');
+                if (altCand && altCand.boxes.length > 0) {
+                    const altOffX = Math.max(0, (pL - altCand.usedL) / 2);
+                    const altOffY = Math.max(0, (pW - altCand.usedW) / 2);
+                    layoutB = altCand.boxes.map(b => ({
+                        x: b.x + altOffX,
+                        y: b.y + altOffY,
+                        w: b.w,
+                        h: b.h,
+                        rot: b.rot
+                    }));
+                } else {
+                    layoutB = layoutA.map(b => ({
+                        x: Math.max(0, pL - (b.x + b.w)),
+                        y: Math.max(0, pW - (b.y + b.h)),
+                        w: b.w,
+                        h: b.h,
+                        rot: b.rot
+                    }));
+                }
+            } else if (selectedCandidate.mode === 'rotated') {
+                const altCand = candidates.find(c => c.mode === 'column') || candidates.find(c => c.mode === 'mixed_block');
+                if (altCand && altCand.boxes.length > 0) {
+                    const altOffX = Math.max(0, (pL - altCand.usedL) / 2);
+                    const altOffY = Math.max(0, (pW - altCand.usedW) / 2);
+                    layoutB = altCand.boxes.map(b => ({
+                        x: b.x + altOffX,
+                        y: b.y + altOffY,
+                        w: b.w,
+                        h: b.h,
+                        rot: b.rot
+                    }));
+                } else {
+                    layoutB = layoutA.map(b => ({
+                        x: Math.max(0, pL - (b.x + b.w)),
+                        y: Math.max(0, pW - (b.y + b.h)),
+                        w: b.w,
+                        h: b.h,
+                        rot: b.rot
+                    }));
+                }
+            } else {
+                layoutB = layoutA.map(b => ({
+                    x: Math.max(0, pL - (b.x + b.w)),
+                    y: Math.max(0, pW - (b.y + b.h)),
+                    w: b.w,
+                    h: b.h,
+                    rot: b.rot
+                }));
+            }
 
             return {
                 patternName: selectedCandidate.name,
@@ -8027,10 +8152,11 @@
             ctx.fillText(`Alt: ${Math.round(totalPalletHeight)} mm`, pTopMarker.x + 12, midMarkerY);
         }
 
-        // Renderizador 2D Planta Baixa (Camada A ou Camada B)
+        // Renderizador 2D Planta Baixa (Camada A ou Camada B com Traçado de Amarração Cruzada)
         function drawPallet2D(ctx, w, h, data, isLayerB) {
-            const { pL, pW, bC, bL, layoutA, layoutB } = data;
+            const { pL, pW, bC, bL, layoutA, layoutB, isInterlock } = data;
             const boxes = isLayerB ? layoutB : layoutA;
+            const oppositeBoxes = isLayerB ? layoutA : layoutB;
 
             const margin = 40;
             const scale = Math.min((w - (margin * 2)) / pL, (h - (margin * 2)) / pW);
@@ -8039,7 +8165,7 @@
             const originY = (h - (pW * scale)) / 2;
 
             // Fundo do Palete (Madeira 2D)
-            ctx.fillStyle = '#1e293b';
+            ctx.fillStyle = '#0f172a';
             ctx.fillRect(originX, originY, pL * scale, pW * scale);
             ctx.strokeStyle = '#a855f7';
             ctx.lineWidth = 2;
@@ -8061,7 +8187,23 @@
                 ctx.stroke();
             }
 
-            // Desenho das Caixas
+            // 1. TRAÇADO FANTASMA DA CAMADA OPOSTA (Mostra o cruzamento e quebra de juntas / amarração)
+            if (isInterlock && oppositeBoxes && oppositeBoxes.length > 0) {
+                ctx.save();
+                ctx.strokeStyle = isLayerB ? 'rgba(56, 189, 248, 0.35)' : 'rgba(74, 222, 128, 0.25)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 3]);
+                oppositeBoxes.forEach(ob => {
+                    const ox = originX + (ob.x * scale);
+                    const oy = originY + (ob.y * scale);
+                    const ow = ob.w * scale;
+                    const oh = ob.h * scale;
+                    ctx.strokeRect(ox + 1, oy + 1, ow - 2, oh - 2);
+                });
+                ctx.restore();
+            }
+
+            // 2. DESENHO DAS CAIXAS DA CAMADA ATUAL
             boxes.forEach((b, idx) => {
                 const rx = originX + (b.x * scale);
                 const ry = originY + (b.y * scale);
@@ -8069,24 +8211,36 @@
                 const rh = b.h * scale;
 
                 // Preenchimento e Borda
-                ctx.fillStyle = isLayerB ? 'rgba(74, 222, 128, 0.25)' : 'rgba(56, 189, 248, 0.25)';
+                ctx.fillStyle = isLayerB ? 'rgba(74, 222, 128, 0.35)' : 'rgba(56, 189, 248, 0.35)';
                 ctx.fillRect(rx + 1, ry + 1, rw - 2, rh - 2);
 
                 ctx.strokeStyle = isLayerB ? '#4ade80' : '#38bdf8';
-                ctx.lineWidth = 1.5;
+                ctx.lineWidth = 2;
                 ctx.strokeRect(rx + 1, ry + 1, rw - 2, rh - 2);
 
-                // Número e Medidas da Caixa
+                // Número da Caixa
                 ctx.fillStyle = '#ffffff';
                 ctx.font = 'bold 10px system-ui, sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(`#${idx + 1}`, rx + (rw / 2), ry + (rh / 2) - 6);
 
-                ctx.fillStyle = '#94a3b8';
+                // Medidas e Orientação
+                ctx.fillStyle = isLayerB ? '#bbf7d0' : '#bae6fd';
                 ctx.font = '9px monospace';
                 ctx.fillText(`${b.w}×${b.h}`, rx + (rw / 2), ry + (rh / 2) + 7);
             });
+
+            // Legenda de Amarração Cruzada no topo
+            if (isInterlock) {
+                ctx.fillStyle = isLayerB ? '#4ade80' : '#38bdf8';
+                ctx.font = 'bold 9px system-ui, sans-serif';
+                ctx.textAlign = 'right';
+                const legendText = isLayerB 
+                    ? '🟩 Camada B (Ativa) | ┅ Camada A (Inferior Travada)' 
+                    : '🟦 Camada A (Ativa) | ┅ Camada B (Superior Amarrada)';
+                ctx.fillText(legendText, originX + (pL * scale), originY - 8);
+            }
 
             // Cotas externas
             ctx.fillStyle = '#a855f7';
