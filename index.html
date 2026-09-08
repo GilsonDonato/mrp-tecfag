@@ -8582,6 +8582,9 @@
         }
 
         function computeBoxPalletLayout(pL, pW, wallThick, bL, bW, gripperPick, distributeSpacing = true) {
+            if (!bL || !bW || bL < 30 || bW < 30 || !pL || !pW || pL < 200 || pW < 200 || !isFinite(bL) || !isFinite(bW) || !isFinite(pL) || !isFinite(pW)) {
+                return { nx: 0, ny: 0, count: 0, usableL: 0, usableW: 0, bottles: [], cycles: [], cyclesPerLayer: 0, chosenRot: 0 };
+            }
             const usableL = Math.max(100, pL - (wallThick * 2));
             const usableW = Math.max(100, pW - (wallThick * 2));
 
