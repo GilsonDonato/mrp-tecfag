@@ -4928,74 +4928,173 @@
         </div>
     </div>
 
-    <!-- MODAL 3: VALIDADOR DE CAIXAS DE PAPELÃO & SELADORAS FX-SERIES TECFAG -->
+    <!-- MODAL 3: VALIDADOR AVANÇADO DE CAIXAS & SELADORAS FX TECFAG -->
     <div class="modal-overlay" id="box-calc-modal" style="z-index: 1250; display: none;">
-        <div class="modal" style="width: 900px; max-width: 95vw; max-height: 90vh; overflow-y: auto; padding: 25px;">
+        <div class="modal" style="width: 1040px; max-width: 96vw; max-height: 92vh; overflow-y: auto; padding: 25px;">
             <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <h3 style="color: #f59e0b; font-size: 1.15rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
-                        📦 Validador de Envelope de Caixa & Seladoras FX Tecfag
+                    <h3 style="color: #f59e0b; font-size: 1.18rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        📦 Validador Avançado de Envelope de Caixa & Seladoras FX Tecfag
                     </h3>
-                    <small style="color: var(--text-secondary); font-size: 0.72rem;">Verificação de envelope mecânico (C×L×A) nas Seladoras de Fita Padrão FX-5050 e FX-6050 sem alteração de fábrica</small>
+                    <small style="color: var(--text-secondary); font-size: 0.72rem;">Verificação mecânica de túnel (C×L×A), tração anti-tombamento, consumo de fita adesiva BOPP e fechamento automático de abas</small>
                 </div>
                 <button class="btn-icon" onclick="closeBoxCalcModal()">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
-                <!-- DIMENSÕES DA CAIXA -->
+            <!-- PRESET RÁPIDO DE CAIXAS BRASILEIRAS (1-CLIQUE) -->
+            <div style="background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 12px 15px; margin-bottom: 15px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 1.1rem;">⚡</span>
+                    <label style="font-size: 0.75rem; font-weight: 800; color: #f59e0b; text-transform: uppercase; margin: 0; white-space: nowrap;">Preset Rápido de Caixa:</label>
+                </div>
+                <select id="box-preset-select" class="form-control" style="flex: 1; min-width: 260px; font-size: 0.8rem; font-weight: 600; border-color: rgba(245, 158, 11, 0.4); background: rgba(15, 23, 42, 0.8);" onchange="applyBoxPreset()">
+                    <option value="custom">⚙️ Personalizado (Custom / Entrada Manual)</option>
+                    <option value="ecommerce">📦 E-commerce Pequena (Cosméticos / Eletro: 200×150×120 mm - 1.5 kg)</option>
+                    <option value="standard_food">🥫 Caixa Alimentos / Limpeza Padrão (400×300×250 mm - 12 kg)</option>
+                    <option value="heavy_display">🧴 Caixa Display / Galões de Limpeza (450×320×340 mm - 22 kg)</option>
+                    <option value="tall_bottles">🍾 Caixa Alta Garrafas / Bebidas (300×180×400 mm - 15 kg ➜ Tração Superior)</option>
+                    <option value="wide_textile">👕 Caixa Extralarga Têxtil / Eletro (550×540×380 mm - 18 kg ➜ FX-6050)</option>
+                    <option value="auto_line">⚡ Linha 100% Automática com Flap-Closer (400×300×300 mm - FXA-5050)</option>
+                </select>
+                <span id="box-preset-badge" style="font-size: 0.68rem; font-weight: 700; padding: 4px 8px; border-radius: 4px; background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">Modo Automático</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1.15fr; gap: 20px; align-items: start;">
+                <!-- COLUNA 1: PARÂMETROS DA CAIXA & FITA -->
                 <div style="display: flex; flex-direction: column; gap: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
-                    <span style="font-size: 0.75rem; font-weight: 700; color: #f59e0b; text-transform: uppercase;">1. Dimensões da Caixa RSC (mm)</span>
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">1. Parâmetros da Caixa & Fechamento</span>
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
                         <div class="form-group">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Comprimento (C):</label>
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Comprimento (C mm):</label>
                             <input type="number" id="box-dim-c" class="form-control" value="400" oninput="updateBoxCalculations()">
                         </div>
                         <div class="form-group">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Largura (L):</label>
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Largura (L mm):</label>
                             <input type="number" id="box-dim-l" class="form-control" value="300" oninput="updateBoxCalculations()">
                         </div>
                         <div class="form-group">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Altura (A):</label>
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Altura (A mm):</label>
                             <input type="number" id="box-dim-a" class="form-control" value="250" oninput="updateBoxCalculations()">
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Peso Total da Caixa Cheia (kg):</label>
-                        <input type="number" id="box-weight-kg" class="form-control" value="12" oninput="updateBoxCalculations()">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Peso Total Cheia (kg):</label>
+                            <input type="number" id="box-weight-kg" class="form-control" value="12" oninput="updateBoxCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Velocidade Alvo (CPM):</label>
+                            <input type="number" id="box-speed-cpm" class="form-control" value="12" oninput="updateBoxCalculations()">
+                        </div>
                     </div>
 
-                    <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 6px; padding: 10px; font-size: 0.7rem; color: #cbd5e1; line-height: 1.4;">
-                        <strong>📏 Envelopes da Linha FX Tecfag:</strong><br>
-                        • <strong>FX-5050</strong>: Largura máx $500\text{mm}$ | Altura máx $500\text{mm}$<br>
-                        • <strong>FX-6050</strong>: Largura máx $600\text{mm}$ | Altura máx $500\text{mm}$
+                    <div class="form-group">
+                        <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Automação de Dobra de Abas:</label>
+                        <select id="box-flap-mode" class="form-control" style="font-size: 0.75rem;" onchange="updateBoxCalculations()">
+                            <option value="manual">Dobra Manual de Abas Superiores (Operador Empurra) ➜ Linha FX</option>
+                            <option value="auto">Dobra 100% Automática de Abas (Flap-Closer Pneumático) ➜ Linha FXA</option>
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Largura da Fita Adesiva:</label>
+                            <select id="box-tape-width" class="form-control" style="font-size: 0.75rem;" onchange="updateBoxCalculations()">
+                                <option value="48">48 mm (2 polegadas - Padrão)</option>
+                                <option value="72">72 mm (3 polegadas - Heavy Duty)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Rolo de Fita Adesiva:</label>
+                            <select id="box-tape-length" class="form-control" style="font-size: 0.75rem;" onchange="updateBoxCalculations()">
+                                <option value="100">100 Metros (Manual)</option>
+                                <option value="500">500 Metros (Semi-Industrial)</option>
+                                <option value="1000" selected>1.000 Metros (Industrial)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- DICA DE ENGENHARIA DE CAIXAS -->
+                    <div id="box-engineering-hint-box" style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 6px; padding: 10px; font-size: 0.7rem; color: #cbd5e1; line-height: 1.4;">
+                        <strong>💡 Regra de Engenharia Tecfag:</strong> Caixas com Altura maior que 1,6× a Largura apresentam alto centro de gravidade e exigem tração Top &amp; Bottom para não tombarem.
                     </div>
                 </div>
 
-                <!-- RESULTADO DE COMPATIBILIDADE MECÂNICA -->
+                <!-- COLUNA 2: GABARITO 2D & DIAGNÓSTICO -->
                 <div style="display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
-                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">2. Diagnóstico de Compatibilidade Mecânica</span>
+                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;">2. Gabarito 2D & Envelope Mecânico</span>
 
-                    <div style="background: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px;">
-                        <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Modelo de Seladora de Caixas Indicado:</span>
-                        <span id="box-res-model" style="font-size: 1.15rem; font-weight: 800; color: #4ade80;">Tecfag FX-5050 (Fita Superior & Inferior)</span>
+                    <!-- CANVAS 2D DO ENVELOPE -->
+                    <div style="background: #090d16; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden; position: relative;">
+                        <canvas id="box-envelope-canvas" width="440" height="210" style="display: block; width: 100%; height: auto;"></canvas>
+                        <div style="display: flex; justify-content: space-between; padding: 4px 10px; background: rgba(15,23,42,0.9); font-size: 0.62rem; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.06);">
+                            <span id="box-canvas-dim-label" style="color: #cbd5e1;">Caixa: 300(L) × 250(A) mm</span>
+                            <span id="box-canvas-clearance-label" style="color: #38bdf8;">Folga Lateral: +100 mm por lado</span>
+                        </div>
                     </div>
 
-                    <div style="background: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px;">
-                        <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Folga Lateral na Guia Mecânica:</span>
-                        <span id="box-res-clearance" style="font-size: 1.05rem; font-weight: 800; color: #38bdf8;">100 mm de folga disponível</span>
+                    <!-- MÓDULO INDICADO -->
+                    <div style="background: var(--bg-base); padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px;">
+                        <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Seladora Dimensionada:</span>
+                        <span id="box-res-model" style="font-size: 1.05rem; font-weight: 800; color: #4ade80;">Tecfag FX-5050 (Seladora de Fita Padrão)</span>
+                        <span id="box-res-drive-type" style="font-size: 0.70rem; color: #cbd5e1;">Tração por Correias Motorizadas Laterais Standard</span>
+                    </div>
+
+                    <!-- ESTABILIDADE E STATUS -->
+                    <div style="background: var(--bg-base); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Estabilidade Dinâmica:</span>
+                        <span id="box-res-stability" style="font-size: 0.72rem; font-weight: 800; color: #38bdf8;">🟢 Estabilidade Excelente (A/L = 0.83)</span>
                     </div>
 
                     <div id="box-res-status-box" style="padding: 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; text-align: center; background: rgba(74, 222, 128, 0.15); border: 1px solid #4ade80; color: #4ade80;">
-                        ✅ ENVELOPE MECÂNICO 100% DENTRO DO PADRÃO STANDARD
+                        ✅ ENVELOPE MECÂNICO 100% DENTRO DO PADRÃO STANDARD TECFAG
                     </div>
                 </div>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+            <!-- SEÇÃO INFERIOR: 3. PRODUTIVIDADE & CONSUMO DE FITA -->
+            <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 15px;">
+                <!-- CARD 1: CONSUMO DE FITA ADESIVA -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+                    <span style="font-size: 0.72rem; font-weight: 800; color: #38bdf8; text-transform: uppercase;">📏 Consumo de Fita Adesiva (BOPP)</span>
+                    <div style="font-size: 0.73rem; color: #cbd5e1; line-height: 1.4;">
+                        <div>Fita por Caixa: <strong id="box-res-tape-per-box" style="color: #fff;">1,00 m/caixa (Top + Bottom)</strong></div>
+                        <div style="margin-top: 3px;">Rendimento do Rolo: <strong id="box-res-boxes-per-roll" style="color: #38bdf8;">1.000 caixas/rolo</strong></div>
+                        <div style="color: #94a3b8; font-size: 0.68rem; margin-top: 2px;">Autonomia: <span id="box-res-roll-autonomy" style="color: #f59e0b; font-weight: 700;">1,4 horas</span> a 12 CPM</div>
+                    </div>
+                </div>
+
+                <!-- CARD 2: CAPACIDADE & TURNO -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+                    <span style="font-size: 0.72rem; font-weight: 800; color: #4ade80; text-transform: uppercase;">🏭 Produtividade da Seladora</span>
+                    <div style="font-size: 0.73rem; color: #cbd5e1; line-height: 1.4;">
+                        <div>Capacidade Máxima: <strong id="box-res-max-cpm" style="color: #fff;">Até 25 caixas/min (20 m/min)</strong></div>
+                        <div style="margin-top: 3px;">Rendimento/Turno (8h OEE 85%):</div>
+                        <div id="box-res-shift-boxes" style="font-size: 0.85rem; font-weight: 800; color: #4ade80;">4.896 caixas seladas/turno</div>
+                    </div>
+                </div>
+
+                <!-- CARD 3: UTILIDADES & INFRAESTRUTURA -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+                    <span style="font-size: 0.72rem; font-weight: 800; color: #a78bfa; text-transform: uppercase;">⚡ Utilidades & Acessórios</span>
+                    <div style="font-size: 0.73rem; color: #cbd5e1; line-height: 1.4;">
+                        <div>Potência Instalada: <strong id="box-res-power" style="color: #fff;">0,40 kW (220V 60Hz)</strong></div>
+                        <div>Ar Comprimido: <strong id="box-res-air" style="color: #fff;">Isento de Ar (100% Elétrica)</strong></div>
+                        <div style="color: #94a3b8; font-size: 0.68rem; margin-top: 2px;">Opcional: Mesas de Roletes Livres Extensíveis</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FOOTER COM BOTÃO DE EXPORTAR FICHA TÉCNICA (PDF) -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                <button class="btn btn-secondary" style="border-color: #f59e0b; color: #f59e0b; display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 0.78rem;" onclick="printBoxSpecSheet()">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    📄 Exportar Ficha Técnica de Fechamento (PDF)
+                </button>
                 <button class="btn btn-secondary" onclick="closeBoxCalcModal()">Fechar Validador</button>
             </div>
         </div>
@@ -7888,7 +7987,17 @@
             }
         }
 
-        // 2. VALIDADOR DE CAIXAS & SELADORAS FX TECFAG
+        // 2. VALIDADOR AVANÇADO DE CAIXAS & SELADORAS FX TECFAG
+        const BOX_PRESETS = {
+            'custom': { name: '⚙️ Personalizado (Custom)', c: 400, l: 300, a: 250, weight: 12, tapeWidth: 48, tapeLength: 1000, speedCpm: 12, flapMode: 'manual', hint: 'Configuração manual livre das dimensões da caixa e fita adesiva.' },
+            'ecommerce': { name: '📦 E-commerce Pequena (Cosméticos / Eletro)', c: 200, l: 150, a: 120, weight: 1.5, tapeWidth: 48, tapeLength: 1000, speedCpm: 15, flapMode: 'manual', hint: 'Caixa leve de despacho rápido. Excelente velocidade com Seladora FX-5050 e fita BOPP 48 mm.' },
+            'standard_food': { name: '🥫 Caixa Alimentos / Limpeza Padrão', c: 400, l: 300, a: 250, weight: 12, tapeWidth: 48, tapeLength: 1000, speedCpm: 12, flapMode: 'manual', hint: 'Envelope industrial standard ideal para a Seladora FX-5050 com roletes de entrada e saída.' },
+            'heavy_display': { name: '🧴 Caixa Display / Galões de Limpeza', c: 450, l: 320, a: 340, weight: 22, tapeWidth: 72, tapeLength: 1000, speedCpm: 10, flapMode: 'manual', hint: 'Caixa pesada com produtos líquidos. Recomenda-se fita larga de 72 mm para reforço do fundo.' },
+            'tall_bottles': { name: '🍾 Caixa Alta Garrafas / Bebidas (Tração Superior)', c: 300, l: 180, a: 400, weight: 15, tapeWidth: 48, tapeLength: 1000, speedCpm: 12, flapMode: 'manual', hint: 'Caixa alta e estreita (A/L > 1.6). Obrigatório uso de Seladora com Tração Superior e Inferior FX-5050TB anti-tombamento.' },
+            'wide_textile': { name: '👕 Caixa Extralarga Têxtil / Eletro (FX-6050)', c: 550, l: 540, a: 380, weight: 18, tapeWidth: 72, tapeLength: 1000, speedCpm: 10, flapMode: 'manual', hint: 'Largura superior a 500 mm. Exige Seladora de Caixas Largas Tecfag FX-6050 (até 600 mm de vão).' },
+            'auto_line': { name: '⚡ Linha 100% Automática com Flap-Closer (FXA-5050)', c: 400, l: 300, a: 300, weight: 14, tapeWidth: 48, tapeLength: 1000, speedCpm: 18, flapMode: 'auto', hint: 'Fechador Automático Pneumático de Abas (Flap-Closer). Não requer operador humano para dobra.' }
+        };
+
         function openBoxCalcModal() {
             const modal = document.getElementById('box-calc-modal');
             if (modal) modal.style.display = 'flex';
@@ -7900,34 +8009,287 @@
             if (modal) modal.style.display = 'none';
         }
 
-        function updateBoxCalculations() {
-            const c = parseFloat(document.getElementById('box-dim-c')?.value) || 400;
-            const l = parseFloat(document.getElementById('box-dim-l')?.value) || 300;
-            const a = parseFloat(document.getElementById('box-dim-a')?.value) || 250;
-            const weight = parseFloat(document.getElementById('box-weight-kg')?.value) || 12;
+        function applyBoxPreset() {
+            const presetKey = document.getElementById('box-preset-select')?.value || 'custom';
+            const preset = BOX_PRESETS[presetKey];
+            if (!preset) return;
 
-            let modelName = '';
-            let clearance = '';
-            let isOk = true;
-            let statusText = '';
-
-            if (l <= 500 && a <= 500) {
-                modelName = 'Tecfag FX-5050 (Seladora de Fita Superior & Inferior)';
-                clearance = (500 - l) + ' mm de folga na guias laterais';
-                statusText = '✅ ENVELOPE MECÂNICO 100% DENTRO DA SELADORA STANDARD FX-5050';
-            } else if (l <= 600 && a <= 500) {
-                modelName = 'Tecfag FX-6050 (Seladora para Caixas Largas)';
-                clearance = (600 - l) + ' mm de folga nas guias laterais';
-                statusText = '✅ ENVELOPE MECÂNICO 100% DENTRO DA SELADORA STANDARD FX-6050';
-            } else {
-                modelName = '⚠️ CAIXA EXCEDE ENVELOPE STANDARD!';
-                clearance = '0 mm (Excede limite de 600×500 mm)';
-                isOk = false;
-                statusText = '🛑 CAIXA FORA DO CATÁLOGO STANDARD! Reduzir dimensões da caixa de papelão.';
+            const badge = document.getElementById('box-preset-badge');
+            if (badge) {
+                if (presetKey === 'custom') {
+                    badge.innerText = 'Modo Manual';
+                    badge.style.color = '#f59e0b';
+                    badge.style.background = 'rgba(245, 158, 11, 0.15)';
+                    badge.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+                } else {
+                    badge.innerText = 'Preset Ativo';
+                    badge.style.color = '#4ade80';
+                    badge.style.background = 'rgba(74, 222, 128, 0.15)';
+                    badge.style.borderColor = 'rgba(74, 222, 128, 0.3)';
+                }
             }
 
-            document.getElementById('box-res-model').innerText = modelName;
-            document.getElementById('box-res-clearance').innerText = clearance;
+            if (presetKey !== 'custom') {
+                const cEl = document.getElementById('box-dim-c');
+                const lEl = document.getElementById('box-dim-l');
+                const aEl = document.getElementById('box-dim-a');
+                const weightEl = document.getElementById('box-weight-kg');
+                const speedEl = document.getElementById('box-speed-cpm');
+                const flapEl = document.getElementById('box-flap-mode');
+                const tapeWEl = document.getElementById('box-tape-width');
+                const tapeLEl = document.getElementById('box-tape-length');
+
+                if (cEl) cEl.value = preset.c;
+                if (lEl) lEl.value = preset.l;
+                if (aEl) aEl.value = preset.a;
+                if (weightEl) weightEl.value = preset.weight;
+                if (speedEl) speedEl.value = preset.speedCpm;
+                if (flapEl) flapEl.value = preset.flapMode;
+                if (tapeWEl) tapeWEl.value = preset.tapeWidth;
+                if (tapeLEl) tapeLEl.value = preset.tapeLength;
+            }
+
+            updateBoxCalculations();
+        }
+
+        function drawBoxEnvelopeCanvas(boxL, boxA, maxL, maxA, isTall, isOk, clearanceL, clearanceA) {
+            const canvas = document.getElementById('box-envelope-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Background
+            ctx.fillStyle = '#090d16';
+            ctx.fillRect(0, 0, w, h);
+
+            const marginX = 50;
+            const marginY = 25;
+            const drawW = w - (marginX * 2);
+            const drawH = h - (marginY * 2);
+
+            const frameL = Math.max(500, maxL);
+            const frameA = Math.max(500, maxA);
+            const scale = Math.min(drawW / (frameL * 1.15), drawH / (frameA * 1.15));
+
+            const originX = (w - (frameL * scale)) / 2;
+            const originY = h - marginY - 10; // Bottom baseline
+
+            // 1. Bottom Rollers
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(originX - 15, originY, (frameL * scale) + 30, 8);
+            for (let rx = originX - 10; rx <= originX + (frameL * scale) + 10; rx += 18) {
+                ctx.beginPath();
+                ctx.arc(rx, originY + 4, 3, 0, Math.PI * 2);
+                ctx.fillStyle = '#64748b';
+                ctx.fill();
+            }
+
+            // 2. Outer Steel Tunnel Frame
+            ctx.strokeStyle = isOk ? 'rgba(56, 189, 248, 0.4)' : 'rgba(239, 68, 68, 0.5)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.strokeRect(originX, originY - (frameA * scale), frameL * scale, frameA * scale);
+            ctx.setLineDash([]);
+
+            // Tunnel Dimensions Label
+            ctx.fillStyle = isOk ? '#38bdf8' : '#ef4444';
+            ctx.font = 'bold 9px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Túnel Máx: ${frameL} × ${frameA} mm`, originX + (frameL * scale) / 2, originY - (frameA * scale) - 6);
+
+            // 3. Drive Belts & Box
+            const boxPixelW = Math.min(drawW, boxL * scale);
+            const boxPixelH = Math.min(drawH, boxA * scale);
+            const boxX = (w - boxPixelW) / 2;
+            const boxY = originY - boxPixelH;
+
+            if (isTall) {
+                // Top Belt
+                ctx.fillStyle = '#0284c7';
+                ctx.fillRect(boxX + 10, boxY - 8, boxPixelW - 20, 7);
+                ctx.fillStyle = '#38bdf8';
+                ctx.font = 'bold 8px system-ui, sans-serif';
+                ctx.fillText('▼ Correia Superior', boxX + boxPixelW / 2, boxY - 11);
+            } else {
+                // Lateral Belts
+                const beltThickness = 10;
+                ctx.fillStyle = '#0284c7';
+                ctx.fillRect(boxX - beltThickness, boxY + (boxPixelH * 0.2), beltThickness, boxPixelH * 0.6);
+                ctx.fillRect(boxX + boxPixelW, boxY + (boxPixelH * 0.2), beltThickness, boxPixelH * 0.6);
+
+                ctx.fillStyle = '#38bdf8';
+                ctx.font = 'bold 9px system-ui, sans-serif';
+                ctx.fillText('►', boxX - 16, boxY + (boxPixelH * 0.5) + 3);
+                ctx.fillText('◄', boxX + boxPixelW + 12, boxY + (boxPixelH * 0.5) + 3);
+            }
+
+            // 4. Cardboard Box
+            const boxGrad = ctx.createLinearGradient(boxX, boxY, boxX + boxPixelW, boxY + boxPixelH);
+            boxGrad.addColorStop(0, '#d97706');
+            boxGrad.addColorStop(1, '#b45309');
+            ctx.fillStyle = isOk ? boxGrad : 'rgba(239, 68, 68, 0.4)';
+            ctx.fillRect(boxX, boxY, boxPixelW, boxPixelH);
+
+            ctx.strokeStyle = isOk ? '#f59e0b' : '#ef4444';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(boxX, boxY, boxPixelW, boxPixelH);
+
+            // Crease line
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(boxX + (boxPixelW / 2), boxY);
+            ctx.lineTo(boxX + (boxPixelW / 2), boxY + boxPixelH);
+            ctx.stroke();
+
+            // 5. Applied Tape (Top & Bottom)
+            const tapePixelW = Math.max(12, boxPixelW * 0.16);
+            const tapeOverlapH = Math.min(12, boxPixelH * 0.18);
+            const tapeX = boxX + (boxPixelW - tapePixelW) / 2;
+
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(tapeX, boxY - 2, tapePixelW, 4);
+            ctx.fillRect(tapeX, boxY, tapePixelW, tapeOverlapH);
+            ctx.fillRect(tapeX, boxY + boxPixelH - 2, tapePixelW, 4);
+            ctx.fillRect(tapeX, boxY + boxPixelH - tapeOverlapH, tapePixelW, tapeOverlapH);
+
+            // Box Label
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${boxL} × ${boxA} mm`, boxX + (boxPixelW / 2), boxY + (boxPixelH / 2) + 4);
+
+            // 6. Clearance markers
+            if (isOk) {
+                ctx.fillStyle = '#4ade80';
+                ctx.font = '8px system-ui, sans-serif';
+                const leftGap = (boxX - originX);
+                if (leftGap > 15) {
+                    ctx.fillText(`+${Math.round(clearanceL / 2)}mm`, originX + leftGap / 2, originY - 12);
+                }
+                const topGap = (boxY - (originY - (frameA * scale)));
+                if (topGap > 15) {
+                    ctx.fillText(`+${Math.round(clearanceA)}mm folga`, boxX + (boxPixelW / 2), boxY - 4);
+                }
+            }
+        }
+
+        function updateBoxCalculations() {
+            const c = Math.max(100, parseFloat(document.getElementById('box-dim-c')?.value) || 400);
+            const l = Math.max(80, parseFloat(document.getElementById('box-dim-l')?.value) || 300);
+            const a = Math.max(80, parseFloat(document.getElementById('box-dim-a')?.value) || 250);
+            const weight = Math.max(0.5, parseFloat(document.getElementById('box-weight-kg')?.value) || 12);
+            const speedCpm = Math.max(1, Math.min(40, parseFloat(document.getElementById('box-speed-cpm')?.value) || 12));
+            const flapMode = document.getElementById('box-flap-mode')?.value || 'manual';
+            const tapeWidth = parseFloat(document.getElementById('box-tape-width')?.value) || 48;
+            const tapeLength = parseFloat(document.getElementById('box-tape-length')?.value) || 1000;
+
+            const aspectRatio = a / l;
+            const isTall = aspectRatio > 1.55;
+            const isWide = l > 500;
+            const isOverLimit = l > 600 || a > 500 || c > 800;
+
+            let maxL = isWide ? 600 : 500;
+            let maxA = 500;
+            let modelName = '';
+            let driveType = '';
+            let clearanceL = 0;
+            let clearanceA = 0;
+            let isOk = true;
+            let statusText = '';
+            let stabilityText = '';
+
+            if (isOverLimit) {
+                modelName = '⚠️ CAIXA EXCEDE ENVELOPE STANDARD TECFAG';
+                driveType = 'Incompatível com Linha Standard FX';
+                clearanceL = Math.max(0, 600 - l);
+                clearanceA = Math.max(0, 500 - a);
+                isOk = false;
+                statusText = '🛑 CAIXA FORA DO ENVELOPE STANDARD! Requer Seladora Sob Medida ou redução da caixa.';
+                stabilityText = `⚠️ Dimensões (${l}×${a} mm) excedem o vão mecânico máximo da série FX (600×500 mm).`;
+            } else if (flapMode === 'auto') {
+                modelName = isWide ? 'Tecfag FXA-6050 (Fechadora Automática de Abas)' : 'Tecfag FXA-5050 (Fechadora Automática de Abas Pneumática)';
+                driveType = 'Tração por Correias Laterais + Dobrador Pneumático de 4 Abas';
+                clearanceL = (isWide ? 600 : 500) - l;
+                clearanceA = 500 - a;
+                statusText = '✅ LINHA AUTOMÁTICA APROVADA: SELADORA COM FLAP-CLOSER TECFAG';
+                stabilityText = isTall ? '⚠️ Caixa alta: Requer guias laterais de contenção elevadas.' : '🟢 Operação contínua 100% automática sem intervenção manual.';
+            } else if (isTall) {
+                modelName = 'Tecfag FX-5050TB (Seladora c/ Tração Superior e Inferior)';
+                driveType = 'Correias Motorizadas Superior & Inferior (Anti-Tombamento)';
+                clearanceL = 500 - l;
+                clearanceA = 500 - a;
+                statusText = '✅ ENVELOPE APROVADO COM TRAÇÃO TOP & BOTTOM (ANTI-TOMBAMENTO)';
+                stabilityText = `⚠️ Caixa Alta e Estreita (A/L = ${aspectRatio.toFixed(2)}): Tração Top & Bottom obrigatória para não tombar.`;
+            } else if (isWide) {
+                modelName = 'Tecfag FX-6050 (Seladora de Fita para Caixas Largas)';
+                driveType = 'Correias Motorizadas Laterais Reforçadas';
+                clearanceL = 600 - l;
+                clearanceA = 500 - a;
+                statusText = '✅ ENVELOPE MECÂNICO 100% DENTRO DA SELADORA FX-6050';
+                stabilityText = `🟢 Estabilidade Excelente com centro de gravidade baixo (A/L = ${aspectRatio.toFixed(2)}).`;
+            } else {
+                modelName = 'Tecfag FX-5050 (Seladora de Fita Padrão Superior & Inferior)';
+                driveType = 'Correias Motorizadas Laterais Standard';
+                clearanceL = 500 - l;
+                clearanceA = 500 - a;
+                statusText = '✅ ENVELOPE MECÂNICO 100% DENTRO DA SELADORA STANDARD FX-5050';
+                stabilityText = `🟢 Estabilidade Excelente com centro de gravidade baixo (A/L = ${aspectRatio.toFixed(2)}).`;
+            }
+
+            // Tape calculations
+            const tapeOverlap = 50; // mm cada aba
+            const tapePerBoxMeters = (2 * (c + (tapeOverlap * 2))) / 1000;
+            const boxesPerRoll = Math.floor(tapeLength / tapePerBoxMeters);
+            const rollAutonomyHours = (boxesPerRoll / (speedCpm * 60));
+
+            // Machine throughput
+            const minPassTimeSec = (c + 150) / 333;
+            const maxTheoreticalCpm = Math.min(30, Math.floor(60 / minPassTimeSec));
+            const oee = 0.85;
+            const boxesPerHour = speedCpm * 60;
+            const boxesPerShift = Math.round(boxesPerHour * 8 * oee);
+
+            // Utilities
+            const powerKw = (flapMode === 'auto') ? 0.60 : 0.40;
+            const airText = (flapMode === 'auto') ? '120 Nl/min @ 6 bar (Flap Pneumático)' : 'Isento de Ar (100% Elétrica)';
+
+            // Update UI
+            const modelEl = document.getElementById('box-res-model');
+            if (modelEl) modelEl.innerText = modelName;
+
+            const driveEl = document.getElementById('box-res-drive-type');
+            if (driveEl) driveEl.innerText = driveType;
+
+            const stabEl = document.getElementById('box-res-stability');
+            if (stabEl) {
+                stabEl.innerText = stabilityText;
+                stabEl.style.color = isTall ? '#f59e0b' : '#38bdf8';
+            }
+
+            const tapePerBoxEl = document.getElementById('box-res-tape-per-box');
+            if (tapePerBoxEl) tapePerBoxEl.innerText = `${tapePerBoxMeters.toFixed(2)} m/caixa (Fita ${tapeWidth} mm)`;
+
+            const boxesPerRollEl = document.getElementById('box-res-boxes-per-roll');
+            if (boxesPerRollEl) boxesPerRollEl.innerText = `${boxesPerRoll.toLocaleString('pt-BR')} caixas/rolo (${tapeLength}m)`;
+
+            const rollAutonomyEl = document.getElementById('box-res-roll-autonomy');
+            if (rollAutonomyEl) rollAutonomyEl.innerText = `${rollAutonomyHours.toFixed(1)} horas`;
+
+            const maxCpmEl = document.getElementById('box-res-max-cpm');
+            if (maxCpmEl) maxCpmEl.innerText = `Até ${maxTheoreticalCpm} caixas/min (20 m/min)`;
+
+            const shiftBoxesEl = document.getElementById('box-res-shift-boxes');
+            if (shiftBoxesEl) shiftBoxesEl.innerText = `${boxesPerShift.toLocaleString('pt-BR')} caixas seladas/turno`;
+
+            const powerEl = document.getElementById('box-res-power');
+            if (powerEl) powerEl.innerText = `${powerKw.toFixed(2)} kW (220V 60Hz)`;
+
+            const airEl = document.getElementById('box-res-air');
+            if (airEl) airEl.innerText = airText;
 
             const statusBox = document.getElementById('box-res-status-box');
             if (statusBox) {
@@ -7935,6 +8297,148 @@
                 statusBox.style.background = isOk ? 'rgba(74, 222, 128, 0.15)' : 'rgba(239, 68, 68, 0.15)';
                 statusBox.style.color = isOk ? '#4ade80' : '#fca5a5';
                 statusBox.style.borderColor = isOk ? '#4ade80' : '#ef4444';
+            }
+
+            // Labels under canvas
+            const dimLabel = document.getElementById('box-canvas-dim-label');
+            if (dimLabel) dimLabel.innerText = `Caixa: ${l}(L) × ${a}(A) mm | Peso: ${weight} kg`;
+
+            const clLabel = document.getElementById('box-canvas-clearance-label');
+            if (clLabel) clLabel.innerText = `Folga Lateral: +${Math.round(clearanceL / 2)} mm | Altura: +${clearanceA} mm`;
+
+            // Update Hint Box
+            const currentPresetKey = document.getElementById('box-preset-select')?.value || 'custom';
+            const hintBox = document.getElementById('box-engineering-hint-box');
+            if (hintBox) {
+                if (currentPresetKey !== 'custom' && BOX_PRESETS[currentPresetKey]?.hint) {
+                    hintBox.innerHTML = `<strong>💡 Aplicação ${BOX_PRESETS[currentPresetKey].name.split('(')[0]}:</strong> ${BOX_PRESETS[currentPresetKey].hint}`;
+                } else {
+                    if (isTall) {
+                        hintBox.innerHTML = `<strong>💡 Regra de Engenharia Tecfag:</strong> Caixas com Altura maior que 1,6× a Largura apresentam alto centro de gravidade e exigem tração Top & Bottom para não tombarem.`;
+                    } else if (isWide) {
+                        hintBox.innerHTML = `<strong>💡 Regra de Engenharia Tecfag:</strong> Caixas largas exigem o chassi expandido da Seladora FX-6050 para evitar travamento nas colunas de cabeçote.`;
+                    } else {
+                        hintBox.innerHTML = `<strong>💡 Regra de Engenharia Tecfag:</strong> Seladoras da Linha FX utilizam cabeçotes K11 standard com troca rápida de fita adesiva e corte preciso por lâmina serrilhada protegida.`;
+                    }
+                }
+            }
+
+            // Draw Canvas 2D
+            drawBoxEnvelopeCanvas(l, a, maxL, maxA, isTall, isOk, clearanceL, clearanceA);
+        }
+
+        // FUNÇÃO DE IMPRESSÃO / EXPORTAÇÃO DE FICHA TÉCNICA DE CAIXAS (PDF)
+        function printBoxSpecSheet() {
+            const presetKey = document.getElementById('box-preset-select')?.value || 'custom';
+            const presetName = BOX_PRESETS[presetKey]?.name || 'Projeto de Caixa Personalizado';
+            const c = document.getElementById('box-dim-c')?.value || '400';
+            const l = document.getElementById('box-dim-l')?.value || '300';
+            const a = document.getElementById('box-dim-a')?.value || '250';
+            const weight = document.getElementById('box-weight-kg')?.value || '12';
+            const speedCpm = document.getElementById('box-speed-cpm')?.value || '12';
+            const flapMode = document.getElementById('box-flap-mode')?.selectedOptions[0]?.text || '';
+            const tapeWidth = document.getElementById('box-tape-width')?.selectedOptions[0]?.text || '';
+            const tapeLength = document.getElementById('box-tape-length')?.selectedOptions[0]?.text || '';
+            
+            const modelName = document.getElementById('box-res-model')?.innerText || '';
+            const driveType = document.getElementById('box-res-drive-type')?.innerText || '';
+            const stability = document.getElementById('box-res-stability')?.innerText || '';
+            const tapePerBox = document.getElementById('box-res-tape-per-box')?.innerText || '';
+            const boxesPerRoll = document.getElementById('box-res-boxes-per-roll')?.innerText || '';
+            const rollAutonomy = document.getElementById('box-res-roll-autonomy')?.innerText || '';
+            const maxCpm = document.getElementById('box-res-max-cpm')?.innerText || '';
+            const shiftBoxes = document.getElementById('box-res-shift-boxes')?.innerText || '';
+            const power = document.getElementById('box-res-power')?.innerText || '';
+            const air = document.getElementById('box-res-air')?.innerText || '';
+            const statusText = document.getElementById('box-res-status-box')?.innerText || '';
+
+            const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR');
+
+            const printHtml = `
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+                <meta charset="UTF-8">
+                <title>Ficha Técnica de Fechamento de Caixas - Tecfag</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; margin: 0; padding: 30px; background: #fff; line-height: 1.5; }
+                    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f59e0b; padding-bottom: 15px; margin-bottom: 20px; }
+                    .logo-title h1 { margin: 0; font-size: 22px; color: #0f172a; }
+                    .logo-title h2 { margin: 2px 0 0 0; font-size: 13px; color: #f59e0b; text-transform: uppercase; letter-spacing: 1px; }
+                    .meta { text-align: right; font-size: 11px; color: #64748b; }
+                    .section-title { font-size: 13px; font-weight: bold; text-transform: uppercase; color: #0f172a; background: #fef3c7; padding: 6px 10px; border-left: 4px solid #f59e0b; margin: 18px 0 10px 0; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px; }
+                    th, td { padding: 7px 10px; border: 1px solid #cbd5e1; text-align: left; }
+                    th { background: #f8fafc; font-weight: 600; color: #334155; width: 35%; }
+                    .status-box { padding: 12px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 13px; background: #f0fdf4; border: 1px solid #22c55e; color: #15803d; margin: 20px 0; }
+                    .footer { text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 25px; }
+                    @media print { body { padding: 15px; } }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div class="logo-title">
+                        <h1>TECFAG MÁQUINAS E AUTOMAÇÃO</h1>
+                        <h2>Memorial Descritivo & Validação de Seladoras de Caixas FX</h2>
+                    </div>
+                    <div class="meta">
+                        <div><strong>Data:</strong> ${dateStr}</div>
+                        <div><strong>Projeto:</strong> ${presetName}</div>
+                    </div>
+                </div>
+
+                <div class="status-box">
+                    ${statusText}
+                </div>
+
+                <div class="section-title">1. Especificação da Caixa de Papelão & Insumos</div>
+                <table>
+                    <tr><th>Dimensões da Caixa (C × L × A):</th><td><strong>${c} × ${l} × ${a} mm</strong></td></tr>
+                    <tr><th>Peso Bruto da Caixa Cheia:</th><td><strong>${weight} kg</strong></td></tr>
+                    <tr><th>Modo de Dobra de Abas:</th><td>${flapMode}</td></tr>
+                    <tr><th>Largura da Fita Adesiva:</th><td>${tapeWidth}</td></tr>
+                    <tr><th>Comprimento do Rolo:</th><td>${tapeLength}</td></tr>
+                </table>
+
+                <div class="section-title">2. Dimensionamento Mecânico da Seladora</div>
+                <table>
+                    <tr><th>Modelo de Seladora Indicado:</th><td><strong>${modelName}</strong></td></tr>
+                    <tr><th>Sistema de Tração:</th><td>${driveType}</td></tr>
+                    <tr><th>Análise de Estabilidade / Tombamento:</th><td><strong>${stability}</strong></td></tr>
+                    <tr><th>Velocidade Linear da Esteira:</th><td>20 metros/minuto (333 mm/s)</td></tr>
+                </table>
+
+                <div class="section-title">3. Produtividade & Consumo de Insumos (BOPP)</div>
+                <table>
+                    <tr><th>Consumo de Fita por Caixa:</th><td><strong>${tapePerBox}</strong></td></tr>
+                    <tr><th>Rendimento por Rolo de Fita:</th><td><strong>${boxesPerRoll}</strong> (${rollAutonomy} de autonomia)</td></tr>
+                    <tr><th>Meta de Produção da Linha:</th><td><strong>${speedCpm} caixas/minuto</strong> (${maxCpm})</td></tr>
+                    <tr><th>Rendimento por Turno (8h @ 85% OEE):</th><td><strong>${shiftBoxes}</strong></td></tr>
+                </table>
+
+                <div class="section-title">4. Utilidades & Infraestrutura de Instalação</div>
+                <table>
+                    <tr><th>Potência Elétrica Instalada:</th><td>${power}</td></tr>
+                    <tr><th>Consumo de Ar Comprimido:</th><td>${air}</td></tr>
+                    <tr><th>Acessórios Recomendados:</th><td>Mesas de Roletes Livres Extensíveis de Entrada e Saída</td></tr>
+                </table>
+
+                <div class="footer">
+                    Tecfag Automação de Embalagens © ${new Date().getFullYear()} • Documento emitido para respaldar proposta comercial e memorial descritivo.
+                </div>
+            </body>
+            </html>
+            `;
+
+            const printWin = window.open('', '_blank', 'width=900,height=750');
+            if (printWin) {
+                printWin.document.open();
+                printWin.document.write(printHtml);
+                printWin.document.close();
+                setTimeout(() => {
+                    printWin.focus();
+                    printWin.print();
+                }, 400);
             }
         }
 
