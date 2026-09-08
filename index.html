@@ -4976,11 +4976,19 @@
                             </div>
                         </div>
 
-                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
-                            <input type="checkbox" id="pallet-interlock-enabled" checked onchange="updatePalletCalculations()" style="width: 14px; height: 14px; cursor: pointer;">
-                            <label for="pallet-interlock-enabled" style="font-size: 0.68rem; color: var(--text-primary); cursor: pointer; margin-bottom: 0;">
-                                <strong>Amarração Cruzada Ativa:</strong> Inverter Camadas Pares (Layout B) para travar a carga e evitar tombamento
-                            </label>
+                        <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" id="pallet-interlock-enabled" checked onchange="updatePalletCalculations()" style="width: 14px; height: 14px; cursor: pointer;">
+                                <label for="pallet-interlock-enabled" style="font-size: 0.68rem; color: var(--text-primary); cursor: pointer; margin-bottom: 0;">
+                                    <strong>Amarração Cruzada Ativa:</strong> Inverter Camadas Pares (Layout B) para travar carga
+                                </label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" id="pallet-distribute-spacing" checked onchange="updatePalletCalculations()" style="width: 14px; height: 14px; cursor: pointer;">
+                                <label for="pallet-distribute-spacing" style="font-size: 0.68rem; color: #38bdf8; cursor: pointer; margin-bottom: 0;">
+                                    <strong>Alinhar Bordas (Distribuição Equitativa):</strong> Dividir folgas para formar quadrado perfeito (sem bicos)
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -7295,7 +7303,7 @@
         }
 
         // Motor Matemático de Bin Packing & Amarração de Palete
-        function computePalletLayout(pL, pW, bL, bW, overhang, patternMode) {
+        function computePalletLayout(pL, pW, bL, bW, overhang, patternMode, distributeSpacing = true) {
             const effL = pL + (overhang * 2);
             const effW = pW + (overhang * 2);
 
@@ -7338,24 +7346,47 @@
 
                 if (colsTop > 0 && rowsBottom > 0 && colsBottom > 0) {
                     const boxes = [];
-                    // Top normal boxes
+                    const widthTop = colsTop * bL;
+                    const widthBottom = colsBottom * bW;
+                    const maxW = Math.max(widthTop, widthBottom);
+
+                    // Distribuição equitativa de folgas no eixo X para alinhar quinas
+                    let gapTopX = 0;
+                    if (distributeSpacing && colsTop > 1 && widthTop < maxW) {
+                        gapTopX = (maxW - widthTop) / (colsTop - 1);
+                    }
+                    let offTopX = 0;
+                    if (distributeSpacing && colsTop === 1 && widthTop < maxW) {
+                        offTopX = (maxW - widthTop) / 2;
+                    }
+
+                    let gapBottomX = 0;
+                    if (distributeSpacing && colsBottom > 1 && widthBottom < maxW) {
+                        gapBottomX = (maxW - widthBottom) / (colsBottom - 1);
+                    }
+                    let offBottomX = 0;
+                    if (distributeSpacing && colsBottom === 1 && widthBottom < maxW) {
+                        offBottomX = (maxW - widthBottom) / 2;
+                    }
+
+                    // Caixas superiores (normais)
                     for (let i = 0; i < colsTop; i++) {
                         for (let j = 0; j < r; j++) {
-                            boxes.push({ x: i * bL, y: j * bW, w: bL, h: bW, rot: 0 });
+                            boxes.push({ x: offTopX + i * (bL + gapTopX), y: j * bW, w: bL, h: bW, rot: 0 });
                         }
                     }
-                    // Bottom rotated boxes
+                    // Caixas inferiores (rotacionadas)
                     for (let i = 0; i < colsBottom; i++) {
                         for (let j = 0; j < rowsBottom; j++) {
-                            boxes.push({ x: i * bW, y: topH + (j * bL), w: bW, h: bL, rot: 90 });
+                            boxes.push({ x: offBottomX + i * (bW + gapBottomX), y: topH + (j * bL), w: bW, h: bL, rot: 90 });
                         }
                     }
                     candidates.push({
-                        name: 'Bloco Misto Horizontal',
+                        name: distributeSpacing ? 'Bloco Misto Horizontal (Bordas Alinhadas)' : 'Bloco Misto Horizontal',
                         mode: 'mixed_block',
                         count: boxes.length,
                         boxes: boxes,
-                        usedL: Math.max(colsTop * bL, colsBottom * bW),
+                        usedL: maxW,
                         usedW: topH + (rowsBottom * bL)
                     });
                 }
@@ -7372,25 +7403,48 @@
 
                 if (rowsLeft > 0 && colsRight > 0 && rowsRight > 0) {
                     const boxes = [];
-                    // Left normal boxes
+                    const heightLeft = rowsLeft * bW;
+                    const heightRight = rowsRight * bL;
+                    const maxH = Math.max(heightLeft, heightRight);
+
+                    // Distribuição equitativa de folgas no eixo Y para alinhar quinas perfeitamente
+                    let gapLeftY = 0;
+                    if (distributeSpacing && rowsLeft > 1 && heightLeft < maxH) {
+                        gapLeftY = (maxH - heightLeft) / (rowsLeft - 1);
+                    }
+                    let offLeftY = 0;
+                    if (distributeSpacing && rowsLeft === 1 && heightLeft < maxH) {
+                        offLeftY = (maxH - heightLeft) / 2;
+                    }
+
+                    let gapRightY = 0;
+                    if (distributeSpacing && rowsRight > 1 && heightRight < maxH) {
+                        gapRightY = (maxH - heightRight) / (rowsRight - 1);
+                    }
+                    let offRightY = 0;
+                    if (distributeSpacing && rowsRight === 1 && heightRight < maxH) {
+                        offRightY = (maxH - heightRight) / 2;
+                    }
+
+                    // Caixas da esquerda (normais)
                     for (let i = 0; i < c; i++) {
                         for (let j = 0; j < rowsLeft; j++) {
-                            boxes.push({ x: i * bL, y: j * bW, w: bL, h: bW, rot: 0 });
+                            boxes.push({ x: i * bL, y: offLeftY + j * (bW + gapLeftY), w: bL, h: bW, rot: 0 });
                         }
                     }
-                    // Right rotated boxes
+                    // Caixas da direita / laterais (rotacionadas)
                     for (let i = 0; i < colsRight; i++) {
                         for (let j = 0; j < rowsRight; j++) {
-                            boxes.push({ x: leftW + (i * bW), y: j * bL, w: bW, h: bL, rot: 90 });
+                            boxes.push({ x: leftW + (i * bW), y: offRightY + j * (bL + gapRightY), w: bW, h: bL, rot: 90 });
                         }
                     }
                     candidates.push({
-                        name: 'Bloco Misto Vertical / Moinho',
+                        name: distributeSpacing ? 'Bloco Misto Vertical (Bordas Alinhadas / Quadrado Perfeito)' : 'Bloco Misto Vertical / Moinho',
                         mode: 'mixed_block',
                         count: boxes.length,
                         boxes: boxes,
                         usedL: leftW + (colsRight * bW),
-                        usedW: Math.max(rowsLeft * bW, rowsRight * bL)
+                        usedW: maxH
                     });
                 }
             }
@@ -7457,13 +7511,14 @@
             const layers = parseInt(document.getElementById('pallet-layers')?.value) || 5;
             const patternMode = document.getElementById('pallet-pattern-mode')?.value || 'auto';
             const isInterlock = document.getElementById('pallet-interlock-enabled')?.checked ?? true;
+            const distributeSpacing = document.getElementById('pallet-distribute-spacing')?.checked ?? true;
 
             const chapFreq = document.getElementById('pallet-chapatex-freq')?.value || 'all';
             const chapThick = parseFloat(document.getElementById('pallet-chapatex-thick')?.value) || 3.0;
             const chapWeight = parseFloat(document.getElementById('pallet-chapatex-weight')?.value) || 0.5;
 
             // Executa o cálculo de layout
-            const layoutRes = computePalletLayout(pL, pW, bC, bL, overhang, patternMode);
+            const layoutRes = computePalletLayout(pL, pW, bC, bL, overhang, patternMode, distributeSpacing);
 
             // Calcula total de caixas no palete
             let totalBoxes = 0;
@@ -7581,7 +7636,7 @@
             currentPalletData = {
                 pL, pW, pH, pTare,
                 bC, bL, bA, bWeight,
-                layers, isInterlock,
+                layers, isInterlock, distributeSpacing,
                 chapCount, chapThick, chapWeight, chapatexLayers,
                 totalBoxes, totalPalletHeight, grossWeight,
                 areaEff, volEff,
@@ -7925,6 +7980,7 @@
                                 <tbody>
                                     <tr><td>Tipo / Dimensões do Palete:</td><td><strong>${d.pL} × ${d.pW} × ${d.pH} mm</strong></td></tr>
                                     <tr><td>Amarração Cruzada (Interlocking):</td><td><strong>${d.isInterlock ? 'Sim (Camadas pares invertidas)' : 'Não (Colunar)'}</strong></td></tr>
+                                    <tr><td>Alinhamento Perimetral:</td><td><strong>${d.distributeSpacing ? 'Bordas Niveladas (Sem bicos/dentes)' : 'Agrupamento Padrão'}</strong></td></tr>
                                     <tr><td>Chapas de Chapatex:</td><td><strong>${d.chapCount} chapas (${d.chapThick} mm cada)</strong></td></tr>
                                     <tr><td>Altura Total c/ Palete:</td><td><strong style="color: #d97706; font-size: 0.95rem;">${Math.round(d.totalPalletHeight)} mm (${(d.totalPalletHeight/1000).toFixed(2)} m)</strong></td></tr>
                                     <tr><td>Peso Bruto Total da Carga:</td><td><strong style="color: #16a34a; font-size: 0.95rem;">${Math.round(d.grossWeight)} kg</strong></td></tr>
