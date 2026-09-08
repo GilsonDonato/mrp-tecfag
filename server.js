@@ -966,8 +966,10 @@ app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Servir o Frontend index.html na raiz
 app.use(express.static(path.join(__dirname)));
-app.get('/', (req, res) => {
+app.get(['/', '/index.html'], (req, res) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
