@@ -7485,19 +7485,32 @@
 
         // Motor Matemático de Bin Packing & Amarração de Palete com Expansão Perimetral
         function computePalletLayout(pL, pW, bL, bW, overhang, patternMode, distributeSpacing = true) {
+            // 🛡️ Proteção estrita contra loops infinitos e travamento por Out of Memory quando o usuário digita
+            if (!bL || !bW || bL < 30 || bW < 30 || !pL || !pW || pL < 200 || pW < 200 || !isFinite(bL) || !isFinite(bW) || !isFinite(pL) || !isFinite(pW)) {
+                return {
+                    patternName: 'Dimensões Inválidas',
+                    countA: 0,
+                    countB: 0,
+                    layoutA: [],
+                    layoutB: [],
+                    usedL: 0,
+                    usedW: 0
+                };
+            }
+
             const effL = pL + (overhang * 2);
             const effW = pW + (overhang * 2);
 
             let candidates = [];
 
             // 1. Padrão Bloco Misto Horizontal (Linhas Normais em cima + Linhas Rotacionadas em baixo)
-            const maxRowsNormalH = Math.floor(effW / bW);
+            const maxRowsNormalH = Math.min(25, Math.floor(effW / bW));
             for (let r = 1; r < maxRowsNormalH; r++) {
                 const topH = r * bW;
                 const remH = effW - topH;
-                const colsTop = Math.floor(effL / bL);
-                const rowsBottom = Math.floor(remH / bL);
-                const colsBottom = Math.floor(effL / bW);
+                const colsTop = Math.min(30, Math.floor(effL / bL));
+                const rowsBottom = Math.min(25, Math.floor(remH / bL));
+                const colsBottom = Math.min(30, Math.floor(effL / bW));
 
                 if (colsTop > 0 && rowsBottom > 0 && colsBottom > 0) {
                     const boxes = [];
@@ -7546,13 +7559,13 @@
             }
 
             // 2. Padrão Bloco Misto Vertical (Colunas Normais na esquerda + Colunas Rotacionadas na direita)
-            const maxColsNormalV = Math.floor(effL / bL);
+            const maxColsNormalV = Math.min(30, Math.floor(effL / bL));
             for (let c = 1; c < maxColsNormalV; c++) {
                 const leftW = c * bL;
                 const remW = effL - leftW;
-                const rowsLeft = Math.floor(effW / bW);
-                const colsRight = Math.floor(remW / bW);
-                const rowsRight = Math.floor(effW / bL);
+                const rowsLeft = Math.min(25, Math.floor(effW / bW));
+                const colsRight = Math.min(30, Math.floor(remW / bW));
+                const rowsRight = Math.min(25, Math.floor(effW / bL));
 
                 if (rowsLeft > 0 && colsRight > 0 && rowsRight > 0) {
                     const boxes = [];
@@ -7600,24 +7613,26 @@
                 }
             }
 
-            // 3. Padrão Moinho de Vento / Pinwheel (4 Quadrantes em Espiral)
-            for (let topCount = 1; topCount * bL <= effL - bW; topCount++) {
-                for (let rightCount = 1; rightCount * bL <= effW - bW; rightCount++) {
+            // 3. Padrão Moinho de Vento / Pinwheel (4 Quadrantes em Espiral com limites seguros)
+            const maxTop = Math.min(10, Math.floor((effL - bW) / bL));
+            const maxRight = Math.min(10, Math.floor((effW - bW) / bL));
+            for (let topCount = 1; topCount <= maxTop; topCount++) {
+                for (let rightCount = 1; rightCount <= maxRight; rightCount++) {
                     const innerL = effL - (2 * bW);
                     const innerW = effW - (2 * bL);
 
                     let innerBoxes = [];
                     if (innerL >= bL && innerW >= bW) {
-                        const inX = Math.floor(innerL / bL);
-                        const inY = Math.floor(innerW / bW);
+                        const inX = Math.min(15, Math.floor(innerL / bL));
+                        const inY = Math.min(15, Math.floor(innerW / bW));
                         for (let ix = 0; ix < inX; ix++) {
                             for (let iy = 0; iy < inY; iy++) {
                                 innerBoxes.push({ x: bW + ix * bL, y: bL + iy * bW, w: bL, h: bW, rot: 0 });
                             }
                         }
                     } else if (innerL >= bW && innerW >= bL) {
-                        const inX = Math.floor(innerL / bW);
-                        const inY = Math.floor(innerW / bL);
+                        const inX = Math.min(15, Math.floor(innerL / bW));
+                        const inY = Math.min(15, Math.floor(innerW / bL));
                         for (let ix = 0; ix < inX; ix++) {
                             for (let iy = 0; iy < inY; iy++) {
                                 innerBoxes.push({ x: bW + ix * bW, y: bL + iy * bL, w: bW, h: bL, rot: 90 });
@@ -7650,8 +7665,8 @@
             }
 
             // 4. Padrão Colunar Reto (Comprimento da caixa ao longo do comprimento do palete)
-            const nx1 = Math.floor(effL / bL);
-            const ny1 = Math.floor(effW / bW);
+            const nx1 = Math.min(40, Math.floor(effL / bL));
+            const ny1 = Math.min(40, Math.floor(effW / bW));
             if (nx1 > 0 && ny1 > 0) {
                 const boxes1 = [];
                 const gapX = (distributeSpacing && nx1 > 1) ? (effL - (nx1 * bL)) / (nx1 - 1) : 0;
@@ -7668,8 +7683,8 @@
             }
 
             // 5. Padrão Colunar Rotacionado 90° (Largura da caixa ao longo do comprimento do palete)
-            const nx2 = Math.floor(effL / bW);
-            const ny2 = Math.floor(effW / bL);
+            const nx2 = Math.min(40, Math.floor(effL / bW));
+            const ny2 = Math.min(40, Math.floor(effW / bL));
             if (nx2 > 0 && ny2 > 0) {
                 const boxes2 = [];
                 const gapX = (distributeSpacing && nx2 > 1) ? (effL - (nx2 * bW)) / (nx2 - 1) : 0;
@@ -7721,7 +7736,7 @@
             const offX = Math.max(0, (pL - selectedCandidate.usedL) / 2);
             const offY = Math.max(0, (pW - selectedCandidate.usedW) / 2);
 
-            const layoutA = selectedCandidate.boxes.map(b => ({
+            const layoutA = (selectedCandidate.boxes || []).map(b => ({
                 x: b.x + offX,
                 y: b.y + offY,
                 w: b.w,
@@ -7985,7 +8000,7 @@
             const { pL, pW, pH, bA, layers, isInterlock, chapThick, chapatexLayers, layoutA, layoutB, totalPalletHeight } = data;
 
             // Escala e Origem para centralizar perfeitamente no canvas
-            const maxDim = Math.max(pL, pW, totalPalletHeight * 1.25);
+            const maxDim = Math.max(pL || 1200, pW || 1000, (totalPalletHeight || 140) * 1.25);
             const scale = (w * 0.36) / maxDim;
             const originX = w * 0.50;
             const originY = h * 0.78;
@@ -8103,7 +8118,7 @@
                 const layerBoxes = (isEvenLayer && isInterlock) ? layoutB : layoutA;
 
                 // Ordena caixas do fundo para a frente (Painter's algorithm: sort by x + y)
-                const sortedBoxes = [...layerBoxes].sort((a, b) => (a.x + a.y) - (b.x + b.y));
+                const sortedBoxes = [...(layerBoxes || [])].sort((a, b) => (a.x + a.y) - (b.x + b.y));
 
                 // Cores das Caixas (Papelão com sombreado volumétrico)
                 const boxTop = isEvenLayer ? '#fde047' : '#fbbf24';
@@ -8149,7 +8164,7 @@
             ctx.fillStyle = '#38bdf8';
             ctx.font = 'bold 11px system-ui, sans-serif';
             ctx.textAlign = 'left';
-            ctx.fillText(`Alt: ${Math.round(totalPalletHeight)} mm`, pTopMarker.x + 12, midMarkerY);
+            ctx.fillText(`Alt: ${Math.round(totalPalletHeight || 0)} mm`, pTopMarker.x + 12, midMarkerY);
         }
 
         // Renderizador 2D Planta Baixa (Camada A ou Camada B com Traçado de Amarração Cruzada)
@@ -8159,10 +8174,12 @@
             const oppositeBoxes = isLayerB ? layoutA : layoutB;
 
             const margin = 40;
-            const scale = Math.min((w - (margin * 2)) / pL, (h - (margin * 2)) / pW);
+            const validL = pL || 1200;
+            const validW = pW || 1000;
+            const scale = Math.min((w - (margin * 2)) / validL, (h - (margin * 2)) / validW);
 
-            const originX = (w - (pL * scale)) / 2;
-            const originY = (h - (pW * scale)) / 2;
+            const originX = (w - (validL * scale)) / 2;
+            const originY = (h - (validW * scale)) / 2;
 
             // Fundo do Palete (Madeira 2D)
             ctx.fillStyle = '#0f172a';
