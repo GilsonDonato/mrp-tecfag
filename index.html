@@ -4712,10 +4712,10 @@
 
     <!-- MODAL 2: VALIDADOR AVANÇADO DE DOSAGEM & CABEÇOTE TECFAG (ROSCA, PISTÃO, BALANÇA) -->
     <div class="modal-overlay" id="doser-calc-modal" style="z-index: 1250; display: none;">
-        <div class="modal" style="width: 980px; max-width: 96vw; max-height: 92vh; overflow-y: auto; padding: 25px;">
+        <div class="modal" style="width: 1040px; max-width: 96vw; max-height: 92vh; overflow-y: auto; padding: 25px;">
             <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <h3 style="color: #4ade80; font-size: 1.15rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <h3 style="color: #4ade80; font-size: 1.18rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
                         ⚖️ Simulador Avançado de Dosagem & Engenharia de Aplicação Tecfag
                     </h3>
                     <small style="color: var(--text-secondary); font-size: 0.72rem;">Dimensionamento cinético de dosadores de rosca, pistão volumétrico e balanças multicabeçote conforme normas de engenharia e tolerâncias metrológicas</small>
@@ -4748,7 +4748,7 @@
                 <span id="doser-preset-badge" style="font-size: 0.68rem; font-weight: 700; padding: 4px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">Modo Automático</span>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
+            <div style="display: grid; grid-template-columns: 1fr 1.15fr; gap: 20px; align-items: start;">
                 <!-- COLUNA 1: PARÂMETROS DO PRODUTO & OPERAÇÃO -->
                 <div style="display: flex; flex-direction: column; gap: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
                     <span style="font-size: 0.75rem; font-weight: 700; color: #4ade80; text-transform: uppercase; letter-spacing: 0.5px;">1. Propriedades Físicas & Operação</span>
@@ -4769,7 +4769,7 @@
                             <input type="number" id="doser-target-dose" class="form-control" value="250" oninput="updateDoserCalculations()">
                         </div>
                         <div class="form-group">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Densidade ($g/cm^3$ ou $kg/L$):</label>
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Densidade (g/cm³ ou kg/L):</label>
                             <input type="number" step="0.01" id="doser-density" class="form-control" value="0.75" oninput="updateDoserCalculations()">
                         </div>
                     </div>
@@ -4802,9 +4802,19 @@
                         </div>
                     </div>
 
+                    <div class="form-group">
+                        <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Capacidade do Funil / Tremonha (Litros):</label>
+                        <select id="doser-hopper-capacity" class="form-control" style="font-size: 0.75rem;" onchange="updateDoserCalculations()">
+                            <option value="30">30 Litros (Funil Compacto Tecfag)</option>
+                            <option value="50" selected>50 Litros (Funil Standard Tecfag)</option>
+                            <option value="100">100 Litros (Funil Industrial com Jaqueta)</option>
+                            <option value="200">200 Litros (Silo de Alimentação Contínua)</option>
+                        </select>
+                    </div>
+
                     <!-- DICA DE ENGENHARIA DINÂMICA -->
                     <div id="doser-engineering-hint-box" style="background: rgba(74, 222, 128, 0.05); border: 1px solid rgba(74, 222, 128, 0.2); border-radius: 6px; padding: 10px; font-size: 0.7rem; color: #cbd5e1; line-height: 1.4;">
-                        <strong>💡 Regra de Engenharia Tecfag:</strong> Produtos com densidade $< 0.3g/cm^3$ (pós muito aerados) exigem funil agitador duplo para evitar cavernamentos sem requerer customização.
+                        <strong>💡 Regra de Engenharia Tecfag:</strong> Produtos com densidade &lt; 0.3 g/cm³ (pós muito aerados) exigem funil agitador duplo para evitar cavernamentos.
                     </div>
                 </div>
 
@@ -4821,6 +4831,27 @@
                         <div style="background: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px;">
                             <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Janela Útil de Dosagem:</span>
                             <span id="doser-res-effective-time" style="font-size: 1.05rem; font-weight: 800; color: #f59e0b;">0,96 s (56% do ciclo)</span>
+                        </div>
+                    </div>
+
+                    <!-- GRÁFICO DA LINHA DO TEMPO DO CICLO (TIMING DIAGRAM) -->
+                    <div style="background: var(--bg-base); padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Cronograma do Ciclo de Envase (Timing):</span>
+                            <span id="doser-res-total-cycle-label" style="font-size: 0.68rem; font-weight: 700; color: #94a3b8;">Ciclo Total: 1.71 s</span>
+                        </div>
+                        <!-- Barra Segmentada da Linha do Tempo -->
+                        <div style="height: 16px; width: 100%; border-radius: 4px; overflow: hidden; display: flex; background: #0f172a; border: 1px solid rgba(255,255,255,0.1);">
+                            <div id="doser-timeline-dead" style="width: 35%; background: linear-gradient(90deg, #0284c7, #38bdf8); display: flex; align-items: center; justify-content: center; font-size: 0.62rem; font-weight: 800; color: #082f49; white-space: nowrap;">
+                                Avanço 35%
+                            </div>
+                            <div id="doser-timeline-dosing" style="width: 65%; background: linear-gradient(90deg, #16a34a, #4ade80); display: flex; align-items: center; justify-content: center; font-size: 0.62rem; font-weight: 800; color: #052e16; white-space: nowrap;">
+                                Dosando 65%
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.62rem; color: #94a3b8; padding-top: 2px;">
+                            <span id="doser-timeline-legend-dead" style="color: #38bdf8;">🟦 Avanço/Puxada: 0.60 s</span>
+                            <span id="doser-timeline-legend-dosing" style="color: #4ade80;">🟩 Janela Útil de Dosagem: 1.11 s</span>
                         </div>
                     </div>
 
@@ -4851,7 +4882,47 @@
                 </div>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+            <!-- SEÇÃO INFERIOR: 3. ENGENHARIA DE INSTALAÇÃO & PRODUTIVIDADE INDUSTRIAL -->
+            <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 15px;">
+                <!-- CARD 1: PRODUTIVIDADE INDUSTRIAL (THROUGHPUT) -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+                    <span style="font-size: 0.72rem; font-weight: 800; color: #38bdf8; text-transform: uppercase;">🏭 Produtividade Industrial</span>
+                    <div style="font-size: 0.73rem; color: #cbd5e1; line-height: 1.4;">
+                        <div>Produção Horária: <strong id="doser-res-hourly-prod" style="color: #fff;">2.100 doses/h (1.050 kg/h)</strong></div>
+                        <div style="margin-top: 4px;">Rendimento/Turno (8h OEE 85%):</div>
+                        <div id="doser-res-shift-prod" style="font-size: 0.85rem; font-weight: 800; color: #4ade80;">14.280 frascos (7,14 ton)</div>
+                    </div>
+                </div>
+
+                <!-- CARD 2: AUTONOMIA DO FUNIL & ALIMENTAÇÃO -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+                    <span style="font-size: 0.72rem; font-weight: 800; color: #f59e0b; text-transform: uppercase;">⏱️ Autonomia do Funil</span>
+                    <div style="font-size: 0.73rem; color: #cbd5e1; line-height: 1.4;">
+                        <div>Taxa de Consumo: <strong id="doser-res-consumption-rate" style="color: #fff;">14,0 L/min (17,5 kg/min)</strong></div>
+                        <div style="margin-top: 4px;">Esvazia em: <strong id="doser-res-hopper-autonomy" style="color: #f59e0b; font-size: 0.82rem;">3,5 minutos</strong></div>
+                        <div id="doser-res-hopper-alert" style="font-size: 0.68rem; color: #fbbf24; margin-top: 2px;">
+                            ⚠️ Requer Alimentador Automático + Sensor
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD 3: UTILIDADES INDUSTRIAIS -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+                    <span style="font-size: 0.72rem; font-weight: 800; color: #a78bfa; text-transform: uppercase;">⚡ Utilidades Industriais</span>
+                    <div style="font-size: 0.72rem; color: #cbd5e1; line-height: 1.4;">
+                        <div>Ar Comprimido: <strong id="doser-res-air-consumption" style="color: #fff;">180 Nl/min @ 6 bar</strong></div>
+                        <div>Potência Instalada: <strong id="doser-res-power-electric" style="color: #fff;">2,2 kW (220V 60Hz)</strong></div>
+                        <div style="color: #94a3b8; font-size: 0.68rem; margin-top: 2px;">Construção: Inox AISI 304 Sanitário / CLP Touch</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FOOTER COM BOTÃO DE EXPORTAR FICHA TÉCNICA (PDF) -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                <button class="btn btn-secondary" style="border-color: #38bdf8; color: #38bdf8; display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 0.78rem;" onclick="printDoserSpecSheet()">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    📄 Exportar Ficha Técnica / Memorial Descritivo (PDF)
+                </button>
                 <button class="btn btn-secondary" onclick="closeDoserCalcModal()">Fechar Validador</button>
             </div>
         </div>
@@ -7417,6 +7488,7 @@
             const speedBpm = Math.max(1, Math.min(200, parseFloat(document.getElementById('doser-speed-bpm')?.value) || 35));
             const machineType = document.getElementById('doser-machine-type')?.value || 'vffs';
             const viscosityLevel = parseFloat(document.getElementById('doser-viscosity-level')?.value) || 1;
+            const hopperCap = parseFloat(document.getElementById('doser-hopper-capacity')?.value) || 50;
 
             // Toggle Viscosity Row
             const viscRow = document.getElementById('doser-viscosity-row');
@@ -7429,7 +7501,8 @@
             const cycleTime = 60 / speedBpm;
             const deadTime = (DOSER_MACHINE_INDEX_TIMES[machineType] || DOSER_MACHINE_INDEX_TIMES['vffs']).deadTime;
             const effectiveTime = Math.max(0.20, cycleTime - deadTime);
-            const effectivePercent = Math.min(100, Math.round((effectiveTime / cycleTime) * 100));
+            const deadPercent = Math.min(80, Math.round((deadTime / cycleTime) * 100));
+            const effectivePercent = 100 - deadPercent;
 
             // Display Volume & Time
             const volDisplay = document.getElementById('doser-res-volume');
@@ -7440,6 +7513,86 @@
             if (timeDisplay) {
                 timeDisplay.innerText = `${effectiveTime.toFixed(2)} s (${effectivePercent}% do ciclo)`;
             }
+
+            // Update Timing Diagram Bar & Legends
+            const cycleLabel = document.getElementById('doser-res-total-cycle-label');
+            if (cycleLabel) cycleLabel.innerText = `Ciclo Total: ${cycleTime.toFixed(2)} s (${speedBpm} BPM)`;
+
+            const barDead = document.getElementById('doser-timeline-dead');
+            if (barDead) {
+                barDead.style.width = deadPercent + '%';
+                barDead.innerText = `Avanço ${deadPercent}%`;
+            }
+            const barDosing = document.getElementById('doser-timeline-dosing');
+            if (barDosing) {
+                barDosing.style.width = effectivePercent + '%';
+                barDosing.innerText = `Dosando ${effectivePercent}%`;
+            }
+            const legDead = document.getElementById('doser-timeline-legend-dead');
+            if (legDead) legDead.innerText = `🟦 Avanço/Puxada: ${deadTime.toFixed(2)} s (${deadPercent}%)`;
+            const legDosing = document.getElementById('doser-timeline-legend-dosing');
+            if (legDosing) legDosing.innerText = `🟩 Janela Útil de Dosagem: ${effectiveTime.toFixed(2)} s (${effectivePercent}%)`;
+
+            // Production & Throughput Metrics
+            const dosesPerHour = speedBpm * 60;
+            const kgPerHour = (dosesPerHour * dose) / 1000;
+            const tonPerHour = kgPerHour / 1000;
+            const oee = 0.85;
+            const dosesPerShift = Math.round(dosesPerHour * 8 * oee);
+            const kgPerShift = Math.round((dosesPerShift * dose) / 1000);
+            const tonPerShift = (kgPerShift / 1000).toFixed(2);
+
+            const hourlyProdEl = document.getElementById('doser-res-hourly-prod');
+            if (hourlyProdEl) hourlyProdEl.innerText = `${dosesPerHour.toLocaleString('pt-BR')} doses/h (${kgPerHour >= 1000 ? tonPerHour.toFixed(2) + ' ton/h' : kgPerHour.toFixed(1) + ' kg/h'})`;
+
+            const shiftProdEl = document.getElementById('doser-res-shift-prod');
+            if (shiftProdEl) shiftProdEl.innerText = `${dosesPerShift.toLocaleString('pt-BR')} frascos (${kgPerShift >= 1000 ? tonPerShift + ' ton' : kgPerShift + ' kg'})`;
+
+            // Hopper Depletion & Autonomy
+            const consumptionLMin = (volumeCm3 * speedBpm) / 1000;
+            const consumptionKgMin = (dose * speedBpm) / 1000;
+            const hopperAutonomyMin = (hopperCap / consumptionLMin);
+
+            const rateEl = document.getElementById('doser-res-consumption-rate');
+            if (rateEl) rateEl.innerText = `${consumptionLMin.toFixed(1)} L/min (${consumptionKgMin.toFixed(1)} kg/min)`;
+
+            const autonomyEl = document.getElementById('doser-res-hopper-autonomy');
+            if (autonomyEl) autonomyEl.innerText = `${hopperAutonomyMin.toFixed(1)} minutos`;
+
+            const hopperAlertEl = document.getElementById('doser-res-hopper-alert');
+            if (hopperAlertEl) {
+                if (hopperAutonomyMin < 8) {
+                    let fedName = '';
+                    if (productType === 'powders') fedName = 'Alimentador a Vácuo / Rosca Inclinada';
+                    else if (productType === 'grains') fedName = 'Elevador de Canecas Tipo Z';
+                    else fedName = 'Bomba Sanitária de Transferência';
+                    hopperAlertEl.innerHTML = `⚠️ Requer <strong>${fedName}</strong> com Sensor de Nível.`;
+                    hopperAlertEl.style.color = '#fbbf24';
+                } else {
+                    hopperAlertEl.innerHTML = `✅ Autonomia adequada para abastecimento manual/batelada.`;
+                    hopperAlertEl.style.color = '#4ade80';
+                }
+            }
+
+            // Utilities (Air & Power)
+            let airConsumptionNlMin = 0;
+            let powerKw = 1.5;
+            if (productType === 'powders') {
+                airConsumptionNlMin = 80;
+                powerKw = (volumeCm3 > 1000) ? 3.0 : 2.0;
+            } else if (productType === 'grains') {
+                airConsumptionNlMin = 120;
+                powerKw = (speedBpm > 50) ? 3.5 : 2.2;
+            } else {
+                airConsumptionNlMin = Math.round(speedBpm * 5.5);
+                powerKw = (viscosityLevel > 5000) ? 3.0 : 1.8;
+            }
+
+            const airEl = document.getElementById('doser-res-air-consumption');
+            if (airEl) airEl.innerText = `${airConsumptionNlMin} Nl/min @ 6 bar`;
+
+            const powerEl = document.getElementById('doser-res-power-electric');
+            if (powerEl) powerEl.innerText = `${powerKw.toFixed(1)} kW (220V 60Hz)`;
 
             let headName = '';
             let perfDetail = '';
@@ -7511,9 +7664,9 @@
                 perfDetail = `Rotação Servo: ${Math.round(requiredRpm)} RPM (${rpmColorTag}) | ${revsPerDose.toFixed(1)} voltas/dose (Passo ${pitch} mm)`;
 
                 if (density >= 0.65) {
-                    nozzleAcc = `• Bico da Rosca com Disco Spinner Rotativo / Válvula Flap Anti-Escorrimento<br>• Funil Inox 50L com Agitador de Velocidade Constante`;
+                    nozzleAcc = `• Bico da Rosca com Disco Spinner Rotativo / Válvula Flap Anti-Escorrimento<br>• Funil Inox ${hopperCap}L com Agitador de Velocidade Constante`;
                 } else {
-                    nozzleAcc = `• Bico com Cone Corta-Gotas de Tela Inox Fina Anti-Poeira<br>• Funil Inox 50L com Agitador Raspador Lento de Parede`;
+                    nozzleAcc = `• Bico com Cone Corta-Gotas de Tela Inox Fina Anti-Poeira<br>• Funil Inox ${hopperCap}L com Agitador Raspador Lento de Parede`;
                 }
 
                 const precVal = Math.max(0.2, (dose * 0.007)).toFixed(1);
@@ -7566,9 +7719,9 @@
                     headName = `Módulo Pistão Rotativo Tri-Clamp Tecfag ${pistonFaixa}`;
                     perfDetail = `Vazão Efetiva: ${flowRate} ml/s | Válvula Rotativa Passagem Plena Ø1.5"`;
                     if (viscosityLevel >= 20000) {
-                        nozzleAcc = `• Funil Jaquetado com Aquecimento e Agitador Âncora c/ Raspadores de Teflon<br>• Bico com Válvula Corta-Fio Pneumática Positiva`;
+                        nozzleAcc = `• Funil Jaquetado ${hopperCap}L com Aquecimento e Agitador Âncora c/ Raspadores de Teflon<br>• Bico com Válvula Corta-Fio Pneumática Positiva`;
                     } else {
-                        nozzleAcc = `• Bico Dosador com Corte Pneumático Positivo Anti-Gota<br>• Funil Cônico Inox 304 com Válvula Rotativa Sanitária`;
+                        nozzleAcc = `• Bico Dosador com Corte Pneumático Positivo Anti-Gota<br>• Funil Cônico Inox ${hopperCap}L com Válvula Rotativa Sanitária`;
                     }
                 } else {
                     headName = `Módulo Pistão Pneumático Tecfag ${pistonFaixa}`;
@@ -7610,6 +7763,128 @@
                 statusBox.style.background = isOk ? 'rgba(74, 222, 128, 0.15)' : 'rgba(239, 68, 68, 0.15)';
                 statusBox.style.color = isOk ? '#4ade80' : '#fca5a5';
                 statusBox.style.borderColor = isOk ? '#4ade80' : '#ef4444';
+            }
+        }
+
+        // FUNÇÃO DE IMPRESSÃO / EXPORTAÇÃO DE FICHA TÉCNICA (PDF)
+        function printDoserSpecSheet() {
+            const presetKey = document.getElementById('doser-preset-select')?.value || 'custom';
+            const presetName = DOSER_PRESETS[presetKey]?.name || 'Projeto Personalizado';
+            const prodType = document.getElementById('doser-product-type')?.selectedOptions[0]?.text || '';
+            const dose = document.getElementById('doser-target-dose')?.value || '250';
+            const density = document.getElementById('doser-density')?.value || '0.75';
+            const speedBpm = document.getElementById('doser-speed-bpm')?.value || '35';
+            const machine = document.getElementById('doser-machine-type')?.selectedOptions[0]?.text || '';
+            const hopper = document.getElementById('doser-hopper-capacity')?.selectedOptions[0]?.text || '50 Litros';
+            
+            const volume = document.getElementById('doser-res-volume')?.innerText || '';
+            const effectiveTime = document.getElementById('doser-res-effective-time')?.innerText || '';
+            const cycleTotal = document.getElementById('doser-res-total-cycle-label')?.innerText || '';
+            const headType = document.getElementById('doser-res-head-type')?.innerText || '';
+            const perfDetail = document.getElementById('doser-res-performance-detail')?.innerText || '';
+            const nozzleAcc = document.getElementById('doser-res-nozzle-acc')?.innerHTML || '';
+            const precision = document.getElementById('doser-res-precision')?.innerText || '';
+            const statusText = document.getElementById('doser-res-status-box')?.innerText || '';
+
+            const hourlyProd = document.getElementById('doser-res-hourly-prod')?.innerText || '';
+            const shiftProd = document.getElementById('doser-res-shift-prod')?.innerText || '';
+            const consumption = document.getElementById('doser-res-consumption-rate')?.innerText || '';
+            const autonomy = document.getElementById('doser-res-hopper-autonomy')?.innerText || '';
+            const hopperAlert = document.getElementById('doser-res-hopper-alert')?.innerText || '';
+            const air = document.getElementById('doser-res-air-consumption')?.innerText || '';
+            const power = document.getElementById('doser-res-power-electric')?.innerText || '';
+
+            const dateStr = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR');
+
+            const printHtml = `
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+                <meta charset="UTF-8">
+                <title>Ficha Técnica de Aplicação - Tecfag Máquinas</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; margin: 0; padding: 30px; background: #fff; line-height: 1.5; }
+                    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0284c7; padding-bottom: 15px; margin-bottom: 20px; }
+                    .logo-title h1 { margin: 0; font-size: 22px; color: #0f172a; }
+                    .logo-title h2 { margin: 2px 0 0 0; font-size: 13px; color: #0284c7; text-transform: uppercase; letter-spacing: 1px; }
+                    .meta { text-align: right; font-size: 11px; color: #64748b; }
+                    .section-title { font-size: 13px; font-weight: bold; text-transform: uppercase; color: #0f172a; background: #f1f5f9; padding: 6px 10px; border-left: 4px solid #0284c7; margin: 18px 0 10px 0; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px; }
+                    th, td { padding: 7px 10px; border: 1px solid #cbd5e1; text-align: left; }
+                    th { background: #f8fafc; font-weight: 600; color: #334155; width: 35%; }
+                    .status-box { padding: 12px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 13px; background: #f0fdf4; border: 1px solid #22c55e; color: #15803d; margin: 20px 0; }
+                    .footer { text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 25px; }
+                    @media print { body { padding: 15px; } }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div class="logo-title">
+                        <h1>TECFAG MÁQUINAS E AUTOMAÇÃO</h1>
+                        <h2>Memorial Descritivo & Validação Técnica de Dosagem</h2>
+                    </div>
+                    <div class="meta">
+                        <div><strong>Data:</strong> ${dateStr}</div>
+                        <div><strong>Aplicação:</strong> ${presetName}</div>
+                    </div>
+                </div>
+
+                <div class="status-box">
+                    ${statusText}
+                </div>
+
+                <div class="section-title">1. Parâmetros do Produto & Embalagem</div>
+                <table>
+                    <tr><th>Tipo de Produto / Tecnologia:</th><td>${prodType}</td></tr>
+                    <tr><th>Dose Alvo:</th><td><strong>${dose} g/ml</strong></td></tr>
+                    <tr><th>Densidade Aparente:</th><td>${density} g/cm³</td></tr>
+                    <tr><th>Volume Calculado da Dose:</th><td><strong>${volume}</strong></td></tr>
+                    <tr><th>Meta de Velocidade:</th><td><strong>${speedBpm} doses/min (BPM)</strong></td></tr>
+                    <tr><th>Processo / Máquina Receptora:</th><td>${machine}</td></tr>
+                    <tr><th>Capacidade da Tremonha / Funil:</th><td>${hopper}</td></tr>
+                </table>
+
+                <div class="section-title">2. Cinemática & Janela Útil de Dosagem</div>
+                <table>
+                    <tr><th>Tempo de Ciclo Total:</th><td>${cycleTotal}</td></tr>
+                    <tr><th>Janela Útil Efetiva de Dosagem:</th><td><strong>${effectiveTime}</strong></td></tr>
+                    <tr><th>Módulo Dosador Dimensionado:</th><td><strong>${headType}</strong></td></tr>
+                    <tr><th>Dinâmica do Módulo:</th><td>${perfDetail}</td></tr>
+                    <tr><th>Precisão Metrológica Estimada:</th><td><strong>${precision}</strong></td></tr>
+                    <tr><th>Bicos & Acessórios Obrigatórios:</th><td>${nozzleAcc.replace(/<br>/g, ' | ')}</td></tr>
+                </table>
+
+                <div class="section-title">3. Produtividade Industrial & Autonomia de Alimentação</div>
+                <table>
+                    <tr><th>Capacidade de Produção Horária:</th><td><strong>${hourlyProd}</strong></td></tr>
+                    <tr><th>Rendimento por Turno (8h @ 85% OEE):</th><td><strong>${shiftProd}</strong></td></tr>
+                    <tr><th>Taxa de Consumo de Massa:</th><td>${consumption}</td></tr>
+                    <tr><th>Autonomia do Funil (${hopper}):</th><td><strong>${autonomy}</strong> (${hopperAlert.replace(/<[^>]*>/g, '')})</td></tr>
+                </table>
+
+                <div class="section-title">4. Requisitos de Instalação & Utilidades Industriais</div>
+                <table>
+                    <tr><th>Consumo de Ar Comprimido:</th><td>${air}</td></tr>
+                    <tr><th>Potência Elétrica Instalada:</th><td>${power}</td></tr>
+                    <tr><th>Padrão Construtivo:</th><td>Aço Inoxidável AISI 304 Sanitário / CLP com IHM Touchscreen</td></tr>
+                </table>
+
+                <div class="footer">
+                    Tecfag Automação de Embalagens © ${new Date().getFullYear()} • Documento emitido para respaldar proposta comercial e projeto de engenharia.
+                </div>
+            </body>
+            </html>
+            `;
+
+            const printWin = window.open('', '_blank', 'width=900,height=750');
+            if (printWin) {
+                printWin.document.open();
+                printWin.document.write(printHtml);
+                printWin.document.close();
+                setTimeout(() => {
+                    printWin.focus();
+                    printWin.print();
+                }, 400);
             }
         }
 
