@@ -4710,33 +4710,56 @@
         </div>
     </div>
 
-    <!-- MODAL 2: VALIDADOR DE DOSAGEM & CABEÇOTE TECFAG (ROSCA, PISTÃO, BALANÇA) -->
+    <!-- MODAL 2: VALIDADOR AVANÇADO DE DOSAGEM & CABEÇOTE TECFAG (ROSCA, PISTÃO, BALANÇA) -->
     <div class="modal-overlay" id="doser-calc-modal" style="z-index: 1250; display: none;">
-        <div class="modal" style="width: 900px; max-width: 95vw; max-height: 90vh; overflow-y: auto; padding: 25px;">
+        <div class="modal" style="width: 980px; max-width: 96vw; max-height: 92vh; overflow-y: auto; padding: 25px;">
             <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h3 style="color: #4ade80; font-size: 1.15rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
-                        ⚖️ Simulador de Dosagem & Seleção de Cabeçote Tecfag
+                        ⚖️ Simulador Avançado de Dosagem & Engenharia de Aplicação Tecfag
                     </h3>
-                    <small style="color: var(--text-secondary); font-size: 0.72rem;">Validação da densidade ($g/cm^3$), viscosidade e vazão para enquadramento na linha Standard Tecfag sem customização</small>
+                    <small style="color: var(--text-secondary); font-size: 0.72rem;">Dimensionamento cinético de dosadores de rosca, pistão volumétrico e balanças multicabeçote conforme normas de engenharia e tolerâncias metrológicas</small>
                 </div>
                 <button class="btn-icon" onclick="closeDoserCalcModal()">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
 
+            <!-- PRESET RÁPIDO DE PRODUTOS BRASILEIROS (1-CLIQUE) -->
+            <div style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 12px 15px; margin-bottom: 15px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 1.1rem;">⚡</span>
+                    <label style="font-size: 0.75rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; margin: 0; white-space: nowrap;">Preset Rápido de Produto:</label>
+                </div>
+                <select id="doser-preset-select" class="form-control" style="flex: 1; min-width: 260px; font-size: 0.8rem; font-weight: 600; border-color: rgba(56, 189, 248, 0.4); background: rgba(15, 23, 42, 0.8);" onchange="applyDoserPreset()">
+                    <option value="custom">⚙️ Personalizado (Custom / Entrada Manual)</option>
+                    <option value="wheat_flour">🌾 Farinha de Trigo / Amido de Milho (Pó Coesivo - 0.50 g/cm³)</option>
+                    <option value="ground_coffee">☕ Café Moído a Vácuo (Pó Aerado - 0.38 g/cm³)</option>
+                    <option value="powder_milk">🥛 Leite em Pó / Suplemento Whey (Pó Compressível - 0.45 g/cm³)</option>
+                    <option value="sugar_crystal">🍬 Açúcar Cristal / Achocolatado Granulado (Livre Escoamento - 0.75 g/cm³)</option>
+                    <option value="refined_salt">🧂 Sal Refinado / Micro-cristais (Pó Fluido Pesado - 1.20 g/cm³)</option>
+                    <option value="rice_beans">🍚 Arroz / Feijão / Milho / Grãos Rígidos (0.85 g/cm³)</option>
+                    <option value="snacks_chips">🍟 Snacks / Batata Palha / Pipoca (Ultraleve - 0.12 g/cm³)</option>
+                    <option value="detergent">🧼 Detergente / Xampu / Sabonete Líquido (Espumante - 1.02 g/cm³, 250 cP)</option>
+                    <option value="tomato_sauce">🍅 Molho de Tomate / Ketchup / Cosmético (Pastoso c/ Partículas - 1.08 g/cm³, 3.500 cP)</option>
+                    <option value="dense_paste">🍯 Doce de Leite / Pasta Densa / Pomada (Alta Viscosidade - 1.25 g/cm³, 30.000 cP)</option>
+                    <option value="mineral_water">💧 Água Mineral / Álcool 70% / Sucos (Fluido Livre - 1.00 g/cm³, 1 cP)</option>
+                </select>
+                <span id="doser-preset-badge" style="font-size: 0.68rem; font-weight: 700; padding: 4px 8px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">Modo Automático</span>
+            </div>
+
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
-                <!-- PARÂMETROS DO PRODUTO -->
+                <!-- COLUNA 1: PARÂMETROS DO PRODUTO & OPERAÇÃO -->
                 <div style="display: flex; flex-direction: column; gap: 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
-                    <span style="font-size: 0.75rem; font-weight: 700; color: #4ade80; text-transform: uppercase;">1. Propriedades Físicas do Produto</span>
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #4ade80; text-transform: uppercase; letter-spacing: 0.5px;">1. Propriedades Físicas & Operação</span>
                     
                     <div class="form-group">
-                        <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Estado Físico / Consistência:</label>
+                        <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Tecnologia / Estado Físico:</label>
                         <select id="doser-product-type" class="form-control" style="font-size: 0.75rem;" onchange="updateDoserCalculations()">
-                            <option value="powders">Pó Fino / Condimento / Farinha (Dosador de Rosca)</option>
-                            <option value="grains">Grão / Achocolatado / Semente (Balança Linear)</option>
-                            <option value="liquids">Líquido Fluido / Água / Suco (Pistão Pneumático)</option>
-                            <option value="pasty">Molho Pastoso / Creme / Xampu (Pistão Aquecido)</option>
+                            <option value="powders">Pó Fino / Condimento / Farinha (Dosador de Rosca Helicoidal)</option>
+                            <option value="grains">Grão / Semente / Snack / Biscoito (Balança Linear / Multicabeçote)</option>
+                            <option value="liquids">Líquido Fluido / Espumante / Óleo (Pistão Volumétrico Pneumático)</option>
+                            <option value="pasty">Molho Pastoso / Creme / Pasta Densa (Pistão Válvula Rotativa Tri-Clamp)</option>
                         </select>
                     </div>
 
@@ -4746,42 +4769,84 @@
                             <input type="number" id="doser-target-dose" class="form-control" value="250" oninput="updateDoserCalculations()">
                         </div>
                         <div class="form-group">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Densidade ($g/cm^3$):</label>
-                            <input type="number" step="0.05" id="doser-density" class="form-control" value="0.75" oninput="updateDoserCalculations()">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Densidade ($g/cm^3$ ou $kg/L$):</label>
+                            <input type="number" step="0.01" id="doser-density" class="form-control" value="0.75" oninput="updateDoserCalculations()">
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Meta de Velocidade (Doses / minuto):</label>
-                        <input type="number" id="doser-speed-bpm" class="form-control" value="35" oninput="updateDoserCalculations()">
+                    <div id="doser-viscosity-row" style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Viscosidade Dinâmica Estimada (cP / mPa·s):</label>
+                            <select id="doser-viscosity-level" class="form-control" style="font-size: 0.75rem;" onchange="updateDoserCalculations()">
+                                <option value="1">1 cP (Aquoso tipo Água / Álcool)</option>
+                                <option value="250">250 cP (Médio / Espumante tipo Detergente / Xampu / Óleo)</option>
+                                <option value="3500">3.500 cP (Pastoso com Fibras tipo Molho / Ketchup / Creme)</option>
+                                <option value="30000">30.000 cP (Altíssima Viscosidade tipo Doce de Leite / Graxa / Pasta)</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <div style="background: rgba(74, 222, 128, 0.05); border: 1px solid rgba(74, 222, 128, 0.2); border-radius: 6px; padding: 10px; font-size: 0.7rem; color: #cbd5e1; line-height: 1.4;">
+                    <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 10px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Meta de Velocidade (BPM):</label>
+                            <input type="number" id="doser-speed-bpm" class="form-control" value="35" oninput="updateDoserCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Máquina Receptora / Processo:</label>
+                            <select id="doser-machine-type" class="form-control" style="font-size: 0.72rem;" onchange="updateDoserCalculations()">
+                                <option value="vffs">Empacotadora Vertical VFFS (Filme)</option>
+                                <option value="bottles">Linha Linear / Rotativa de Frascos</option>
+                                <option value="pouch">Envasadora Stand-up Pouch</option>
+                                <option value="manual">Semiautomática (Pedal / Manual)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- DICA DE ENGENHARIA DINÂMICA -->
+                    <div id="doser-engineering-hint-box" style="background: rgba(74, 222, 128, 0.05); border: 1px solid rgba(74, 222, 128, 0.2); border-radius: 6px; padding: 10px; font-size: 0.7rem; color: #cbd5e1; line-height: 1.4;">
                         <strong>💡 Regra de Engenharia Tecfag:</strong> Produtos com densidade $< 0.3g/cm^3$ (pós muito aerados) exigem funil agitador duplo para evitar cavernamentos sem requerer customização.
                     </div>
                 </div>
 
-                <!-- DIAGNÓSTICO & RECOMENDAÇÃO TECFAG -->
+                <!-- COLUNA 2: DIAGNÓSTICO & RECOMENDAÇÃO TECFAG -->
                 <div style="display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
-                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase;">2. Recomendação Tecfag Standard</span>
+                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;">2. Diagnóstico & Dimensionamento Técnico</span>
 
-                    <div style="background: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px;">
-                        <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Volume Calculado da Dose:</span>
-                        <span id="doser-res-volume" style="font-size: 1.2rem; font-weight: 800; color: #38bdf8;">333 cm³ (0,33 L)</span>
+                    <!-- VOLUME & TEMPO CINÉTICO -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div style="background: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Volume da Dose:</span>
+                            <span id="doser-res-volume" style="font-size: 1.1rem; font-weight: 800; color: #38bdf8;">333 cm³ (0,33 L)</span>
+                        </div>
+                        <div style="background: var(--bg-base); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Janela Útil de Dosagem:</span>
+                            <span id="doser-res-effective-time" style="font-size: 1.05rem; font-weight: 800; color: #f59e0b;">0,96 s (56% do ciclo)</span>
+                        </div>
                     </div>
 
+                    <!-- MÓDULO DOSADOR SELECIONADO -->
                     <div style="background: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px;">
                         <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Módulo Dosador Standard Selecionado:</span>
                         <span id="doser-res-head-type" style="font-size: 1.05rem; font-weight: 800; color: #4ade80;">Rosca Helicoidal Tecfag Ø45 mm</span>
+                        <span id="doser-res-performance-detail" style="font-size: 0.72rem; color: #cbd5e1; font-weight: 600;">Rotação do Servomotor: 720 RPM | 3,5 voltas/dose</span>
                     </div>
 
+                    <!-- ACESSÓRIOS DE BICO & OPCIONAIS -->
                     <div style="background: var(--bg-base); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px;">
-                        <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Tempo Disponível por Dose:</span>
-                        <span id="doser-res-cycle-time" style="font-size: 1.1rem; font-weight: 800; color: #f59e0b;">1,71 s por dose</span>
+                        <span style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Bicos & Acessórios Recomendados:</span>
+                        <div id="doser-res-nozzle-acc" style="font-size: 0.73rem; color: #e2e8f0; line-height: 1.4;">
+                            • Bico com Cone Corta-Gotas de Tela Inox<br>
+                            • Funil 50L com Agitador Raspador Lento
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px; margin-top: 2px;">
+                            <span style="font-size: 0.65rem; color: var(--text-secondary);">Precisão Metrológica Estimada:</span>
+                            <span id="doser-res-precision" style="font-size: 0.72rem; font-weight: 800; color: #38bdf8;">± 0,6% (± 1,5 g)</span>
+                        </div>
                     </div>
 
+                    <!-- STATUS DE VIABILIDADE -->
                     <div id="doser-res-status-box" style="padding: 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; text-align: center; background: rgba(74, 222, 128, 0.15); border: 1px solid #4ade80; color: #4ade80;">
-                        ✅ VIABILIDADE TÉCNICA APROVADA: MÁQUINA 100% STANDARD
+                        ✅ VIABILIDADE TÉCNICA APROVADA: LINHA 100% STANDARD TECFAG
                     </div>
                 </div>
             </div>
@@ -7274,7 +7339,29 @@
         // SUÍTE DE ENGENHARIA DE VALIDAÇÃO TECFAG
         // ==========================================
 
-        // 1. VALIDADOR DE DOSAGEM & CABEÇOTE TECFAG
+        // 1. VALIDADOR AVANÇADO DE DOSAGEM & CABEÇOTE TECFAG
+        const DOSER_PRESETS = {
+            'custom': { name: '⚙️ Personalizado (Custom)', type: 'powders', dose: 250, density: 0.75, viscosity: 1, machine: 'vffs', hint: 'Configuração manual livre de todos os parâmetros de produto e máquina.' },
+            'wheat_flour': { name: '🌾 Farinha de Trigo / Amido de Milho (Pó Coesivo)', type: 'powders', dose: 1000, density: 0.50, viscosity: 1, machine: 'vffs', hint: 'Pó fino coesivo. Exige funil agitador lento com raspadores de parede e bico corta-gotas com cone de tela inox para retenção.' },
+            'ground_coffee': { name: '☕ Café Moído a Vácuo (Pó Aerado)', type: 'powders', dose: 500, density: 0.38, viscosity: 1, machine: 'vffs', hint: 'Pó aerado e compressível. Rosca helicoidal com servomotor de alto torque e exaustão/coletor de pó no funil formador.' },
+            'powder_milk': { name: '🥛 Leite em Pó / Suplemento Whey', type: 'powders', dose: 900, density: 0.45, viscosity: 1, machine: 'vffs', hint: 'Pó higroscópico e coesivo. Rosca helicoidal polida espelhada sanitária com bico de tela fina para dosagem sem aeração.' },
+            'sugar_crystal': { name: '🍬 Açúcar Cristal / Achocolatado Granulado', type: 'powders', dose: 1000, density: 0.75, viscosity: 1, machine: 'vffs', hint: 'Grânulo fino de livre escoamento. Exige bico da rosca com Disco Spinner / Válvula Flap para estancar o fluxo por gravidade pós-parada.' },
+            'refined_salt': { name: '🧂 Sal Refinado / Micro-cristais', type: 'powders', dose: 1000, density: 1.20, viscosity: 1, machine: 'vffs', hint: 'Alta densidade e abrasivo. Rosca inox reforçada com disco de retenção inferior ou dosador de copos volumétricos.' },
+            'rice_beans': { name: '🍚 Arroz / Feijão / Milho / Grãos Rígidos', type: 'grains', dose: 1000, density: 0.85, viscosity: 1, machine: 'vffs', hint: 'Grãos rígidos não-coesivos. Ideal para Balança Linear de calhas vibratórias ou Balança Multicabeçote 10/14 canecas.' },
+            'snacks_chips': { name: '🍟 Snacks / Batata Palha / Pipoca', type: 'grains', dose: 150, density: 0.12, viscosity: 1, machine: 'vffs', hint: 'Altíssimo volume aparente e fragilidade. Exige Balança Multicabeçote com canecas grandes (2.5L / 5.0L) e canais corrugados Dimple Plate anti-quebra.' },
+            'detergent': { name: '🧼 Detergente / Xampu / Sabonete Líquido', type: 'liquids', dose: 500, density: 1.02, viscosity: 250, machine: 'bottles', hint: 'Líquido moderadamente viscoso e muito espumante. Exige Bico Mergulhante com subida progressiva sincronizada (Bottom-Up) e anti-pinga.' },
+            'tomato_sauce': { name: '🍅 Molho de Tomate / Ketchup / Cosmético', type: 'pasty', dose: 340, density: 1.08, viscosity: 3500, machine: 'pouch', hint: 'Pastoso com fibras e partículas. Exige Válvula Rotativa Tri-Clamp de passagem plena e bico com corte pneumático positivo.' },
+            'dense_paste': { name: '🍯 Doce de Leite / Pasta Densa / Pomada', type: 'pasty', dose: 500, density: 1.25, viscosity: 30000, machine: 'bottles', hint: 'Altíssima viscosidade. Exige funil jaquetado com aquecimento, agitador âncora com raspadores de teflon e pistão heavy-duty.' },
+            'mineral_water': { name: '💧 Água Mineral / Álcool 70% / Sucos', type: 'liquids', dose: 510, density: 1.00, viscosity: 1, machine: 'bottles', hint: 'Líquido fluido de baixa viscosidade. Envasadora de pistão rápido ou por gravidade/pressão temporizada com bico corta-pinga estanque.' }
+        };
+
+        const DOSER_MACHINE_INDEX_TIMES = {
+            'vffs': { name: 'Empacotadora Vertical VFFS', deadTime: 0.75 },
+            'bottles': { name: 'Linha de Frascos', deadTime: 0.60 },
+            'pouch': { name: 'Envasadora Pouch', deadTime: 0.85 },
+            'manual': { name: 'Semiautomática', deadTime: 0.35 }
+        };
+
         function openDoserCalcModal() {
             const modal = document.getElementById('doser-calc-modal');
             if (modal) modal.style.display = 'flex';
@@ -7286,45 +7373,237 @@
             if (modal) modal.style.display = 'none';
         }
 
-        function updateDoserCalculations() {
-            const productType = document.getElementById('doser-product-type')?.value || 'powders';
-            const dose = parseFloat(document.getElementById('doser-target-dose')?.value) || 250;
-            const density = parseFloat(document.getElementById('doser-density')?.value) || 0.75;
-            const speedBpm = parseFloat(document.getElementById('doser-speed-bpm')?.value) || 35;
+        function applyDoserPreset() {
+            const presetKey = document.getElementById('doser-preset-select')?.value || 'custom';
+            const preset = DOSER_PRESETS[presetKey];
+            if (!preset) return;
 
-            const volumeCm3 = dose / density;
-            const cycleTime = 60 / speedBpm;
-
-            document.getElementById('doser-res-volume').innerText = Math.round(volumeCm3) + ' cm³ (' + (volumeCm3/1000).toFixed(2) + ' L)';
-            document.getElementById('doser-res-cycle-time').innerText = cycleTime.toFixed(2) + ' s por dose';
-
-            let headName = '';
-            let isOk = true;
-            let statusText = '';
-
-            if (productType === 'powders') {
-                if (volumeCm3 < 50) headName = 'Rosca Helicoidal Tecfag Ø15 mm (Dosador Micro-Dose)';
-                else if (volumeCm3 < 250) headName = 'Rosca Helicoidal Tecfag Ø25 mm (Padrão 50-250g)';
-                else if (volumeCm3 < 1000) headName = 'Rosca Helicoidal Tecfag Ø45 mm (Padrão 250g-1kg)';
-                else headName = 'Rosca Helicoidal Tecfag Ø60 mm (Faixa Industrial 1-5kg)';
-
-                if (cycleTime < 0.8) {
-                    isOk = false;
-                    statusText = '⚠️ VELOCIDADE EXCEDE ROSCA SINGLE! Requer Servomotor Duplo ou 2 Cabeçotes Standard Tecfag';
+            const badge = document.getElementById('doser-preset-badge');
+            if (badge) {
+                if (presetKey === 'custom') {
+                    badge.innerText = 'Modo Manual';
+                    badge.style.color = '#f59e0b';
+                    badge.style.background = 'rgba(245, 158, 11, 0.15)';
+                    badge.style.borderColor = 'rgba(245, 158, 11, 0.3)';
                 } else {
-                    statusText = '✅ VIABILIDADE TÉCNICA APROVADA: ENVASE STANDARD TECFAG OK';
+                    badge.innerText = 'Preset Ativo';
+                    badge.style.color = '#38bdf8';
+                    badge.style.background = 'rgba(56, 189, 248, 0.15)';
+                    badge.style.borderColor = 'rgba(56, 189, 248, 0.3)';
                 }
-            } else if (productType === 'grains') {
-                if (volumeCm3 < 500) headName = 'Balança Linear Tecfag 2 Cabeçotes (Caneca Vibração)';
-                else headName = 'Balança Multi-Cabeçote Tecfag 10/14 Cabeças';
-                statusText = '✅ VIABILIDADE TÉCNICA APROVADA: BALANÇA LINEAR TECFAG OK';
-            } else {
-                if (dose <= 500) headName = 'Módulo Pistão Pneumático Tecfag (Faixa 50 - 500 ml)';
-                else headName = 'Módulo Pistão Pneumático Tecfag (Faixa 500 - 5000 ml)';
-                statusText = '✅ VIABILIDADE TÉCNICA APROVADA: ENVASADORA PISTÃO TECFAG OK';
             }
 
-            document.getElementById('doser-res-head-type').innerText = headName;
+            if (presetKey !== 'custom') {
+                const prodTypeEl = document.getElementById('doser-product-type');
+                const targetDoseEl = document.getElementById('doser-target-dose');
+                const densityEl = document.getElementById('doser-density');
+                const viscEl = document.getElementById('doser-viscosity-level');
+                const machineEl = document.getElementById('doser-machine-type');
+
+                if (prodTypeEl) prodTypeEl.value = preset.type;
+                if (targetDoseEl) targetDoseEl.value = preset.dose;
+                if (densityEl) densityEl.value = preset.density;
+                if (viscEl) viscEl.value = preset.viscosity;
+                if (machineEl) machineEl.value = preset.machine;
+            }
+
+            updateDoserCalculations();
+        }
+
+        function updateDoserCalculations() {
+            const productType = document.getElementById('doser-product-type')?.value || 'powders';
+            const dose = Math.max(1, parseFloat(document.getElementById('doser-target-dose')?.value) || 250);
+            const density = Math.max(0.01, parseFloat(document.getElementById('doser-density')?.value) || 0.75);
+            const speedBpm = Math.max(1, Math.min(200, parseFloat(document.getElementById('doser-speed-bpm')?.value) || 35));
+            const machineType = document.getElementById('doser-machine-type')?.value || 'vffs';
+            const viscosityLevel = parseFloat(document.getElementById('doser-viscosity-level')?.value) || 1;
+
+            // Toggle Viscosity Row
+            const viscRow = document.getElementById('doser-viscosity-row');
+            if (viscRow) {
+                viscRow.style.display = (productType === 'liquids' || productType === 'pasty') ? 'grid' : 'none';
+            }
+
+            // Calculations
+            const volumeCm3 = dose / density;
+            const cycleTime = 60 / speedBpm;
+            const deadTime = (DOSER_MACHINE_INDEX_TIMES[machineType] || DOSER_MACHINE_INDEX_TIMES['vffs']).deadTime;
+            const effectiveTime = Math.max(0.20, cycleTime - deadTime);
+            const effectivePercent = Math.min(100, Math.round((effectiveTime / cycleTime) * 100));
+
+            // Display Volume & Time
+            const volDisplay = document.getElementById('doser-res-volume');
+            if (volDisplay) {
+                volDisplay.innerText = Math.round(volumeCm3) + ' cm³ (' + (volumeCm3/1000).toFixed(2) + ' L)';
+            }
+            const timeDisplay = document.getElementById('doser-res-effective-time');
+            if (timeDisplay) {
+                timeDisplay.innerText = `${effectiveTime.toFixed(2)} s (${effectivePercent}% do ciclo)`;
+            }
+
+            let headName = '';
+            let perfDetail = '';
+            let nozzleAcc = '';
+            let precision = '';
+            let statusText = '';
+            let hintText = '';
+            let isOk = true;
+
+            // Update Hint Box
+            const currentPresetKey = document.getElementById('doser-preset-select')?.value || 'custom';
+            if (currentPresetKey !== 'custom' && DOSER_PRESETS[currentPresetKey]?.hint) {
+                hintText = `<strong>💡 Aplicação ${DOSER_PRESETS[currentPresetKey].name.split('(')[0]}:</strong> ${DOSER_PRESETS[currentPresetKey].hint}`;
+            } else {
+                if (density < 0.3) {
+                    hintText = `<strong>💡 Regra de Engenharia Tecfag:</strong> Produtos com densidade < 0.3 g/cm³ (pós muito aerados) exigem funil agitador duplo para evitar cavernamentos.`;
+                } else if (productType === 'powders') {
+                    hintText = `<strong>💡 Regra de Engenharia Tecfag:</strong> Rosca sem-fim acionada por Servomotor com controle milimétrico de passo para repetição precisa da dosagem.`;
+                } else if (productType === 'grains') {
+                    hintText = `<strong>💡 Regra de Engenharia Tecfag:</strong> Combinação de células de carga de alta velocidade para pesagem dinâmica contínua sem quebra de grãos.`;
+                } else {
+                    hintText = `<strong>💡 Regra de Engenharia Tecfag:</strong> Dosadores de pistão volumétrico em Inox 304/316 com vedações sanitárias de fácil desmontagem para higienização CIP.`;
+                }
+            }
+            const hintBox = document.getElementById('doser-engineering-hint-box');
+            if (hintBox) hintBox.innerHTML = hintText;
+
+            // Specific calculations by technology
+            if (productType === 'powders') {
+                let screwDiam = 45;
+                let volPerRev = 95;
+                let pitch = 38;
+
+                if (volumeCm3 <= 40) {
+                    screwDiam = 15; volPerRev = 2.0; pitch = 12;
+                    headName = `Rosca Helicoidal Tecfag Micro Ø15 mm (Micro-Dose 5-40 ml)`;
+                } else if (volumeCm3 <= 180) {
+                    screwDiam = 25; volPerRev = 12.0; pitch = 20;
+                    headName = `Rosca Helicoidal Tecfag Ø25 mm (Padrão 20-150g)`;
+                } else if (volumeCm3 <= 450) {
+                    screwDiam = 38; volPerRev = 45.0; pitch = 30;
+                    headName = `Rosca Helicoidal Tecfag Ø38 mm (Padrão 100-350g)`;
+                } else if (volumeCm3 <= 1200) {
+                    screwDiam = 45; volPerRev = 95.0; pitch = 38;
+                    headName = `Rosca Helicoidal Tecfag Ø45 mm (Padrão 250g-1kg)`;
+                } else if (volumeCm3 <= 3500) {
+                    screwDiam = 60; volPerRev = 210.0; pitch = 48;
+                    headName = `Rosca Helicoidal Tecfag Ø60 mm (Faixa Industrial 1-3kg)`;
+                } else {
+                    screwDiam = 75; volPerRev = 420.0; pitch = 60;
+                    headName = `Rosca Helicoidal Tecfag Ø75 mm (Sacos Grandes 3-10kg)`;
+                }
+
+                const revsPerDose = volumeCm3 / volPerRev;
+                const requiredRpm = (revsPerDose / effectiveTime) * 60;
+
+                let rpmColorTag = '🟢';
+                if (requiredRpm > 1200) {
+                    rpmColorTag = '🔴';
+                    isOk = false;
+                    statusText = '⛔ EXCESSO DE ROTAÇÃO: Risco de aeração e desagregação do pó! Requer Rosca maior ou 2 Cabeçotes Tecfag.';
+                } else if (requiredRpm > 850) {
+                    rpmColorTag = '🟡';
+                    statusText = '⚠️ ALERTA DE ROTAÇÃO: Requer Servomotor Tecfag de Alta Inércia e Resposta Dinâmica.';
+                } else {
+                    statusText = '✅ VIABILIDADE TÉCNICA APROVADA: ENVASE 100% STANDARD TECFAG';
+                }
+
+                perfDetail = `Rotação Servo: ${Math.round(requiredRpm)} RPM (${rpmColorTag}) | ${revsPerDose.toFixed(1)} voltas/dose (Passo ${pitch} mm)`;
+
+                if (density >= 0.65) {
+                    nozzleAcc = `• Bico da Rosca com Disco Spinner Rotativo / Válvula Flap Anti-Escorrimento<br>• Funil Inox 50L com Agitador de Velocidade Constante`;
+                } else {
+                    nozzleAcc = `• Bico com Cone Corta-Gotas de Tela Inox Fina Anti-Poeira<br>• Funil Inox 50L com Agitador Raspador Lento de Parede`;
+                }
+
+                const precVal = Math.max(0.2, (dose * 0.007)).toFixed(1);
+                precision = `± 0,7% (± ${precVal} g)`;
+
+            } else if (productType === 'grains') {
+                const apparentVol = volumeCm3 * 1.6;
+                let bucketSize = '1.6 L';
+                if (apparentVol > 2500) bucketSize = '5.0 L';
+                else if (apparentVol > 1400) bucketSize = '2.5 L';
+
+                if (speedBpm <= 25) {
+                    headName = `Balança Linear Tecfag 2 Calhas Vibratórias (Canecas ${bucketSize})`;
+                    perfDetail = `Operação Linear Vibratória Dupla | Caneca ${bucketSize}`;
+                    statusText = '✅ VIABILIDADE TÉCNICA APROVADA: BALANÇA LINEAR STANDARD TECFAG';
+                } else if (speedBpm <= 45) {
+                    headName = `Balança Linear Tecfag 4 Calhas Vibratórias (Canecas ${bucketSize})`;
+                    perfDetail = `Operação Linear Quádrupla Sincronizada | Caneca ${bucketSize}`;
+                    statusText = '✅ VIABILIDADE TÉCNICA APROVADA: BALANÇA LINEAR 4 CALHAS TECFAG';
+                } else if (speedBpm <= 75) {
+                    headName = `Balança Multicabeçote Tecfag 10 Cabeças Combinada (Canecas ${bucketSize})`;
+                    perfDetail = `Combinação de Pesagem de 10 Células | Caneca ${bucketSize}`;
+                    statusText = '✅ VIABILIDADE TÉCNICA APROVADA: BALANÇA MULTICABEÇOTE 10 CABEÇAS';
+                } else {
+                    headName = `Balança Multicabeçote Tecfag 14 Cabeças Alta Velocidade (Canecas ${bucketSize})`;
+                    perfDetail = `Combinação de Pesagem de 14 Células Alta Performance | Caneca ${bucketSize}`;
+                    statusText = '✅ VIABILIDADE TÉCNICA APROVADA: BALANÇA MULTICABEÇOTE 14 CABEÇAS';
+                }
+
+                if (density <= 0.20) {
+                    nozzleAcc = `• Calhas e Canecas com Chapa Corrugada (Dimple Plate) Anti-Impacto<br>• Cone Central com Revestimento Amortecedor`;
+                } else {
+                    nozzleAcc = `• Aço Inox AISI 304 Polido Sanitário com Células de Carga Blindadas IP65<br>• Funil Coletor Central com Descarga Rápida`;
+                }
+
+                const precVal = Math.max(0.1, (dose * 0.003)).toFixed(1);
+                precision = `± 0,3% (± ${precVal} g)`;
+
+            } else { // liquids or pasty
+                const isPasty = productType === 'pasty' || viscosityLevel > 1500;
+                let pistonFaixa = '';
+                if (volumeCm3 <= 100) pistonFaixa = 'Micro (10 - 100 ml)';
+                else if (volumeCm3 <= 500) pistonFaixa = 'Standard (50 - 500 ml)';
+                else if (volumeCm3 <= 1000) pistonFaixa = 'Médio (100 - 1000 ml)';
+                else pistonFaixa = 'Industrial (500 - 5000 ml)';
+
+                const flowRate = (volumeCm3 / effectiveTime).toFixed(0);
+
+                if (isPasty) {
+                    headName = `Módulo Pistão Rotativo Tri-Clamp Tecfag ${pistonFaixa}`;
+                    perfDetail = `Vazão Efetiva: ${flowRate} ml/s | Válvula Rotativa Passagem Plena Ø1.5"`;
+                    if (viscosityLevel >= 20000) {
+                        nozzleAcc = `• Funil Jaquetado com Aquecimento e Agitador Âncora c/ Raspadores de Teflon<br>• Bico com Válvula Corta-Fio Pneumática Positiva`;
+                    } else {
+                        nozzleAcc = `• Bico Dosador com Corte Pneumático Positivo Anti-Gota<br>• Funil Cônico Inox 304 com Válvula Rotativa Sanitária`;
+                    }
+                } else {
+                    headName = `Módulo Pistão Pneumático Tecfag ${pistonFaixa}`;
+                    perfDetail = `Vazão Efetiva: ${flowRate} ml/s | Cilindro Pneumático Magnético`;
+                    if (viscosityLevel >= 150) {
+                        nozzleAcc = `• Bico Mergulhante com Subida Progressiva Sincronizada (Bottom-Up Anti-Espuma)<br>• Válvula de 3 Vias Anti-Pinga c/ Vedações Viton`;
+                    } else {
+                        nozzleAcc = `• Bico Dosador com Corte Rápido Anti-Gota<br>• Mangueira Sanitária de Sucção com Válvula de Retenção`;
+                    }
+                }
+
+                if (speedBpm > 50) {
+                    isOk = false;
+                    statusText = '⚠️ VELOCIDADE ELEVADA: Requer Envasadora Linear Multipistas (2, 4 ou 6 Bicos Tecfag).';
+                } else {
+                    statusText = '✅ VIABILIDADE TÉCNICA APROVADA: ENVASADORA PISTÃO STANDARD TECFAG';
+                }
+
+                const precVal = Math.max(0.2, (dose * 0.005)).toFixed(1);
+                precision = `± 0,5% (± ${precVal} ${productType === 'liquids' ? 'ml' : 'g'})`;
+            }
+
+            // Update UI
+            const headEl = document.getElementById('doser-res-head-type');
+            if (headEl) headEl.innerText = headName;
+
+            const perfEl = document.getElementById('doser-res-performance-detail');
+            if (perfEl) perfEl.innerText = perfDetail;
+
+            const nozzleEl = document.getElementById('doser-res-nozzle-acc');
+            if (nozzleEl) nozzleEl.innerHTML = nozzleAcc;
+
+            const precEl = document.getElementById('doser-res-precision');
+            if (precEl) precEl.innerText = precision;
+
             const statusBox = document.getElementById('doser-res-status-box');
             if (statusBox) {
                 statusBox.innerText = statusText;
