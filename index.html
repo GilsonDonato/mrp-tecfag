@@ -703,6 +703,18 @@
             background-color: #1a141a;
         }
 
+        .project-card.project-card-waiting-vendor {
+            border-left: 4px solid #f59e0b !important;
+            box-shadow: 0 0 14px rgba(245, 158, 11, 0.25) !important;
+            background: linear-gradient(180deg, rgba(245, 158, 11, 0.06) 0%, rgba(30, 41, 59, 0.8) 100%) !important;
+        }
+
+        .deadline-waiting-vendor {
+            background-color: rgba(245, 158, 11, 0.15) !important;
+            color: #f59e0b !important;
+            border: 1px solid rgba(245, 158, 11, 0.35) !important;
+        }
+
         .project-card-header {
             display: flex;
             justify-content: space-between;
@@ -3333,6 +3345,24 @@
             </div>
             
             <div class="modal-body">
+                <!-- Alerta de SLA Pausado / Aguardando Vendedor -->
+                <div id="modal-waiting-vendor-top-alert" style="display: none; background: linear-gradient(90deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.08) 100%); border: 1px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; color: #fbbf24;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 0.85rem;">
+                            <span style="font-size: 1.3rem;">⏸️</span>
+                            <div>
+                                <div style="color: #f59e0b; font-size: 0.88rem; font-weight: 800;">PROJETO COM SLA PAUSADO: AGUARDANDO ESCLARECIMENTO DO VENDEDOR</div>
+                                <div style="font-size: 0.74rem; font-weight: normal; color: #fde68a; margin-top: 2px;" id="modal-waiting-vendor-top-subtitle">
+                                    O cronômetro da Engenharia está congelado. O tempo de resposta está sendo contabilizado para o comercial.
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" style="padding: 5px 12px; font-size: 0.74rem; font-weight: bold; background: #f59e0b; color: #000; border: none; cursor: pointer; border-radius: 4px;" onclick="toggleWaitingVendorStatus(false)">
+                            🟢 Retomar SLA da Engenharia
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Alerta de Oportunidade Perdida -->
                 <div id="modal-lost-reason-alert" style="display: none; background-color: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: 8px; padding: 15px; margin-bottom: 20px; color: #fca5a5;">
                     <div style="display: flex; align-items: center; gap: 10px; font-weight: 700;">
@@ -3953,13 +3983,24 @@
 
                                 <!-- SUB-TAB 4: Chat & Mural do Projeto -->
                                 <div id="modal-subtab-chat" style="display: none;">
+                                    <!-- Banner de Alerta de Bloqueio no Chat -->
+                                    <div id="modal-chat-waiting-vendor-banner" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; align-items: center; justify-content: space-between; gap: 10px;">
+                                        <div style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #f59e0b; font-weight: 600;">
+                                            <span style="font-size: 1.1rem;">⏸️</span>
+                                            <span id="modal-chat-waiting-vendor-text">Aguardando resposta do Vendedor. SLA da Engenharia congelado.</span>
+                                        </div>
+                                        <button type="button" class="btn btn-secondary" onclick="toggleWaitingVendorStatus(false)" style="font-size: 0.72rem; padding: 4px 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(245, 158, 11, 0.4); color: #f8fafc; font-weight: bold; cursor: pointer;">
+                                            🟢 Desbloquear SLA
+                                        </button>
+                                    </div>
+
                                     <h5 style="color: var(--success); margin-bottom: 10px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">💬 Discussão Interna e Mural de Vendas</h5>
                                     <p style="font-size: 0.76rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 15px;">
-                                        Use este mural para deixar avisos, dúvidas técnicas ou follow-ups sobre este projeto. O vendedor será notificado no Kanban quando houver uma nova mensagem.
+                                        Use este mural para deixar avisos, dúvidas técnicas ou follow-ups sobre este projeto. Para pausar o SLA e cobrar o Comercial, use o botão <strong>"Solicitar ao Vendedor"</strong>.
                                     </p>
                                     
                                     <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
-                                        <textarea id="modal-chat-input" class="form-control" style="height: 70px; resize: none; background: rgba(0,0,0,0.3); border-color: var(--border-color); color: var(--text-primary); font-size: 0.8rem;" placeholder="Digite aqui a sua pergunta ou anotação comercial..."></textarea>
+                                        <textarea id="modal-chat-input" class="form-control" style="height: 70px; resize: none; background: rgba(0,0,0,0.3); border-color: var(--border-color); color: var(--text-primary); font-size: 0.8rem;" placeholder="Digite aqui a sua mensagem, dúvida técnica ou alinhamento comercial..."></textarea>
                                         
                                         <!-- Container de exibição do arquivo selecionado -->
                                         <div id="modal-chat-attachment-preview" style="display: none; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.72rem; color: var(--text-secondary);">
@@ -3969,14 +4010,18 @@
                                             <button type="button" onclick="clearModalChatAttachment()" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1rem; padding: 0 4px; font-weight: bold;">×</button>
                                         </div>
 
-                                        <div style="display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
+                                        <div style="display: flex; justify-content: flex-end; gap: 10px; align-items: center; flex-wrap: wrap;">
                                             <!-- Inputs de anexo ocultos -->
                                             <input type="file" id="modal-chat-file-input" onchange="handleModalChatFileChange()" style="display: none;">
                                             <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-chat-file-input').click()" style="padding: 6px 10px; font-size: 0.74rem; display: flex; align-items: center; gap: 4px;" title="Anexar arquivo técnico (Fotos, PDFs, Videos ou CAD de até 50MB)">
                                                 📎 Anexar
                                             </button>
                                             
-                                            <button id="btn-submit-chat-message" class="btn" style="background: var(--success); border-color: var(--success); color: #fff; font-size: 0.74rem; font-weight: bold; cursor: pointer; padding: 6px 15px;" onclick="addModalChatMessage()">
+                                            <button id="btn-submit-vendor-query" class="btn" style="background: #f59e0b; border-color: #f59e0b; color: #000; font-size: 0.74rem; font-weight: 800; cursor: pointer; padding: 6px 14px; display: flex; align-items: center; gap: 4px;" onclick="addModalChatMessage(true)" title="Envia a dúvida ao Vendedor, marca o projeto como Aguardando Vendedor e congela o cronômetro da Engenharia">
+                                                ❓ Solicitar ao Vendedor (Pausar SLA)
+                                            </button>
+
+                                            <button id="btn-submit-chat-message" class="btn" style="background: var(--success); border-color: var(--success); color: #fff; font-size: 0.74rem; font-weight: bold; cursor: pointer; padding: 6px 15px;" onclick="addModalChatMessage(false)">
                                                 Adicionar Comentário
                                             </button>
                                         </div>
@@ -12192,6 +12237,7 @@
         function getBottleneckRole(project) {
             if (project.fase === 8) return "PERDIDO";
             if (project.fase === 7) return "CONCLUIDO";
+            if (project.waiting_vendor === 1 || project.waiting_vendor === true) return "VENDAS";
             if (!project.checklist.diagnostico) return "VENDAS";
             if (!project.checklist.customizacao) return "ENGENHARIA";
             if (!project.checklist.cotacao) return "ENGENHARIA";
@@ -14545,8 +14591,13 @@
                 const progress = calculateProjectProgress(project);
                 const hasWarning = checkCriticalWarning(project);
 
+                let cardCreator = getProjectSeller(project);
+                const isWaitingVendor = project.waiting_vendor === 1 || project.waiting_vendor === true;
+
                 let responsibleText = "";
-                if (project.fase === 1) responsibleText = "Eng. Aplicação & Escopo";
+                if (isWaitingVendor) {
+                    responsibleText = `<span style="color: #f59e0b; font-weight: bold;">⏸️ Aguardando Vendedor (${cardCreator})</span>`;
+                } else if (project.fase === 1) responsibleText = "Eng. Aplicação & Escopo";
                 else if (project.fase === 2) responsibleText = "Comercial & Contrato";
                 else if (project.fase === 3) responsibleText = "Proforma, Câmbio & Pag. Sinal";
                 else if (project.fase === 4) responsibleText = "Compras & Prod. Internacional";
@@ -14559,11 +14610,32 @@
                 let deadlineStr = "-";
                 let deadlineClass = "";
                 let deadlineLabel = "";
-                if (project.fase >= 1 && project.fase <= 6) {
+                let waitingVendorBadgeHtml = "";
+
+                if (isWaitingVendor) {
+                    const waitingSince = project.waiting_vendor_since ? new Date(project.waiting_vendor_since) : new Date();
+                    const now = new Date();
+                    const diffTime = Math.abs(now - waitingSince);
+                    const waitingDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    const waitingHours = Math.floor((diffTime / (1000 * 60 * 60)) % 24);
+                    const timeStr = waitingDays > 0 ? `${waitingDays}d` : `${waitingHours}h`;
+
+                    deadlineClass = "deadline-waiting-vendor";
+                    deadlineStr = "PAUSADO";
+                    deadlineLabel = ` (SLA Eng. Congelado)`;
+
+                    waitingVendorBadgeHtml = `
+                        <div class="waiting-vendor-badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.67rem; font-weight: 700; padding: 4px 8px; border-radius: 4px; margin-top: 6px; display: flex; align-items: center; gap: 5px;" title="A Engenharia solicitou dados ao Vendedor. O prazo está pausado.">
+                            <span>⏸️</span>
+                            <span>Aguardando resposta do Vendedor há <strong>${timeStr}</strong></span>
+                        </div>
+                    `;
+                } else if (project.fase >= 1 && project.fase <= 6) {
                     const daysLimit = project.prazos ? parseInt(project.prazos[`fase${project.fase}`]) : null;
                     if (daysLimit !== null && !isNaN(daysLimit)) {
+                        const pausedMs = (project.paused_sla_seconds || 0) * 1000;
                         const entryDate = project.faseEntryDate ? new Date(project.faseEntryDate) : (project.lastUpdate ? new Date(project.lastUpdate) : new Date());
-                        const deadlineDate = new Date(entryDate.getTime() + daysLimit * 24 * 60 * 60 * 1000);
+                        const deadlineDate = new Date(entryDate.getTime() + (daysLimit * 24 * 60 * 60 * 1000) + pausedMs);
                         
                         const d = deadlineDate.getDate();
                         const m = deadlineDate.getMonth() + 1;
@@ -14588,8 +14660,6 @@
                         }
                     }
                 }
-                
-                let cardCreator = getProjectSeller(project);
 
                 // Indicadores de CRM
                 let crmAlertHtml = "";
@@ -14603,7 +14673,7 @@
                         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
                         let limitDays = project.fase === 1 ? 3 : 5;
                         
-                        if (diffDays >= limitDays) {
+                        if (diffDays >= limitDays && !isWaitingVendor) {
                             crmAlertHtml = `
                                 <div class="crm-alert-badge" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-top: 5px; display: inline-flex; align-items: center; gap: 4px;">
                                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -14649,7 +14719,7 @@
                             badgeColor = "#38bdf8";
                             badgeBorder = "rgba(14, 165, 233, 0.3)";
                         } else if (currentRole === 'VENDAS' || currentRole === 'GERENTE_COMERCIAL') {
-                            badgeText = "💬 Dúvida Pendente";
+                            badgeText = isWaitingVendor ? "❓ Dúvida da Engenharia" : "💬 Dúvida Pendente";
                             badgeBg = "rgba(245, 158, 11, 0.15)";
                             badgeColor = "#f59e0b";
                             badgeBorder = "rgba(245, 158, 11, 0.3)";
@@ -14677,6 +14747,8 @@
                 let extraClass = "";
                 if (project.fase === 8) {
                     extraClass = "project-card-lost";
+                } else if (isWaitingVendor) {
+                    extraClass = "project-card-waiting-vendor";
                 }
                 card.className = `project-card ${isMyBottleneck ? 'highlighted-role' : ''} ${extraClass}`;
                 
@@ -14718,6 +14790,7 @@
                                 <strong style="font-size: 0.72rem; word-break: break-word;">${project.motivoPerda || 'Não informado'}</strong>
                             </div>
                         ` : ''}
+                        ${waitingVendorBadgeHtml}
                         ${valHtml}
                         ${crmAlertHtml}
                         ${commentBadgeHtml}
@@ -15206,6 +15279,34 @@
                 btnProrrogar.title = phaseLabelsMap[currentFase] || "Prorrogar prazo da fase atual";
             }
             
+            // Atualizar exibição do banner de Aguardando Vendedor
+            const isWaitingVendor = project.waiting_vendor === 1 || project.waiting_vendor === true;
+            const topAlert = document.getElementById('modal-waiting-vendor-top-alert');
+            const chatBanner = document.getElementById('modal-chat-waiting-vendor-banner');
+            const topSubtitle = document.getElementById('modal-waiting-vendor-top-subtitle');
+            const chatBannerText = document.getElementById('modal-chat-waiting-vendor-text');
+
+            if (isWaitingVendor) {
+                const waitingSince = project.waiting_vendor_since ? new Date(project.waiting_vendor_since).toLocaleString('pt-BR') : 'Data não registrada';
+                const reasonStr = project.waiting_vendor_reason ? ` "${project.waiting_vendor_reason}"` : '';
+                
+                if (topAlert) {
+                    topAlert.style.display = 'block';
+                    if (topSubtitle) {
+                        topSubtitle.innerHTML = `O cronômetro da Engenharia está congelado desde <strong>${waitingSince}</strong> aguardando retorno de <strong>${creator}</strong>.${reasonStr ? '<br><em>Dúvida: ' + reasonStr + '</em>' : ''}`;
+                    }
+                }
+                if (chatBanner) {
+                    chatBanner.style.display = 'flex';
+                    if (chatBannerText) {
+                        chatBannerText.innerHTML = `Aguardando resposta do Vendedor (<strong>${creator}</strong>). O SLA da Engenharia está congelado.`;
+                    }
+                }
+            } else {
+                if (topAlert) topAlert.style.display = 'none';
+                if (chatBanner) chatBanner.style.display = 'none';
+            }
+
             // Gerar imagem do QR Code
             const qrContainer = document.getElementById('modal-project-qrcode');
             if (qrContainer) {
@@ -17085,9 +17186,10 @@
             if (previewContainer) previewContainer.style.display = 'none';
         }
 
-        async function addModalChatMessage() {
+        async function addModalChatMessage(isVendorQuery = false) {
             const input = document.getElementById('modal-chat-input');
             const submitBtn = document.getElementById('btn-submit-chat-message');
+            const queryBtn = document.getElementById('btn-submit-vendor-query');
             if (!input) return;
             
             const message = input.value.trim();
@@ -17096,16 +17198,20 @@
                 return;
             }
             
-            const oldText = submitBtn ? submitBtn.innerText : 'Adicionar Comentário';
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerText = 'Enviando...';
+            const activeBtn = isVendorQuery ? queryBtn : submitBtn;
+            const oldText = activeBtn ? activeBtn.innerText : 'Enviando...';
+            if (activeBtn) {
+                activeBtn.disabled = true;
+                activeBtn.innerText = 'Enviando...';
             }
             
             try {
                 const token = localStorage.getItem('tecfag_session_token');
                 const formData = new FormData();
                 formData.append('message', message);
+                if (isVendorQuery) {
+                    formData.append('is_vendor_query', 'true');
+                }
                 if (modalChatSelectedFile) {
                     formData.append('file', modalChatSelectedFile);
                 }
@@ -17136,16 +17242,66 @@
                     state.projects[projectIdx].crm_last_comment_user = currentUser;
                     state.projects[projectIdx].crm_last_interaction_date = new Date().toISOString();
                     state.projects[projectIdx].lastUpdate = new Date().toISOString();
+                    
+                    if (isVendorQuery) {
+                        state.projects[projectIdx].waiting_vendor = 1;
+                        state.projects[projectIdx].waiting_vendor_since = new Date().toISOString();
+                        state.projects[projectIdx].waiting_vendor_reason = message;
+                        showIhmToast('❓ Dúvida enviada ao Vendedor! O SLA da Engenharia foi congelado.', 'warning');
+                    } else if (state.projects[projectIdx].waiting_vendor === 1) {
+                        state.projects[projectIdx].waiting_vendor = 0;
+                        showIhmToast('🟢 Resposta enviada! O bloqueio foi encerrado e o SLA da Engenharia foi retomado.', 'success');
+                    }
+                    
                     renderKanban();
+                    openProjectModal(activeProjectCode);
                 }
             } catch (err) {
                 console.error(err);
                 alert('Erro ao enviar mensagem: ' + err.message);
             } finally {
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerText = oldText;
+                if (activeBtn) {
+                    activeBtn.disabled = false;
+                    activeBtn.innerText = oldText;
                 }
+            }
+        }
+
+        // Alterna manualmente o status de Aguardando Vendedor
+        async function toggleWaitingVendorStatus(targetState) {
+            if (!activeProjectCode) return;
+            const project = state.projects.find(p => p.code === activeProjectCode);
+            if (!project) return;
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const res = await fetch(`/api/projects/${activeProjectCode}/toggle-waiting-vendor`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ waiting_vendor: targetState })
+                });
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+
+                const projectIdx = state.projects.findIndex(p => p.code === activeProjectCode);
+                if (projectIdx !== -1 && data.project) {
+                    state.projects[projectIdx] = { ...state.projects[projectIdx], ...data.project };
+                }
+
+                showIhmToast(
+                    targetState 
+                        ? '⏸️ Card marcado como Aguardando Vendedor (SLA Pausado).' 
+                        : '🟢 Card desbloqueado! SLA da Engenharia retomado com sucesso.',
+                    targetState ? 'warning' : 'success'
+                );
+
+                renderKanban();
+                openProjectModal(activeProjectCode);
+            } catch (err) {
+                alert('Erro ao alterar status de bloqueio: ' + err.message);
             }
         }
 

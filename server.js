@@ -145,7 +145,10 @@ function initializeDatabase() {
         db.run("ALTER TABLE projects ADD COLUMN spare_parts_recommendations TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN validation_status TEXT DEFAULT 'EM_HOMOLOGACAO'", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN project_name TEXT", (err) => {});
-        db.run("ALTER TABLE projects ADD COLUMN validation_status TEXT DEFAULT 'EM_HOMOLOGACAO'", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN waiting_vendor INTEGER DEFAULT 0", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN waiting_vendor_since TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN waiting_vendor_reason TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN paused_sla_seconds INTEGER DEFAULT 0", (err) => {});
 
         // Tabela de Comentários / Discussão (Timeline do Card)
         db.run(`CREATE TABLE IF NOT EXISTS comments (
@@ -1640,10 +1643,10 @@ app.get('/api/projects/:code/comments', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/projects/:code/comments - Adiciona um novo comentário com suporte opcional a anexo de arquivo (máx 50MB)
+// POST /api/projects/:code/comments - Adiciona um novo comentário com suporte opcional a anexo de arquivo (máx 50MB) e controle de SLA
 app.post('/api/projects/:code/comments', authenticateToken, upload.single('file'), async (req, res) => {
     const { code } = req.params;
-    const { message } = req.body;
+    const { message, is_vendor_query } = req.body;
     const file = req.file;
     const user = req.user ? req.user.username : 'Sistema';
 
@@ -1652,6 +1655,11 @@ app.post('/api/projects/:code/comments', authenticateToken, upload.single('file'
     }
 
     try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) {
+            return res.status(404).json({ error: 'Projeto não encontrado.' });
+        }
+
         const timestamp = new Date().toISOString();
         let attachmentPath = null;
         let attachmentName = null;
@@ -1672,11 +1680,64 @@ app.post('/api/projects/:code/comments', authenticateToken, upload.single('file'
             attachmentName
         ]);
 
-        await dbRun(`UPDATE projects SET crm_last_comment_user = ?, crm_last_interaction_date = ? WHERE code = ?`, [
-            user,
-            timestamp,
-            code
-        ]);
+        const isQuery = is_vendor_query === true || is_vendor_query === 'true' || is_vendor_query === '1';
+
+        if (isQuery) {
+            // A Engenharia marcou como pergunta para o Vendedor -> Pausa SLA e define waiting_vendor = 1
+            await dbRun(`UPDATE projects SET crm_last_comment_user = ?, crm_last_interaction_date = ?, waiting_vendor = 1, waiting_vendor_since = ?, waiting_vendor_reason = ? WHERE code = ?`, [
+                user,
+                timestamp,
+                timestamp,
+                cleanMessage,
+                code
+            ]);
+
+            await recordAuditLog(code, user, `Solicitou esclarecimento ao Vendedor. Card marcado como "Aguardando Vendedor" e SLA pausado.`);
+
+            broadcastNotification('WAITING_VENDOR_STATUS_CHANGED', {
+                code,
+                waiting_vendor: 1,
+                waiting_vendor_since: timestamp,
+                waiting_vendor_reason: cleanMessage,
+                user
+            });
+        } else {
+            // Comentário normal: Se estava aguardando vendedor, verificar se a resposta desbloqueia o projeto
+            if (project.waiting_vendor === 1) {
+                let pausedDelta = 0;
+                if (project.waiting_vendor_since) {
+                    const start = new Date(project.waiting_vendor_since).getTime();
+                    const end = new Date(timestamp).getTime();
+                    if (end > start) {
+                        pausedDelta = Math.floor((end - start) / 1000);
+                    }
+                }
+                const newTotalPaused = (project.paused_sla_seconds || 0) + pausedDelta;
+
+                await dbRun(`UPDATE projects SET crm_last_comment_user = ?, crm_last_interaction_date = ?, waiting_vendor = 0, waiting_vendor_since = NULL, waiting_vendor_reason = NULL, paused_sla_seconds = ? WHERE code = ?`, [
+                    user,
+                    timestamp,
+                    newTotalPaused,
+                    code
+                ]);
+
+                const compensationHours = (pausedDelta / 3600).toFixed(1);
+                await recordAuditLog(code, user, `Vendedor respondeu no card. Bloqueio encerrado e SLA da Engenharia retomado (+${compensationHours}h de compensação).`);
+
+                broadcastNotification('WAITING_VENDOR_STATUS_CHANGED', {
+                    code,
+                    waiting_vendor: 0,
+                    paused_sla_seconds: newTotalPaused,
+                    user
+                });
+            } else {
+                await dbRun(`UPDATE projects SET crm_last_comment_user = ?, crm_last_interaction_date = ? WHERE code = ?`, [
+                    user,
+                    timestamp,
+                    code
+                ]);
+            }
+        }
 
         // Disparar notificação em tempo real via SSE
         broadcastNotification('COMMENT_ADDED', {
@@ -1685,7 +1746,8 @@ app.post('/api/projects/:code/comments', authenticateToken, upload.single('file'
             message: cleanMessage,
             dateAdded: timestamp,
             attachmentPath,
-            attachmentName
+            attachmentName,
+            is_vendor_query: isQuery
         });
 
         res.status(201).json({ 
@@ -1694,13 +1756,57 @@ app.post('/api/projects/:code/comments', authenticateToken, upload.single('file'
             dateAdded: timestamp, 
             message: cleanMessage,
             attachmentPath,
-            attachmentName
+            attachmentName,
+            is_vendor_query: isQuery
         });
     } catch (err) {
         if (file && fs.existsSync(file.path)) {
             fs.unlinkSync(file.path);
         }
         res.status(500).json({ error: 'Erro ao salvar comentário: ' + err.message });
+    }
+});
+
+// POST /api/projects/:code/toggle-waiting-vendor - Alterna manualmente o status de bloqueio por dúvida
+app.post('/api/projects/:code/toggle-waiting-vendor', authenticateToken, async (req, res) => {
+    const { code } = req.params;
+    const { waiting_vendor, reason } = req.body;
+    const user = req.user ? req.user.username : 'Sistema';
+    const timestamp = new Date().toISOString();
+
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) return res.status(404).json({ error: 'Projeto não encontrado.' });
+
+        const setWaiting = waiting_vendor !== undefined ? (waiting_vendor ? 1 : 0) : (project.waiting_vendor ? 0 : 1);
+
+        if (setWaiting === 1) {
+            await dbRun(`UPDATE projects SET waiting_vendor = 1, waiting_vendor_since = ?, waiting_vendor_reason = ?, lastUpdate = ? WHERE code = ?`, [
+                timestamp, reason || 'Solicitação de esclarecimento técnico', timestamp, code
+            ]);
+            await recordAuditLog(code, user, `Marcou o projeto como "Aguardando Vendedor" (SLA pausado).`);
+            broadcastNotification('WAITING_VENDOR_STATUS_CHANGED', { code, waiting_vendor: 1, waiting_vendor_since: timestamp, user });
+        } else {
+            let pausedDelta = 0;
+            if (project.waiting_vendor_since) {
+                const start = new Date(project.waiting_vendor_since).getTime();
+                const end = new Date(timestamp).getTime();
+                if (end > start) {
+                    pausedDelta = Math.floor((end - start) / 1000);
+                }
+            }
+            const newTotalPaused = (project.paused_sla_seconds || 0) + pausedDelta;
+            await dbRun(`UPDATE projects SET waiting_vendor = 0, waiting_vendor_since = NULL, waiting_vendor_reason = NULL, paused_sla_seconds = ?, lastUpdate = ? WHERE code = ?`, [
+                newTotalPaused, timestamp, code
+            ]);
+            await recordAuditLog(code, user, `Desbloqueou o projeto manualmente. SLA da Engenharia retomado.`);
+            broadcastNotification('WAITING_VENDOR_STATUS_CHANGED', { code, waiting_vendor: 0, paused_sla_seconds: newTotalPaused, user });
+        }
+
+        const updated = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        res.json({ success: true, project: updated });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao alternar status de bloqueio: ' + err.message });
     }
 });
 
@@ -6229,7 +6335,8 @@ app.put('/api/projects/:code', async (req, res) => {
     const { 
         serial, route, fase, checklist, prazos, lastUpdate, motivoPerda, tech, machines, equipment_origin, handover_signed,
         crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date,
-        setup_specs, pm, diagnostico, project_name
+        setup_specs, pm, diagnostico, project_name,
+        waiting_vendor, waiting_vendor_since, waiting_vendor_reason, paused_sla_seconds
     } = req.body;
     const { code } = req.params;
 
@@ -6456,6 +6563,26 @@ app.put('/api/projects/:code', async (req, res) => {
         if (pm !== undefined) {
             sql += `, pm = ?`;
             params.push(pm);
+        }
+
+        if (waiting_vendor !== undefined) {
+            sql += `, waiting_vendor = ?`;
+            params.push(waiting_vendor ? 1 : 0);
+        }
+
+        if (waiting_vendor_since !== undefined) {
+            sql += `, waiting_vendor_since = ?`;
+            params.push(waiting_vendor_since);
+        }
+
+        if (waiting_vendor_reason !== undefined) {
+            sql += `, waiting_vendor_reason = ?`;
+            params.push(waiting_vendor_reason);
+        }
+
+        if (paused_sla_seconds !== undefined) {
+            sql += `, paused_sla_seconds = ?`;
+            params.push(parseInt(paused_sla_seconds) || 0);
         }
 
         sql += ` WHERE code = ?`;
