@@ -11576,6 +11576,16 @@
                         return res.json();
                     })
                     .then(async projects => {
+                        if (Array.isArray(projects)) {
+                            projects.forEach(p => {
+                                if (parseInt(p.fase) !== 8) {
+                                    const calculated = calculateProjectPhase(p);
+                                    if (calculated !== parseInt(p.fase)) {
+                                        p.fase = calculated;
+                                    }
+                                }
+                            });
+                        }
                         state.projects = projects;
                     
                     // Migração automática de projetos locais do LocalStorage para o Banco SQLite do servidor
@@ -14434,6 +14444,62 @@
                     hudConnEl.style.color = "var(--primary)"; // Teal/Blue
                 }
             }
+        }
+
+        // Cálculo Inteligente da Fase do Projeto com base no Checklist
+        function calculateProjectPhase(project) {
+            if (!project) return 1;
+            if (parseInt(project.fase) === 8) return 8; // Perdido / Cancelado
+
+            const chk = project.checklist || {};
+            const isLocalStock = project.equipment_origin === 'Pronta Entrega (Estoque Local)';
+
+            // Fase 7: SAT Concluído
+            if (chk.sat) {
+                return 7;
+            }
+
+            // Etapas completas por fase
+            const f1Complete = !!(chk.diagnostico && chk.customizacao && chk.cotacao && chk.fluxograma && chk.planta_baixa);
+            const f2Complete = !!(chk.aprovacao && chk.contrato);
+            const f3Complete = !!(chk.proforma && chk.cambio_sinal && chk.swift_pagamento);
+            const f4Complete = !!(chk.producao && chk.embarque && chk.pagamento && chk.fedex);
+            const f5Complete = !!(chk.transporte_maritimo && chk.desembaraco && chk.chegada_tecfag);
+
+            const hasF6 = !!(chk.vistoria || chk.travas || chk.direcionamento || chk.logistica_saida || chk.startup);
+            const hasF5 = !!(chk.transporte_maritimo || chk.desembaraco || chk.chegada_tecfag);
+            const hasF4 = !!(chk.producao || chk.embarque || chk.pagamento || chk.fedex);
+            const hasF3 = !!(chk.proforma || chk.cambio_sinal || chk.swift_pagamento);
+            const hasF2 = !!(chk.aprovacao || chk.contrato);
+
+            if (isLocalStock) {
+                // Pronta Entrega: pula Fases 3, 4, 5
+                if (hasF6 || f2Complete) {
+                    return 6; // Oficina, Instalação, Setup & SAT
+                }
+                if (hasF2 || f1Complete) {
+                    return 2; // Comercial & Contrato
+                }
+                return 1; // Engenharia de Aplicação & Escopo
+            }
+
+            // Fluxo Padrão (Importação / Sob Encomenda):
+            if (hasF6 || f5Complete) {
+                return 6; // Oficina, Instalação, Setup & SAT
+            }
+            if (hasF5 || f4Complete) {
+                return 5; // Transporte Marítimo & Nacionalização
+            }
+            if (hasF4 || f3Complete) {
+                return 4; // Compras, Produção & Embarque
+            }
+            if (hasF3 || f2Complete) {
+                return 3; // Proforma, Câmbio & Pagamento Inicial
+            }
+            if (hasF2 || f1Complete) {
+                return 2; // Comercial & Contrato
+            }
+            return 1; // Engenharia de Aplicação & Escopo
         }
 
         // Cálculo do Progresso do Projeto (%) com base nas etapas do checklist
@@ -17610,24 +17676,9 @@
             }
             
             // Pipeline routing (8 fases)
-            let oldFase = project.fase;
-            let newFase = oldFase;
-            
-            if (project.checklist.sat) {
-                newFase = 7; // Concluído (SAT)
-            } else if (project.checklist.vistoria || project.checklist.travas || project.checklist.direcionamento || project.checklist.logistica_saida || project.checklist.startup) {
-                newFase = 6; // Oficina, Instalação, Setup & SAT
-            } else if (project.checklist.transporte_maritimo || project.checklist.desembaraco || project.checklist.chegada_tecfag) {
-                newFase = 5; // Transporte Marítimo & Nacionalização
-            } else if (project.checklist.producao || project.checklist.embarque || project.checklist.pagamento || project.checklist.fedex) {
-                newFase = 4; // Compras, Produção & Embarque
-            } else if (project.checklist.proforma || project.checklist.cambio_sinal || project.checklist.swift_pagamento) {
-                newFase = 3; // Proforma, Câmbio & Pagamento Inicial
-            } else if (project.checklist.aprovacao || project.checklist.contrato) {
-                newFase = 2; // Comercial & Contrato
-            } else {
-                newFase = 1; // Engenharia de Aplicação & Escopo
-            }
+            let oldFase = parseInt(project.fase) || 1;
+            let newFase = calculateProjectPhase(project);
+            project.fase = newFase;
 
             // Sync visual checkbox
             el.classList.toggle('checked', isChecked);
@@ -17799,7 +17850,6 @@
                 const nonHyphenRoutes = updatedMachines.map(m => m.route).filter(r => r !== '-');
                 const projectRoute = nonHyphenRoutes.length > 0 ? nonHyphenRoutes.join(', ') : '-';
 
-                let finalFase = project.fase;
                 let updatedChecklist = { ...project.checklist };
 
                 const fase1To5Completed = [
@@ -17817,10 +17867,6 @@
                     if (allMachinesHaveSerial && someMachinesJustGotSerial) {
                         updatedChecklist.vistoria = true;
                         updatedChecklist.travas = true;
-                        
-                        if (finalFase < 6) {
-                            finalFase = 6;
-                        }
                     }
 
                     const allMachinesHaveRoute = updatedMachines.every(m => m.route !== '-');
@@ -17828,6 +17874,8 @@
                         updatedChecklist.direcionamento = true;
                     }
                 }
+
+                let finalFase = calculateProjectPhase({ ...project, checklist: updatedChecklist, machines: updatedMachines });
 
                 // Helper to safe-read DOM elements in case they are missing
                 const getVal = (id) => {

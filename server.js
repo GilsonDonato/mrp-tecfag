@@ -336,6 +336,27 @@ function initializeDatabase() {
                         }
                     }
                 });
+
+                db.get("SELECT name FROM system_migrations WHERE name = 'align_project_phases_v2'", async (err, row) => {
+                    if (!err && !row) {
+                        console.log('[MIGRATION] Sincronizando fases dos projetos com base no avanço do checklist...');
+                        try {
+                            const allPrjs = await dbAll("SELECT code, fase, checklist, equipment_origin FROM projects WHERE fase != 8");
+                            for (const p of allPrjs) {
+                                const newFase = calculateProjectPhase(p);
+                                if (newFase !== parseInt(p.fase)) {
+                                    await dbRun("UPDATE projects SET fase = ? WHERE code = ?", [newFase, p.code]);
+                                    await dbRun("INSERT INTO project_phase_history (projectCode, fase, entryDate) VALUES (?, ?, ?)", [p.code, newFase, new Date().toISOString()]);
+                                    console.log(`[MIGRATION] Projeto ${p.code} atualizado: Fase ${p.fase} -> Fase ${newFase}`);
+                                }
+                            }
+                            await dbRun("INSERT INTO system_migrations (name, applied_at) VALUES ('align_project_phases_v2', ?)", [new Date().toISOString()]);
+                            console.log('[MIGRATION] Sincronização de fases de projetos concluída com sucesso!');
+                        } catch(migErr) {
+                            console.error('[MIGRATION ERROR]', migErr.message);
+                        }
+                    }
+                });
             }
         });
 
@@ -7618,6 +7639,67 @@ app.post('/api/admin/backup/send-email', authenticateToken, async (req, res) => 
         res.status(500).json({ error: 'Falha ao enviar backup. Verifique os logs do servidor ou as configurações de SMTP.' });
     }
 });
+
+// Helper para cálculo inteligente da Fase do Projeto
+function calculateProjectPhase(project) {
+    if (!project) return 1;
+    const currentFase = parseInt(project.fase);
+    if (currentFase === 8) return 8;
+
+    let chk = {};
+    if (project.checklist) {
+        try {
+            chk = typeof project.checklist === 'string' ? JSON.parse(project.checklist) : project.checklist;
+        } catch (e) {
+            chk = {};
+        }
+    }
+
+    const isLocalStock = project.equipment_origin === 'Pronta Entrega (Estoque Local)';
+
+    if (chk.sat) {
+        return 7;
+    }
+
+    const f1Complete = !!(chk.diagnostico && chk.customizacao && chk.cotacao && chk.fluxograma && chk.planta_baixa);
+    const f2Complete = !!(chk.aprovacao && chk.contrato);
+    const f3Complete = !!(chk.proforma && chk.cambio_sinal && chk.swift_pagamento);
+    const f4Complete = !!(chk.producao && chk.embarque && chk.pagamento && chk.fedex);
+    const f5Complete = !!(chk.transporte_maritimo && chk.desembaraco && chk.chegada_tecfag);
+
+    const hasF6 = !!(chk.vistoria || chk.travas || chk.direcionamento || chk.logistica_saida || chk.startup);
+    const hasF5 = !!(chk.transporte_maritimo || chk.desembaraco || chk.chegada_tecfag);
+    const hasF4 = !!(chk.producao || chk.embarque || chk.pagamento || chk.fedex);
+    const hasF3 = !!(chk.proforma || chk.cambio_sinal || chk.swift_pagamento);
+    const hasF2 = !!(chk.aprovacao || chk.contrato);
+
+    if (isLocalStock) {
+        if (hasF6 || f2Complete) {
+            return 6;
+        }
+        if (hasF2 || f1Complete) {
+            return 2;
+        }
+        return 1;
+    }
+
+    if (hasF6 || f5Complete) {
+        return 6;
+    }
+    if (hasF5 || f4Complete) {
+        return 5;
+    }
+    if (hasF4 || f3Complete) {
+        return 4;
+    }
+    if (hasF3 || f2Complete) {
+        return 3;
+    }
+    if (hasF2 || f1Complete) {
+        return 2;
+    }
+    return 1;
+}
 
 // Helper para calcular status de validação técnica do projeto
 function calculateProjectValidationStatus(project) {
