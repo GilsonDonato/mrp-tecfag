@@ -11455,7 +11455,6 @@
             // Filtro de Dúvida Pendente
             const statusFilter = document.getElementById('kanban-status-filter');
             const statusVal = statusFilter ? statusFilter.value : 'all';
-            const userStr = localStorage.getItem('tecfag_user');
             const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
             const friendlyCurrent = getFriendlyUserName(currentUser).toLowerCase();
 
