@@ -2265,7 +2265,7 @@
                         Buscar:
                     </span>
                     <div style="position: relative; flex: 1; display: flex; align-items: center;">
-                        <input type="search" id="kanban-search-filter" name="kanban_search_prevent_autofill" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="toggleKanbanSearchClear(); applyKanbanFilters();" placeholder="Buscar por Cliente, Código ou SKU..." style="width: 100%; background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 28px 6px 12px; font-size: 0.8rem; outline: none; transition: border-color 0.2s;">
+                        <input type="search" id="kanban-search-filter" name="kanban_search_field_custom" autocomplete="new-password" data-lpignore="true" data-form-type="other" readonly onfocus="this.removeAttribute('readonly');" onblur="if(!this.value) this.setAttribute('readonly', 'readonly');" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="toggleKanbanSearchClear(); applyKanbanFilters();" placeholder="Buscar por Cliente, Código ou SKU..." style="width: 100%; background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 28px 6px 12px; font-size: 0.8rem; outline: none; transition: border-color 0.2s;">
                         <button type="button" id="btn-clear-kanban-search" onclick="clearKanbanSearch()" style="display: none; position: absolute; right: 8px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 2px 4px; font-size: 0.85rem; line-height: 1;" title="Limpar busca">✕</button>
                     </div>
                 </div>
@@ -2386,7 +2386,7 @@
                 <div class="flex-between" style="margin-bottom: 20px;">
                     <h3>Banco de Projetos Industriais</h3>
                     <div style="display: flex; gap: 12px;">
-                        <input type="search" class="form-control" id="search-prj" name="search_prj_prevent_autofill" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Buscar projeto, cliente..." oninput="renderProjectsTable()" style="padding: 8px 16px;">
+                        <input type="search" class="form-control" id="search-prj" name="search_prj_field_custom" autocomplete="new-password" data-lpignore="true" data-form-type="other" readonly onfocus="this.removeAttribute('readonly');" onblur="if(!this.value) this.setAttribute('readonly', 'readonly');" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Buscar projeto, cliente..." oninput="renderProjectsTable()" style="padding: 8px 16px;">
                         <select class="form-control" id="filter-fase" onchange="renderProjectsTable()" style="padding: 8px 16px;">
                             <option value="ALL">Fase: Todas</option>
                             <option value="1">1. Engenharia de Aplicação & Escopo</option>
@@ -11249,6 +11249,24 @@
                 updateRolePanel();
                 handleFormReset();
                 connectRealTimeNotifications();
+
+                // Limpeza ativa contra auto-preenchimento indesejado de senhas salvas nos campos de busca
+                [50, 250, 600, 1500].forEach(delay => {
+                    setTimeout(() => {
+                        const kSearch = document.getElementById('kanban-search-filter');
+                        if (kSearch && (kSearch.value === 'admin' || kSearch.value.toLowerCase() === user.username.toLowerCase()) && document.activeElement !== kSearch) {
+                            kSearch.value = '';
+                            kSearch.setAttribute('readonly', 'readonly');
+                            toggleKanbanSearchClear();
+                            applyKanbanFilters();
+                        }
+                        const pSearch = document.getElementById('search-prj');
+                        if (pSearch && (pSearch.value === 'admin' || pSearch.value.toLowerCase() === user.username.toLowerCase()) && document.activeElement !== pSearch) {
+                            pSearch.value = '';
+                            pSearch.setAttribute('readonly', 'readonly');
+                        }
+                    }, delay);
+                });
             } catch (e) {
                 console.error(e);
                 handleLogout();
@@ -11373,6 +11391,7 @@
             const searchInput = document.getElementById('kanban-search-filter');
             if (searchInput) {
                 searchInput.value = '';
+                searchInput.setAttribute('readonly', 'readonly');
                 toggleKanbanSearchClear();
                 applyKanbanFilters();
             }
@@ -11409,7 +11428,18 @@
 
             // Filtro de Busca por Texto
             const searchInput = document.getElementById('kanban-search-filter');
-            const searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            let searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+            // Prevenção contra auto-preenchimento indesejado de credenciais pelo navegador
+            const userStr = localStorage.getItem('tecfag_user');
+            const currentUsername = userStr ? JSON.parse(userStr).username.toLowerCase() : 'admin';
+            if ((searchQuery === currentUsername || searchQuery === 'admin') && document.activeElement !== searchInput) {
+                searchInput.value = '';
+                searchInput.setAttribute('readonly', 'readonly');
+                toggleKanbanSearchClear();
+                searchQuery = '';
+            }
+
             if (searchQuery) {
                 const cleanQueryCnpj = searchQuery.replace(/\D/g, '');
                 filteredPrjs = filteredPrjs.filter(p => {
