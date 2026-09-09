@@ -704,15 +704,22 @@
         }
 
         .project-card.project-card-waiting-vendor {
-            border-left: 4px solid #f59e0b !important;
-            box-shadow: 0 0 14px rgba(245, 158, 11, 0.25) !important;
-            background: linear-gradient(180deg, rgba(245, 158, 11, 0.06) 0%, rgba(30, 41, 59, 0.8) 100%) !important;
+            border: 2px solid #f59e0b !important;
+            border-left: 6px solid #f59e0b !important;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.35), 0 8px 24px rgba(0,0,0,0.5) !important;
+            background: linear-gradient(180deg, rgba(245, 158, 11, 0.12) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+            animation: waitingVendorGlow 2.5s infinite alternate !important;
+        }
+
+        @keyframes waitingVendorGlow {
+            from { box-shadow: 0 0 10px rgba(245, 158, 11, 0.25), 0 4px 15px rgba(0,0,0,0.4); }
+            to { box-shadow: 0 0 22px rgba(245, 158, 11, 0.5), 0 8px 28px rgba(0,0,0,0.6); }
         }
 
         .deadline-waiting-vendor {
-            background-color: rgba(245, 158, 11, 0.15) !important;
-            color: #f59e0b !important;
-            border: 1px solid rgba(245, 158, 11, 0.35) !important;
+            background-color: rgba(245, 158, 11, 0.2) !important;
+            color: #fbbf24 !important;
+            border: 1.5px dashed #f59e0b !important;
         }
 
         .project-card-header {
@@ -14611,6 +14618,7 @@
                 let deadlineStr = "-";
                 let deadlineClass = "";
                 let deadlineLabel = "";
+                let waitingVendorTopBannerHtml = "";
                 let waitingVendorBadgeHtml = "";
 
                 if (isWaitingVendor) {
@@ -14619,16 +14627,32 @@
                     const diffTime = Math.abs(now - waitingSince);
                     const waitingDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
                     const waitingHours = Math.floor((diffTime / (1000 * 60 * 60)) % 24);
-                    const timeStr = waitingDays > 0 ? `${waitingDays}d` : `${waitingHours}h`;
+                    const timeStr = waitingDays > 0 ? `${waitingDays} dia(s)` : `${waitingHours} hora(s)`;
 
                     deadlineClass = "deadline-waiting-vendor";
-                    deadlineStr = "PAUSADO";
-                    deadlineLabel = ` (SLA Eng. Congelado)`;
+                    deadlineStr = "⏸️ PAUSADO";
+                    deadlineLabel = ` (SLA Congelado)`;
+
+                    waitingVendorTopBannerHtml = `
+                        <div class="waiting-vendor-top-stripe" style="background: linear-gradient(90deg, #d97706, #f59e0b); color: #000; font-weight: 800; font-size: 0.67rem; padding: 4px 8px; border-radius: 4px; margin: -6px -6px 8px -6px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4); text-transform: uppercase; letter-spacing: 0.4px;">
+                            <span style="display: inline-flex; align-items: center; gap: 4px;">
+                                <span>⏸️</span> AGUARDANDO VENDEDOR: <strong>${cardCreator}</strong>
+                            </span>
+                            <span style="background: rgba(0,0,0,0.25); color: #fff; font-size: 0.62rem; padding: 1px 5px; border-radius: 3px;">SLA PAUSADO</span>
+                        </div>
+                    `;
 
                     waitingVendorBadgeHtml = `
-                        <div class="waiting-vendor-badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.67rem; font-weight: 700; padding: 4px 8px; border-radius: 4px; margin-top: 6px; display: flex; align-items: center; gap: 5px;" title="A Engenharia solicitou dados ao Vendedor. O prazo está pausado.">
-                            <span>⏸️</span>
-                            <span>Aguardando resposta do Vendedor há <strong>${timeStr}</strong></span>
+                        <div class="waiting-vendor-badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.68rem; font-weight: 600; padding: 6px 8px; border-radius: 5px; margin-top: 6px; display: flex; flex-direction: column; gap: 4px;" title="A Engenharia solicitou dados ao Vendedor. O prazo está pausado.">
+                            <div style="display: flex; align-items: center; gap: 5px; font-weight: 700; color: #f59e0b;">
+                                <span>⏱️</span>
+                                <span>Sem resposta do vendedor há <strong>${timeStr}</strong></span>
+                            </div>
+                            ${project.waiting_vendor_reason ? `
+                                <div style="font-size: 0.65rem; color: #cbd5e1; background: rgba(0, 0, 0, 0.3); padding: 4px 6px; border-radius: 3px; border-left: 2px solid #f59e0b; word-break: break-word; line-height: 1.25;">
+                                    <strong>❓ Dúvida:</strong> "${project.waiting_vendor_reason.length > 85 ? project.waiting_vendor_reason.substring(0, 85) + '...' : project.waiting_vendor_reason}"
+                                </div>
+                            ` : ''}
                         </div>
                     `;
                 } else if (project.fase >= 1 && project.fase <= 6) {
@@ -14758,6 +14782,7 @@
                 card.onclick = () => openProjectModal(project.code);
 
                 card.innerHTML = `
+                    ${waitingVendorTopBannerHtml}
                     <div class="project-card-header">
                         <span class="project-client-name">${project.client}</span>
                         ${editingUser ? `
@@ -14810,7 +14835,7 @@
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             ${(project.pm || 'Sem PM').split(' ').slice(-2).join(' ')}
                         </span>
-                        <span class="project-vendedor-name" title="Vendedor (Criador)" style="font-size: 0.68rem; color: var(--primary); display: flex; align-items: center; gap: 3px;">
+                        <span class="project-vendedor-name" title="Vendedor (Criador)" style="font-size: 0.68rem; color: ${isWaitingVendor ? '#fbbf24' : 'var(--primary)'}; display: flex; align-items: center; gap: 3px; font-weight: ${isWaitingVendor ? '700' : 'normal'};">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                             Vendedor: <strong>${cardCreator}</strong>
                         </span>
