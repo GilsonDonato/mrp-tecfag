@@ -2583,7 +2583,7 @@
                             <div style="margin-top: 15px; margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px;">
                                 <h4 style="font-size: 0.78rem; color: var(--primary); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">Mídia do Produto</h4>
                                 <div class="form-group" style="margin-bottom: 15px;">
-                                    <label for="prj-media-files">Vídeo / Fotos do Produto em Ação (Dica de Ouro)*</label>
+                                    <label for="prj-media-files">Vídeo / Fotos do Produto em Ação (Dica de Ouro - Recomendado)</label>
                                     <input type="file" id="prj-media-files" class="form-control" multiple style="background-color: #0b0f19; font-size: 0.8rem;" accept="video/*,image/*" onchange="handleMediaFilesChange(this)">
                                     <small style="display: block; margin-top: 4px; color: var(--text-secondary); font-size: 0.7rem;">Um vídeo de 15s gravado do celular mostrando viscosidade, fluidez, empedramento, etc., resolve quase todas as dúvidas da Engenharia.</small>
                                     <div id="media-files-list" style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px;"></div>
@@ -13041,13 +13041,13 @@
 
             if (grid) grid.innerHTML = '';
             
-            // Restaura obrigatoriedade padrão de mídia para outros segmentos
+            // Restaura texto padrão de mídia para outros segmentos
             const mediaInput = document.getElementById('prj-media-files');
             if (mediaInput) {
                 mediaInput.required = false;
                 const label = mediaInput.previousElementSibling;
                 if (label) {
-                    label.innerHTML = 'Vídeo / Fotos do Produto em Ação (Dica de Ouro)*';
+                    label.innerHTML = 'Vídeo / Fotos do Produto em Ação (Dica de Ouro - Recomendado)';
                 }
             }
 
@@ -13075,7 +13075,7 @@
                     mediaInput.required = false;
                     const label = mediaInput.previousElementSibling;
                     if (label) {
-                        label.innerHTML = 'Vídeo / Fotos do Produto em Ação (Obrigatório para Projetos Especiais)*';
+                        label.innerHTML = 'Vídeo / Fotos do Produto em Ação (Recomendado para Projetos Especiais)';
                     }
                 }
 
@@ -14114,13 +14114,7 @@
                     return;
                 }
 
-                const segment = document.getElementById('prj-intake-segment').value;
-                if (segment === 'PROJETOS_ESPECIAIS') {
-                    if (!mediaFilesList || mediaFilesList.length === 0) {
-                        alert("🔴 ERRO DE VALIDAÇÃO: Para projetos especiais (Segmento 12), é obrigatório o upload de mídias (vídeos do processo atual ou fotos do galpão) para análise da engenharia.");
-                        return;
-                    }
-                }
+                // Upload de mídias é opcional no cadastro para agilizar o fluxo dos vendedores (podendo ser adicionado no card do Kanban a qualquer momento)
 
                 if (isSubmitting) return;
                 isSubmitting = true;
