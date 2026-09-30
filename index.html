@@ -18276,9 +18276,13 @@
                 lastUpdate: new Date().toISOString()
             };
 
+            const token = localStorage.getItem('tecfag_session_token');
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             fetch(`/api/projects/${project.code}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: headers,
                 body: JSON.stringify(updateBody)
             })
             .then(res => res.json())

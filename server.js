@@ -6358,54 +6358,60 @@ app.put('/api/projects/:code', async (req, res) => {
             }
         }
 
-        // Trava física para impedir transição de fase sem a reunião de alinhamento técnico concluída (Fase 1 -> Fase 2)
-        if (fase !== undefined && parseInt(fase) >= 2 && parseInt(oldProject.fase) === 1) {
-            let isCustomizacaoDone = false;
-            if (checklist && checklist.customizacao !== undefined) {
-                isCustomizacaoDone = !!checklist.customizacao;
-            } else {
-                let oldChecklist = {};
-                try { oldChecklist = oldProject.checklist ? JSON.parse(oldProject.checklist) : {}; } catch(e){}
-                isCustomizacaoDone = !!oldChecklist.customizacao;
-            }
-            
-            if (!isCustomizacaoDone) {
-                return res.status(400).json({ error: '🔴 BLOQUEIO TÉCNICO: Não é permitido evoluir o projeto para a Fase Comercial sem antes concluir a Customização do Escopo Técnico da Engenharia.' });
-            }
-        }
+        const targetFase = fase !== undefined ? parseInt(fase) : parseInt(oldProject.fase);
+        const currentFase = parseInt(oldProject.fase);
 
-        // Trava física para impedir transição para Proforma & Câmbio sem Contrato Assinado (Fase 2 -> Fase 3)
-        if (fase !== undefined && parseInt(fase) >= 3 && parseInt(oldProject.fase) <= 2) {
-            let isContratoDone = false;
-            if (checklist && checklist.contrato !== undefined) {
-                isContratoDone = !!checklist.contrato;
-            } else {
-                let oldChecklist = {};
-                try { oldChecklist = oldProject.checklist ? JSON.parse(oldProject.checklist) : {}; } catch(e){}
-                isContratoDone = !!oldChecklist.contrato;
+        // Travas físicas de evolução de fase (apenas para fases ativas normais 1 -> 7, nunca bloqueando o cancelamento/perda na Fase 8)
+        if (targetFase !== 8 && currentFase !== 8) {
+            // Trava física para impedir transição de fase sem a reunião de alinhamento técnico concluída (Fase 1 -> Fase 2)
+            if (targetFase >= 2 && currentFase === 1) {
+                let isCustomizacaoDone = false;
+                if (checklist && checklist.customizacao !== undefined) {
+                    isCustomizacaoDone = !!checklist.customizacao;
+                } else {
+                    let oldChecklist = {};
+                    try { oldChecklist = oldProject.checklist ? JSON.parse(oldProject.checklist) : {}; } catch(e){}
+                    isCustomizacaoDone = !!oldChecklist.customizacao;
+                }
+                
+                if (!isCustomizacaoDone) {
+                    return res.status(400).json({ error: '🔴 BLOQUEIO TÉCNICO: Não é permitido evoluir o projeto para a Fase Comercial sem antes concluir a Customização do Escopo Técnico da Engenharia.' });
+                }
             }
-            
-            if (!isContratoDone) {
-                return res.status(400).json({ error: '🔴 BLOQUEIO COMERCIAL: Não é permitido evoluir o projeto para a Fase de Proforma & Câmbio sem antes registrar o Contrato Assinado.' });
-            }
-        }
 
-        // Trava física para impedir transição para Compras & Produção sem Proforma e Sinal 30% (Fase 3 -> Fase 4)
-        if (fase !== undefined && parseInt(fase) >= 4 && parseInt(oldProject.fase) <= 3) {
-            let isProformaDone = false;
-            let isSwiftDone = false;
-            if (checklist) {
-                isProformaDone = !!checklist.proforma;
-                isSwiftDone = !!(checklist.swift_pagamento || checklist.cambio_sinal);
-            } else {
-                let oldChecklist = {};
-                try { oldChecklist = oldProject.checklist ? JSON.parse(oldProject.checklist) : {}; } catch(e){}
-                isProformaDone = !!oldChecklist.proforma;
-                isSwiftDone = !!(oldChecklist.swift_pagamento || oldChecklist.cambio_sinal);
+            // Trava física para impedir transição para Proforma & Câmbio sem Contrato Assinado (Fase 2 -> Fase 3)
+            if (targetFase >= 3 && currentFase <= 2) {
+                let isContratoDone = false;
+                if (checklist && checklist.contrato !== undefined) {
+                    isContratoDone = !!checklist.contrato;
+                } else {
+                    let oldChecklist = {};
+                    try { oldChecklist = oldProject.checklist ? JSON.parse(oldProject.checklist) : {}; } catch(e){}
+                    isContratoDone = !!oldChecklist.contrato;
+                }
+                
+                if (!isContratoDone) {
+                    return res.status(400).json({ error: '🔴 BLOQUEIO COMERCIAL: Não é permitido evoluir o projeto para a Fase de Proforma & Câmbio sem antes registrar o Contrato Assinado.' });
+                }
             }
-            
-            if (!isProformaDone || !isSwiftDone) {
-                return res.status(400).json({ error: '🔴 BLOQUEIO FINANCEIRO: Não é permitido evoluir o projeto para a Fase de Compras & Produção sem antes validar a Proforma Invoice e registrar o Comprovante SWIFT/Fechamento de Câmbio do Sinal (30%).' });
+
+            // Trava física para impedir transição para Compras & Produção sem Proforma e Sinal 30% (Fase 3 -> Fase 4)
+            if (targetFase >= 4 && currentFase <= 3) {
+                let isProformaDone = false;
+                let isSwiftDone = false;
+                if (checklist) {
+                    isProformaDone = !!checklist.proforma;
+                    isSwiftDone = !!(checklist.swift_pagamento || checklist.cambio_sinal);
+                } else {
+                    let oldChecklist = {};
+                    try { oldChecklist = oldProject.checklist ? JSON.parse(oldProject.checklist) : {}; } catch(e){}
+                    isProformaDone = !!oldChecklist.proforma;
+                    isSwiftDone = !!(oldChecklist.swift_pagamento || oldChecklist.cambio_sinal);
+                }
+                
+                if (!isProformaDone || !isSwiftDone) {
+                    return res.status(400).json({ error: '🔴 BLOQUEIO FINANCEIRO: Não é permitido evoluir o projeto para a Fase de Compras & Produção sem antes validar a Proforma Invoice e registrar o Comprovante SWIFT/Fechamento de Câmbio do Sinal (30%).' });
+                }
             }
         }
 
