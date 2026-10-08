@@ -2002,6 +2002,12 @@
                     Configurações
                 </button>
             </li>
+            <li class="nav-item" id="menu-supply-chain" onclick="switchTab('supply-chain')" style="display: none;">
+                <button style="color: #38bdf8; font-weight: 700;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M5 20l1-7h12l1 7"/><path d="M9 13V8h6v5"/><path d="M12 4v4"/></svg>
+                    🚢 Importações & Estoque
+                </button>
+            </li>
             <li class="nav-item" id="menu-ncm" onclick="openNcmLookupModal()">
                 <button>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20M4 19.5V5A2.5 2.5 0 0 1 6.5 2.5H20v14H6.5a2.5 2.5 0 0 0-2.5 2.5z"/></svg>
@@ -3325,6 +3331,217 @@
                             <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">10 dias</div>
                             <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Técnico | Setup, Start-up & Aceite</div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA DO MÓDULO DE SUPPLY CHAIN & REPOSIÇÃO DE ESTOQUE -->
+        <div id="tab-supply-chain" class="tab-content">
+            <!-- Header & KPIs Banner -->
+            <div style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.12) 0%, rgba(30, 41, 59, 0.7) 100%); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.25);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.8rem;">🚢</span>
+                            <div>
+                                <h2 style="margin: 0; color: #f8fafc; font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px;">Gestão de Importações & Reposição de Estoque</h2>
+                                <p style="margin: 3px 0 0 0; color: #94a3b8; font-size: 0.8rem;">Controle paralelo de containers de estoque, conferência com IA, divergência de carga e fluxo de câmbio.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <button type="button" class="btn" onclick="openNewSupplyOrderModal()" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; font-weight: 700; padding: 10px 18px; border-radius: 8px; display: flex; align-items: center; gap: 8px; border: none; box-shadow: 0 2px 10px rgba(14, 165, 233, 0.3);">
+                            <span>✨</span> <span>+ Nova Ordem / Invoice IA</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="switchSupplyChainSubTab('suppliers')" style="padding: 10px 16px; font-weight: 600; border-radius: 8px; display: flex; align-items: center; gap: 6px; border-color: rgba(255,255,255,0.15);">
+                            <span>🏭</span> <span>Fornecedores & Prazos</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="loadSupplyChainData()" style="padding: 10px; border-radius: 8px;" title="Atualizar Dados">
+                            🔄
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4 KPI Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 20px;">
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 14px;">
+                        <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Containers / POs Ativas</div>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: #38bdf8; margin-top: 4px;" id="sc-kpi-active-orders">0</div>
+                        <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">FOB Total: <strong id="sc-kpi-total-fob" style="color: #cbd5e1;">$ 0.00</strong></div>
+                    </div>
+
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 14px;">
+                        <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Em Trânsito Marítimo</div>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: #a855f7; margin-top: 4px;" id="sc-kpi-sea-machines">0 un.</div>
+                        <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">No Navio a caminho do Brasil</div>
+                    </div>
+
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 14px;">
+                        <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Em Fabricação / Packing</div>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: #f59e0b; margin-top: 4px;" id="sc-kpi-fab-machines">0 un.</div>
+                        <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">Nas fábricas internacionais</div>
+                    </div>
+
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 14px;">
+                        <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Câmbio a Vencer (30d)</div>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: #10b981; margin-top: 4px;" id="sc-kpi-due-30d">$ 0.00</div>
+                        <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">Previsão de liquidação</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub-navigation Tabs -->
+            <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px; overflow-x: auto;">
+                <button id="sc-tab-btn-kanban" onclick="switchSupplyChainSubTab('kanban')" class="sc-subtab-btn active" style="padding: 9px 18px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer; border: none; background: #0ea5e9; color: white; display: flex; align-items: center; gap: 6px;">
+                    📋 <span>Kanban de Containers</span>
+                </button>
+                <button id="sc-tab-btn-matrix" onclick="switchSupplyChainSubTab('matrix')" class="sc-subtab-btn" style="padding: 9px 18px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
+                    🔍 <span>Matriz de Máquinas em Trânsito (SKU Search)</span>
+                </button>
+                <button id="sc-tab-btn-payments" onclick="switchSupplyChainSubTab('payments')" class="sc-subtab-btn" style="padding: 9px 18px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
+                    💵 <span>Calendário & Fluxo Cambial</span>
+                </button>
+                <button id="sc-tab-btn-suppliers" onclick="switchSupplyChainSubTab('suppliers')" class="sc-subtab-btn" style="padding: 9px 18px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
+                    🏭 <span>Fornecedores Internacionais</span>
+                </button>
+            </div>
+
+            <!-- SUB-TAB 1: KANBAN DE CONTAINERS -->
+            <div id="sc-subtab-kanban" style="display: block;">
+                <div class="sc-kanban-board" style="display: grid; grid-template-columns: repeat(6, minmax(280px, 1fr)); gap: 14px; overflow-x: auto; padding-bottom: 20px;">
+                    <!-- Column 1: Proforma Emitida -->
+                    <div class="sc-kanban-col" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); border-top: 4px solid #38bdf8; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; min-height: 500px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div style="font-size: 0.8rem; font-weight: 800; color: #38bdf8;">1. PROFORMA EMITIDA</div>
+                            <span class="badge" id="sc-count-po-emitida" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px;">0</span>
+                        </div>
+                        <div id="sc-cards-PO_EMITIDA" class="sc-kanban-cards" style="display: flex; flex-direction: column; gap: 10px; flex: 1;"></div>
+                    </div>
+
+                    <!-- Column 2: Em Fabricação -->
+                    <div class="sc-kanban-col" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(245, 158, 11, 0.3); border-top: 4px solid #f59e0b; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; min-height: 500px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div style="font-size: 0.8rem; font-weight: 800; color: #f59e0b;">2. EM FABRICAÇÃO</div>
+                            <span class="badge" id="sc-count-em-fabricacao" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px;">0</span>
+                        </div>
+                        <div id="sc-cards-EM_FABRICACAO" class="sc-kanban-cards" style="display: flex; flex-direction: column; gap: 10px; flex: 1;"></div>
+                    </div>
+
+                    <!-- Column 3: Packing List & Estufagem -->
+                    <div class="sc-kanban-col" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(236, 72, 153, 0.3); border-top: 4px solid #ec4899; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; min-height: 500px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div style="font-size: 0.8rem; font-weight: 800; color: #ec4899;">3. PACKING LIST & EMBARQUE</div>
+                            <span class="badge" id="sc-count-packing-list" style="background: rgba(236, 72, 153, 0.2); color: #ec4899; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px;">0</span>
+                        </div>
+                        <div id="sc-cards-PACKING_LIST_EMBARQUE" class="sc-kanban-cards" style="display: flex; flex-direction: column; gap: 10px; flex: 1;"></div>
+                    </div>
+
+                    <!-- Column 4: Trânsito Marítimo -->
+                    <div class="sc-kanban-col" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(168, 85, 247, 0.3); border-top: 4px solid #a855f7; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; min-height: 500px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div style="font-size: 0.8rem; font-weight: 800; color: #a855f7;">4. NO NAVIO (TRÂNSITO)</div>
+                            <span class="badge" id="sc-count-no-navio" style="background: rgba(168, 85, 247, 0.2); color: #a855f7; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px;">0</span>
+                        </div>
+                        <div id="sc-cards-NO_NAVIO" class="sc-kanban-cards" style="display: flex; flex-direction: column; gap: 10px; flex: 1;"></div>
+                    </div>
+
+                    <!-- Column 5: Porto & Desembaraço -->
+                    <div class="sc-kanban-col" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(234, 179, 8, 0.3); border-top: 4px solid #eab308; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; min-height: 500px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div style="font-size: 0.8rem; font-weight: 800; color: #eab308;">5. PORTO & DESEMBARAÇO</div>
+                            <span class="badge" id="sc-count-no-porto" style="background: rgba(234, 179, 8, 0.2); color: #eab308; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px;">0</span>
+                        </div>
+                        <div id="sc-cards-NO_PORTO_DESEMBARACO" class="sc-kanban-cards" style="display: flex; flex-direction: column; gap: 10px; flex: 1;"></div>
+                    </div>
+
+                    <!-- Column 6: Doca Tecfag / Disponível -->
+                    <div class="sc-kanban-col" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(16, 185, 129, 0.3); border-top: 4px solid #10b981; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; min-height: 500px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div style="font-size: 0.8rem; font-weight: 800; color: #10b981;">6. DOCA TECFAG / ESTOQUE</div>
+                            <span class="badge" id="sc-count-doca-galpao" style="background: rgba(16, 185, 129, 0.2); color: #10b981; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px;">0</span>
+                        </div>
+                        <div id="sc-cards-DOCA_GALPAO" class="sc-kanban-cards" style="display: flex; flex-direction: column; gap: 10px; flex: 1;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-TAB 2: MATRIZ DE MÁQUINAS EM TRÂNSITO (SKU SEARCH) -->
+            <div id="sc-subtab-matrix" style="display: none;">
+                <!-- Search bar -->
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 260px; position: relative;">
+                            <input type="text" id="sc-sku-search-input" oninput="debounceSkuMatrixSearch()" class="form-control" placeholder="🔍 Digite o modelo (ex: FR-770, MSZ, DZ-400, Seladora, Dosadora, PO-2026)..." style="width: 100%; padding: 12px 14px; font-size: 0.95rem; border-radius: 8px;">
+                        </div>
+                        <button type="button" class="btn" onclick="loadSkuMatrix()" style="background: #0ea5e9; color: white; padding: 12px 20px; font-weight: 700; border-radius: 8px;">
+                            Buscar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Matrix Results Container -->
+                <div id="sc-sku-matrix-results" style="display: flex; flex-direction: column; gap: 16px;">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <!-- SUB-TAB 3: CALENDÁRIO & FLUXO CAMBIAL -->
+            <div id="sc-subtab-payments" style="display: none;">
+                <div class="project-table-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h3 style="margin: 0; color: #38bdf8; font-size: 1.15rem;">Fluxo Cambial & Cronograma de Câmbio</h3>
+                            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">Parcelas internacionais calculadas com base no B/L e regras dos fornecedores (120d B/L, 30/70 90d, etc.).</p>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <select id="sc-payment-filter-status" onchange="filterSupplyPayments()" class="form-control" style="padding: 8px 12px; font-size: 0.8rem;">
+                                <option value="ALL">Todas as Parcelas</option>
+                                <option value="PENDING" selected>Apenas Pendentes</option>
+                                <option value="DUE_7_DAYS">Vencimento em até 7 Dias</option>
+                                <option value="DUE_30_DAYS">Vencimento em até 30 Dias</option>
+                                <option value="OVERDUE">Vencidas</option>
+                                <option value="PAID">Liquidadas / Pagas</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table class="table" style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary); text-align: left;">
+                                    <th style="padding: 10px 8px;">Vencimento</th>
+                                    <th style="padding: 10px 8px;">Container / PO</th>
+                                    <th style="padding: 10px 8px;">Fornecedor</th>
+                                    <th style="padding: 10px 8px;">Descrição da Parcela</th>
+                                    <th style="padding: 10px 8px;">Valor Moeda</th>
+                                    <th style="padding: 10px 8px;">Status / Urgência</th>
+                                    <th style="padding: 10px 8px; text-align: right;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sc-payments-table-body">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-TAB 4: FORNECEDORES INTERNACIONAIS -->
+            <div id="sc-subtab-suppliers" style="display: none;">
+                <div class="project-table-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h3 style="margin: 0; color: #38bdf8; font-size: 1.15rem;">Fornecedores de Importação de Máquinas</h3>
+                            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">Regras contratuais de pagamento e lead times médios (fabricação, navio, porto).</p>
+                        </div>
+                        <button type="button" class="btn" onclick="openEditSupplierModal(null)" style="background: #0ea5e9; color: white; padding: 8px 16px; font-weight: 700; border-radius: 6px;">
+                            + Novo Fornecedor
+                        </button>
+                    </div>
+
+                    <div id="sc-suppliers-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+                        <!-- Populated via JS -->
                     </div>
                 </div>
             </div>
@@ -5618,6 +5835,518 @@
         </div>
     </div>
 
+    <!-- ========================================================================= -->
+    <!-- MODAIS DO MÓDULO DE SUPPLY CHAIN & IMPORTAÇÃO DE ESTOQUE -->
+    <!-- ========================================================================= -->
+
+    <!-- 1. MODAL NOVA ORDEM DE IMPORTAÇÃO / UPLOAD IA DE INVOICE -->
+    <div class="modal-overlay" id="modal-supply-chain-new" style="z-index: 1260; display: none;">
+        <div class="modal" style="max-width: 900px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(30, 41, 59, 0.8) 100%); border-bottom: 1px solid rgba(56, 189, 248, 0.2);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5rem;">✨</span>
+                    <div>
+                        <h3 style="margin: 0; color: #38bdf8;">Nova Ordem de Importação & Reposição de Estoque</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #94a3b8;">Importe a Proforma Invoice via IA (PDF/Imagem) ou cadastre manualmente as máquinas e prazos.</p>
+                    </div>
+                </div>
+                <button class="btn-icon" onclick="closeNewSupplyOrderModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
+                <!-- Área de Upload IA / OCR -->
+                <div style="background: rgba(14, 165, 233, 0.06); border: 2px dashed rgba(56, 189, 248, 0.35); border-radius: 10px; padding: 18px; text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 1.8rem; margin-bottom: 6px;">📄</div>
+                    <div style="font-weight: 700; color: #38bdf8; font-size: 0.9rem;">Arraste a Proforma Invoice (PDF ou Imagem) do Fornecedor</div>
+                    <div style="font-size: 0.75rem; color: #94a3b8; margin: 4px 0 12px 0;">O Gemini IA lerá automaticamente Fornecedor, Modelos de Máquinas, Quantidades e Preços FOB.</div>
+                    
+                    <div style="display: flex; justify-content: center; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <input type="file" id="sc-new-invoice-file" accept=".pdf,image/*" style="display: none;" onchange="handleInvoiceFileSelected(this)">
+                        <button type="button" class="btn" onclick="document.getElementById('sc-new-invoice-file').click()" style="background: #0ea5e9; color: white; padding: 8px 16px; font-weight: bold; border-radius: 6px;">
+                            📁 Selecionar Arquivo da Fatura
+                        </button>
+                        <span id="sc-selected-file-label" style="font-size: 0.78rem; color: #cbd5e1;">Nenhum arquivo selecionado</span>
+                        <button type="button" id="sc-btn-extract-ai" class="btn" onclick="extractInvoiceWithAI()" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; font-weight: bold; padding: 8px 16px; border-radius: 6px; display: none;">
+                            ⚡ Analisar com IA
+                        </button>
+                    </div>
+                    <div id="sc-ocr-status" style="display: none; margin-top: 10px; font-size: 0.78rem; font-weight: bold;"></div>
+                </div>
+
+                <!-- Formulário da Ordem -->
+                <form id="sc-new-order-form" onsubmit="submitNewSupplyOrder(event)">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Número da PO / Container *</label>
+                            <input type="text" id="sc-order-po" class="form-control" required placeholder="Ex: PO-2026-HW01 ou TEMU-8271" style="padding: 9px 12px; font-size: 0.85rem;">
+                        </div>
+
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Fornecedor Internacional *</label>
+                            <select id="sc-order-supplier" class="form-control" required onchange="handleOrderSupplierChange()" style="padding: 9px 12px; font-size: 0.85rem;">
+                                <option value="">Selecione o Fornecedor...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Nº da Fatura / Proforma</label>
+                            <input type="text" id="sc-order-invoice-no" class="form-control" placeholder="Ex: PI2026-08" style="padding: 9px 12px; font-size: 0.85rem;">
+                        </div>
+
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Data da Fatura / Emissão</label>
+                            <input type="date" id="sc-order-invoice-date" class="form-control" style="padding: 9px 12px; font-size: 0.85rem;">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Condição de Pagamento (Regra Fornecedor)</label>
+                            <select id="sc-order-payment-terms" class="form-control" style="padding: 9px 12px; font-size: 0.85rem;">
+                                <option value="120_DAYS_BL">120 dias direto após embarque/B/L (100%)</option>
+                                <option value="30_70_90D_BL">30% Sinal Proforma + 70% em 90 dias após B/L</option>
+                                <option value="30_70_BL_COPY">30% Sinal Proforma + 70% contra cópia do B/L</option>
+                                <option value="100_ADVANCE">100% Antecipado na Proforma</option>
+                                <option value="CUSTOM">Personalizado</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Moeda</label>
+                            <select id="sc-order-currency" class="form-control" style="padding: 9px 12px; font-size: 0.85rem;">
+                                <option value="USD" selected>USD ($)</option>
+                                <option value="EUR">EUR (€)</option>
+                                <option value="RMB">RMB (¥)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Porto de Origem</label>
+                            <input type="text" id="sc-order-origin-port" class="form-control" value="Ningbo, China" style="padding: 9px 12px; font-size: 0.85rem;">
+                        </div>
+
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Porto de Destino</label>
+                            <input type="text" id="sc-order-dest-port" class="form-control" value="Santos (SP)" style="padding: 9px 12px; font-size: 0.85rem;">
+                        </div>
+                    </div>
+
+                    <!-- Tabela Dinâmica de Máquinas -->
+                    <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <span style="font-size: 0.78rem; font-weight: 800; color: #38bdf8; text-transform: uppercase;">Máquinas e Equipamentos da Ordem</span>
+                            <button type="button" class="btn btn-secondary" onclick="addSupplyOrderItemRow()" style="padding: 4px 10px; font-size: 0.74rem; font-weight: bold;">
+                                + Adicionar Modelo
+                            </button>
+                        </div>
+
+                        <div style="overflow-x: auto;">
+                            <table class="table" style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left;">
+                                        <th style="padding: 6px;">Modelo / SKU *</th>
+                                        <th style="padding: 6px;">Descrição do Equipamento</th>
+                                        <th style="padding: 6px; width: 90px;">Qtd (un) *</th>
+                                        <th style="padding: 6px; width: 130px;">Unit. FOB *</th>
+                                        <th style="padding: 6px; width: 130px;">Total FOB</th>
+                                        <th style="padding: 6px; width: 40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sc-new-items-tbody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end; gap: 20px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border-color);">
+                            <span style="font-size: 0.78rem; color: var(--text-secondary);">Total Geral FOB:</span>
+                            <span style="font-size: 1.15rem; font-weight: 800; color: #4ade80;" id="sc-new-order-total-fob">$ 0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Observações & Notas Logísticas</label>
+                        <textarea id="sc-order-notes" class="form-control" style="height: 60px; font-size: 0.8rem; resize: none;" placeholder="Instruções de despacho, contrato de câmbio, exigências de embalagem..."></textarea>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button type="button" class="btn btn-secondary" onclick="closeNewSupplyOrderModal()">Cancelar</button>
+                        <button type="submit" id="sc-btn-save-order" class="btn" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; font-weight: bold; padding: 10px 24px;">
+                            Criar Ordem de Importação
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. MODAL CONCILIAÇÃO DE CARGA (PACKING LIST & AUTOMATIC BACKORDER ROLLOVER) -->
+    <div class="modal-overlay" id="modal-supply-chain-reconcile" style="z-index: 1260; display: none;">
+        <div class="modal" style="max-width: 900px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(30, 41, 59, 0.8) 100%); border-bottom: 1px solid rgba(236, 72, 153, 0.2);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5rem;">📦</span>
+                    <div>
+                        <h3 style="margin: 0; color: #ec4899;">Conferência de Carga & Packing List do Container</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #94a3b8;" id="sc-reconcile-modal-subtitle">Conferência dos equipamentos carregados vs proforma inicial.</p>
+                    </div>
+                </div>
+                <button class="btn-icon" onclick="closeReconcileModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
+                <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 14px; margin-bottom: 18px; color: #fde68a; font-size: 0.78rem; line-height: 1.5;">
+                    <strong style="color: #f59e0b;">🛡️ Proteção Antiperda de Máquinas:</strong> Se alguma máquina solicitada na Proforma não coube ou não foi embarcada neste container, o MRP manterá o saldo e o transferirá <strong>automaticamente para a próxima ordem de compra deste fornecedor</strong> como Saldo Remanescente.
+                </div>
+
+                <!-- Tabela de Conferência -->
+                <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                    <div style="overflow-x: auto;">
+                        <table class="table" style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
+                            <thead>
+                                <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left;">
+                                    <th style="padding: 8px;">Modelo / SKU</th>
+                                    <th style="padding: 8px;">Descrição</th>
+                                    <th style="padding: 8px; text-align: center; width: 100px;">Qtd Proforma</th>
+                                    <th style="padding: 8px; text-align: center; width: 130px;">Qtd Embarcada</th>
+                                    <th style="padding: 8px; text-align: center; width: 100px;">Saldo Remanescente</th>
+                                    <th style="padding: 8px; text-align: right; width: 120px;">Unit. FOB</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sc-reconcile-tbody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Upload de Packing List -->
+                <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Anexar Packing List / Commercial Invoice Final (PDF):</label>
+                        <input type="file" id="sc-reconcile-file-input" class="form-control" accept=".pdf,image/*" style="padding: 8px; font-size: 0.8rem;">
+                    </div>
+                </div>
+
+                <div id="sc-reconcile-rollover-summary" style="display: none; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 20px; font-size: 0.78rem; color: #38bdf8;">
+                    <!-- Auto rollover info -->
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeReconcileModal()">Cancelar</button>
+                    <button type="button" class="btn" onclick="submitCargoReconciliation()" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: white; font-weight: bold; padding: 10px 24px;">
+                        Confirmar Carga & Efetuar Rollover
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. MODAL DETALHES DA ORDEM / CONTAINER (LOGÍSTICA & RASTREIO) -->
+    <div class="modal-overlay" id="modal-supply-chain-details" style="z-index: 1260; display: none;">
+        <div class="modal" style="max-width: 950px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(30, 41, 59, 0.8) 100%); border-bottom: 1px solid rgba(168, 85, 247, 0.2);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5rem;">🚢</span>
+                    <div>
+                        <h3 style="margin: 0; color: #c084fc;" id="sc-details-title">Detalhes do Container / PO</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #94a3b8;" id="sc-details-subtitle">Rastreamento logístico internacional e controle de prazos.</p>
+                    </div>
+                </div>
+                <button class="btn-icon" onclick="closeSupplyDetailsModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
+                <!-- Status & Pipeline Progress -->
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Etapa Atual do Container:</span>
+                            <div style="font-size: 1.1rem; font-weight: 800; color: #38bdf8; margin-top: 2px;" id="sc-details-stage-badge">1. PROFORMA EMITIDA</div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" class="btn" id="sc-details-btn-advance" onclick="advanceCurrentOrderStage()" style="background: #a855f7; color: white; font-weight: bold; padding: 8px 16px; font-size: 0.78rem;">
+                                ➡️ Avançar Próxima Etapa
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="openReconcileModalForCurrentOrder()" style="border-color: #ec4899; color: #ec4899; font-weight: bold; padding: 8px 16px; font-size: 0.78rem;">
+                                📦 Conciliar Packing List
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulário de Campos Logísticos -->
+                <form id="sc-details-form" onsubmit="saveSupplyOrderDetails(event)">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Identificação do Container</label>
+                            <input type="text" id="sc-det-container-id" class="form-control" placeholder="Ex: MSCU9283741" style="padding: 8px; font-size: 0.82rem;">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Nome do Navio / Viagem</label>
+                            <input type="text" id="sc-det-vessel-name" class="form-control" placeholder="Ex: MSC ALESIA" style="padding: 8px; font-size: 0.82rem;">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Número do B/L</label>
+                            <input type="text" id="sc-det-bl-number" class="form-control" placeholder="Ex: MEDUST123456" style="padding: 8px; font-size: 0.82rem;">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: #f59e0b;">Data de Emissão do B/L ⚡</label>
+                            <input type="date" id="sc-det-bl-date" class="form-control" style="padding: 8px; font-size: 0.82rem; border-color: #f59e0b;">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Data Embarque (ETD)</label>
+                            <input type="date" id="sc-det-etd-date" class="form-control" style="padding: 8px; font-size: 0.82rem;">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Chegada no Porto (ETA Porto)</label>
+                            <input type="date" id="sc-det-eta-port" class="form-control" style="padding: 8px; font-size: 0.82rem;">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: #4ade80;">Chegada Doca Tecfag (ETA Doca)</label>
+                            <input type="date" id="sc-det-eta-wh" class="form-control" style="padding: 8px; font-size: 0.82rem; border-color: #4ade80;">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Data Efetiva de Entrada</label>
+                            <input type="date" id="sc-det-actual-arrival" class="form-control" style="padding: 8px; font-size: 0.82rem;">
+                        </div>
+                    </div>
+
+                    <!-- Abas internas dos Detalhes: Itens | Parcelas | Anexos -->
+                    <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                            <button type="button" id="sc-det-tab-btn-items" onclick="switchDetailsSubTab('items')" class="btn" style="padding: 4px 12px; font-size: 0.75rem; font-weight: bold; background: #38bdf8; color: black;">
+                                ⚙️ Máquinas no Container
+                            </button>
+                            <button type="button" id="sc-det-tab-btn-payments" onclick="switchDetailsSubTab('payments')" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.75rem; font-weight: bold;">
+                                💵 Parcelas de Câmbio
+                            </button>
+                        </div>
+
+                        <div id="sc-det-subtab-items" style="display: block;">
+                            <div style="overflow-x: auto;">
+                                <table class="table" style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left;">
+                                            <th style="padding: 6px;">SKU</th>
+                                            <th style="padding: 6px;">Descrição</th>
+                                            <th style="padding: 6px; text-align: center;">Qtd Solicitada</th>
+                                            <th style="padding: 6px; text-align: center;">Qtd Embarcada</th>
+                                            <th style="padding: 6px; text-align: center;">Saldo Salvo</th>
+                                            <th style="padding: 6px; text-align: right;">Unit. FOB</th>
+                                            <th style="padding: 6px; text-align: right;">Total FOB</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sc-details-items-tbody">
+                                        <!-- Populated via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="sc-det-subtab-payments" style="display: none;">
+                            <div style="overflow-x: auto;">
+                                <table class="table" style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left;">
+                                            <th style="padding: 6px;">Parcela</th>
+                                            <th style="padding: 6px;">Descrição</th>
+                                            <th style="padding: 6px;">Vencimento</th>
+                                            <th style="padding: 6px;">Valor Moeda</th>
+                                            <th style="padding: 6px;">Status</th>
+                                            <th style="padding: 6px; text-align: right;">Ação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sc-details-payments-tbody">
+                                        <!-- Populated via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px;">
+                        <button type="button" class="btn btn-secondary" onclick="deleteCurrentSupplyOrder()" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">
+                            🗑️ Excluir Ordem
+                        </button>
+                        <div style="display: flex; gap: 10px;">
+                            <button type="button" class="btn btn-secondary" onclick="closeSupplyDetailsModal()">Fechar</button>
+                            <button type="submit" class="btn" style="background: #38bdf8; color: black; font-weight: bold; padding: 8px 20px;">
+                                Salvar Alterações
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. MODAL LIQUIDAÇÃO DE CÂMBIO & UPLOAD SWIFT -->
+    <div class="modal-overlay" id="modal-supply-chain-payment" style="z-index: 1270; display: none;">
+        <div class="modal" style="max-width: 500px; width: 95%;">
+            <div class="modal-header">
+                <div>
+                    <h3 style="margin: 0; color: #10b981;">Liquidação Cambial / Swift</h3>
+                    <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: var(--text-secondary);" id="sc-pay-modal-subtitle">Atualizar status de pagamento da parcela.</p>
+                </div>
+                <button class="btn-icon" onclick="closePaymentModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div class="modal-body" style="padding: 20px;">
+                <form id="sc-payment-form" onsubmit="submitPaymentLiquidation(event)">
+                    <input type="hidden" id="sc-pay-id">
+                    
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Status da Parcela</label>
+                        <select id="sc-pay-status" class="form-control" style="padding: 8px; font-size: 0.85rem;" onchange="handlePaymentStatusSelectChange()">
+                            <option value="PENDING">Pendente / A Vencer</option>
+                            <option value="SCHEDULED">Agendado no Banco</option>
+                            <option value="PAID">Pago / Liquidado (Câmbio Fechado)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Data do Pagamento / Câmbio</label>
+                        <input type="date" id="sc-pay-date" class="form-control" style="padding: 8px; font-size: 0.85rem;">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Taxa de Câmbio (R$ / Moeda)</label>
+                            <input type="number" step="0.0001" id="sc-pay-exchange-rate" class="form-control" placeholder="Ex: 5.6520" oninput="calculateBrlPaymentAmount()" style="padding: 8px; font-size: 0.85rem;">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Valor Liquidado em R$</label>
+                            <input type="number" step="0.01" id="sc-pay-amount-brl" class="form-control" placeholder="R$ 0,00" style="padding: 8px; font-size: 0.85rem;">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Anexar Comprovante / Swift (PDF ou Imagem)</label>
+                        <input type="file" id="sc-pay-swift-file" class="form-control" accept=".pdf,image/*" style="padding: 8px; font-size: 0.8rem;">
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button type="button" class="btn btn-secondary" onclick="closePaymentModal()">Cancelar</button>
+                        <button type="submit" class="btn" style="background: #10b981; color: white; font-weight: bold; padding: 8px 18px;">
+                            Salvar Pagamento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. MODAL FORNECEDOR INTERNACIONAL (CADASTRO / EDIÇÃO) -->
+    <div class="modal-overlay" id="modal-supply-chain-supplier" style="z-index: 1270; display: none;">
+        <div class="modal" style="max-width: 650px; width: 95%;">
+            <div class="modal-header">
+                <div>
+                    <h3 style="margin: 0; color: #38bdf8;" id="sc-supp-modal-title">Cadastrar Fornecedor Internacional</h3>
+                    <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: var(--text-secondary);">Configurações contratuais, prazos padrão e condições de pagamento.</p>
+                </div>
+                <button class="btn-icon" onclick="closeSupplierModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div class="modal-body" style="padding: 20px;">
+                <form id="sc-supplier-form" onsubmit="submitSupplierForm(event)">
+                    <input type="hidden" id="sc-supp-id">
+
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Nome da Fábrica / Empresa *</label>
+                            <input type="text" id="sc-supp-name" class="form-control" required placeholder="Ex: Zhejiang Hengwei Machinery" style="padding: 8px; font-size: 0.85rem;">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">País</label>
+                            <input type="text" id="sc-supp-country" class="form-control" value="China" style="padding: 8px; font-size: 0.85rem;">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Condição Padrão de Pagamento</label>
+                            <select id="sc-supp-payment-terms" class="form-control" style="padding: 8px; font-size: 0.85rem;">
+                                <option value="120_DAYS_BL">120 dias direto após embarque/B/L (100%)</option>
+                                <option value="30_70_90D_BL">30% Sinal Proforma + 70% em 90 dias após B/L</option>
+                                <option value="30_70_BL_COPY">30% Sinal Proforma + 70% contra cópia do B/L</option>
+                                <option value="100_ADVANCE">100% Antecipado na Proforma</option>
+                                <option value="CUSTOM">Personalizado</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Moeda de Negociação</label>
+                            <select id="sc-supp-currency" class="form-control" style="padding: 8px; font-size: 0.85rem;">
+                                <option value="USD" selected>USD ($)</option>
+                                <option value="EUR">EUR (€)</option>
+                                <option value="RMB">RMB (¥)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Lead Times -->
+                    <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; margin-bottom: 12px;">
+                        <div style="font-size: 0.72rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px;">Prazos Médios (Lead Times em Dias)</div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Fabricação:</label>
+                                <input type="number" id="sc-supp-lead-fab" class="form-control" value="40" style="padding: 5px 8px; font-size: 0.75rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Navio (Mar):</label>
+                                <input type="number" id="sc-supp-lead-sea" class="form-control" value="35" style="padding: 5px 8px; font-size: 0.75rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Porto / D.I.:</label>
+                                <input type="number" id="sc-supp-lead-port" class="form-control" value="15" style="padding: 5px 8px; font-size: 0.75rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.62rem; font-weight: 700; color: var(--text-secondary);">Doca / Galpão:</label>
+                                <input type="number" id="sc-supp-lead-wh" class="form-control" value="3" style="padding: 5px 8px; font-size: 0.75rem;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Pessoa de Contato</label>
+                            <input type="text" id="sc-supp-contact-person" class="form-control" placeholder="Ex: Grace Chen" style="padding: 8px; font-size: 0.85rem;">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">E-mail de Contato</label>
+                            <input type="email" id="sc-supp-contact-email" class="form-control" placeholder="sales@supplier.com" style="padding: 8px; font-size: 0.85rem;">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Notas & Linha de Máquinas Fornecidas</label>
+                        <input type="text" id="sc-supp-notes" class="form-control" placeholder="Ex: Seladoras contínuas, esteiras e datadores industriais" style="padding: 8px; font-size: 0.85rem;">
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button type="button" class="btn btn-secondary" onclick="closeSupplierModal()">Cancelar</button>
+                        <button type="submit" class="btn" style="background: #38bdf8; color: black; font-weight: bold; padding: 8px 20px;">
+                            Salvar Fornecedor
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Core Logic Engine -->
     <script>
         // Intercept global fetch on file:// protocol for offline/serverless mode
@@ -6329,6 +7058,11 @@
             const menuSettings = document.getElementById('menu-settings');
             if (menuSettings) {
                 menuSettings.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'DIRETOR') ? 'block' : 'none';
+            }
+            const menuSupplyChain = document.getElementById('menu-supply-chain');
+            if (menuSupplyChain) {
+                const isGilson = currentUser && (currentUser.username === 'gilson' || currentUser.username === 'gilson@tecfag.com.br');
+                menuSupplyChain.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'COMPRAS' || role === 'DIRETOR' || isGilson) ? 'block' : 'none';
             }
             
             // If active tab gets hidden, switch to dashboard
@@ -12378,7 +13112,8 @@
                 metrics: "Painel de Métricas e Gargalos",
                 log: "Histórico de Auditoria & Alertas",
                 supplier: "Biblioteca Técnica de Fornecedores",
-                settings: "Configurações Globais do Sistema"
+                settings: "Configurações Globais do Sistema",
+                'supply-chain': "Gestão de Importações & Reposição de Estoque"
             };
 
             const subtitles = {
@@ -12389,11 +13124,12 @@
                 metrics: "Visão analítica dos prazos das fases e gargalos de produtividade por setor.",
                 log: "Logs de comunicação automáticos simulando e-mails para cada etapa do processo.",
                 supplier: "Consulte e gerencie catálogos, cotações e documentação técnica de fornecedores.",
-                settings: "Gerencie templates de questionamentos técnicos e regras de automação."
+                settings: "Gerencie templates de questionamentos técnicos e regras de automação.",
+                'supply-chain': "Acompanhe containers de estoque, conferência com IA, divergência de carga e fluxo cambial."
             };
 
-            document.getElementById('main-title').innerText = titles[tabId];
-            document.getElementById('main-subtitle').innerText = subtitles[tabId];
+            document.getElementById('main-title').innerText = titles[tabId] || "MRP Tecfag";
+            document.getElementById('main-subtitle').innerText = subtitles[tabId] || "";
 
             if (tabId === 'cadprj') {
                 generateProjectCode();
@@ -12403,6 +13139,8 @@
                 loadSupplierResources();
             } else if (tabId === 'settings') {
                 loadSettingsTab();
+            } else if (tabId === 'supply-chain') {
+                loadSupplyChainData();
             }
         }
 
@@ -21182,6 +21920,1441 @@
             } catch (err) {
                 console.error(err);
                 alert('Erro de conexão ao excluir anexo.');
+            }
+        }
+
+        // =========================================================================
+        // MÓDULO DE SUPPLY CHAIN & REPOSIÇÃO DE ESTOQUE (FRONTEND CONTROLLER)
+        // =========================================================================
+
+        let supplyChainState = {
+            orders: [],
+            suppliers: [],
+            payments: [],
+            stats: {},
+            skuMatrix: [],
+            currentOrder: null,
+            activeSubTab: 'kanban',
+            skuSearchDebounceTimer: null
+        };
+
+        async function loadSupplyChainData() {
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const [ordersRes, suppliersRes, paymentsRes] = await Promise.all([
+                    fetch('/api/supply-chain/orders', { headers }),
+                    fetch('/api/supply-chain/suppliers', { headers }),
+                    fetch('/api/supply-chain/payments', { headers })
+                ]);
+
+                if (ordersRes.ok) {
+                    const data = await ordersRes.json();
+                    supplyChainState.orders = data.orders || [];
+                    supplyChainState.stats = data.stats || {};
+                    renderSupplyChainKPIs();
+                    renderSupplyChainKanban();
+                }
+
+                if (suppliersRes.ok) {
+                    supplyChainState.suppliers = await suppliersRes.json();
+                    renderSupplyChainSuppliers();
+                    populateSupplyOrderSuppliersSelect();
+                }
+
+                if (paymentsRes.ok) {
+                    const payData = await paymentsRes.json();
+                    supplyChainState.payments = payData.payments || [];
+                    supplyChainState.paymentSummary = payData.summary || {};
+                    renderSupplyChainPayments();
+                }
+
+                if (supplyChainState.activeSubTab === 'matrix') {
+                    await loadSkuMatrix();
+                }
+            } catch (err) {
+                console.error('[SUPPLY CHAIN LOAD ERROR]', err);
+            }
+        }
+
+        function renderSupplyChainKPIs() {
+            const stats = supplyChainState.stats || {};
+            const kpiOrders = document.getElementById('sc-kpi-active-orders');
+            const kpiFob = document.getElementById('sc-kpi-total-fob');
+            const kpiSea = document.getElementById('sc-kpi-sea-machines');
+            const kpiFab = document.getElementById('sc-kpi-fab-machines');
+            const kpiDue = document.getElementById('sc-kpi-due-30d');
+
+            if (kpiOrders) kpiOrders.innerText = stats.total_active_orders || 0;
+            if (kpiFob) kpiFob.innerText = '$ ' + (stats.total_fob_pipeline || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            if (kpiSea) kpiSea.innerText = (stats.machines_on_sea || 0) + ' un.';
+            if (kpiFab) kpiFab.innerText = (stats.machines_in_fabrication || 0) + ' un.';
+            if (kpiDue) {
+                const due30 = (supplyChainState.paymentSummary && supplyChainState.paymentSummary.due_next_30_days_usd) || 0;
+                kpiDue.innerText = '$ ' + due30.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+        }
+
+        function switchSupplyChainSubTab(subTabId) {
+            supplyChainState.activeSubTab = subTabId;
+            
+            ['kanban', 'matrix', 'payments', 'suppliers'].forEach(id => {
+                const btn = document.getElementById(`sc-tab-btn-${id}`);
+                const view = document.getElementById(`sc-subtab-${id}`);
+                if (btn && view) {
+                    if (id === subTabId) {
+                        btn.style.background = '#0ea5e9';
+                        btn.style.color = 'white';
+                        btn.style.borderColor = 'transparent';
+                        view.style.display = 'block';
+                    } else {
+                        btn.style.background = 'transparent';
+                        btn.style.color = '#94a3b8';
+                        btn.style.borderColor = 'rgba(255,255,255,0.1)';
+                        view.style.display = 'none';
+                    }
+                }
+            });
+
+            if (subTabId === 'matrix') {
+                loadSkuMatrix();
+            } else if (subTabId === 'payments') {
+                renderSupplyChainPayments();
+            } else if (subTabId === 'suppliers') {
+                renderSupplyChainSuppliers();
+            } else if (subTabId === 'kanban') {
+                renderSupplyChainKanban();
+            }
+        }
+
+        function renderSupplyChainKanban() {
+            const stages = ['PO_EMITIDA', 'EM_FABRICACAO', 'PACKING_LIST_EMBARQUE', 'NO_NAVIO', 'NO_PORTO_DESEMBARACO', 'DOCA_GALPAO'];
+            const counts = {};
+            stages.forEach(s => counts[s] = 0);
+
+            // Limpar colunas
+            stages.forEach(s => {
+                const container = document.getElementById(`sc-cards-${s}`);
+                if (container) container.innerHTML = '';
+            });
+
+            const orders = supplyChainState.orders || [];
+
+            orders.forEach(order => {
+                const stage = order.stage || 'PO_EMITIDA';
+                if (counts[stage] !== undefined) counts[stage]++;
+
+                const container = document.getElementById(`sc-cards-${stage}`);
+                if (!container) return;
+
+                const card = document.createElement('div');
+                card.className = 'sc-order-card';
+                card.style.cssText = `
+                    background: rgba(30, 41, 59, 0.7);
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    border-radius: 8px;
+                    padding: 12px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                    transition: transform 0.2s, border-color 0.2s;
+                `;
+                card.onmouseenter = () => { card.style.borderColor = 'rgba(56, 189, 248, 0.4)'; card.style.transform = 'translateY(-2px)'; };
+                card.onmouseleave = () => { card.style.borderColor = 'rgba(255, 255, 255, 0.08)'; card.style.transform = 'none'; };
+
+                // Header do Card
+                const isRollover = order.is_rollover_order === 1;
+                const rolloverBadge = isRollover ? `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(245, 158, 11, 0.3);">SALDO REMANESCENTE</span>` : '';
+
+                // Itens Preview
+                const items = order.items || [];
+                let itemsBadgesHtml = '';
+                items.slice(0, 4).forEach(it => {
+                    const qty = it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered;
+                    itemsBadgesHtml += `<span style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; font-size: 0.68rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; white-space: nowrap;">${qty}x ${it.sku}</span> `;
+                });
+                if (items.length > 4) {
+                    itemsBadgesHtml += `<span style="font-size: 0.68rem; color: #94a3b8;">+${items.length - 4} mod.</span>`;
+                }
+
+                // Datas formatadas
+                const etaWhStr = order.eta_warehouse_date ? new Date(order.eta_warehouse_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'A definir';
+                const totalFobStr = (order.currency || 'USD') + ' ' + (order.total_fob_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                // Identificação de Navio / Container
+                let logisticsSnippet = '';
+                if (order.container_id || order.vessel_name) {
+                    logisticsSnippet = `
+                        <div style="font-size: 0.7rem; color: #94a3b8; display: flex; align-items: center; gap: 4px;">
+                            <span>🚢</span> <span>${order.vessel_name || ''} ${order.container_id ? '• ' + order.container_id : ''}</span>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
+                        <div>
+                            <div style="font-weight: 800; color: #f8fafc; font-size: 0.88rem;">${order.po_number}</div>
+                            <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 600; margin-top: 1px;">${order.supplier_name}</div>
+                        </div>
+                        ${rolloverBadge}
+                    </div>
+
+                    ${logisticsSnippet}
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0;">
+                        ${itemsBadgesHtml || '<span style="font-size: 0.68rem; color: #64748b;">Nenhuma máquina listada</span>'}
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 6px; margin-top: 2px;">
+                        <span style="color: #4ade80; font-weight: 700;">${totalFobStr}</span>
+                        <span style="color: #cbd5e1;">ETA Doca: <strong>${etaWhStr}</strong></span>
+                    </div>
+
+                    <div style="display: flex; gap: 6px; margin-top: 4px;">
+                        <button type="button" class="btn btn-secondary" onclick="openSupplyDetailsModal(${order.id})" style="flex: 1; padding: 5px; font-size: 0.72rem; font-weight: 600;">
+                            🔍 Detalhes
+                        </button>
+                        ${stage === 'PO_EMITIDA' || stage === 'EM_FABRICACAO' ? `
+                            <button type="button" class="btn btn-secondary" onclick="openReconcileModal(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; border-color: rgba(236, 72, 153, 0.4); color: #ec4899;" title="Conferir Carga / Packing List">
+                                📦 Carga
+                            </button>
+                        ` : ''}
+                        ${stage !== 'DOCA_GALPAO' ? `
+                            <button type="button" class="btn" onclick="quickAdvanceOrderStage(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: #0ea5e9; color: white;" title="Avançar Etapa">
+                                ➡️
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+
+            // Atualizar contadores
+            const cPo = document.getElementById('sc-count-po-emitida');
+            const cFab = document.getElementById('sc-count-em-fabricacao');
+            const cPack = document.getElementById('sc-count-packing-list');
+            const cSea = document.getElementById('sc-count-no-navio');
+            const cPort = document.getElementById('sc-count-no-porto');
+            const cDoca = document.getElementById('sc-count-doca-galpao');
+
+            if (cPo) cPo.innerText = counts['PO_EMITIDA'] || 0;
+            if (cFab) cFab.innerText = counts['EM_FABRICACAO'] || 0;
+            if (cPack) cPack.innerText = counts['PACKING_LIST_EMBARQUE'] || 0;
+            if (cSea) cSea.innerText = counts['NO_NAVIO'] || 0;
+            if (cPort) cPort.innerText = counts['NO_PORTO_DESEMBARACO'] || 0;
+            if (cDoca) cDoca.innerText = counts['DOCA_GALPAO'] || 0;
+        }
+
+        async function quickAdvanceOrderStage(orderId) {
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/supply-chain/orders/${orderId}/advance-stage`, {
+                    method: 'POST',
+                    headers
+                });
+
+                if (res.ok) {
+                    await loadSupplyChainData();
+                } else {
+                    const data = await res.json();
+                    alert('Erro ao avançar etapa: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao avançar etapa.');
+            }
+        }
+
+        // ==========================================
+        // MODAL NOVA ORDEM / UPLOAD IA PROFORMA
+        // ==========================================
+
+        function openNewSupplyOrderModal() {
+            const modal = document.getElementById('modal-supply-chain-new');
+            const form = document.getElementById('sc-new-order-form');
+            if (form) form.reset();
+            
+            const tbody = document.getElementById('sc-new-items-tbody');
+            if (tbody) {
+                tbody.innerHTML = '';
+                addSupplyOrderItemRow(); // Linha inicial
+            }
+
+            const fileLabel = document.getElementById('sc-selected-file-label');
+            if (fileLabel) fileLabel.innerText = 'Nenhum arquivo selecionado';
+
+            const btnAi = document.getElementById('sc-btn-extract-ai');
+            if (btnAi) btnAi.style.display = 'none';
+
+            const status = document.getElementById('sc-ocr-status');
+            if (status) status.style.display = 'none';
+
+            // Preencher data padrão
+            const dateInput = document.getElementById('sc-order-invoice-date');
+            if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
+            populateSupplyOrderSuppliersSelect();
+
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeNewSupplyOrderModal() {
+            const modal = document.getElementById('modal-supply-chain-new');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function populateSupplyOrderSuppliersSelect() {
+            const select = document.getElementById('sc-order-supplier');
+            if (!select) return;
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">Selecione o Fornecedor...</option>';
+
+            const suppliers = supplyChainState.suppliers || [];
+            suppliers.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.innerText = s.name;
+                select.appendChild(opt);
+            });
+
+            if (currentVal) select.value = currentVal;
+        }
+
+        function handleOrderSupplierChange() {
+            const select = document.getElementById('sc-order-supplier');
+            if (!select) return;
+            const supplierId = select.value;
+            const supplier = (supplyChainState.suppliers || []).find(s => s.id == supplierId);
+            if (supplier) {
+                const termsSelect = document.getElementById('sc-order-payment-terms');
+                if (termsSelect && supplier.payment_terms_type) {
+                    termsSelect.value = supplier.payment_terms_type;
+                }
+                const currSelect = document.getElementById('sc-order-currency');
+                if (currSelect && supplier.currency) {
+                    currSelect.value = supplier.currency;
+                }
+            }
+        }
+
+        function handleInvoiceFileSelected(input) {
+            const fileLabel = document.getElementById('sc-selected-file-label');
+            const btnAi = document.getElementById('sc-btn-extract-ai');
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                if (fileLabel) fileLabel.innerText = `📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                if (btnAi) btnAi.style.display = 'inline-flex';
+            } else {
+                if (fileLabel) fileLabel.innerText = 'Nenhum arquivo selecionado';
+                if (btnAi) btnAi.style.display = 'none';
+            }
+        }
+
+        async function extractInvoiceWithAI() {
+            const fileInput = document.getElementById('sc-new-invoice-file');
+            if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                alert('Selecione um arquivo de fatura primeiro.');
+                return;
+            }
+
+            const btnAi = document.getElementById('sc-btn-extract-ai');
+            const status = document.getElementById('sc-ocr-status');
+
+            try {
+                if (btnAi) {
+                    btnAi.disabled = true;
+                    btnAi.innerText = '⏳ Analisando com Gemini IA...';
+                }
+                if (status) {
+                    status.style.display = 'block';
+                    status.style.color = '#38bdf8';
+                    status.innerText = '🤖 Lendo e estruturando dados da Proforma Invoice via Gemini IA...';
+                }
+
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch('/api/supply-chain/extract-invoice', {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const ext = data.extracted || {};
+
+                    // Auto-preencher campos
+                    if (ext.invoice_number) {
+                        const invInput = document.getElementById('sc-order-invoice-no');
+                        if (invInput) invInput.value = ext.invoice_number;
+                        const poInput = document.getElementById('sc-order-po');
+                        if (poInput && !poInput.value) poInput.value = 'PO-' + ext.invoice_number.replace(/[^a-zA-Z0-9]/g, '-');
+                    }
+
+                    if (ext.invoice_date) {
+                        const dateInput = document.getElementById('sc-order-invoice-date');
+                        if (dateInput) dateInput.value = ext.invoice_date;
+                    }
+
+                    if (ext.currency) {
+                        const currSelect = document.getElementById('sc-order-currency');
+                        if (currSelect) currSelect.value = ext.currency;
+                    }
+
+                    if (ext.supplier_id) {
+                        const suppSelect = document.getElementById('sc-order-supplier');
+                        if (suppSelect) suppSelect.value = ext.supplier_id;
+                        handleOrderSupplierChange();
+                    }
+
+                    // Preencher itens
+                    if (ext.items && Array.isArray(ext.items) && ext.items.length > 0) {
+                        const tbody = document.getElementById('sc-new-items-tbody');
+                        if (tbody) {
+                            tbody.innerHTML = '';
+                            ext.items.forEach(it => {
+                                addSupplyOrderItemRow(it.sku, it.description, it.qty_ordered, it.unit_price_fob);
+                            });
+                        }
+                    }
+
+                    if (status) {
+                        status.style.color = '#4ade80';
+                        status.innerText = `✅ IA identificou ${ext.items ? ext.items.length : 0} modelo(s) de máquinas com sucesso! Revise e confirme abaixo.`;
+                    }
+                } else {
+                    const errData = await res.json();
+                    if (status) {
+                        status.style.color = '#ef4444';
+                        status.innerText = '❌ Erro ao analisar fatura: ' + (errData.error || 'Erro desconhecido');
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                if (status) {
+                    status.style.color = '#ef4444';
+                    status.innerText = '❌ Falha de conexão ao comunicar com a IA.';
+                }
+            } finally {
+                if (btnAi) {
+                    btnAi.disabled = false;
+                    btnAi.innerText = '⚡ Analisar com IA';
+                }
+            }
+        }
+
+        function addSupplyOrderItemRow(sku = '', desc = '', qty = 1, price = 0) {
+            const tbody = document.getElementById('sc-new-items-tbody');
+            if (!tbody) return;
+
+            const tr = document.createElement('tr');
+            tr.className = 'sc-item-row';
+            tr.innerHTML = `
+                <td style="padding: 6px;">
+                    <input type="text" class="form-control sc-input-sku" required value="${sku}" placeholder="Ex: FR-770" style="padding: 6px 8px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase;">
+                </td>
+                <td style="padding: 6px;">
+                    <input type="text" class="form-control sc-input-desc" value="${desc}" placeholder="Descrição técnica" style="padding: 6px 8px; font-size: 0.8rem;">
+                </td>
+                <td style="padding: 6px;">
+                    <input type="number" class="form-control sc-input-qty" required min="1" value="${qty || 1}" oninput="recalcOrderTotalFob()" style="padding: 6px 8px; font-size: 0.8rem; text-align: center;">
+                </td>
+                <td style="padding: 6px;">
+                    <input type="number" step="0.01" class="form-control sc-input-price" required min="0" value="${price || 0}" oninput="recalcOrderTotalFob()" style="padding: 6px 8px; font-size: 0.8rem;">
+                </td>
+                <td style="padding: 6px; font-weight: bold; color: #4ade80;" class="sc-row-total">
+                    $ 0.00
+                </td>
+                <td style="padding: 6px; text-align: center;">
+                    <button type="button" class="btn-icon" onclick="removeSupplyOrderItemRow(this)" style="color: #ef4444;" title="Remover">
+                        ✕
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            recalcOrderTotalFob();
+        }
+
+        function removeSupplyOrderItemRow(btn) {
+            const tr = btn.closest('tr');
+            if (tr) tr.remove();
+            recalcOrderTotalFob();
+        }
+
+        function recalcOrderTotalFob() {
+            const rows = document.querySelectorAll('#sc-new-items-tbody tr.sc-item-row');
+            let totalFob = 0;
+            rows.forEach(r => {
+                const qty = parseInt(r.querySelector('.sc-input-qty')?.value) || 0;
+                const price = parseFloat(r.querySelector('.sc-input-price')?.value) || 0;
+                const rowTotal = qty * price;
+                totalFob += rowTotal;
+
+                const totalCell = r.querySelector('.sc-row-total');
+                if (totalCell) totalCell.innerText = '$ ' + rowTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            });
+
+            const totalBanner = document.getElementById('sc-new-order-total-fob');
+            if (totalBanner) {
+                totalBanner.innerText = '$ ' + totalFob.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+        }
+
+        async function submitNewSupplyOrder(e) {
+            e.preventDefault();
+
+            const po = document.getElementById('sc-order-po')?.value.trim();
+            const suppSelect = document.getElementById('sc-order-supplier');
+            const suppId = suppSelect?.value;
+            const suppName = suppSelect?.options[suppSelect.selectedIndex]?.text || '';
+            const invNo = document.getElementById('sc-order-invoice-no')?.value.trim();
+            const invDate = document.getElementById('sc-order-invoice-date')?.value;
+            const paymentTerms = document.getElementById('sc-order-payment-terms')?.value;
+            const currency = document.getElementById('sc-order-currency')?.value;
+            const origPort = document.getElementById('sc-order-origin-port')?.value;
+            const destPort = document.getElementById('sc-order-dest-port')?.value;
+            const notes = document.getElementById('sc-order-notes')?.value;
+
+            // Coletar itens
+            const items = [];
+            const rows = document.querySelectorAll('#sc-new-items-tbody tr.sc-item-row');
+            rows.forEach(r => {
+                const sku = r.querySelector('.sc-input-sku')?.value.trim();
+                const desc = r.querySelector('.sc-input-desc')?.value.trim();
+                const qty = parseInt(r.querySelector('.sc-input-qty')?.value) || 1;
+                const price = parseFloat(r.querySelector('.sc-input-price')?.value) || 0;
+                if (sku) {
+                    items.push({ sku, description: desc, qty_ordered: qty, unit_price_fob: price });
+                }
+            });
+
+            if (items.length === 0) {
+                alert('Adicione pelo menos 1 modelo de máquina para esta ordem.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('po_number', po);
+            formData.append('supplier_id', suppId);
+            formData.append('supplier_name', suppName);
+            formData.append('invoice_number', invNo);
+            formData.append('invoice_date', invDate);
+            formData.append('payment_terms_type', paymentTerms);
+            formData.append('currency', currency);
+            formData.append('origin_port', origPort);
+            formData.append('destination_port', destPort);
+            formData.append('notes', notes);
+            formData.append('items', JSON.stringify(items));
+
+            const fileInput = document.getElementById('sc-new-invoice-file');
+            if (fileInput && fileInput.files && fileInput.files[0]) {
+                formData.append('invoice_file', fileInput.files[0]);
+            }
+
+            const btnSave = document.getElementById('sc-btn-save-order');
+            try {
+                if (btnSave) {
+                    btnSave.disabled = true;
+                    btnSave.innerText = 'Salvando...';
+                }
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch('/api/supply-chain/orders', {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+
+                if (res.ok) {
+                    closeNewSupplyOrderModal();
+                    await loadSupplyChainData();
+                    alert(`✅ Ordem de Importação ${po} criada com sucesso!`);
+                } else {
+                    const data = await res.json();
+                    alert('Erro ao criar ordem: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao salvar ordem.');
+            } finally {
+                if (btnSave) {
+                    btnSave.disabled = false;
+                    btnSave.innerText = 'Criar Ordem de Importação';
+                }
+            }
+        }
+
+        // ==========================================
+        // MODAL DETALHES DO CONTAINER / PO
+        // ==========================================
+
+        async function openSupplyDetailsModal(orderId) {
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/supply-chain/orders/${orderId}`, { headers });
+                if (!res.ok) {
+                    alert('Erro ao carregar detalhes da ordem.');
+                    return;
+                }
+
+                const order = await res.json();
+                supplyChainState.currentOrder = order;
+
+                const modal = document.getElementById('modal-supply-chain-details');
+                const title = document.getElementById('sc-details-title');
+                const subtitle = document.getElementById('sc-details-subtitle');
+                const badge = document.getElementById('sc-details-stage-badge');
+
+                const stageLabels = {
+                    'PO_EMITIDA': '1. PROFORMA EMITIDA',
+                    'EM_FABRICACAO': '2. EM FABRICAÇÃO NO EXTERIOR',
+                    'PACKING_LIST_EMBARQUE': '3. PACKING LIST & CARGA PRONTA',
+                    'NO_NAVIO': '4. NO NAVIO (TRÂNSITO MARÍTIMO)',
+                    'NO_PORTO_DESEMBARACO': '5. NO PORTO / DESEMBARAÇO',
+                    'DOCA_GALPAO': '6. ENTREGUE NA DOCA TECFAG'
+                };
+
+                if (title) title.innerText = `Container / PO: ${order.po_number} - ${order.supplier_name}`;
+                if (subtitle) subtitle.innerText = `Fatura: ${order.invoice_number || 'S/N'} • Condição: ${order.payment_terms_desc || order.payment_terms_type}`;
+                if (badge) badge.innerText = stageLabels[order.stage] || order.stage;
+
+                // Preencher campos
+                const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+                setVal('sc-det-container-id', order.container_id);
+                setVal('sc-det-vessel-name', order.vessel_name);
+                setVal('sc-det-bl-number', order.bl_number);
+                setVal('sc-det-bl-date', order.bl_date);
+                setVal('sc-det-etd-date', order.etd_date);
+                setVal('sc-det-eta-port', order.eta_port_date);
+                setVal('sc-det-eta-wh', order.eta_warehouse_date);
+                setVal('sc-det-actual-arrival', order.actual_arrival_date);
+
+                // Renderizar itens
+                renderDetailsItems(order.items || []);
+                renderDetailsPayments(order.payments || []);
+                switchDetailsSubTab('items');
+
+                if (modal) modal.style.display = 'flex';
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao abrir detalhes da ordem.');
+            }
+        }
+
+        function closeSupplyDetailsModal() {
+            const modal = document.getElementById('modal-supply-chain-details');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function switchDetailsSubTab(tab) {
+            const btnItems = document.getElementById('sc-det-tab-btn-items');
+            const btnPay = document.getElementById('sc-det-tab-btn-payments');
+            const viewItems = document.getElementById('sc-det-subtab-items');
+            const viewPay = document.getElementById('sc-det-subtab-payments');
+
+            if (tab === 'items') {
+                if (btnItems) { btnItems.style.background = '#38bdf8'; btnItems.style.color = 'black'; }
+                if (btnPay) { btnPay.style.background = 'transparent'; btnPay.style.color = '#cbd5e1'; }
+                if (viewItems) viewItems.style.display = 'block';
+                if (viewPay) viewPay.style.display = 'none';
+            } else {
+                if (btnPay) { btnPay.style.background = '#38bdf8'; btnPay.style.color = 'black'; }
+                if (btnItems) { btnItems.style.background = 'transparent'; btnItems.style.color = '#cbd5e1'; }
+                if (viewPay) viewPay.style.display = 'block';
+                if (viewItems) viewItems.style.display = 'none';
+            }
+        }
+
+        function renderDetailsItems(items) {
+            const tbody = document.getElementById('sc-details-items-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 15px;">Nenhum item cadastrado.</td></tr>';
+                return;
+            }
+
+            items.forEach(it => {
+                const tr = document.createElement('tr');
+                const qtyShipped = it.qty_shipped || 0;
+                const backorder = it.qty_backorder || 0;
+                const backorderBadge = backorder > 0 ? `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${backorder} un (Rollover)</span>` : '-';
+
+                tr.innerHTML = `
+                    <td style="padding: 6px; font-weight: bold; color: #38bdf8;">${it.sku}</td>
+                    <td style="padding: 6px;">${it.description || '-'}</td>
+                    <td style="padding: 6px; text-align: center;">${it.qty_ordered}</td>
+                    <td style="padding: 6px; text-align: center; font-weight: bold; color: #4ade80;">${qtyShipped}</td>
+                    <td style="padding: 6px; text-align: center;">${backorderBadge}</td>
+                    <td style="padding: 6px; text-align: right;">$ ${(it.unit_price_fob || 0).toFixed(2)}</td>
+                    <td style="padding: 6px; text-align: right; font-weight: bold;">$ ${(it.total_price_fob || (it.qty_ordered * it.unit_price_fob)).toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderDetailsPayments(payments) {
+            const tbody = document.getElementById('sc-details-payments-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (payments.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 15px;">Nenhuma parcela gerada.</td></tr>';
+                return;
+            }
+
+            payments.forEach(p => {
+                const tr = document.createElement('tr');
+                const isPaid = p.status === 'PAID';
+                const statusBadge = isPaid 
+                    ? `<span style="background: rgba(16, 185, 129, 0.2); color: #10b981; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold;">LIQUIDADO / PAGO</span>`
+                    : `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold;">PENDENTE</span>`;
+
+                const dueStr = p.due_date ? new Date(p.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
+
+                tr.innerHTML = `
+                    <td style="padding: 6px; font-weight: bold;">#${p.installment_number}</td>
+                    <td style="padding: 6px;">${p.description} (${p.percentage}%)</td>
+                    <td style="padding: 6px; font-weight: bold; color: #cbd5e1;">${dueStr}</td>
+                    <td style="padding: 6px; font-weight: bold; color: #4ade80;">${p.currency} ${(p.amount_currency || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                    <td style="padding: 6px;">${statusBadge}</td>
+                    <td style="padding: 6px; text-align: right;">
+                        <button type="button" class="btn btn-secondary" onclick="openPaymentModal(${p.id})" style="padding: 4px 8px; font-size: 0.72rem; font-weight: bold;">
+                            ${isPaid ? 'Ver Swift' : '💳 Liquidar'}
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function saveSupplyOrderDetails(e) {
+            e.preventDefault();
+            if (!supplyChainState.currentOrder) return;
+            const orderId = supplyChainState.currentOrder.id;
+
+            const payload = {
+                container_id: document.getElementById('sc-det-container-id')?.value.trim(),
+                vessel_name: document.getElementById('sc-det-vessel-name')?.value.trim(),
+                bl_number: document.getElementById('sc-det-bl-number')?.value.trim(),
+                bl_date: document.getElementById('sc-det-bl-date')?.value || null,
+                etd_date: document.getElementById('sc-det-etd-date')?.value || null,
+                eta_port_date: document.getElementById('sc-det-eta-port')?.value || null,
+                eta_warehouse_date: document.getElementById('sc-det-eta-wh')?.value || null,
+                actual_arrival_date: document.getElementById('sc-det-actual-arrival')?.value || null
+            };
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+
+                const res = await fetch(`/api/supply-chain/orders/${orderId}`, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    await loadSupplyChainData();
+                    await openSupplyDetailsModal(orderId);
+                    alert('✅ Dados logísticos atualizados com sucesso!');
+                } else {
+                    const data = await res.json();
+                    alert('Erro ao atualizar: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao salvar alterações.');
+            }
+        }
+
+        async function advanceCurrentOrderStage() {
+            if (!supplyChainState.currentOrder) return;
+            await quickAdvanceOrderStage(supplyChainState.currentOrder.id);
+            await openSupplyDetailsModal(supplyChainState.currentOrder.id);
+        }
+
+        async function deleteCurrentSupplyOrder() {
+            if (!supplyChainState.currentOrder) return;
+            if (!confirm(`Deseja realmente excluir a ordem ${supplyChainState.currentOrder.po_number}? Esta ação não pode ser desfeita.`)) return;
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/supply-chain/orders/${supplyChainState.currentOrder.id}`, {
+                    method: 'DELETE',
+                    headers
+                });
+
+                if (res.ok) {
+                    closeSupplyDetailsModal();
+                    await loadSupplyChainData();
+                    alert('Ordem excluída com sucesso.');
+                } else {
+                    const data = await res.json();
+                    alert('Erro ao excluir: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao excluir ordem.');
+            }
+        }
+
+        // ==========================================
+        // MODAL CONCILIAÇÃO DE CARGA & ROLLOVER
+        // ==========================================
+
+        async function openReconcileModal(orderId) {
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/supply-chain/orders/${orderId}`, { headers });
+                if (!res.ok) return;
+
+                const order = await res.json();
+                supplyChainState.currentOrder = order;
+
+                const modal = document.getElementById('modal-supply-chain-reconcile');
+                const sub = document.getElementById('sc-reconcile-modal-subtitle');
+                if (sub) sub.innerText = `PO: ${order.po_number} (${order.supplier_name}) • Fatura: ${order.invoice_number || 'S/N'}`;
+
+                const tbody = document.getElementById('sc-reconcile-tbody');
+                if (tbody) {
+                    tbody.innerHTML = '';
+                    const items = order.items || [];
+                    items.forEach(it => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'sc-rec-item-row';
+                        tr.dataset.sku = it.sku;
+                        tr.dataset.ordered = it.qty_ordered;
+                        tr.dataset.price = it.unit_price_fob;
+                        tr.dataset.desc = it.description || '';
+
+                        const shippedInitial = it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered;
+
+                        tr.innerHTML = `
+                            <td style="padding: 8px; font-weight: bold; color: #38bdf8;">${it.sku}</td>
+                            <td style="padding: 8px; font-size: 0.78rem;">${it.description || '-'}</td>
+                            <td style="padding: 8px; text-align: center; font-weight: bold;">${it.qty_ordered}</td>
+                            <td style="padding: 8px; text-align: center;">
+                                <input type="number" min="0" max="${it.qty_ordered * 2}" value="${shippedInitial}" class="form-control sc-rec-input-shipped" oninput="updateReconcileBackorderPreview()" style="width: 80px; padding: 4px 8px; font-size: 0.82rem; text-align: center; margin: 0 auto; font-weight: bold; color: #4ade80;">
+                            </td>
+                            <td style="padding: 8px; text-align: center; font-weight: bold;" class="sc-rec-backorder-cell">
+                                0 un
+                            </td>
+                            <td style="padding: 8px; text-align: right;">
+                                $ ${(it.unit_price_fob || 0).toFixed(2)}
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+
+                updateReconcileBackorderPreview();
+                if (modal) modal.style.display = 'flex';
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function openReconcileModalForCurrentOrder() {
+            if (supplyChainState.currentOrder) {
+                closeSupplyDetailsModal();
+                openReconcileModal(supplyChainState.currentOrder.id);
+            }
+        }
+
+        function closeReconcileModal() {
+            const modal = document.getElementById('modal-supply-chain-reconcile');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function updateReconcileBackorderPreview() {
+            const rows = document.querySelectorAll('#sc-reconcile-tbody tr.sc-rec-item-row');
+            let hasBackorders = false;
+            let backorderSummaryText = '';
+
+            rows.forEach(r => {
+                const ordered = parseInt(r.dataset.ordered) || 0;
+                const shipped = parseInt(r.querySelector('.sc-rec-input-shipped')?.value) || 0;
+                const backorder = Math.max(0, ordered - shipped);
+                const cell = r.querySelector('.sc-rec-backorder-cell');
+
+                if (cell) {
+                    if (backorder > 0) {
+                        cell.innerHTML = `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 2px 6px; border-radius: 4px;">${backorder} un</span>`;
+                        hasBackorders = true;
+                        backorderSummaryText += `<div>⚠️ <strong>${backorder} un.</strong> do modelo <strong>${r.dataset.sku}</strong> serão transferidas para o próximo container.</div>`;
+                    } else {
+                        cell.innerHTML = `<span style="color: #4ade80;">0 un</span>`;
+                    }
+                }
+            });
+
+            const summaryBox = document.getElementById('sc-reconcile-rollover-summary');
+            if (summaryBox) {
+                if (hasBackorders) {
+                    summaryBox.style.display = 'block';
+                    summaryBox.innerHTML = `
+                        <div style="font-weight: bold; margin-bottom: 4px; color: #f59e0b;">📦 Resumo de Transferência Automática de Saldo (Rollover):</div>
+                        ${backorderSummaryText}
+                    `;
+                } else {
+                    summaryBox.style.display = 'none';
+                }
+            }
+        }
+
+        async function submitCargoReconciliation() {
+            if (!supplyChainState.currentOrder) return;
+            const orderId = supplyChainState.currentOrder.id;
+
+            const items = [];
+            const rows = document.querySelectorAll('#sc-reconcile-tbody tr.sc-rec-item-row');
+            rows.forEach(r => {
+                const sku = r.dataset.sku;
+                const desc = r.dataset.desc;
+                const price = parseFloat(r.dataset.price) || 0;
+                const shipped = parseInt(r.querySelector('.sc-rec-input-shipped')?.value) || 0;
+                items.push({ sku, description: desc, qty_shipped: shipped, unit_price_fob: price });
+            });
+
+            const formData = new FormData();
+            formData.append('items', JSON.stringify(items));
+
+            const fileInput = document.getElementById('sc-reconcile-file-input');
+            if (fileInput && fileInput.files && fileInput.files[0]) {
+                formData.append('packing_list_file', fileInput.files[0]);
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/supply-chain/orders/${orderId}/reconcile`, {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    closeReconcileModal();
+                    await loadSupplyChainData();
+
+                    if (data.backorderItems && data.backorderItems.length > 0) {
+                        const nextPo = data.rolloverOrder ? data.rolloverOrder.po_number : 'Próxima PO';
+                        alert(`✅ Conciliação salva com sucesso!\n\n${data.backorderItems.length} modelo(s) com saldo foram transferidos automaticamente para ${nextPo}.`);
+                    } else {
+                        alert('✅ Carga conferida e confirmada com 100% dos equipamentos embarcados!');
+                    }
+                } else {
+                    const errData = await res.json();
+                    alert('Erro ao conciliar: ' + (errData.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao conciliar carga.');
+            }
+        }
+
+        // ==========================================
+        // MATRIZ DE MÁQUINAS EM TRÂNSITO (SKU SEARCH)
+        // ==========================================
+
+        function debounceSkuMatrixSearch() {
+            clearTimeout(supplyChainState.skuSearchDebounceTimer);
+            supplyChainState.skuSearchDebounceTimer = setTimeout(() => {
+                loadSkuMatrix();
+            }, 300);
+        }
+
+        async function loadSkuMatrix() {
+            const query = (document.getElementById('sc-sku-search-input')?.value || '').trim();
+            const container = document.getElementById('sc-sku-matrix-results');
+            if (!container) return;
+
+            try {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">🔍 Buscando máquinas no pipeline de importação...</div>';
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/supply-chain/sku-matrix?q=${encodeURIComponent(query)}`, { headers });
+                if (!res.ok) {
+                    container.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 20px;">Erro ao carregar matriz de SKUs.</div>';
+                    return;
+                }
+
+                const data = await res.json();
+                const matrix = data.matrix || [];
+
+                if (matrix.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px 20px; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="font-size: 2rem; margin-bottom: 8px;">📦</div>
+                            <div style="font-weight: 700; color: #cbd5e1; font-size: 0.95rem;">Nenhuma máquina encontrada para "${query || 'esta busca'}"</div>
+                            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">Verifique o modelo digitado ou cadastre novas ordens de importação.</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = '';
+
+                matrix.forEach(item => {
+                    const card = document.createElement('div');
+                    card.style.cssText = `
+                        background: var(--bg-card);
+                        border: 1px solid var(--border-color);
+                        border-radius: 10px;
+                        padding: 16px;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    `;
+
+                    const earliestEtaStr = item.earliest_eta_warehouse ? new Date(item.earliest_eta_warehouse + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem previsão';
+
+                    // Linhas dos Lotes / Containers
+                    let batchesHtml = '';
+                    (item.batches || []).forEach(b => {
+                        const stageBadges = {
+                            'PO_EMITIDA': '<span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold;">Proforma Emitida</span>',
+                            'EM_FABRICACAO': '<span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold;">Em Fabricação</span>',
+                            'PACKING_LIST_EMBARQUE': '<span style="background: rgba(236, 72, 153, 0.15); color: #ec4899; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold;">Packing List</span>',
+                            'NO_NAVIO': '<span style="background: rgba(168, 85, 247, 0.15); color: #a855f7; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold;">Trânsito Marítimo</span>',
+                            'NO_PORTO_DESEMBARACO': '<span style="background: rgba(234, 179, 8, 0.15); color: #eab308; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold;">No Porto / D.I.</span>',
+                            'DOCA_GALPAO': '<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold;">Doca / Estoque</span>'
+                        };
+
+                        const etaBatch = b.eta_warehouse_date ? new Date(b.eta_warehouse_date + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
+
+                        batchesHtml += `
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.78rem;">
+                                <td style="padding: 6px 8px; font-weight: bold; color: #f8fafc;">${b.po_number}</td>
+                                <td style="padding: 6px 8px; color: #94a3b8;">${b.supplier_name}</td>
+                                <td style="padding: 6px 8px;">${stageBadges[b.stage] || b.stage}</td>
+                                <td style="padding: 6px 8px; text-align: center; font-weight: bold; color: #38bdf8;">${b.qty} un.</td>
+                                <td style="padding: 6px 8px; color: #cbd5e1;">${b.vessel_name || '-'} ${b.container_id ? '(' + b.container_id + ')' : ''}</td>
+                                <td style="padding: 6px 8px; font-weight: bold; color: #4ade80;">${etaBatch}</td>
+                                <td style="padding: 6px 8px; text-align: right;">
+                                    <button type="button" class="btn btn-secondary" onclick="openSupplyDetailsModal(${b.order_id})" style="padding: 3px 8px; font-size: 0.7rem;">
+                                        Ver PO
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    card.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="font-size: 1.15rem; font-weight: 800; color: #38bdf8;">${item.sku}</span>
+                                    <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; font-weight: bold;">
+                                        Total no Pipeline: ${item.total_pipeline_qty} un.
+                                    </span>
+                                </div>
+                                <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">${item.description || item.sku}</div>
+                            </div>
+
+                            <div style="display: flex; gap: 12px; font-size: 0.75rem;">
+                                <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); padding: 4px 8px; border-radius: 6px;">
+                                    <span style="color: #f59e0b;">🏭 Fábrica:</span> <strong>${item.qty_in_fabrication} un</strong>
+                                </div>
+                                <div style="background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.2); padding: 4px 8px; border-radius: 6px;">
+                                    <span style="color: #a855f7;">🚢 No Navio:</span> <strong>${item.qty_on_sea} un</strong>
+                                </div>
+                                <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.2); padding: 4px 8px; border-radius: 6px;">
+                                    <span style="color: #eab308;">🛃 No Porto:</span> <strong>${item.qty_at_port} un</strong>
+                                </div>
+                                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 4px 8px; border-radius: 6px;">
+                                    <span style="color: #10b981;">📅 Próxima Doca:</span> <strong>${earliestEtaStr}</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="overflow-x: auto; background: rgba(0,0,0,0.15); border-radius: 6px;">
+                            <table class="table" style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); font-size: 0.72rem; text-align: left;">
+                                        <th style="padding: 6px 8px;">Ordem / PO</th>
+                                        <th style="padding: 6px 8px;">Fornecedor</th>
+                                        <th style="padding: 6px 8px;">Fase Atual</th>
+                                        <th style="padding: 6px 8px; text-align: center;">Quantidade</th>
+                                        <th style="padding: 6px 8px;">Navio / Container</th>
+                                        <th style="padding: 6px 8px;">Previsão Doca</th>
+                                        <th style="padding: 6px 8px; text-align: right;">Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${batchesHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+
+                    container.appendChild(card);
+                });
+
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 20px;">Falha ao pesquisar matriz de SKUs.</div>';
+            }
+        }
+
+        // ==========================================
+        // FLUXO CAMBIAL & PAGAMENTOS INTERNACIONAIS
+        // ==========================================
+
+        function renderSupplyChainPayments() {
+            const tbody = document.getElementById('sc-payments-table-body');
+            if (!tbody) return;
+
+            const payments = supplyChainState.payments || [];
+            const filter = document.getElementById('sc-payment-filter-status')?.value || 'ALL';
+
+            tbody.innerHTML = '';
+
+            let filtered = payments;
+            if (filter === 'PENDING') {
+                filtered = payments.filter(p => p.status !== 'PAID');
+            } else if (filter === 'DUE_7_DAYS') {
+                filtered = payments.filter(p => p.urgency === 'DUE_7_DAYS' && p.status !== 'PAID');
+            } else if (filter === 'DUE_30_DAYS') {
+                filtered = payments.filter(p => (p.urgency === 'DUE_7_DAYS' || p.urgency === 'DUE_30_DAYS') && p.status !== 'PAID');
+            } else if (filter === 'OVERDUE') {
+                filtered = payments.filter(p => p.urgency === 'OVERDUE' && p.status !== 'PAID');
+            } else if (filter === 'PAID') {
+                filtered = payments.filter(p => p.status === 'PAID');
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: var(--text-secondary);">Nenhuma parcela correspondente aos filtros.</td></tr>';
+                return;
+            }
+
+            filtered.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+
+                const dueStr = p.due_date ? new Date(p.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
+                
+                let urgencyBadge = '';
+                if (p.status === 'PAID') {
+                    urgencyBadge = `<span style="background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.72rem;">✅ PAGO / LIQUIDADO</span>`;
+                } else if (p.urgency === 'OVERDUE') {
+                    urgencyBadge = `<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.72rem;">🚨 VENCIDO</span>`;
+                } else if (p.urgency === 'DUE_7_DAYS') {
+                    urgencyBadge = `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.72rem;">⚠️ VENCE EM 7 DIAS</span>`;
+                } else if (p.urgency === 'DUE_30_DAYS') {
+                    urgencyBadge = `<span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.72rem;">📅 VENCE EM 30 DIAS</span>`;
+                } else {
+                    urgencyBadge = `<span style="background: rgba(255, 255, 255, 0.08); color: #94a3b8; padding: 3px 8px; border-radius: 4px; font-size: 0.72rem;">A Vencer</span>`;
+                }
+
+                const amountStr = p.currency + ' ' + (p.amount_currency || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const brlSnippet = p.amount_brl ? `<div style="font-size: 0.7rem; color: #94a3b8;">R$ ${p.amount_brl.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>` : '';
+
+                tr.innerHTML = `
+                    <td style="padding: 10px 8px; font-weight: bold; color: #cbd5e1;">${dueStr}</td>
+                    <td style="padding: 10px 8px; font-weight: bold; color: #38bdf8;">${p.po_number}</td>
+                    <td style="padding: 10px 8px; color: #94a3b8;">${p.supplier_name}</td>
+                    <td style="padding: 10px 8px;">${p.description} (${p.percentage}%)</td>
+                    <td style="padding: 10px 8px; font-weight: bold; color: #4ade80;">
+                        ${amountStr}
+                        ${brlSnippet}
+                    </td>
+                    <td style="padding: 10px 8px;">${urgencyBadge}</td>
+                    <td style="padding: 10px 8px; text-align: right;">
+                        <button type="button" class="btn btn-secondary" onclick="openPaymentModal(${p.id})" style="padding: 4px 10px; font-size: 0.74rem; font-weight: bold;">
+                            ${p.status === 'PAID' ? 'Ver Swift' : '💳 Liquidar Câmbio'}
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterSupplyPayments() {
+            renderSupplyChainPayments();
+        }
+
+        function openPaymentModal(paymentId) {
+            const payment = (supplyChainState.payments || []).find(p => p.id == paymentId);
+            if (!payment) return;
+
+            const modal = document.getElementById('modal-supply-chain-payment');
+            const sub = document.getElementById('sc-pay-modal-subtitle');
+            if (sub) sub.innerText = `PO: ${payment.po_number} • ${payment.description} (${payment.currency} ${payment.amount_currency.toFixed(2)})`;
+
+            const idInput = document.getElementById('sc-pay-id');
+            if (idInput) idInput.value = payment.id;
+
+            const statusSelect = document.getElementById('sc-pay-status');
+            if (statusSelect) statusSelect.value = payment.status || 'PENDING';
+
+            const dateInput = document.getElementById('sc-pay-date');
+            if (dateInput) dateInput.value = payment.payment_date || new Date().toISOString().split('T')[0];
+
+            const rateInput = document.getElementById('sc-pay-exchange-rate');
+            if (rateInput) rateInput.value = payment.exchange_rate_brl || '';
+
+            const brlInput = document.getElementById('sc-pay-amount-brl');
+            if (brlInput) brlInput.value = payment.amount_brl || '';
+
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closePaymentModal() {
+            const modal = document.getElementById('modal-supply-chain-payment');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function handlePaymentStatusSelectChange() {
+            // Se mudou para PAID, preenche a data atual
+            const status = document.getElementById('sc-pay-status')?.value;
+            const dateInput = document.getElementById('sc-pay-date');
+            if (status === 'PAID' && dateInput && !dateInput.value) {
+                dateInput.value = new Date().toISOString().split('T')[0];
+            }
+        }
+
+        function calculateBrlPaymentAmount() {
+            const payId = document.getElementById('sc-pay-id')?.value;
+            const payment = (supplyChainState.payments || []).find(p => p.id == payId);
+            if (!payment) return;
+
+            const rate = parseFloat(document.getElementById('sc-pay-exchange-rate')?.value) || 0;
+            const brlInput = document.getElementById('sc-pay-amount-brl');
+            if (brlInput && rate > 0) {
+                brlInput.value = (payment.amount_currency * rate).toFixed(2);
+            }
+        }
+
+        async function submitPaymentLiquidation(e) {
+            e.preventDefault();
+            const payId = document.getElementById('sc-pay-id')?.value;
+            if (!payId) return;
+
+            const formData = new FormData();
+            formData.append('status', document.getElementById('sc-pay-status')?.value);
+            formData.append('payment_date', document.getElementById('sc-pay-date')?.value || '');
+            formData.append('exchange_rate_brl', document.getElementById('sc-pay-exchange-rate')?.value || '');
+            formData.append('amount_brl', document.getElementById('sc-pay-amount-brl')?.value || '');
+
+            const fileInput = document.getElementById('sc-pay-swift-file');
+            if (fileInput && fileInput.files && fileInput.files[0]) {
+                formData.append('swift_file', fileInput.files[0]);
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/supply-chain/payments/${payId}`, {
+                    method: 'PUT',
+                    headers,
+                    body: formData
+                });
+
+                if (res.ok) {
+                    closePaymentModal();
+                    await loadSupplyChainData();
+                    if (supplyChainState.currentOrder) {
+                        await openSupplyDetailsModal(supplyChainState.currentOrder.id);
+                    }
+                    alert('✅ Parcela atualizada com sucesso!');
+                } else {
+                    const data = await res.json();
+                    alert('Erro ao atualizar pagamento: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao liquidar parcela.');
+            }
+        }
+
+        // ==========================================
+        // CADASTRO DE FORNECEDORES INTERNACIONAIS
+        // ==========================================
+
+        function renderSupplyChainSuppliers() {
+            const container = document.getElementById('sc-suppliers-grid');
+            if (!container) return;
+
+            const suppliers = supplyChainState.suppliers || [];
+            container.innerHTML = '';
+
+            if (suppliers.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-secondary); padding: 20px;">Nenhum fornecedor cadastrado.</div>';
+                return;
+            }
+
+            const termsLabels = {
+                '120_DAYS_BL': '120 dias direto após embarque/B/L (100%)',
+                '30_70_90D_BL': '30% Sinal + 70% em 90 dias após B/L',
+                '30_70_BL_COPY': '30% Sinal + 70% contra cópia do B/L',
+                '100_ADVANCE': '100% Antecipado na Proforma',
+                'CUSTOM': 'Personalizado'
+            };
+
+            suppliers.forEach(s => {
+                const card = document.createElement('div');
+                card.style.cssText = `
+                    background: rgba(30, 41, 59, 0.6);
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    padding: 16px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    gap: 12px;
+                `;
+
+                card.innerHTML = `
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                            <div style="font-weight: 800; font-size: 0.95rem; color: #38bdf8;">${s.name}</div>
+                            <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-size: 0.68rem; padding: 2px 6px; border-radius: 4px; font-weight: bold;">
+                                ${s.currency || 'USD'}
+                            </span>
+                        </div>
+                        <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 4px;">📍 ${s.country || 'China'}</div>
+
+                        <div style="margin-top: 10px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;">
+                            <div style="font-size: 0.72rem; color: #f59e0b; font-weight: bold;">Regra de Pagamento:</div>
+                            <div style="font-size: 0.78rem; color: #f8fafc; margin-top: 2px;">${termsLabels[s.payment_terms_type] || s.payment_terms_type}</div>
+                        </div>
+
+                        <div style="margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.72rem; color: #cbd5e1;">
+                            <div>⏱️ Fab: <strong>${s.lead_time_fabrication_days || 40}d</strong></div>
+                            <div>🚢 Mar: <strong>${s.lead_time_sea_days || 35}d</strong></div>
+                            <div>🛃 Porto: <strong>${s.lead_time_port_days || 15}d</strong></div>
+                            <div>🏢 Doca: <strong>${s.lead_time_warehouse_days || 3}d</strong></div>
+                        </div>
+
+                        ${s.contact_person || s.contact_email ? `
+                            <div style="margin-top: 8px; font-size: 0.72rem; color: #94a3b8; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 6px;">
+                                👤 ${s.contact_person || ''} ${s.contact_email ? '• ' + s.contact_email : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+                        <button type="button" class="btn btn-secondary" onclick="openEditSupplierModal(${s.id})" style="padding: 4px 10px; font-size: 0.74rem; font-weight: bold;">
+                            ✏️ Editar Fornecedor
+                        </button>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        function openEditSupplierModal(supplierId) {
+            const modal = document.getElementById('modal-supply-chain-supplier');
+            const title = document.getElementById('sc-supp-modal-title');
+            const form = document.getElementById('sc-supplier-form');
+            if (form) form.reset();
+
+            const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+
+            if (supplierId) {
+                const s = (supplyChainState.suppliers || []).find(it => it.id == supplierId);
+                if (!s) return;
+                if (title) title.innerText = `Editar Fornecedor: ${s.name}`;
+                setVal('sc-supp-id', s.id);
+                setVal('sc-supp-name', s.name);
+                setVal('sc-supp-country', s.country);
+                setVal('sc-supp-currency', s.currency);
+                setVal('sc-supp-payment-terms', s.payment_terms_type);
+                setVal('sc-supp-lead-fab', s.lead_time_fabrication_days);
+                setVal('sc-supp-lead-sea', s.lead_time_sea_days);
+                setVal('sc-supp-lead-port', s.lead_time_port_days);
+                setVal('sc-supp-lead-wh', s.lead_time_warehouse_days);
+                setVal('sc-supp-contact-person', s.contact_person);
+                setVal('sc-supp-contact-email', s.contact_email);
+                setVal('sc-supp-notes', s.notes);
+            } else {
+                if (title) title.innerText = 'Cadastrar Fornecedor Internacional';
+                setVal('sc-supp-id', '');
+                setVal('sc-supp-country', 'China');
+                setVal('sc-supp-currency', 'USD');
+                setVal('sc-supp-payment-terms', '120_DAYS_BL');
+                setVal('sc-supp-lead-fab', 40);
+                setVal('sc-supp-lead-sea', 35);
+                setVal('sc-supp-lead-port', 15);
+                setVal('sc-supp-lead-wh', 3);
+            }
+
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeSupplierModal() {
+            const modal = document.getElementById('modal-supply-chain-supplier');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function submitSupplierForm(e) {
+            e.preventDefault();
+            const id = document.getElementById('sc-supp-id')?.value;
+            const isEdit = !!id;
+
+            const payload = {
+                name: document.getElementById('sc-supp-name')?.value.trim(),
+                country: document.getElementById('sc-supp-country')?.value.trim(),
+                currency: document.getElementById('sc-supp-currency')?.value,
+                payment_terms_type: document.getElementById('sc-supp-payment-terms')?.value,
+                lead_time_fabrication_days: parseInt(document.getElementById('sc-supp-lead-fab')?.value) || 40,
+                lead_time_sea_days: parseInt(document.getElementById('sc-supp-lead-sea')?.value) || 35,
+                lead_time_port_days: parseInt(document.getElementById('sc-supp-lead-port')?.value) || 15,
+                lead_time_warehouse_days: parseInt(document.getElementById('sc-supp-lead-wh')?.value) || 3,
+                contact_person: document.getElementById('sc-supp-contact-person')?.value.trim(),
+                contact_email: document.getElementById('sc-supp-contact-email')?.value.trim(),
+                notes: document.getElementById('sc-supp-notes')?.value.trim()
+            };
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+
+                const url = isEdit ? `/api/supply-chain/suppliers/${id}` : '/api/supply-chain/suppliers';
+                const method = isEdit ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method,
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    closeSupplierModal();
+                    await loadSupplyChainData();
+                    alert(`✅ Fornecedor ${payload.name} salvo com sucesso!`);
+                } else {
+                    const data = await res.json();
+                    alert('Erro ao salvar fornecedor: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao salvar fornecedor.');
             }
         }
     </script>

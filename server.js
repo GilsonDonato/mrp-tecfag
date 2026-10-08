@@ -404,6 +404,113 @@ function initializeDatabase() {
         db.run(`CREATE INDEX IF NOT EXISTS idx_erp_clients_razao ON erp_clients(razao)`);
         db.run(`CREATE INDEX IF NOT EXISTS idx_erp_clients_cnpj ON erp_clients(cnpj)`);
 
+        // ==========================================
+        // TABELAS DO MÓDULO DE SUPPLY CHAIN & REPOSIÇÃO DE ESTOQUE
+        // ==========================================
+
+        // 1. Tabela de Fornecedores Internacionais
+        db.run(`CREATE TABLE IF NOT EXISTS stock_suppliers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            country TEXT DEFAULT 'China',
+            currency TEXT DEFAULT 'USD',
+            lead_time_fabrication_days INTEGER DEFAULT 40,
+            lead_time_sea_days INTEGER DEFAULT 35,
+            lead_time_port_days INTEGER DEFAULT 15,
+            lead_time_warehouse_days INTEGER DEFAULT 3,
+            payment_terms_type TEXT DEFAULT '120_DAYS_BL',
+            payment_terms_desc TEXT,
+            contact_person TEXT,
+            contact_email TEXT,
+            contact_phone TEXT,
+            notes TEXT,
+            created_at TEXT NOT NULL
+        )`, (err) => {
+            if (!err) {
+                seedDefaultStockSuppliers();
+            }
+        });
+
+        // 2. Tabela de Ordens de Compra & Containers de Importação
+        db.run(`CREATE TABLE IF NOT EXISTS stock_orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            po_number TEXT NOT NULL UNIQUE,
+            supplier_id INTEGER,
+            supplier_name TEXT NOT NULL,
+            invoice_number TEXT,
+            invoice_date TEXT,
+            currency TEXT DEFAULT 'USD',
+            total_fob_value REAL DEFAULT 0.0,
+            stage TEXT DEFAULT 'PO_EMITIDA',
+            fabrication_start_date TEXT,
+            fabrication_end_date TEXT,
+            container_id TEXT,
+            vessel_name TEXT,
+            bl_number TEXT,
+            bl_date TEXT,
+            origin_port TEXT DEFAULT 'Ningbo, China',
+            destination_port TEXT DEFAULT 'Santos (SP)',
+            etd_date TEXT,
+            eta_port_date TEXT,
+            eta_warehouse_date TEXT,
+            actual_arrival_date TEXT,
+            payment_terms_type TEXT,
+            payment_terms_desc TEXT,
+            invoice_file_path TEXT,
+            packing_list_file_path TEXT,
+            bl_file_path TEXT,
+            notes TEXT,
+            is_rollover_order INTEGER DEFAULT 0,
+            created_by TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(supplier_id) REFERENCES stock_suppliers(id) ON DELETE SET NULL
+        )`);
+
+        // 3. Tabela de Máquinas e Itens da Ordem / Container
+        db.run(`CREATE TABLE IF NOT EXISTS stock_order_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER NOT NULL,
+            sku TEXT NOT NULL,
+            description TEXT,
+            qty_ordered INTEGER NOT NULL DEFAULT 1,
+            qty_shipped INTEGER NOT NULL DEFAULT 0,
+            qty_backorder INTEGER NOT NULL DEFAULT 0,
+            unit_price_fob REAL DEFAULT 0.0,
+            total_price_fob REAL DEFAULT 0.0,
+            status TEXT DEFAULT 'ORDERED',
+            backorder_order_id INTEGER,
+            origin_order_id INTEGER,
+            notes TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(order_id) REFERENCES stock_orders(id) ON DELETE CASCADE
+        )`);
+
+        // 4. Tabela de Parcelas e Fluxo Cambial
+        db.run(`CREATE TABLE IF NOT EXISTS stock_order_payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER NOT NULL,
+            installment_number INTEGER NOT NULL,
+            description TEXT NOT NULL,
+            percentage REAL NOT NULL,
+            amount_currency REAL NOT NULL,
+            currency TEXT DEFAULT 'USD',
+            due_date TEXT NOT NULL,
+            status TEXT DEFAULT 'PENDING',
+            payment_date TEXT,
+            swift_file_path TEXT,
+            exchange_rate_brl REAL,
+            amount_brl REAL,
+            notes TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(order_id) REFERENCES stock_orders(id) ON DELETE CASCADE
+        )`);
+
+        db.run(`CREATE INDEX IF NOT EXISTS idx_stock_orders_stage ON stock_orders(stage)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_stock_orders_po ON stock_orders(po_number)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_stock_items_sku ON stock_order_items(sku)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_stock_payments_due ON stock_order_payments(due_date)`);
+
         // Executar importação assíncrona se necessário
         setTimeout(importClientsCsvIfEmpty, 1000);
     });
@@ -603,6 +710,265 @@ function seedSegmentTemplates() {
             }
         });
     });
+}
+
+function seedDefaultStockSuppliers() {
+    const defaultSuppliers = [
+        {
+            name: 'Zhejiang Hengwei Machinery Co., Ltd.',
+            country: 'China',
+            currency: 'USD',
+            lead_time_fabrication_days: 40,
+            lead_time_sea_days: 35,
+            lead_time_port_days: 15,
+            lead_time_warehouse_days: 3,
+            payment_terms_type: '120_DAYS_BL',
+            payment_terms_desc: '100% em 120 dias direto após embarque/B/L',
+            contact_person: 'Grace Chen',
+            notes: 'Fornecedor principal de seladoras contínuas, esteiras e datadores'
+        },
+        {
+            name: 'Wenzhou Dingye Machinery Co., Ltd.',
+            country: 'China',
+            currency: 'USD',
+            lead_time_fabrication_days: 35,
+            lead_time_sea_days: 35,
+            lead_time_port_days: 15,
+            lead_time_warehouse_days: 3,
+            payment_terms_type: '120_DAYS_BL',
+            payment_terms_desc: '100% em 120 dias direto após embarque/B/L',
+            contact_person: 'David Liu',
+            notes: 'Linha de seladoras automáticas e enfardadeiras'
+        },
+        {
+            name: 'Mosun Packing Machinery Co., Ltd.',
+            country: 'China',
+            currency: 'USD',
+            lead_time_fabrication_days: 45,
+            lead_time_sea_days: 35,
+            lead_time_port_days: 15,
+            lead_time_warehouse_days: 3,
+            payment_terms_type: '30_70_90D_BL',
+            payment_terms_desc: '30% Sinal na Proforma e 70% em 90 dias após B/L',
+            contact_person: 'Kevin Wang',
+            notes: 'Empacotadoras verticais automáticas (VFFS) e dosadores'
+        },
+        {
+            name: 'Zhejiang Chovyting Machinery Co., Ltd.',
+            country: 'China',
+            currency: 'USD',
+            lead_time_fabrication_days: 45,
+            lead_time_sea_days: 35,
+            lead_time_port_days: 15,
+            lead_time_warehouse_days: 3,
+            payment_terms_type: '30_70_BL_COPY',
+            payment_terms_desc: '30% Sinal na Proforma e 70% contra cópia do B/L',
+            contact_person: 'Sunny Zhao',
+            notes: 'Corte e solda e máquinas de embalagens plásticas'
+        },
+        {
+            name: 'Brother Machinery Group Co., Ltd.',
+            country: 'China',
+            currency: 'USD',
+            lead_time_fabrication_days: 30,
+            lead_time_sea_days: 35,
+            lead_time_port_days: 15,
+            lead_time_warehouse_days: 3,
+            payment_terms_type: '120_DAYS_BL',
+            payment_terms_desc: '100% em 120 dias direto após embarque/B/L',
+            contact_person: 'Michael Zhang',
+            notes: 'Seladoras de pedal, vácuo e arqueadoras'
+        },
+        {
+            name: 'Hualian Machinery Group Co., Ltd.',
+            country: 'China',
+            currency: 'USD',
+            lead_time_fabrication_days: 35,
+            lead_time_sea_days: 35,
+            lead_time_port_days: 15,
+            lead_time_warehouse_days: 3,
+            payment_terms_type: '30_70_BL_COPY',
+            payment_terms_desc: '30% Sinal na Proforma e 70% contra cópia do B/L',
+            contact_person: 'Linda Lin',
+            notes: 'Seladoras industriais e embaladoras a vácuo'
+        }
+    ];
+
+    defaultSuppliers.forEach((s) => {
+        db.get('SELECT id FROM stock_suppliers WHERE name = ?', [s.name], (err, row) => {
+            if (!err && !row) {
+                db.run(`INSERT INTO stock_suppliers (
+                    name, country, currency, lead_time_fabrication_days, lead_time_sea_days,
+                    lead_time_port_days, lead_time_warehouse_days, payment_terms_type, payment_terms_desc,
+                    contact_person, notes, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                    s.name, s.country, s.currency, s.lead_time_fabrication_days, s.lead_time_sea_days,
+                    s.lead_time_port_days, s.lead_time_warehouse_days, s.payment_terms_type, s.payment_terms_desc,
+                    s.contact_person, s.notes, new Date().toISOString()
+                ]);
+            }
+        });
+    });
+}
+
+function restrictToSupplyChain(req, res, next) {
+    const role = req.user ? req.user.role : null;
+    const username = req.user ? req.user.username.toLowerCase() : '';
+    if (role === 'ALL' || role === 'GERENTE' || role === 'COMPRAS' || role === 'DIRETOR' || username === 'gilson' || username === 'gilson@tecfag.com.br') {
+        return next();
+    }
+    return res.status(403).json({ error: 'Acesso negado: Módulo exclusivo para Gilson, Diretoria, Gerência e Compras/Importação.' });
+}
+
+function calculateOrderDates(orderData, supplier) {
+    const fabDays = supplier ? (parseInt(supplier.lead_time_fabrication_days) || 40) : 40;
+    const seaDays = supplier ? (parseInt(supplier.lead_time_sea_days) || 35) : 35;
+    const portDays = supplier ? (parseInt(supplier.lead_time_port_days) || 15) : 15;
+    const whDays = supplier ? (parseInt(supplier.lead_time_warehouse_days) || 3) : 3;
+
+    let invoiceDate = orderData.invoice_date ? new Date(orderData.invoice_date) : new Date();
+    if (isNaN(invoiceDate.getTime())) invoiceDate = new Date();
+
+    const addDays = (d, days) => {
+        const res = new Date(d);
+        res.setDate(res.getDate() + days);
+        return res.toISOString().split('T')[0];
+    };
+
+    const fabStart = orderData.fabrication_start_date || invoiceDate.toISOString().split('T')[0];
+    const fabEnd = orderData.fabrication_end_date || addDays(new Date(fabStart), fabDays);
+    const etd = orderData.etd_date || addDays(new Date(fabEnd), 3);
+    const etaPort = orderData.eta_port_date || (orderData.bl_date ? addDays(new Date(orderData.bl_date), seaDays) : addDays(new Date(etd), seaDays));
+    const etaWh = orderData.eta_warehouse_date || addDays(new Date(etaPort), portDays + whDays);
+
+    return {
+        fabrication_start_date: fabStart,
+        fabrication_end_date: fabEnd,
+        etd_date: etd,
+        eta_port_date: etaPort,
+        eta_warehouse_date: etaWh
+    };
+}
+
+function calculatePaymentInstallments(order, supplier) {
+    const paymentTerms = order.payment_terms_type || (supplier ? supplier.payment_terms_type : '120_DAYS_BL');
+    const total = parseFloat(order.total_fob_value) || 0;
+    const currency = order.currency || 'USD';
+    const invoiceDateStr = order.invoice_date || new Date().toISOString().split('T')[0];
+    const blDateStr = order.bl_date || order.etd_date || order.fabrication_end_date || invoiceDateStr;
+
+    const addDays = (dateStr, days) => {
+        let d = new Date(dateStr);
+        if (isNaN(d.getTime())) d = new Date();
+        d.setDate(d.getDate() + days);
+        return d.toISOString().split('T')[0];
+    };
+
+    const installments = [];
+
+    if (paymentTerms === '120_DAYS_BL') {
+        installments.push({
+            installment_number: 1,
+            description: '100% Saldo - 120 dias direto após embarque/B/L',
+            percentage: 100,
+            amount_currency: total,
+            currency: currency,
+            due_date: addDays(blDateStr, 120),
+            status: 'PENDING'
+        });
+    } else if (paymentTerms === '30_70_90D_BL') {
+        const p1 = Math.round(total * 0.30 * 100) / 100;
+        const p2 = Math.round((total - p1) * 100) / 100;
+        installments.push({
+            installment_number: 1,
+            description: '30% Sinal na Proforma / Início de Produção',
+            percentage: 30,
+            amount_currency: p1,
+            currency: currency,
+            due_date: addDays(invoiceDateStr, 3),
+            status: 'PENDING'
+        });
+        installments.push({
+            installment_number: 2,
+            description: '70% Saldo - 90 dias após emissão do B/L',
+            percentage: 70,
+            amount_currency: p2,
+            currency: currency,
+            due_date: addDays(blDateStr, 90),
+            status: 'PENDING'
+        });
+    } else if (paymentTerms === '30_70_BL_COPY') {
+        const p1 = Math.round(total * 0.30 * 100) / 100;
+        const p2 = Math.round((total - p1) * 100) / 100;
+        installments.push({
+            installment_number: 1,
+            description: '30% Sinal na Proforma / Início de Produção',
+            percentage: 30,
+            amount_currency: p1,
+            currency: currency,
+            due_date: addDays(invoiceDateStr, 3),
+            status: 'PENDING'
+        });
+        installments.push({
+            installment_number: 2,
+            description: '70% Saldo - Contra cópia do B/L (Liberação Telex)',
+            percentage: 70,
+            amount_currency: p2,
+            currency: currency,
+            due_date: addDays(blDateStr, 3),
+            status: 'PENDING'
+        });
+    } else if (paymentTerms === '100_ADVANCE') {
+        installments.push({
+            installment_number: 1,
+            description: '100% Antecipado na Proforma Invoice',
+            percentage: 100,
+            amount_currency: total,
+            currency: currency,
+            due_date: addDays(invoiceDateStr, 3),
+            status: 'PENDING'
+        });
+    } else {
+        installments.push({
+            installment_number: 1,
+            description: order.payment_terms_desc || '100% Pagamento Conforme Acordo',
+            percentage: 100,
+            amount_currency: total,
+            currency: currency,
+            due_date: addDays(blDateStr, 30),
+            status: 'PENDING'
+        });
+    }
+
+    return installments;
+}
+
+async function refreshOrderPaymentDates(orderId) {
+    const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+    if (!order) return;
+    const supplier = order.supplier_id ? await dbGet('SELECT * FROM stock_suppliers WHERE id = ?', [order.supplier_id]) : null;
+    
+    const existingPayments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [orderId]);
+    if (existingPayments.length === 0) {
+        const newPayments = calculatePaymentInstallments(order, supplier);
+        for (const p of newPayments) {
+            await dbRun(`INSERT INTO stock_order_payments (
+                order_id, installment_number, description, percentage, amount_currency, currency, due_date, status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                orderId, p.installment_number, p.description, p.percentage, p.amount_currency, p.currency, p.due_date, p.status, new Date().toISOString()
+            ]);
+        }
+    } else {
+        const expected = calculatePaymentInstallments(order, supplier);
+        for (const exp of expected) {
+            const current = existingPayments.find(p => p.installment_number === exp.installment_number);
+            if (current && current.status !== 'PAID') {
+                await dbRun('UPDATE stock_order_payments SET due_date = ?, description = ?, amount_currency = ? WHERE id = ?', [
+                    exp.due_date, exp.description, exp.amount_currency, current.id
+                ]);
+            }
+        }
+    }
 }
 
 async function authenticateToken(req, res, next) {
@@ -7740,13 +8106,1100 @@ app.post('/api/admin/backup/send-email', authenticateToken, async (req, res) => 
         return res.status(403).json({ error: 'Acesso negado. Apenas administradores podem acionar backups.' });
     }
 
-    const success = await sendDatabaseBackupEmail();
-    if (success) {
-        res.json({ success: true, message: 'Backup enviado com sucesso para o e-mail gilson@tecfag.com.br!' });
-    } else {
-        res.status(500).json({ error: 'Falha ao enviar backup. Verifique os logs do servidor ou as configurações de SMTP.' });
+});
+
+// =========================================================================
+// ROTAS DO MÓDULO DE SUPPLY CHAIN & REPOSIÇÃO DE ESTOQUE (IMPORTAÇÃO)
+// =========================================================================
+
+// Configuração de upload para arquivos de Supply Chain (Invoices, Packing Lists, BL, Swift)
+const supplyChainUpload = multer({
+    storage: storage,
+    limits: { fileSize: 50 * 1024 * 1024 }
+});
+
+// GET /api/supply-chain/suppliers - Lista todos os fornecedores internacionais
+app.get('/api/supply-chain/suppliers', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    try {
+        const suppliers = await dbAll('SELECT * FROM stock_suppliers ORDER BY name ASC');
+        res.json(suppliers);
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao buscar fornecedores: ' + err.message });
     }
 });
+
+// POST /api/supply-chain/suppliers - Cadastra novo fornecedor
+app.post('/api/supply-chain/suppliers', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const {
+        name, country, currency, lead_time_fabrication_days, lead_time_sea_days,
+        lead_time_port_days, lead_time_warehouse_days, payment_terms_type,
+        payment_terms_desc, contact_person, contact_email, contact_phone, notes
+    } = req.body;
+
+    if (!name || name.trim() === '') {
+        return res.status(400).json({ error: 'O nome do fornecedor é obrigatório.' });
+    }
+
+    try {
+        const result = await dbRun(`INSERT INTO stock_suppliers (
+            name, country, currency, lead_time_fabrication_days, lead_time_sea_days,
+            lead_time_port_days, lead_time_warehouse_days, payment_terms_type,
+            payment_terms_desc, contact_person, contact_email, contact_phone, notes, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+            name.trim(), country || 'China', currency || 'USD',
+            parseInt(lead_time_fabrication_days) || 40, parseInt(lead_time_sea_days) || 35,
+            parseInt(lead_time_port_days) || 15, parseInt(lead_time_warehouse_days) || 3,
+            payment_terms_type || '120_DAYS_BL', payment_terms_desc || '',
+            contact_person || '', contact_email || '', contact_phone || '',
+            notes || '', new Date().toISOString()
+        ]);
+
+        const newSupplier = await dbGet('SELECT * FROM stock_suppliers WHERE id = ?', [result.lastID]);
+        res.status(201).json(newSupplier);
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao cadastrar fornecedor: ' + err.message });
+    }
+});
+
+// PUT /api/supply-chain/suppliers/:id - Atualiza dados do fornecedor
+app.put('/api/supply-chain/suppliers/:id', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const id = req.params.id;
+    const {
+        name, country, currency, lead_time_fabrication_days, lead_time_sea_days,
+        lead_time_port_days, lead_time_warehouse_days, payment_terms_type,
+        payment_terms_desc, contact_person, contact_email, contact_phone, notes
+    } = req.body;
+
+    try {
+        const existing = await dbGet('SELECT * FROM stock_suppliers WHERE id = ?', [id]);
+        if (!existing) {
+            return res.status(404).json({ error: 'Fornecedor não encontrado.' });
+        }
+
+        await dbRun(`UPDATE stock_suppliers SET 
+            name = ?, country = ?, currency = ?, lead_time_fabrication_days = ?,
+            lead_time_sea_days = ?, lead_time_port_days = ?, lead_time_warehouse_days = ?,
+            payment_terms_type = ?, payment_terms_desc = ?, contact_person = ?,
+            contact_email = ?, contact_phone = ?, notes = ?
+            WHERE id = ?`, [
+            name || existing.name, country || existing.country, currency || existing.currency,
+            lead_time_fabrication_days !== undefined ? parseInt(lead_time_fabrication_days) : existing.lead_time_fabrication_days,
+            lead_time_sea_days !== undefined ? parseInt(lead_time_sea_days) : existing.lead_time_sea_days,
+            lead_time_port_days !== undefined ? parseInt(lead_time_port_days) : existing.lead_time_port_days,
+            lead_time_warehouse_days !== undefined ? parseInt(lead_time_warehouse_days) : existing.lead_time_warehouse_days,
+            payment_terms_type || existing.payment_terms_type,
+            payment_terms_desc !== undefined ? payment_terms_desc : existing.payment_terms_desc,
+            contact_person !== undefined ? contact_person : existing.contact_person,
+            contact_email !== undefined ? contact_email : existing.contact_email,
+            contact_phone !== undefined ? contact_phone : existing.contact_phone,
+            notes !== undefined ? notes : existing.notes,
+            id
+        ]);
+
+        const updated = await dbGet('SELECT * FROM stock_suppliers WHERE id = ?', [id]);
+        res.json(updated);
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao atualizar fornecedor: ' + err.message });
+    }
+});
+
+// DELETE /api/supply-chain/suppliers/:id - Exclui fornecedor
+app.delete('/api/supply-chain/suppliers/:id', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const id = req.params.id;
+    try {
+        const hasOrders = await dbGet('SELECT id FROM stock_orders WHERE supplier_id = ? LIMIT 1', [id]);
+        if (hasOrders) {
+            return res.status(400).json({ error: 'Não é possível excluir este fornecedor pois existem ordens vinculadas a ele.' });
+        }
+        await dbRun('DELETE FROM stock_suppliers WHERE id = ?', [id]);
+        res.json({ success: true, message: 'Fornecedor removido com sucesso.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao excluir fornecedor: ' + err.message });
+    }
+});
+
+// GET /api/supply-chain/orders - Lista todas as ordens / containers de estoque
+app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    try {
+        const { stage, supplier_id } = req.query;
+        let sql = 'SELECT * FROM stock_orders WHERE 1=1';
+        const params = [];
+
+        if (stage && stage !== 'ALL') {
+            sql += ' AND stage = ?';
+            params.push(stage);
+        }
+        if (supplier_id) {
+            sql += ' AND supplier_id = ?';
+            params.push(supplier_id);
+        }
+
+        sql += ' ORDER BY id DESC';
+        const orders = await dbAll(sql, params);
+
+        // Anexar itens e pagamentos de cada ordem
+        for (const o of orders) {
+            o.items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [o.id]);
+            o.payments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [o.id]);
+            o.total_machines = o.items.reduce((sum, it) => sum + (it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered), 0);
+        }
+
+        // Estatísticas Globais
+        const allOrders = await dbAll('SELECT * FROM stock_orders WHERE stage != "CANCELADO"');
+        const allItems = await dbAll(`
+            SELECT soi.*, so.stage 
+            FROM stock_order_items soi 
+            JOIN stock_orders so ON soi.order_id = so.id 
+            WHERE so.stage != 'CANCELADO'
+        `);
+
+        const stats = {
+            total_active_orders: allOrders.filter(o => o.stage !== 'DOCA_GALPAO').length,
+            total_fob_pipeline: allOrders.reduce((sum, o) => sum + (o.total_fob_value || 0), 0),
+            machines_in_fabrication: allItems.filter(i => i.stage === 'PO_EMITIDA' || i.stage === 'EM_FABRICACAO').reduce((sum, i) => sum + (i.qty_ordered || 0), 0),
+            machines_on_sea: allItems.filter(i => i.stage === 'NO_NAVIO').reduce((sum, i) => sum + (i.qty_shipped || i.qty_ordered || 0), 0),
+            machines_at_port: allItems.filter(i => i.stage === 'NO_PORTO_DESEMBARACO').reduce((sum, i) => sum + (i.qty_shipped || i.qty_ordered || 0), 0),
+            machines_arrived: allItems.filter(i => i.stage === 'DOCA_GALPAO').reduce((sum, i) => sum + (i.qty_shipped || i.qty_ordered || 0), 0)
+        };
+
+        res.json({
+            orders,
+            stats
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao listar ordens de importação: ' + err.message });
+    }
+});
+
+// GET /api/supply-chain/orders/:id - Detalhes completos de uma ordem
+app.get('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    try {
+        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [req.params.id]);
+        if (!order) {
+            return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
+        }
+
+        order.items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [order.id]);
+        order.payments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [order.id]);
+        order.supplier = order.supplier_id ? await dbGet('SELECT * FROM stock_suppliers WHERE id = ?', [order.supplier_id]) : null;
+
+        // Se houver itens vinculados a outros containers (origem ou destino de backorder)
+        const linkedOrderIds = [
+            ...order.items.map(i => i.origin_order_id).filter(Boolean),
+            ...order.items.map(i => i.backorder_order_id).filter(Boolean)
+        ];
+        if (linkedOrderIds.length > 0) {
+            const placeholders = linkedOrderIds.map(() => '?').join(',');
+            order.linked_orders = await dbAll(`SELECT id, po_number, stage, container_id FROM stock_orders WHERE id IN (${placeholders})`, linkedOrderIds);
+        } else {
+            order.linked_orders = [];
+        }
+
+        res.json(order);
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao buscar detalhes da ordem: ' + err.message });
+    }
+});
+
+// POST /api/supply-chain/orders - Cria nova ordem de importação / Container
+app.post('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, supplyChainUpload.fields([
+    { name: 'invoice_file', maxCount: 1 },
+    { name: 'packing_list_file', maxCount: 1 },
+    { name: 'bl_file', maxCount: 1 }
+]), async (req, res) => {
+    const user = req.user ? req.user.username : 'Sistema';
+    const {
+        po_number, supplier_id, supplier_name, invoice_number, invoice_date, currency,
+        stage, fabrication_start_date, fabrication_end_date, container_id, vessel_name,
+        bl_number, bl_date, origin_port, destination_port, etd_date, eta_port_date,
+        eta_warehouse_date, payment_terms_type, payment_terms_desc, notes, items
+    } = req.body;
+
+    if (!po_number || po_number.trim() === '') {
+        return res.status(400).json({ error: 'O número da PO / Container é obrigatório.' });
+    }
+    if (!supplier_name || supplier_name.trim() === '') {
+        return res.status(400).json({ error: 'O nome do fornecedor é obrigatório.' });
+    }
+
+    try {
+        let supplier = null;
+        if (supplier_id) {
+            supplier = await dbGet('SELECT * FROM stock_suppliers WHERE id = ?', [supplier_id]);
+        } else {
+            supplier = await dbGet('SELECT * FROM stock_suppliers WHERE name LIKE ?', [`%${supplier_name.trim()}%`]);
+        }
+
+        let parsedItems = [];
+        if (items) {
+            parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
+        }
+
+        // Calcular valor total FOB
+        const totalFob = parsedItems.reduce((sum, it) => sum + ((parseFloat(it.unit_price_fob) || 0) * (parseInt(it.qty_ordered) || 1)), 0);
+
+        // Calcular prazos
+        const calculatedDates = calculateOrderDates({
+            invoice_date: invoice_date || new Date().toISOString().split('T')[0],
+            fabrication_start_date,
+            fabrication_end_date,
+            etd_date,
+            eta_port_date,
+            eta_warehouse_date,
+            bl_date
+        }, supplier);
+
+        // Arquivos
+        let invoiceFilePath = null;
+        let packingListFilePath = null;
+        let blFilePath = null;
+
+        if (req.files) {
+            if (req.files.invoice_file && req.files.invoice_file[0]) {
+                invoiceFilePath = 'uploads/' + req.files.invoice_file[0].filename;
+            }
+            if (req.files.packing_list_file && req.files.packing_list_file[0]) {
+                packingListFilePath = 'uploads/' + req.files.packing_list_file[0].filename;
+            }
+            if (req.files.bl_file && req.files.bl_file[0]) {
+                blFilePath = 'uploads/' + req.files.bl_file[0].filename;
+            }
+        }
+
+        const runResult = await dbRun(`INSERT INTO stock_orders (
+            po_number, supplier_id, supplier_name, invoice_number, invoice_date, currency,
+            total_fob_value, stage, fabrication_start_date, fabrication_end_date, container_id,
+            vessel_name, bl_number, bl_date, origin_port, destination_port, etd_date,
+            eta_port_date, eta_warehouse_date, payment_terms_type, payment_terms_desc,
+            invoice_file_path, packing_list_file_path, bl_file_path, notes, is_rollover_order,
+            created_by, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`, [
+            po_number.trim(), supplier ? supplier.id : null, supplier ? supplier.name : supplier_name.trim(),
+            invoice_number || null, invoice_date || new Date().toISOString().split('T')[0], currency || 'USD',
+            totalFob, stage || 'PO_EMITIDA',
+            calculatedDates.fabrication_start_date, calculatedDates.fabrication_end_date,
+            container_id || null, vessel_name || null, bl_number || null, bl_date || null,
+            origin_port || 'Ningbo, China', destination_port || 'Santos (SP)',
+            calculatedDates.etd_date, calculatedDates.eta_port_date, calculatedDates.eta_warehouse_date,
+            payment_terms_type || (supplier ? supplier.payment_terms_type : '120_DAYS_BL'),
+            payment_terms_desc || (supplier ? supplier.payment_terms_desc : ''),
+            invoiceFilePath, packingListFilePath, blFilePath, notes || '',
+            user, new Date().toISOString(), new Date().toISOString()
+        ]);
+
+        const orderId = runResult.lastID;
+
+        // Inserir Itens
+        for (const it of parsedItems) {
+            const qty = parseInt(it.qty_ordered) || 1;
+            const price = parseFloat(it.unit_price_fob) || 0;
+            const total = qty * price;
+            await dbRun(`INSERT INTO stock_order_items (
+                order_id, sku, description, qty_ordered, qty_shipped, qty_backorder, unit_price_fob, total_price_fob, status, notes, created_at
+            ) VALUES (?, ?, ?, ?, 0, 0, ?, ?, 'ORDERED', ?, ?)`, [
+                orderId, (it.sku || '').trim().toUpperCase(), it.description || '', qty, price, total, it.notes || '', new Date().toISOString()
+            ]);
+        }
+
+        // Gerar parcelas de pagamento com base na regra do fornecedor
+        const createdOrder = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        const payments = calculatePaymentInstallments(createdOrder, supplier);
+        for (const p of payments) {
+            await dbRun(`INSERT INTO stock_order_payments (
+                order_id, installment_number, description, percentage, amount_currency, currency, due_date, status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                orderId, p.installment_number, p.description, p.percentage, p.amount_currency, p.currency, p.due_date, p.status, new Date().toISOString()
+            ]);
+        }
+
+        // Registrar auditoria
+        await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
+            new Date().toISOString(),
+            '#38bdf8',
+            `<strong>[SUPPLY CHAIN]</strong> Nova ordem de importação de estoque <strong>${po_number}</strong> (${supplier_name}) criada por <strong>${user}</strong> com ${parsedItems.length} modelos de máquina.`
+        ]);
+
+        createdOrder.items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [orderId]);
+        createdOrder.payments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [orderId]);
+
+        res.status(201).json(createdOrder);
+    } catch (err) {
+        console.error('[CREATE ORDER ERROR]', err);
+        res.status(500).json({ error: 'Erro ao criar ordem de importação: ' + err.message });
+    }
+});
+
+// PUT /api/supply-chain/orders/:id - Atualiza dados logísticos e status do container/PO
+app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain, supplyChainUpload.fields([
+    { name: 'invoice_file', maxCount: 1 },
+    { name: 'packing_list_file', maxCount: 1 },
+    { name: 'bl_file', maxCount: 1 }
+]), async (req, res) => {
+    const orderId = req.params.id;
+    const user = req.user ? req.user.username : 'Sistema';
+    const {
+        po_number, supplier_id, supplier_name, invoice_number, invoice_date, currency,
+        stage, fabrication_start_date, fabrication_end_date, container_id, vessel_name,
+        bl_number, bl_date, origin_port, destination_port, etd_date, eta_port_date,
+        eta_warehouse_date, actual_arrival_date, payment_terms_type, payment_terms_desc, notes, items
+    } = req.body;
+
+    try {
+        const existing = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        if (!existing) {
+            return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
+        }
+
+        let invoiceFilePath = existing.invoice_file_path;
+        let packingListFilePath = existing.packing_list_file_path;
+        let blFilePath = existing.bl_file_path;
+
+        if (req.files) {
+            if (req.files.invoice_file && req.files.invoice_file[0]) {
+                invoiceFilePath = 'uploads/' + req.files.invoice_file[0].filename;
+            }
+            if (req.files.packing_list_file && req.files.packing_list_file[0]) {
+                packingListFilePath = 'uploads/' + req.files.packing_list_file[0].filename;
+            }
+            if (req.files.bl_file && req.files.bl_file[0]) {
+                blFilePath = 'uploads/' + req.files.bl_file[0].filename;
+            }
+        }
+
+        const updatedStage = stage || existing.stage;
+        let actualArrival = actual_arrival_date !== undefined ? actual_arrival_date : existing.actual_arrival_date;
+        if (updatedStage === 'DOCA_GALPAO' && !actualArrival) {
+            actualArrival = new Date().toISOString().split('T')[0];
+        }
+
+        await dbRun(`UPDATE stock_orders SET 
+            po_number = ?, supplier_id = ?, supplier_name = ?, invoice_number = ?,
+            invoice_date = ?, currency = ?, stage = ?, fabrication_start_date = ?,
+            fabrication_end_date = ?, container_id = ?, vessel_name = ?, bl_number = ?,
+            bl_date = ?, origin_port = ?, destination_port = ?, etd_date = ?,
+            eta_port_date = ?, eta_warehouse_date = ?, actual_arrival_date = ?,
+            payment_terms_type = ?, payment_terms_desc = ?, invoice_file_path = ?,
+            packing_list_file_path = ?, bl_file_path = ?, notes = ?, updated_at = ?
+            WHERE id = ?`, [
+            po_number || existing.po_number,
+            supplier_id !== undefined ? supplier_id : existing.supplier_id,
+            supplier_name || existing.supplier_name,
+            invoice_number !== undefined ? invoice_number : existing.invoice_number,
+            invoice_date || existing.invoice_date,
+            currency || existing.currency,
+            updatedStage,
+            fabrication_start_date || existing.fabrication_start_date,
+            fabrication_end_date || existing.fabrication_end_date,
+            container_id !== undefined ? container_id : existing.container_id,
+            vessel_name !== undefined ? vessel_name : existing.vessel_name,
+            bl_number !== undefined ? bl_number : existing.bl_number,
+            bl_date !== undefined ? bl_date : existing.bl_date,
+            origin_port || existing.origin_port,
+            destination_port || existing.destination_port,
+            etd_date || existing.etd_date,
+            eta_port_date || existing.eta_port_date,
+            eta_warehouse_date || existing.eta_warehouse_date,
+            actualArrival,
+            payment_terms_type || existing.payment_terms_type,
+            payment_terms_desc !== undefined ? payment_terms_desc : existing.payment_terms_desc,
+            invoiceFilePath, packingListFilePath, blFilePath,
+            notes !== undefined ? notes : existing.notes,
+            new Date().toISOString(),
+            orderId
+        ]);
+
+        // Se foram enviados itens novos ou modificados
+        if (items) {
+            const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
+            if (Array.isArray(parsedItems) && parsedItems.length > 0) {
+                // Atualizar ou inserir itens
+                let sumFob = 0;
+                for (const it of parsedItems) {
+                    const qty = parseInt(it.qty_ordered) || 1;
+                    const price = parseFloat(it.unit_price_fob) || 0;
+                    const total = qty * price;
+                    sumFob += total;
+
+                    if (it.id) {
+                        await dbRun(`UPDATE stock_order_items SET 
+                            sku = ?, description = ?, qty_ordered = ?, unit_price_fob = ?, total_price_fob = ?, notes = ?
+                            WHERE id = ? AND order_id = ?`, [
+                            (it.sku || '').trim().toUpperCase(), it.description || '', qty, price, total, it.notes || '', it.id, orderId
+                        ]);
+                    } else {
+                        await dbRun(`INSERT INTO stock_order_items (
+                            order_id, sku, description, qty_ordered, qty_shipped, qty_backorder, unit_price_fob, total_price_fob, status, notes, created_at
+                        ) VALUES (?, ?, ?, ?, 0, 0, ?, ?, 'ORDERED', ?, ?)`, [
+                            orderId, (it.sku || '').trim().toUpperCase(), it.description || '', qty, price, total, it.notes || '', new Date().toISOString()
+                        ]);
+                    }
+                }
+                await dbRun('UPDATE stock_orders SET total_fob_value = ? WHERE id = ?', [sumFob, orderId]);
+            }
+        }
+
+        // Recalcular datas de vencimento de pagamentos se data do BL ou Invoice mudou
+        await refreshOrderPaymentDates(orderId);
+
+        const updated = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        updated.items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [orderId]);
+        updated.payments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [orderId]);
+
+        res.json(updated);
+    } catch (err) {
+        console.error('[UPDATE ORDER ERROR]', err);
+        res.status(500).json({ error: 'Erro ao atualizar ordem de importação: ' + err.message });
+    }
+});
+
+// POST /api/supply-chain/orders/:id/advance-stage - Avança etapa do pipeline
+app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const orderId = req.params.id;
+    const user = req.user ? req.user.username : 'Sistema';
+    const stages = ['PO_EMITIDA', 'EM_FABRICACAO', 'PACKING_LIST_EMBARQUE', 'NO_NAVIO', 'NO_PORTO_DESEMBARACO', 'DOCA_GALPAO'];
+    const stageLabels = {
+        'PO_EMITIDA': 'Proforma Emitida',
+        'EM_FABRICACAO': 'Em Fabricação no Exterior',
+        'PACKING_LIST_EMBARQUE': 'Packing List & Carga Pronta',
+        'NO_NAVIO': 'Em Trânsito Marítimo',
+        'NO_PORTO_DESEMBARACO': 'No Porto / Desembaraço Aduaneiro',
+        'DOCA_GALPAO': 'Entregue na Doca / Estoque Tecfag'
+    };
+
+    try {
+        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        if (!order) {
+            return res.status(404).json({ error: 'Ordem não encontrada.' });
+        }
+
+        const currentIndex = stages.indexOf(order.stage);
+        if (currentIndex === -1 || currentIndex >= stages.length - 1) {
+            return res.status(400).json({ error: 'A ordem já está na etapa final ou inválida.' });
+        }
+
+        const nextStage = stages[currentIndex + 1];
+        let actualArrival = order.actual_arrival_date;
+        if (nextStage === 'DOCA_GALPAO' && !actualArrival) {
+            actualArrival = new Date().toISOString().split('T')[0];
+        }
+
+        await dbRun('UPDATE stock_orders SET stage = ?, actual_arrival_date = ?, updated_at = ? WHERE id = ?', [
+            nextStage, actualArrival, new Date().toISOString(), orderId
+        ]);
+
+        await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
+            new Date().toISOString(),
+            '#a855f7',
+            `<strong>[SUPPLY CHAIN]</strong> Container/PO <strong>${order.po_number}</strong> avançou para a etapa <strong>${stageLabels[nextStage]}</strong> (por ${user}).`
+        ]);
+
+        const updated = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        res.json({ success: true, order: updated });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao avançar etapa: ' + err.message });
+    }
+});
+
+// POST /api/supply-chain/orders/:id/reconcile - Conciliação de Carga & Rollover Automático de Saldo
+app.post('/api/supply-chain/orders/:id/reconcile', authenticateToken, restrictToSupplyChain, supplyChainUpload.single('packing_list_file'), async (req, res) => {
+    const orderId = req.params.id;
+    const user = req.user ? req.user.username : 'Sistema';
+    
+    try {
+        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        if (!order) {
+            return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
+        }
+
+        let itemsData = [];
+        if (req.body.items) {
+            try {
+                itemsData = typeof req.body.items === 'string' ? JSON.parse(req.body.items) : req.body.items;
+            } catch(e) {
+                return res.status(400).json({ error: 'Formato inválido de itens recebidos.' });
+            }
+        }
+
+        const existingItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [orderId]);
+        const backorderItems = [];
+        let newTotalFob = 0;
+
+        for (const item of itemsData) {
+            const sku = (item.sku || '').trim().toUpperCase();
+            const qtyShipped = parseInt(item.qty_shipped) || 0;
+            const unitPrice = parseFloat(item.unit_price_fob) || 0;
+            const description = item.description || '';
+
+            const origItem = existingItems.find(ei => ei.sku.toUpperCase() === sku);
+
+            if (origItem) {
+                const qtyOrdered = origItem.qty_ordered;
+                const qtyBackorder = Math.max(0, qtyOrdered - qtyShipped);
+                const status = qtyShipped >= qtyOrdered ? 'SHIPPED' : (qtyShipped > 0 ? 'PARTIALLY_SHIPPED' : 'BACKORDERED');
+                const totalPrice = qtyShipped * (unitPrice || origItem.unit_price_fob);
+                newTotalFob += totalPrice;
+
+                await dbRun(`UPDATE stock_order_items SET 
+                    qty_shipped = ?, qty_backorder = ?, unit_price_fob = ?, total_price_fob = ?, status = ?
+                    WHERE id = ?`, [
+                    qtyShipped, qtyBackorder, unitPrice || origItem.unit_price_fob, totalPrice, status, origItem.id
+                ]);
+
+                if (qtyBackorder > 0) {
+                    backorderItems.push({
+                        sku: origItem.sku,
+                        description: origItem.description,
+                        qty: qtyBackorder,
+                        unit_price_fob: unitPrice || origItem.unit_price_fob,
+                        total_price_fob: qtyBackorder * (unitPrice || origItem.unit_price_fob),
+                        origin_order_id: order.id,
+                        origin_item_id: origItem.id
+                    });
+                }
+            } else {
+                const totalPrice = qtyShipped * unitPrice;
+                newTotalFob += totalPrice;
+                await dbRun(`INSERT INTO stock_order_items (
+                    order_id, sku, description, qty_ordered, qty_shipped, qty_backorder, unit_price_fob, total_price_fob, status, notes, created_at
+                ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'SHIPPED', 'Item extra adicionado na estufagem/embarque', ?)`, [
+                    orderId, sku, description, qtyShipped, qtyShipped, unitPrice, totalPrice, new Date().toISOString()
+                ]);
+            }
+        }
+
+        let packingListPath = order.packing_list_file_path;
+        if (req.file) {
+            packingListPath = 'uploads/' + req.file.filename;
+        }
+
+        await dbRun(`UPDATE stock_orders SET 
+            total_fob_value = ?,
+            stage = CASE WHEN stage = 'PO_EMITIDA' OR stage = 'EM_FABRICACAO' THEN 'PACKING_LIST_EMBARQUE' ELSE stage END,
+            packing_list_file_path = ?,
+            updated_at = ?
+            WHERE id = ?`, [
+            newTotalFob, packingListPath, new Date().toISOString(), orderId
+        ]);
+
+        let rolloverTargetOrder = null;
+        if (backorderItems.length > 0) {
+            const nextOpenOrder = await dbGet(`
+                SELECT * FROM stock_orders 
+                WHERE supplier_name = ? AND id != ? AND stage IN ('PO_EMITIDA', 'EM_FABRICACAO')
+                ORDER BY id ASC LIMIT 1
+            `, [order.supplier_name, orderId]);
+
+            let targetOrderId = null;
+
+            if (nextOpenOrder) {
+                targetOrderId = nextOpenOrder.id;
+                rolloverTargetOrder = nextOpenOrder;
+            } else {
+                const year = new Date().getFullYear();
+                const cleanSupp = (order.supplier_name || 'SUPP').replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase();
+                const rolloverPo = `PO-${year}-${cleanSupp}-SALDO-${Date.now().toString().slice(-4)}`;
+                
+                const supplier = order.supplier_id ? await dbGet('SELECT * FROM stock_suppliers WHERE id = ?', [order.supplier_id]) : null;
+                const dates = calculateOrderDates({ invoice_date: new Date().toISOString().split('T')[0] }, supplier);
+
+                const newOrderRes = await dbRun(`INSERT INTO stock_orders (
+                    po_number, supplier_id, supplier_name, currency, stage, 
+                    fabrication_start_date, fabrication_end_date, etd_date, eta_port_date, eta_warehouse_date,
+                    payment_terms_type, notes, is_rollover_order, created_by, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, 'PO_EMITIDA', ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`, [
+                    rolloverPo, order.supplier_id, order.supplier_name, order.currency,
+                    dates.fabrication_start_date, dates.fabrication_end_date, dates.etd_date, dates.eta_port_date, dates.eta_warehouse_date,
+                    order.payment_terms_type, `Container/PO gerada automaticamente com saldo de máquinas não embarcadas da PO ${order.po_number}`,
+                    user, new Date().toISOString(), new Date().toISOString()
+                ]);
+                targetOrderId = newOrderRes.lastID;
+                rolloverTargetOrder = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [targetOrderId]);
+            }
+
+            for (const bo of backorderItems) {
+                const destItem = await dbGet('SELECT * FROM stock_order_items WHERE order_id = ? AND sku = ?', [targetOrderId, bo.sku]);
+                if (destItem) {
+                    const updatedQty = destItem.qty_ordered + bo.qty;
+                    const updatedTotal = updatedQty * bo.unit_price_fob;
+                    await dbRun(`UPDATE stock_order_items SET 
+                        qty_ordered = ?, total_price_fob = ?, origin_order_id = ?, notes = ?
+                        WHERE id = ?`, [
+                        updatedQty, updatedTotal, order.id, `Inclui ${bo.qty} un transferidas da PO ${order.po_number}`, destItem.id
+                    ]);
+                } else {
+                    await dbRun(`INSERT INTO stock_order_items (
+                        order_id, sku, description, qty_ordered, qty_shipped, qty_backorder, unit_price_fob, total_price_fob, status, origin_order_id, notes, created_at
+                    ) VALUES (?, ?, ?, ?, 0, 0, ?, ?, 'ORDERED', ?, ?, ?)`, [
+                        targetOrderId, bo.sku, bo.description, bo.qty, bo.unit_price_fob, bo.total_price_fob, order.id,
+                        `Transferido da PO ${order.po_number} (Saldo de Fábrica)`, new Date().toISOString()
+                    ]);
+                }
+
+                await dbRun('UPDATE stock_order_items SET backorder_order_id = ? WHERE id = ?', [targetOrderId, bo.origin_item_id]);
+            }
+
+            const destItemsAll = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [targetOrderId]);
+            const destSum = destItemsAll.reduce((sum, it) => sum + (it.qty_ordered * it.unit_price_fob), 0);
+            await dbRun('UPDATE stock_orders SET total_fob_value = ?, updated_at = ? WHERE id = ?', [
+                destSum, new Date().toISOString(), targetOrderId
+            ]);
+
+            await refreshOrderPaymentDates(targetOrderId);
+        }
+
+        await refreshOrderPaymentDates(orderId);
+
+        const summaryText = backorderItems.length > 0
+            ? `Conciliação de carga concluída para <strong>${order.po_number}</strong>. ${backorderItems.length} modelo(s) com saldo não embarcado transferidos automaticamente para <strong>${rolloverTargetOrder ? rolloverTargetOrder.po_number : 'Próxima PO'}</strong>.`
+            : `Conciliação de carga concluída para <strong>${order.po_number}</strong>. 100% dos equipamentos conferidos com sucesso.`;
+
+        await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
+            new Date().toISOString(),
+            backorderItems.length > 0 ? '#f59e0b' : '#10b981',
+            `<strong>[SUPPLY CHAIN]</strong> ${summaryText} (por ${user})`
+        ]);
+
+        const updatedOrder = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        const updatedItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [orderId]);
+        const updatedPayments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [orderId]);
+
+        res.json({
+            success: true,
+            order: updatedOrder,
+            items: updatedItems,
+            payments: updatedPayments,
+            backorderItems,
+            rolloverOrder: rolloverTargetOrder
+        });
+
+    } catch (err) {
+        console.error('[RECONCILE ERROR]', err);
+        res.status(500).json({ error: 'Erro ao conciliar carga: ' + err.message });
+    }
+});
+
+// DELETE /api/supply-chain/orders/:id - Exclui ordem de importação
+app.delete('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const orderId = req.params.id;
+    const user = req.user ? req.user.username : 'Sistema';
+
+    try {
+        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        if (!order) {
+            return res.status(404).json({ error: 'Ordem não encontrada.' });
+        }
+
+        await dbRun('DELETE FROM stock_orders WHERE id = ?', [orderId]);
+
+        await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
+            new Date().toISOString(),
+            '#ef4444',
+            `<strong>[SUPPLY CHAIN]</strong> Ordem de importação <strong>${order.po_number}</strong> (${order.supplier_name}) foi excluída por <strong>${user}</strong>.`
+        ]);
+
+        res.json({ success: true, message: 'Ordem excluída com sucesso.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao excluir ordem: ' + err.message });
+    }
+});
+
+// GET /api/supply-chain/payments - Lista calendário e fluxo cambial de pagamentos
+app.get('/api/supply-chain/payments', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    try {
+        const payments = await dbAll(`
+            SELECT 
+                p.*,
+                o.po_number,
+                o.supplier_name,
+                o.stage as order_stage,
+                o.container_id,
+                o.bl_number,
+                o.bl_date,
+                o.invoice_number
+            FROM stock_order_payments p
+            JOIN stock_orders o ON p.order_id = o.id
+            WHERE o.stage != 'CANCELADO'
+            ORDER BY p.due_date ASC
+        `);
+
+        const today = new Date().toISOString().split('T')[0];
+        const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+        const in30Days = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+
+        payments.forEach(p => {
+            if (p.status === 'PAID') {
+                p.urgency = 'PAID';
+            } else if (p.due_date < today) {
+                p.urgency = 'OVERDUE';
+            } else if (p.due_date <= in7Days) {
+                p.urgency = 'DUE_7_DAYS';
+            } else if (p.due_date <= in30Days) {
+                p.urgency = 'DUE_30_DAYS';
+            } else {
+                p.urgency = 'FUTURE';
+            }
+        });
+
+        const pendingList = payments.filter(p => p.status !== 'PAID');
+        const summary = {
+            total_pending_usd: pendingList.filter(p => p.currency === 'USD').reduce((sum, p) => sum + p.amount_currency, 0),
+            total_pending_eur: pendingList.filter(p => p.currency === 'EUR').reduce((sum, p) => sum + p.amount_currency, 0),
+            overdue_count: pendingList.filter(p => p.urgency === 'OVERDUE').length,
+            due_next_7_days_usd: pendingList.filter(p => p.urgency === 'DUE_7_DAYS' && p.currency === 'USD').reduce((sum, p) => sum + p.amount_currency, 0),
+            due_next_30_days_usd: pendingList.filter(p => (p.urgency === 'DUE_7_DAYS' || p.urgency === 'DUE_30_DAYS') && p.currency === 'USD').reduce((sum, p) => sum + p.amount_currency, 0)
+        };
+
+        res.json({
+            payments,
+            summary
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao buscar fluxo cambial: ' + err.message });
+    }
+});
+
+// PUT /api/supply-chain/payments/:id - Atualiza status de liquidação do câmbio / Swift
+app.put('/api/supply-chain/payments/:id', authenticateToken, restrictToSupplyChain, supplyChainUpload.single('swift_file'), async (req, res) => {
+    const paymentId = req.params.id;
+    const user = req.user ? req.user.username : 'Sistema';
+    const { status, payment_date, exchange_rate_brl, amount_brl, notes, due_date } = req.body;
+
+    try {
+        const payment = await dbGet('SELECT p.*, o.po_number FROM stock_order_payments p JOIN stock_orders o ON p.order_id = o.id WHERE p.id = ?', [paymentId]);
+        if (!payment) {
+            return res.status(404).json({ error: 'Parcela de pagamento não encontrada.' });
+        }
+
+        let swiftPath = payment.swift_file_path;
+        if (req.file) {
+            swiftPath = 'uploads/' + req.file.filename;
+        }
+
+        const newStatus = status || payment.status;
+        const newPaymentDate = newStatus === 'PAID' ? (payment_date || new Date().toISOString().split('T')[0]) : null;
+        const rate = parseFloat(exchange_rate_brl) || payment.exchange_rate_brl || null;
+        const brl = rate ? (parseFloat(amount_brl) || (payment.amount_currency * rate)) : (payment.amount_brl || null);
+
+        await dbRun(`UPDATE stock_order_payments SET 
+            status = ?, payment_date = ?, exchange_rate_brl = ?, amount_brl = ?,
+            swift_file_path = ?, notes = ?, due_date = COALESCE(?, due_date)
+            WHERE id = ?`, [
+            newStatus, newPaymentDate, rate, brl, swiftPath, notes !== undefined ? notes : payment.notes, due_date || null, paymentId
+        ]);
+
+        if (newStatus === 'PAID' && payment.status !== 'PAID') {
+            await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
+                new Date().toISOString(),
+                '#10b981',
+                `<strong>[CÂMBIO LIQUIDADO]</strong> Parcela <strong>${payment.description}</strong> (${payment.currency} ${payment.amount_currency.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}) da PO <strong>${payment.po_number}</strong> marcada como PAGA por <strong>${user}</strong>.`
+            ]);
+        }
+
+        const updated = await dbGet('SELECT * FROM stock_order_payments WHERE id = ?', [paymentId]);
+        res.json(updated);
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao atualizar pagamento: ' + err.message });
+    }
+});
+
+// GET /api/supply-chain/sku-matrix - Matriz de busca instantânea de máquinas em estoque/trânsito
+app.get('/api/supply-chain/sku-matrix', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const q = (req.query.q || '').trim().toUpperCase();
+
+    try {
+        let sql = `
+            SELECT 
+                soi.sku,
+                soi.description,
+                soi.qty_ordered,
+                soi.qty_shipped,
+                soi.unit_price_fob,
+                so.id as order_id,
+                so.po_number,
+                so.supplier_name,
+                so.stage,
+                so.container_id,
+                so.vessel_name,
+                so.etd_date,
+                so.eta_port_date,
+                so.eta_warehouse_date,
+                so.actual_arrival_date,
+                so.currency
+            FROM stock_order_items soi
+            JOIN stock_orders so ON soi.order_id = so.id
+            WHERE so.stage != 'CANCELADO'
+        `;
+        const params = [];
+
+        if (q) {
+            sql += ` AND (soi.sku LIKE ? OR soi.description LIKE ? OR so.po_number LIKE ? OR so.container_id LIKE ?)`;
+            const wildcard = `%${q}%`;
+            params.push(wildcard, wildcard, wildcard, wildcard);
+        }
+
+        sql += ` ORDER BY so.eta_warehouse_date ASC, soi.sku ASC`;
+        const rows = await dbAll(sql, params);
+
+        // Agrupamento inteligente por SKU
+        const matrixMap = {};
+        for (const row of rows) {
+            const skuKey = row.sku.toUpperCase();
+            if (!matrixMap[skuKey]) {
+                matrixMap[skuKey] = {
+                    sku: skuKey,
+                    description: row.description || skuKey,
+                    total_pipeline_qty: 0,
+                    qty_in_fabrication: 0,
+                    qty_on_sea: 0,
+                    qty_at_port: 0,
+                    qty_in_warehouse: 0,
+                    earliest_eta_warehouse: null,
+                    batches: []
+                };
+            }
+
+            const effectiveQty = row.qty_shipped > 0 ? row.qty_shipped : row.qty_ordered;
+            matrixMap[skuKey].total_pipeline_qty += effectiveQty;
+
+            if (row.stage === 'PO_EMITIDA' || row.stage === 'EM_FABRICACAO' || row.stage === 'PACKING_LIST_EMBARQUE') {
+                matrixMap[skuKey].qty_in_fabrication += effectiveQty;
+            } else if (row.stage === 'NO_NAVIO') {
+                matrixMap[skuKey].qty_on_sea += effectiveQty;
+            } else if (row.stage === 'NO_PORTO_DESEMBARACO') {
+                matrixMap[skuKey].qty_at_port += effectiveQty;
+            } else if (row.stage === 'DOCA_GALPAO') {
+                matrixMap[skuKey].qty_in_warehouse += effectiveQty;
+            }
+
+            if (row.stage !== 'DOCA_GALPAO' && row.eta_warehouse_date) {
+                if (!matrixMap[skuKey].earliest_eta_warehouse || row.eta_warehouse_date < matrixMap[skuKey].earliest_eta_warehouse) {
+                    matrixMap[skuKey].earliest_eta_warehouse = row.eta_warehouse_date;
+                }
+            }
+
+            matrixMap[skuKey].batches.push({
+                order_id: row.order_id,
+                po_number: row.po_number,
+                supplier_name: row.supplier_name,
+                stage: row.stage,
+                qty: effectiveQty,
+                unit_price_fob: row.unit_price_fob,
+                currency: row.currency,
+                container_id: row.container_id || 'A Definir',
+                vessel_name: row.vessel_name || 'A Definir',
+                eta_port_date: row.eta_port_date,
+                eta_warehouse_date: row.eta_warehouse_date,
+                actual_arrival_date: row.actual_arrival_date
+            });
+        }
+
+        const skuList = Object.values(matrixMap);
+        res.json({
+            count: skuList.length,
+            matrix: skuList
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao buscar matriz de SKUs em estoque: ' + err.message });
+    }
+});
+
+// POST /api/supply-chain/extract-invoice - Extração de Proforma Invoice por IA / OCR
+app.post('/api/supply-chain/extract-invoice', authenticateToken, restrictToSupplyChain, supplyChainUpload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'Nenhum arquivo de fatura/proforma enviado.' });
+    }
+
+    const filePath = req.file.path;
+    const fileMime = req.file.mimetype;
+    let extractedText = '';
+
+    try {
+        const suppliers = await dbAll('SELECT id, name, currency, payment_terms_type FROM stock_suppliers');
+        const supplierNames = suppliers.map(s => s.name).join(', ');
+
+        // 1. Extração de texto de PDF
+        if (fileMime.includes('pdf') || req.file.originalname.toLowerCase().endsWith('.pdf')) {
+            const dataBuffer = fs.readFileSync(filePath);
+            const pdfData = await pdfParse(dataBuffer);
+            extractedText = pdfData.text || '';
+        }
+
+        let aiResult = null;
+        const apiKey = process.env.GEMINI_API_KEY;
+
+        // 2. Análise com Gemini se API Key disponível
+        if (apiKey && apiKey.trim() !== '') {
+            try {
+                const prompt = `
+Você é o Especialista em Comércio Exterior e Supply Chain da Tecfag.
+Analise o texto abaixo extraído de uma Proforma Invoice ou Commercial Invoice de fabricantes internacionais de máquinas industriais.
+
+Lista de Fornecedores Cadastrados no Sistema:
+${supplierNames}
+
+Texto do Documento:
+"""
+${extractedText.substring(0, 15000)}
+"""
+
+Extraia as seguintes informações estruturadas em JSON puro:
+{
+  "supplier_name": "Nome do fornecedor (tente corresponder exatamente com a lista de fornecedores acima, caso seja um deles)",
+  "invoice_number": "Número da fatura / Proforma (ex: PI2026-08, HW-2601)",
+  "invoice_date": "Data da fatura no formato YYYY-MM-DD",
+  "currency": "USD, EUR ou RMB",
+  "total_fob_value": 0.0,
+  "payment_terms_desc": "Condição de pagamento informada no texto se houver",
+  "items": [
+    {
+      "sku": "Código do modelo da máquina (ex: FR-770, MSZDGS500, DZ-400, FXJ-6050)",
+      "description": "Descrição curta do equipamento em inglês ou português",
+      "qty_ordered": 1,
+      "unit_price_fob": 0.0,
+      "total_price_fob": 0.0
+    }
+  ]
+}
+
+Responda APENAS o JSON puro. Não utilize blocos de código com crases (\`\`\`json).
+`;
+                const modelName = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { responseMimeType: "application/json" }
+                };
+
+                const aiRes = await fetch(geminiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (aiRes.ok) {
+                    const aiData = await aiRes.json();
+                    if (aiData.candidates && aiData.candidates[0] && aiData.candidates[0].content && aiData.candidates[0].content.parts[0]) {
+                        const rawText = aiData.candidates[0].content.parts[0].text;
+                        aiResult = cleanAndParseJSON(rawText);
+                    }
+                }
+            } catch (geminiErr) {
+                console.warn('[SUPPLY CHAIN OCR] Falha ao processar com Gemini, executando parser heurístico:', geminiErr.message);
+            }
+        }
+
+        // 3. Parser Heurístico / Regex se a IA falhou ou não retornou itens
+        if (!aiResult || !aiResult.items || aiResult.items.length === 0) {
+            aiResult = parseInvoiceTextHeuristically(extractedText, suppliers);
+        }
+
+        // Vincular ao ID do fornecedor se encontrado
+        let matchedSupplier = null;
+        if (aiResult.supplier_name) {
+            matchedSupplier = suppliers.find(s => 
+                s.name.toLowerCase().includes(aiResult.supplier_name.toLowerCase()) ||
+                aiResult.supplier_name.toLowerCase().includes(s.name.toLowerCase())
+            );
+        }
+
+        if (matchedSupplier) {
+            aiResult.supplier_id = matchedSupplier.id;
+            aiResult.supplier_name = matchedSupplier.name;
+            aiResult.payment_terms_type = matchedSupplier.payment_terms_type;
+        }
+
+        aiResult.file_path = 'uploads/' + req.file.filename;
+        aiResult.original_name = req.file.originalname;
+
+        res.json({
+            success: true,
+            extracted: aiResult
+        });
+
+    } catch (err) {
+        console.error('[INVOICE OCR ERROR]', err);
+        res.status(500).json({ error: 'Erro ao processar arquivo da fatura: ' + err.message });
+    }
+});
+
+// Função auxiliar de extração heurística via regex de faturas
+function parseInvoiceTextHeuristically(text, suppliers) {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    let supplierName = '';
+    let invoiceNumber = '';
+    let invoiceDate = new Date().toISOString().split('T')[0];
+    let currency = 'USD';
+    let totalFob = 0;
+    const items = [];
+
+    // Identificar fornecedor
+    for (const s of suppliers) {
+        if (text.toLowerCase().includes(s.name.toLowerCase()) || text.toLowerCase().includes(s.name.split(' ')[0].toLowerCase())) {
+            supplierName = s.name;
+            currency = s.currency || 'USD';
+            break;
+        }
+    }
+
+    // Identificar Número da Fatura
+    const invMatch = text.match(/(?:INVOICE\s*(?:NO|NUMBER|#)?|PROFORMA\s*INVOICE\s*NO?|P\/I\s*NO?|PI\s*NO?)\s*[:.]?\s*([A-Za-z0-9\-_/]+)/i);
+    if (invMatch && invMatch[1]) {
+        invoiceNumber = invMatch[1].trim();
+    }
+
+    // Identificar Data
+    const dateMatch = text.match(/(?:DATE|DATED)\s*[:.]?\s*([0-9]{1,4}[\/\-\.][0-9]{1,2}[\/\-\.][0-9]{1,4})/i);
+    if (dateMatch && dateMatch[1]) {
+        const parts = dateMatch[1].split(/[\/\-\.]/);
+        if (parts.length === 3) {
+            if (parts[0].length === 4) {
+                invoiceDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+            } else if (parts[2].length === 4) {
+                invoiceDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+        }
+    }
+
+    // Identificar Itens e Modelos
+    for (const line of lines) {
+        // Exemplo: FR-770 Continuous Band Sealer 10 PCS USD 180.00 USD 1,800.00
+        const itemMatch = line.match(/^([A-Z0-9\-\/]{3,20})\s+(.+?)\s+(\d+)\s*(?:PCS|SETS|UN|UNITS)?\s+[\$€¥]?\s*([\d,]+\.?\d*)\s+[\$€¥]?\s*([\d,]+\.?\d*)/i);
+        if (itemMatch) {
+            const sku = itemMatch[1].trim().toUpperCase();
+            const desc = itemMatch[2].trim();
+            const qty = parseInt(itemMatch[3]) || 1;
+            const unitPrice = parseFloat(itemMatch[4].replace(/,/g, '')) || 0;
+            const itemTotal = parseFloat(itemMatch[5].replace(/,/g, '')) || (qty * unitPrice);
+
+            items.push({
+                sku: sku,
+                description: desc,
+                qty_ordered: qty,
+                unit_price_fob: unitPrice,
+                total_price_fob: itemTotal
+            });
+            totalFob += itemTotal;
+        }
+    }
+
+    // Identificar Total FOB se não calculado
+    if (totalFob === 0) {
+        const totalMatch = text.match(/(?:TOTAL\s*(?:FOB|AMOUNT|VALUE|SUM)?)\s*[:.]?\s*[\$€¥]?\s*([\d,]+\.?\d*)/i);
+        if (totalMatch && totalMatch[1]) {
+            totalFob = parseFloat(totalMatch[1].replace(/,/g, '')) || 0;
+        }
+    }
+
+    return {
+        supplier_name: supplierName || 'Fornecedor Internacional',
+        invoice_number: invoiceNumber || `INV-${Date.now().toString().slice(-6)}`,
+        invoice_date: invoiceDate,
+        currency: currency,
+        total_fob_value: totalFob,
+        payment_terms_desc: '',
+        items: items
+    };
+}
 
 // Helper para cálculo inteligente da Fase do Projeto
 function calculateProjectPhase(project) {
