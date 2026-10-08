@@ -22360,6 +22360,14 @@
             }
         }
 
+        function formatFobPrice(val) {
+            const num = parseFloat(val) || 0;
+            const str = num.toString();
+            const decimals = str.includes('.') ? str.split('.')[1].length : 0;
+            const minDec = Math.max(2, Math.min(decimals, 4));
+            return num.toLocaleString('pt-BR', { minimumFractionDigits: minDec, maximumFractionDigits: 4 });
+        }
+
         function addSupplyOrderItemRow(sku = '', desc = '', qty = 1, price = 0) {
             const tbody = document.getElementById('sc-new-items-tbody');
             if (!tbody) return;
@@ -22377,7 +22385,7 @@
                     <input type="number" class="form-control sc-input-qty" required min="1" value="${qty || 1}" oninput="recalcOrderTotalFob()" style="padding: 6px 8px; font-size: 0.8rem; text-align: center;">
                 </td>
                 <td style="padding: 6px;">
-                    <input type="number" step="0.01" class="form-control sc-input-price" required min="0" value="${price || 0}" oninput="recalcOrderTotalFob()" style="padding: 6px 8px; font-size: 0.8rem;">
+                    <input type="number" step="0.0001" class="form-control sc-input-price" required min="0" value="${price || 0}" oninput="recalcOrderTotalFob()" style="padding: 6px 8px; font-size: 0.8rem;">
                 </td>
                 <td style="padding: 6px; font-weight: bold; color: #4ade80;" class="sc-row-total">
                     $ 0.00
@@ -22608,8 +22616,8 @@
                     <td style="padding: 6px; text-align: center;">${it.qty_ordered}</td>
                     <td style="padding: 6px; text-align: center; font-weight: bold; color: #4ade80;">${qtyShipped}</td>
                     <td style="padding: 6px; text-align: center;">${backorderBadge}</td>
-                    <td style="padding: 6px; text-align: right;">$ ${(it.unit_price_fob || 0).toFixed(2)}</td>
-                    <td style="padding: 6px; text-align: right; font-weight: bold;">$ ${(it.total_price_fob || (it.qty_ordered * it.unit_price_fob)).toFixed(2)}</td>
+                    <td style="padding: 6px; text-align: right;">$ ${formatFobPrice(it.unit_price_fob)}</td>
+                    <td style="padding: 6px; text-align: right; font-weight: bold;">$ ${(it.total_price_fob || (it.qty_ordered * it.unit_price_fob)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -22767,7 +22775,7 @@
                                 0 un
                             </td>
                             <td style="padding: 8px; text-align: right;">
-                                $ ${(it.unit_price_fob || 0).toFixed(2)}
+                                $ ${formatFobPrice(it.unit_price_fob)}
                             </td>
                         `;
                         tbody.appendChild(tr);

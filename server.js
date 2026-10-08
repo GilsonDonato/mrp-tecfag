@@ -9065,14 +9065,16 @@ Extraia as seguintes informações estruturadas em JSON puro:
   "payment_terms_desc": "Condição de pagamento informada no texto se houver",
   "items": [
     {
-      "sku": "Código do modelo da máquina (ex: FR-770, MSZDGS500, DZ-400, FXJ-6050)",
-      "description": "Descrição curta do equipamento em inglês ou português",
+      "sku": "Código do modelo ou insumo (ex: FR-770, MSZDGS500, DZ-400, VALVULA-DESG, SACHET-1G)",
+      "description": "Descrição curta do equipamento ou insumo em inglês ou português",
       "qty_ordered": 1,
       "unit_price_fob": 0.0,
       "total_price_fob": 0.0
     }
   ]
 }
+
+Atenção especial para preços unitários: equipamentos têm valores maiores (ex: 180.00, 4500.00), mas itens como válvulas desgaseificadoras, sachês ou acessórios podem ter preços em centavos com 3 ou 4 casas decimais (ex: 0.025, 0.038, 0.0450). Mantenha a precisão decimal completa em unit_price_fob.
 
 Responda APENAS o JSON puro. Não utilize blocos de código com crases (\`\`\`json).
 `;
