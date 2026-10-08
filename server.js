@@ -804,11 +804,24 @@ function seedDefaultStockSuppliers() {
             payment_terms_desc: '100% em 120 dias direto após embarque/B/L',
             contact_person: 'Sales Dept',
             notes: 'Linha de embaladoras, seladoras e máquinas de embalagem'
+        },
+        {
+            name: 'Ningbo July Packaging Co., Ltd.',
+            country: 'China',
+            currency: 'USD',
+            lead_time_fabrication_days: 35,
+            lead_time_sea_days: 35,
+            lead_time_port_days: 15,
+            lead_time_warehouse_days: 3,
+            payment_terms_type: '120_DAYS_BL',
+            payment_terms_desc: '100% em 120 dias direto após embarque/B/L',
+            contact_person: 'Sales Dept',
+            notes: 'Linha de embalagens, válvulas desgaseificadoras e acessórios'
         }
     ];
 
     defaultSuppliers.forEach((s) => {
-        db.get('SELECT id FROM stock_suppliers WHERE name = ?', [s.name], (err, row) => {
+        db.get('SELECT id FROM stock_suppliers WHERE LOWER(name) = LOWER(?)', [s.name], (err, row) => {
             if (!err && !row) {
                 db.run(`INSERT INTO stock_suppliers (
                     name, country, currency, lead_time_fabrication_days, lead_time_sea_days,
