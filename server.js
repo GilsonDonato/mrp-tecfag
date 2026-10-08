@@ -791,6 +791,19 @@ function seedDefaultStockSuppliers() {
             payment_terms_desc: '30% Sinal na Proforma e 70% contra cópia do B/L',
             contact_person: 'Linda Lin',
             notes: 'Seladoras industriais e embaladoras a vácuo'
+        },
+        {
+            name: 'Ningbo Yuyao Packaging Co., Ltd.',
+            country: 'China',
+            currency: 'USD',
+            lead_time_fabrication_days: 40,
+            lead_time_sea_days: 35,
+            lead_time_port_days: 15,
+            lead_time_warehouse_days: 3,
+            payment_terms_type: '120_DAYS_BL',
+            payment_terms_desc: '100% em 120 dias direto após embarque/B/L',
+            contact_person: 'Sales Dept',
+            notes: 'Linha de embaladoras, seladoras e máquinas de embalagem'
         }
     ];
 
