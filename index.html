@@ -7034,6 +7034,12 @@
         }
 
         function configureRoleBasedMenus(role) {
+            let currentUser = {};
+            try {
+                const userStr = localStorage.getItem('tecfag_user');
+                if (userStr) currentUser = JSON.parse(userStr);
+            } catch (e) {}
+
             const menuNew = document.getElementById('menu-cadprj');
             const menuTag = document.getElementById('menu-tag');
             const menuLog = document.getElementById('menu-log');
@@ -7061,7 +7067,8 @@
             }
             const menuSupplyChain = document.getElementById('menu-supply-chain');
             if (menuSupplyChain) {
-                const isGilson = currentUser && (currentUser.username === 'gilson' || currentUser.username === 'gilson@tecfag.com.br');
+                const username = (currentUser.username || '').toLowerCase();
+                const isGilson = username === 'gilson' || username === 'gilson@tecfag.com.br';
                 menuSupplyChain.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'COMPRAS' || role === 'DIRETOR' || isGilson) ? 'block' : 'none';
             }
             
