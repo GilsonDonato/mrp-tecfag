@@ -561,7 +561,7 @@ function seedDefaultUsers() {
                         u.phone || null
                     ]);
                 } else {
-                    db.run('UPDATE users SET password_hash = ?, salt = ?, role = ?, phone = COALESCE(phone, ?) WHERE username = ?', [
+                    db.run('UPDATE users SET password_hash = ?, salt = ?, role = ?, phone = COALESCE(phone, ?), must_change_password = 0 WHERE username = ?', [
                         hash,
                         salt,
                         u.role,
@@ -834,36 +834,6 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
     });
 });
 
-// POST /api/auth/change-password - Altera a senha do usuário autenticado
-app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
-    const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword) {
-        return res.status(400).json({ error: 'Senha atual e nova senha são obrigatórias.' });
-    }
-
-    try {
-        const user = await dbGet('SELECT * FROM users WHERE username = ?', [req.user.username]);
-        if (!user) {
-            return res.status(404).json({ error: 'Usuário não encontrado.' });
-        }
-
-        const { hash } = hashPassword(currentPassword, user.salt);
-        if (hash !== user.password_hash) {
-            return res.status(400).json({ error: 'Senha atual incorreta.' });
-        }
-
-        const { salt: newSalt, hash: newHash } = hashPassword(newPassword);
-        await dbRun('UPDATE users SET password_hash = ?, salt = ? WHERE username = ?', [
-            newHash,
-            newSalt,
-            req.user.username
-        ]);
-
-        res.json({ success: true, message: 'Senha alterada com sucesso!' });
-    } catch (err) {
-        res.status(500).json({ error: 'Erro ao alterar senha: ' + err.message });
-    }
-});
 
 // PUT /api/auth/profile - Altera a senha e/ou número de WhatsApp do usuário autenticado
 app.put('/api/auth/profile', authenticateToken, async (req, res) => {

@@ -20945,9 +20945,11 @@
                     setTimeout(() => {
                         const modal = document.getElementById('force-change-password-modal');
                         if (modal) modal.style.display = 'none';
-                        document.getElementById('login-overlay').style.display = 'none';
+                        const loginContainer = document.getElementById('login-container');
+                        if (loginContainer) loginContainer.style.display = 'none';
+                        document.body.classList.remove('not-logged-in');
                         initializeSession();
-                    }, 2000);
+                    }, 1200);
                 } else {
                     showForceChangeAlert(`❌ ${data.error || 'Erro desconhecido.'}`, true, 'rgba(239, 68, 68, 0.15)', '#fca5a5');
                 }
