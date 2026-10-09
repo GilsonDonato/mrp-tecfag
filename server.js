@@ -817,6 +817,19 @@ function seedDefaultStockSuppliers() {
             payment_terms_desc: '100% em 120 dias direto após embarque/B/L',
             contact_person: 'Sales Dept',
             notes: 'Linha de embalagens, válvulas desgaseificadoras e acessórios'
+        },
+        {
+            name: 'Guangdong Shengwei Machinery Technology Co., Ltd.',
+            country: 'China',
+            currency: 'USD',
+            lead_time_fabrication_days: 35,
+            lead_time_sea_days: 35,
+            lead_time_port_days: 15,
+            lead_time_warehouse_days: 3,
+            payment_terms_type: '30_70_BL_COPY',
+            payment_terms_desc: '30% Sinal na Proforma e 70% contra cópia do B/L',
+            contact_person: 'Sales Dept',
+            notes: 'Linha de máquinas e equipamentos industriais de embalagem e tecnologia'
         }
     ];
 
