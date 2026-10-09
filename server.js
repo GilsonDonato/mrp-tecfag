@@ -850,6 +850,7 @@ function seedDefaultStockSuppliers() {
     });
 
     setTimeout(autoFixInvoiceBIT26_0404W, 4000);
+    setTimeout(autoFixInvoiceBIT26_0606W, 6000);
 }
 
 // Rotina de auditoria e correção automática da ordem BIT26-0404W (40 itens)
@@ -917,6 +918,60 @@ async function autoFixInvoiceBIT26_0404W() {
         }
     } catch (err) {
         console.error('[SUPPLY CHAIN AUTO-FIX ERROR]', err.message);
+    }
+}
+
+// Rotina de auditoria e correção automática da ordem BIT26-0606W (29 itens)
+async function autoFixInvoiceBIT26_0606W() {
+    try {
+        const order = await dbGet("SELECT * FROM stock_orders WHERE invoice_number LIKE '%BIT26-0606W%' OR po_number LIKE '%BIT26-0606W%' LIMIT 1");
+        if (!order) return;
+
+        const correctItems = [
+            { sku: 'FZL-S500', desc: 'VITERCAL PACKING MACHINE', qty: 5, price: 1510.00 },
+            { sku: 'FZL-200B', desc: 'VITERCAL PACKING MACHINE', qty: 10, price: 630.00 },
+            { sku: 'FZL-200S', desc: 'VITERCAL PACKING MACHINE', qty: 10, price: 550.00 },
+            { sku: 'FZL-240B2', desc: 'VITERCAL PACKING MACHINE', qty: 10, price: 670.00 },
+            { sku: 'FZL-240S2', desc: 'VITERCAL PACKING MACHINE', qty: 9, price: 600.00 },
+            { sku: 'FZL-300B', desc: 'VITERCAL PACKING MACHINE', qty: 5, price: 730.00 },
+            { sku: 'FZL-300S', desc: 'VITERCAL PACKING MACHINE', qty: 5, price: 620.00 },
+            { sku: 'FZL-350B', desc: 'VITERCAL PACKING MACHINE', qty: 5, price: 750.00 },
+            { sku: 'FZL-390B', desc: 'VITERCAL PACKING MACHINE', qty: 5, price: 870.00 },
+            { sku: 'BF650', desc: 'AUTOMATIC SIDE SEALER', qty: 1, price: 5000.00 },
+            { sku: 'BF850/25', desc: 'AUTOMATIC SIDE SEALER', qty: 1, price: 6500.00 },
+            { sku: 'DGF-H1000', desc: 'SEMI-AUTOMATIC FILLING MACHINE', qty: 10, price: 825.00 },
+            { sku: 'DGF-H300', desc: 'SEMI-AUTOMATIC FILLING MACHINE', qty: 1, price: 720.00 },
+            { sku: 'FQL450A', desc: 'SEMI-AUTOMATIC L-BAR SEALER', qty: 4, price: 550.00 },
+            { sku: 'FZL-240S2', desc: 'VITERCAL PACKING MACHINE', qty: 1, price: 600.00 },
+            { sku: 'HZGG1000-2D', desc: 'AUTOMATIC FILLING MACHINE', qty: 2, price: 3740.00 },
+            { sku: 'HZGG1000-4D', desc: 'AUTOMATIC FILLING MACHINE', qty: 1, price: 4740.00 },
+            { sku: 'HZGY1000-4D', desc: 'AUTOMATIC FILLING MACHINE', qty: 1, price: 4140.00 },
+            { sku: 'DGF-H300', desc: 'SEMI-AUTOMATIC FILLING MACHINE', qty: 9, price: 720.00 },
+            { sku: 'FL2000A', desc: 'INDUCTION SEALER', qty: 5, price: 620.00 },
+            { sku: 'FL2000AS', desc: 'INDUCTION SEALER', qty: 5, price: 820.00 },
+            { sku: 'ARLB160A', desc: 'AUTOMATIC LABELING MACHINE', qty: 1, price: 2150.00 },
+            { sku: 'ARLB160B', desc: 'AUTOMATIC LABELING MACHINE', qty: 1, price: 2150.00 },
+            { sku: 'ATB1000', desc: 'AUTOMATIC TURN TABLE', qty: 3, price: 750.00 },
+            { sku: 'BL-1650P', desc: 'AUTOMATIC WRAPPING MACHINE', qty: 3, price: 1600.00 },
+            { sku: 'FRD-1000W(LEFT TO RIGHT)', desc: 'SOLID-INKER PRINTING SEALER', qty: 10, price: 195.00 },
+            { sku: 'FRD1000LW/SL100', desc: 'SOLID-INKER PRINTING SEALER', qty: 8, price: 320.00 },
+            { sku: 'CH-125', desc: 'TUBE SEALER', qty: 5, price: 1000.00 },
+            { sku: 'FQL450T', desc: 'SEMI-AUTOMATIC L-BAR SEALER', qty: 4, price: 680.00 }
+        ];
+
+        console.log('[SUPPLY CHAIN AUTO-FIX] Sincronizando itens da ordem PO-BIT26-0606W...');
+        await dbRun("DELETE FROM stock_order_items WHERE order_id = ?", [order.id]);
+        for (const it of correctItems) {
+            await dbRun(`INSERT INTO stock_order_items (
+                order_id, sku, description, qty_ordered, qty_shipped, qty_backorder, unit_price_fob, total_price_fob, status, notes, created_at
+            ) VALUES (?, ?, ?, ?, 0, 0, ?, ?, 'ORDERED', '', ?)`, [
+                order.id, it.sku, it.desc, it.qty, it.price, (it.qty * it.price), new Date().toISOString()
+            ]);
+        }
+        await dbRun("UPDATE stock_orders SET total_fob_value = 123190.00 WHERE id = ?", [order.id]);
+        console.log('[SUPPLY CHAIN AUTO-FIX] Ordem PO-BIT26-0606W atualizada com sucesso com 29 itens corretos!');
+    } catch (err) {
+        console.error('[SUPPLY CHAIN AUTO-FIX 0606W ERROR]', err.message);
     }
 }
 
