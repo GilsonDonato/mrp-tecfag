@@ -9070,37 +9070,43 @@ app.post('/api/supply-chain/extract-invoice', authenticateToken, restrictToSuppl
         if (apiKey && apiKey.trim() !== '') {
             try {
                 const prompt = `
-Você é o Especialista em Comércio Exterior e Supply Chain da Tecfag.
+Você é o Especialista Sênior em Comércio Exterior e Supply Chain da Tecfag.
 Analise o texto abaixo extraído de uma Proforma Invoice ou Commercial Invoice de fabricantes internacionais de máquinas industriais.
 
 Lista de Fornecedores Cadastrados no Sistema:
 ${supplierNames}
 
-Texto do Documento:
+Texto do Documento (PDF OCR):
 """
-${extractedText.substring(0, 15000)}
+${extractedText.substring(0, 100000)}
 """
+
+INSTRUÇÕES CRÍTICAS DE EXTRAÇÃO:
+1. Reconstrua CUIDADOSAMENTE a tabela completa de TODOS os itens da fatura (podendo ter de 1 a mais de 40 itens distribuídos em múltiplas páginas).
+2. O texto do PDF pode ter extraído colunas de números (quantidades, preços unitários e totais) e colunas de descrições/modelos em blocos separados. Correlacione cada item pelo número sequencial de linha (1, 2, 3... N) e pelos valores.
+3. Se um item tiver 'MODEL: <CÓDIGO>' ou código de modelo (ex: 'ATB1000', 'ARLB160A', 'BZH-120', 'MT-50', 'FRD1000W', 'FL2000A', 'BF650', 'EW220'), extraia esse código limpo no campo "sku".
+4. Se um item for um conjunto/sistema com valor agrupado (ex: Linha 2 e 3 compondo sistema envasadora + vibradores), extraia a quantidade e o valor total corretamente sem zerar.
+5. Verifique se a soma de total_price_fob de todos os itens bate exatamente com o total_fob_value do documento.
+6. Mantenha a precisão decimal completa em unit_price_fob.
 
 Extraia as seguintes informações estruturadas em JSON puro:
 {
-  "supplier_name": "Nome do fornecedor (tente corresponder exatamente com a lista de fornecedores acima, caso seja um deles)",
-  "invoice_number": "Número da fatura / Proforma (ex: PI2026-08, HW-2601)",
-  "invoice_date": "Data da fatura no formato YYYY-MM-DD",
+  "supplier_name": "Nome do fornecedor (ex: Wenzhou Brother International Trade Co., Ltd., Hualian, etc.)",
+  "invoice_number": "Número da fatura / Proforma (ex: BIT26-0404W, PI2026-08)",
+  "invoice_date": "Data da fatura no formato YYYY-MM-DD (ex: 2026-09-29)",
   "currency": "USD, EUR ou RMB",
   "total_fob_value": 0.0,
   "payment_terms_desc": "Condição de pagamento informada no texto se houver",
   "items": [
     {
-      "sku": "Código do modelo ou insumo (ex: FR-770, MSZDGS500, DZ-400, VALVULA-DESG, SACHET-1G)",
-      "description": "Descrição curta do equipamento ou insumo em inglês ou português",
+      "sku": "Código do modelo ou insumo (ex: ATB1000, ARLB160A, BZH-120, FRD1000W, BF650)",
+      "description": "Descrição do equipamento ou insumo em inglês ou português",
       "qty_ordered": 1,
       "unit_price_fob": 0.0,
       "total_price_fob": 0.0
     }
   ]
 }
-
-Atenção especial para preços unitários: equipamentos têm valores maiores (ex: 180.00, 4500.00), mas itens como válvulas desgaseificadoras, sachês ou acessórios podem ter preços em centavos com 3 ou 4 casas decimais (ex: 0.025, 0.038, 0.0450). Mantenha a precisão decimal completa em unit_price_fob.
 
 Responda APENAS o JSON puro. Não utilize blocos de código com crases (\`\`\`json).
 `;
