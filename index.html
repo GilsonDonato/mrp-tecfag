@@ -14853,6 +14853,20 @@
             return txt;
         }
 
+        function resetSubmitButtonState(btn) {
+            isSubmitting = false;
+            const submitBtn = btn || document.getElementById('btn-submit-project') || document.querySelector('#form-add-project button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Cadastrar Projeto & Iniciar Funil";
+                submitBtn.style.pointerEvents = 'auto';
+                submitBtn.style.opacity = '1';
+            }
+            if (typeof toggleSubmitButton === 'function') {
+                toggleSubmitButton();
+            }
+        }
+
         async function handleProjectSubmit(e) {
             e.preventDefault();
 
@@ -14971,15 +14985,27 @@
                         headers['Authorization'] = `Bearer ${token}`;
                     }
 
-                    const res = await fetch('/api/attachments', {
-                        method: 'POST',
-                        headers,
-                        body: formData
-                    });
-                    if (!res.ok) {
-                        throw new Error('Upload falhou para o arquivo: ' + file.name);
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout por anexo
+
+                    try {
+                        const res = await fetch('/api/attachments', {
+                            method: 'POST',
+                            headers,
+                            body: formData,
+                            signal: controller.signal
+                        });
+                        clearTimeout(timeoutId);
+                        if (!res.ok) {
+                            console.warn('[INTAKE UPLOAD] Upload falhou para:', file.name);
+                            return null;
+                        }
+                        return await res.json();
+                    } catch (err) {
+                        clearTimeout(timeoutId);
+                        console.warn('[INTAKE UPLOAD] Timeout ou erro ao subir ' + file.name + ':', err.message);
+                        return null;
                     }
-                    return await res.json();
                 }
 
                 try {
@@ -15207,13 +15233,7 @@
                 console.error('[INTAKE SUBMIT] Erro no envio:', err);
                 alert('Erro ao processar o cadastro do projeto: ' + err.message);
             } finally {
-                setTimeout(() => {
-                    isSubmitting = false;
-                    if (submitBtn) {
-                        submitBtn.innerText = "Cadastrar Projeto & Iniciar Funil";
-                        toggleSubmitButton();
-                    }
-                }, 1000);
+                resetSubmitButtonState(submitBtn);
             }
         }
 
