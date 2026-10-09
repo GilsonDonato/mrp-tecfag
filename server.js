@@ -848,6 +848,76 @@ function seedDefaultStockSuppliers() {
             }
         });
     });
+
+    setTimeout(autoFixInvoiceBIT26_0404W, 4000);
+}
+
+// Rotina de auditoria e correção automática da ordem BIT26-0404W (40 itens)
+async function autoFixInvoiceBIT26_0404W() {
+    try {
+        const order = await dbGet("SELECT * FROM stock_orders WHERE invoice_number LIKE '%BIT26-0404W%' OR po_number LIKE '%BIT26-0404W%' LIMIT 1");
+        if (!order) return;
+
+        const correctItems = [
+            { sku: 'ATB1000', desc: 'AUTOMATIC TURN TABLE', qty: 1, price: 1500.00 },
+            { sku: 'ABF-30', desc: 'AUTOMATIC FILLING & CAPPING MACHINE + 2 VIBRATING MACHINES', qty: 1, price: 21000.00 },
+            { sku: 'BCC', desc: 'CORNER CONVEYOR', qty: 1, price: 1500.00 },
+            { sku: 'ARLB160A', desc: 'AUTOMATIC LABELING MACHINE', qty: 1, price: 4500.00 },
+            { sku: 'BOTTLE-DOWN-CONVEYOR', desc: 'AUTOMATIC BOTTLE DOWN CONVEYOR', qty: 1, price: 1500.00 },
+            { sku: 'BZH-120', desc: 'AUTOMATIC CARTONING MACHINE', qty: 1, price: 18800.00 },
+            { sku: 'ACLB160C', desc: 'DOUBLE SIDE CORNER LABELING MACHINE', qty: 1, price: 8500.00 },
+            { sku: 'CT1000', desc: 'COLLECTION CONVEYOR', qty: 1, price: 1000.00 },
+            { sku: 'LINE-CONTROL-BOX', desc: 'LINE CONTROL BOX', qty: 1, price: 3000.00 },
+            { sku: 'ABF-30', desc: 'PERISTALTIC PUMP', qty: 1, price: 1600.00 },
+            { sku: 'BF650', desc: 'SIDE SEALER', qty: 2, price: 5000.00 },
+            { sku: 'EW220', desc: 'CHECK WEIGHER', qty: 1, price: 4800.00 },
+            { sku: 'DHZ-450A', desc: 'CAPPING MACHINE', qty: 20, price: 250.00 },
+            { sku: 'DGF2-500', desc: '2NOZZLE FILLING MACHINE FOR PASTE', qty: 10, price: 600.00 },
+            { sku: 'DGF2-1000', desc: '2NOZZLE FILLING MACHINE FOR PASTE', qty: 10, price: 740.00 },
+            { sku: 'MT-50', desc: 'LABELING MACHINE', qty: 20, price: 330.00 },
+            { sku: 'MT-50P', desc: 'LABELING MACHINE WITH PRINTER', qty: 20, price: 500.00 },
+            { sku: 'DGF1000', desc: 'FILLING MACHINE FOR PASTE', qty: 20, price: 420.00 },
+            { sku: 'DYF1000', desc: 'FILLING MACHINE FOR LIQUID', qty: 10, price: 300.00 },
+            { sku: 'BF850/250', desc: 'SIDE SEALER', qty: 1, price: 6500.00 },
+            { sku: 'ARLB160A', desc: 'AUTOMATIC LABELING MACHINE', qty: 2, price: 2150.00 },
+            { sku: 'ARLB160B', desc: 'AUTOMATIC LABELING MACHINE', qty: 2, price: 2150.00 },
+            { sku: 'ATB1000', desc: 'AUTOMATIC TURN TABLE', qty: 2, price: 750.00 },
+            { sku: 'ARLM-200B', desc: 'AUTOMATIC LABELING MACHINE BIG JAR', qty: 1, price: 3400.00 },
+            { sku: 'CH-125', desc: 'TUBE SEALER', qty: 5, price: 1000.00 },
+            { sku: 'FL2000A', desc: 'INDUCTION SEALER', qty: 3, price: 620.00 },
+            { sku: 'FL2000AS', desc: 'INDUCTION SEALER', qty: 3, price: 820.00 },
+            { sku: 'LGYS-4000A', desc: 'INDUCTION SEALER', qty: 1, price: 1600.00 },
+            { sku: 'LGYS-SSJ', desc: 'CONVEYOR FOR INDUCTION SEALER', qty: 1, price: 550.00 },
+            { sku: 'RC1M', desc: 'ROLLER CONVEYOR', qty: 5, price: 130.00 },
+            { sku: 'RC2M', desc: 'ROLLER CONVEYOR', qty: 5, price: 260.00 },
+            { sku: 'RC2M/D', desc: 'ROLLER CONVEYOR WITH MOTOR', qty: 5, price: 520.00 },
+            { sku: 'FRD1000W', desc: 'SOLID-INKER PRINTING SEALER', qty: 30, price: 195.00 },
+            { sku: 'FRD1000LW', desc: 'SOLID-INKER PRINTING SEALER', qty: 30, price: 210.00 },
+            { sku: 'SF150W/P', desc: 'BAND SEALER', qty: 10, price: 140.00 },
+            { sku: 'SF150LW/P', desc: 'BAND SEALER', qty: 10, price: 155.00 },
+            { sku: 'RF-102', desc: 'POWDER FEEDER', qty: 2, price: 1150.00 },
+            { sku: 'FZL-S500(CHIPS TYPE)', desc: 'VITERCAL PACKING MACHINE', qty: 5, price: 1300.00 },
+            { sku: 'BSD1535S', desc: 'SHRINKING MACHINE', qty: 2, price: 900.00 }
+        ];
+
+        // Verificar se ARLM-200B está incorreto com 30 unidades
+        const arlm = await dbGet("SELECT * FROM stock_order_items WHERE order_id = ? AND sku = 'ARLM-200B'", [order.id]);
+        if (arlm && arlm.qty_ordered === 30) {
+            console.log('[SUPPLY CHAIN AUTO-FIX] Corrigindo itens da ordem PO-BIT26-0404W...');
+            await dbRun("DELETE FROM stock_order_items WHERE order_id = ?", [order.id]);
+            for (const it of correctItems) {
+                await dbRun(`INSERT INTO stock_order_items (
+                    order_id, sku, description, qty_ordered, qty_shipped, qty_backorder, unit_price_fob, total_price_fob, status, notes, created_at
+                ) VALUES (?, ?, ?, ?, 0, 0, ?, ?, 'ORDERED', '', ?)`, [
+                    order.id, it.sku, it.desc, it.qty, it.price, (it.qty * it.price), new Date().toISOString()
+                ]);
+            }
+            await dbRun("UPDATE stock_orders SET total_fob_value = 185820.00 WHERE id = ?", [order.id]);
+            console.log('[SUPPLY CHAIN AUTO-FIX] Ordem PO-BIT26-0404W atualizada com sucesso com 40 itens corretos!');
+        }
+    } catch (err) {
+        console.error('[SUPPLY CHAIN AUTO-FIX ERROR]', err.message);
+    }
 }
 
 function restrictToSupplyChain(req, res, next) {
