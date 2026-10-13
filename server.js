@@ -1731,6 +1731,18 @@ app.get('/api/test-clients', async (req, res) => {
     }
 });
 
+// Rota de diagnóstico para verificar ordens de importação em produção
+app.get('/api/test-stock-orders', async (req, res) => {
+    try {
+        const orders = await dbAll("SELECT id, po_number, supplier_name, invoice_number, total_fob_value, stage, created_at FROM stock_orders ORDER BY id DESC");
+        const items = await dbAll("SELECT * FROM stock_order_items ORDER BY id DESC");
+        const recentProjects = await dbAll("SELECT code, client, project_name, sku FROM projects ORDER BY rowid DESC LIMIT 5");
+        res.json({ orders, itemsCount: items.length, items, recentProjects });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Rotina de Alertas de Higiene por E-mail (SMTP)
 async function sendAutoHygieneWarningEmails() {
     try {
