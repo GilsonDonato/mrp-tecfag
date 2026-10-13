@@ -851,6 +851,7 @@ function seedDefaultStockSuppliers() {
 
     setTimeout(autoFixInvoiceBIT26_0404W, 4000);
     setTimeout(autoFixInvoiceBIT26_0606W, 6000);
+    setTimeout(autoFixInvoiceBIT26_0616W, 8000);
 }
 
 // Rotina de auditoria e correção automática da ordem BIT26-0404W (40 itens)
@@ -972,6 +973,66 @@ async function autoFixInvoiceBIT26_0606W() {
         console.log('[SUPPLY CHAIN AUTO-FIX] Ordem PO-BIT26-0606W atualizada com sucesso com 29 itens corretos!');
     } catch (err) {
         console.error('[SUPPLY CHAIN AUTO-FIX 0606W ERROR]', err.message);
+    }
+}
+
+// Rotina de auditoria e correção automática da ordem BIT26-0616W (31 itens revisados)
+async function autoFixInvoiceBIT26_0616W() {
+    try {
+        const order = await dbGet("SELECT * FROM stock_orders WHERE invoice_number LIKE '%BIT26-0616W%' OR po_number LIKE '%BIT26-0616W%' LIMIT 1");
+        if (!order) {
+            console.log('[SUPPLY CHAIN AUTO-FIX 0616W] Ordem BIT26-0616W não encontrada.');
+            return;
+        }
+
+        const correctItems = [
+            { sku: 'BF-650', desc: 'SIDE SEALER MODEL: BF-650', qty: 1, price: 5000.00 },
+            { sku: 'BF-850/25', desc: 'SIDE SEALER MODEL: BF-850/25 (CONTAINER #1)', qty: 1, price: 6500.00 },
+            { sku: 'BRP30P', desc: 'ROBOT PALLETIZER WITH 1M CONVEYOR MODEL: BRP30P(STANDARD BLUE GRIPER)', qty: 1, price: 7300.00 },
+            { sku: 'BRP30P', desc: 'ROBOT PALLETIZER WITH 1M CONVEYOR MODEL: BRP30P(COMBI BLUE GRIPER)', qty: 1, price: 7300.00 },
+            { sku: 'ATB1000', desc: 'AUTOMATIC TURN TABLE MODEL: ATB1000', qty: 8, price: 750.00 },
+            { sku: 'ARLB160A', desc: 'AUTOMATIC LABELING MACHINE MODEL: ARLB160A', qty: 2, price: 2150.00 },
+            { sku: 'ARLB160B', desc: 'AUTOMATIC LABELING MACHINE MODEL: ARLB160B', qty: 2, price: 2150.00 },
+            { sku: 'FL2000A', desc: 'INDUCTION SEALER MODEL: FL2000A', qty: 3, price: 620.00 },
+            { sku: 'FL2000AS', desc: 'INDUCTION SEALER MODEL: FL2000AS', qty: 3, price: 820.00 },
+            { sku: 'ARLM-200B', desc: 'AUTOMATIC LABELING MACHINE BIG JAR MODEL: ARLM-200B', qty: 1, price: 3400.00 },
+            { sku: 'LGYS-4000A', desc: 'INDUCTION SEALER MODEL: LGYS-4000A', qty: 3, price: 1600.00 },
+            { sku: 'LGYS-SSJ', desc: 'CONVEYOR FOR INDUCTION SEALER MODEL: LGYS-SSJ', qty: 3, price: 550.00 },
+            { sku: 'FRD1000LW', desc: 'SOLID-INKER PRINTING SEALER MODEL: FRD1000LW', qty: 20, price: 210.00 },
+            { sku: 'FRD1000W', desc: 'SOLID-INKER PRINTING SEALER MODEL: FRD1000W(L TO RIGHT)', qty: 10, price: 210.00 },
+            { sku: 'SM10H', desc: 'STRAPPING MACHINE MODEL: SM10H', qty: 5, price: 240.00 },
+            { sku: 'HP241C', desc: 'COLOR TAPE PRINTING MACHINE MODEL: HP241C', qty: 20, price: 110.00 },
+            { sku: 'FXJ6060', desc: 'CARTON SEALER MODEL: FXJ6060', qty: 5, price: 680.00 },
+            { sku: 'VH-200A', desc: 'V-MIXER MODEL: VH-200A', qty: 1, price: 5500.00 },
+            { sku: 'DHZ-550B', desc: 'CAPPING MACHINE MODEL: DHZ-550B', qty: 10, price: 650.00 },
+            { sku: 'BF-850/25', desc: 'SIDE SEALER MODEL: BF-850/25 (CONTAINER #2)', qty: 1, price: 6500.00 },
+            { sku: 'ERC7M/D', desc: 'EXTEN ROLLER CONVEYOR WITH MOTOR MODEL: ERC7M/D', qty: 3, price: 2800.00 },
+            { sku: 'HZGY500-6D', desc: 'AUTOMATIC 6NOZZLE FILLING MACHINE FOR LIQUID MODEL: HZGY500-6D', qty: 1, price: 4350.00 },
+            { sku: 'BTB600A', desc: 'TABLE TYPE TURN TABLE MODEL: BTB600A', qty: 3, price: 1360.00, notes: 'Fatura indica 3 un a US$ 680 com Total US$ 4.080' },
+            { sku: 'BTB600B', desc: 'TABLE TYPE TURN TABLE MODEL: BTB600B', qty: 3, price: 1360.00, notes: 'Fatura indica 3 un a US$ 680 com Total US$ 4.080' },
+            { sku: 'BTF-50Y', desc: 'TABLE TYPE 4NOZZLE FILLING MACHINE FOR LIQUID MODEL: BTF-50Y(10-50ML)', qty: 3, price: 2450.00 },
+            { sku: 'BTF-500Y', desc: 'TABLE TYPE 4NOZZLE FILLING MACHINE FOR LIQUID MODEL: BTF-500Y(50-500ML)', qty: 3, price: 2450.00 },
+            { sku: 'BTF-50G', desc: 'TABLE TYPE 2NOZZLE FILLING MACHINE FOR PASTE MODEL: BTF-50G(10-50ML)', qty: 3, price: 700.00 },
+            { sku: 'BTF-500G', desc: 'TABLE TYPE 2NOZZLE FILLING MACHINE FOR PASTE MODEL: BTF-500G(50-500ML)', qty: 3, price: 700.00 },
+            { sku: 'TRLB120A', desc: 'TABLE TYPE LABELING MACHINE MODEL: TRLB120A(HOLDING)', qty: 5, price: 1500.00 },
+            { sku: 'TRLB120B', desc: 'TABLE TYPE LABELING MACHINE MODEL: TRLB120B(LINEAR)', qty: 5, price: 1500.00 },
+            { sku: 'BTC60', desc: 'TABLE TYPE INDUCTION SEALER MODEL: BTC60', qty: 6, price: 1300.00 }
+        ];
+
+        console.log('[SUPPLY CHAIN AUTO-FIX] Sincronizando itens da ordem PO-BIT26-0616W...');
+        await dbRun("DELETE FROM stock_order_items WHERE order_id = ?", [order.id]);
+        for (const it of correctItems) {
+            await dbRun(`INSERT INTO stock_order_items (
+                order_id, sku, description, qty_ordered, qty_shipped, qty_backorder, unit_price_fob, total_price_fob, status, notes, created_at
+            ) VALUES (?, ?, ?, ?, 0, 0, ?, ?, 'ORDERED', ?, ?)`, [
+                order.id, it.sku, it.desc, it.qty, it.price, (it.qty * it.price), it.notes || '', new Date().toISOString()
+            ]);
+        }
+        await dbRun("UPDATE stock_orders SET total_fob_value = 149080.00 WHERE id = ?", [order.id]);
+        await refreshOrderPaymentDates(order.id);
+        console.log('[SUPPLY CHAIN AUTO-FIX] Ordem PO-BIT26-0616W atualizada com sucesso com 31 itens (US$ 149.080,00)!');
+    } catch (err) {
+        console.error('[SUPPLY CHAIN AUTO-FIX 0616W ERROR]', err.message);
     }
 }
 
