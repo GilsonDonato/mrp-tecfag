@@ -6400,7 +6400,9 @@
                         { username: 'vendas6', password: 'patricia#tecfag99', role: 'TECNICO' },
                         { username: 'vendas6@tecfag.com.br', password: 'patricia#tecfag99', role: 'TECNICO' },
                         { username: 'suporte2', password: 'tarcisio#tecfag99', role: 'ALL' },
-                        { username: 'suporte2@tecfag.com.br', password: 'tarcisio#tecfag99', role: 'ALL' }
+                        { username: 'suporte2@tecfag.com.br', password: 'tarcisio#tecfag99', role: 'ALL' },
+                        { username: 'adm@tecfag.com.br', password: 'jhenifer#tecfag99', role: 'COMPRAS' },
+                        { username: 'jhenifer', password: 'jhenifer#tecfag99', role: 'COMPRAS' }
                     ];
                     localStorage.setItem('tecfag_users', JSON.stringify(users));
                 }
@@ -7047,7 +7049,7 @@
             const menuSupplier = document.getElementById('menu-supplier');
             
             if (menuNew) {
-                menuNew.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'VENDAS' || role === 'GERENTE_COMERCIAL') ? 'block' : 'none';
+                menuNew.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'VENDAS' || role === 'GERENTE_COMERCIAL' || role === 'COMPRAS') ? 'block' : 'none';
             }
             if (menuTag) {
                 menuTag.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'ESTOQUE') ? 'block' : 'none';
@@ -7059,7 +7061,7 @@
                 menuMetrics.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'DIRETOR') ? 'block' : 'none';
             }
             if (menuSupplier) {
-                menuSupplier.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'ENGENHARIA') ? 'block' : 'none';
+                menuSupplier.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'ENGENHARIA' || role === 'COMPRAS') ? 'block' : 'none';
             }
             const menuSettings = document.getElementById('menu-settings');
             if (menuSettings) {
@@ -7069,7 +7071,8 @@
             if (menuSupplyChain) {
                 const username = (currentUser.username || '').toLowerCase();
                 const isGilson = username === 'gilson' || username === 'gilson@tecfag.com.br';
-                menuSupplyChain.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'COMPRAS' || role === 'DIRETOR' || isGilson) ? 'block' : 'none';
+                const isJhenifer = username === 'adm@tecfag.com.br' || username === 'jhenifer';
+                menuSupplyChain.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'COMPRAS' || role === 'DIRETOR' || isGilson || isJhenifer) ? 'block' : 'none';
             }
             
             // If active tab gets hidden, switch to dashboard
@@ -13653,6 +13656,7 @@
             if (u === 'heilio' || u === 'assistencia6@tecfag.com.br' || u.includes('heilio')) return 'Heilio';
             if (u === 'fernando') return 'Fernando';
             if (u === 'gilson' || u === 'gilson@tecfag.com.br' || u.includes('gilson')) return 'Gilson';
+            if (u === 'adm@tecfag.com.br' || u === 'jhenifer' || u.includes('jhenifer') || u.includes('zorzi')) return 'Jhenifer Zorzi';
             if (u === 'roberto' || u === 'roberto.eng') return 'Eng. Roberto';
             return username;
         }

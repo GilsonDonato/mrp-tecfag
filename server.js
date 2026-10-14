@@ -652,27 +652,32 @@ function seedDefaultUsers() {
         { username: 'vendas6', password: 'patricia#tecfag99', role: 'TECNICO' },
         { username: 'vendas6@tecfag.com.br', password: 'patricia#tecfag99', role: 'TECNICO' },
         { username: 'suporte2', password: 'tarcisio#tecfag99', role: 'ALL' },
-        { username: 'suporte2@tecfag.com.br', password: 'tarcisio#tecfag99', role: 'ALL' }
+        { username: 'suporte2@tecfag.com.br', password: 'tarcisio#tecfag99', role: 'ALL' },
+        { username: 'adm@tecfag.com.br', email: 'adm@tecfag.com.br', password: 'jhenifer#tecfag99', role: 'COMPRAS' },
+        { username: 'jhenifer', email: 'adm@tecfag.com.br', password: 'jhenifer#tecfag99', role: 'COMPRAS' }
     ];
 
     defaultUsers.forEach((u) => {
         db.get('SELECT username FROM users WHERE username = ?', [u.username], (err, row) => {
             if (!err) {
                 const { salt, hash } = hashPassword(u.password);
+                const userEmail = u.email || (u.username.includes('@') ? u.username : null);
                 if (!row) {
-                    db.run('INSERT INTO users (username, password_hash, salt, role, phone) VALUES (?, ?, ?, ?, ?)', [
+                    db.run('INSERT INTO users (username, password_hash, salt, role, phone, email) VALUES (?, ?, ?, ?, ?, ?)', [
                         u.username,
                         hash,
                         salt,
                         u.role,
-                        u.phone || null
+                        u.phone || null,
+                        userEmail
                     ]);
                 } else {
-                    db.run('UPDATE users SET password_hash = ?, salt = ?, role = ?, phone = COALESCE(phone, ?), must_change_password = 0 WHERE username = ?', [
+                    db.run('UPDATE users SET password_hash = ?, salt = ?, role = ?, phone = COALESCE(phone, ?), email = COALESCE(email, ?), must_change_password = 0 WHERE username = ?', [
                         hash,
                         salt,
                         u.role,
                         u.phone || null,
+                        userEmail,
                         u.username
                     ]);
                 }
@@ -1039,7 +1044,7 @@ async function autoFixInvoiceBIT26_0616W() {
 function restrictToSupplyChain(req, res, next) {
     const role = req.user ? req.user.role : null;
     const username = req.user ? req.user.username.toLowerCase() : '';
-    if (role === 'ALL' || role === 'GERENTE' || role === 'COMPRAS' || role === 'DIRETOR' || username === 'gilson' || username === 'gilson@tecfag.com.br') {
+    if (role === 'ALL' || role === 'GERENTE' || role === 'COMPRAS' || role === 'DIRETOR' || username === 'gilson' || username === 'gilson@tecfag.com.br' || username === 'adm@tecfag.com.br' || username === 'jhenifer') {
         return next();
     }
     return res.status(403).json({ error: 'Acesso negado: Módulo exclusivo para Gilson, Diretoria, Gerência e Compras/Importação.' });
@@ -1263,7 +1268,8 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     try {
-        const user = await dbGet('SELECT * FROM users WHERE username = ?', [username.toLowerCase().trim()]);
+        const cleanUser = username.toLowerCase().trim();
+        const user = await dbGet('SELECT * FROM users WHERE username = ? OR email = ?', [cleanUser, cleanUser]);
         if (!user) {
             return res.status(400).json({ error: 'Usuário ou senha incorretos.' });
         }
@@ -1305,7 +1311,8 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     }
 
     try {
-        const user = await dbGet('SELECT * FROM users WHERE username = ?', [username.toLowerCase().trim()]);
+        const cleanUser = username.toLowerCase().trim();
+        const user = await dbGet('SELECT * FROM users WHERE username = ? OR email = ?', [cleanUser, cleanUser]);
         if (!user) {
             return res.status(400).json({ error: 'Usuário não encontrado.' });
         }
@@ -1575,6 +1582,7 @@ function getUserEmail(username) {
     if (u === 'vendas6' || u === 'vendas6@tecfag.com.br') return 'vendas6@tecfag.com.br';
     if (u === 'suporte2' || u === 'suporte2@tecfag.com.br') return 'suporte2@tecfag.com.br';
     if (u === 'heilio' || u === 'assistencia6@tecfag.com.br') return 'assistencia6@tecfag.com.br';
+    if (u === 'jhenifer' || u === 'adm@tecfag.com.br') return 'adm@tecfag.com.br';
     if (u === 'admin') return process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br';
     if (u === 'gerente') return process.env.EMAIL_GERENTE || 'projetos@grupo.tecfag.com.br';
     if (u === 'gerente_comercial') return 'projetos@grupo.tecfag.com.br';
@@ -8155,8 +8163,8 @@ app.post('/api/attachments', authenticateToken, upload.single('file'), async (re
         return res.status(400).json({ error: 'Os campos projectCode, phase e o arquivo são obrigatórios.' });
     }
 
-    // Impedir upload para cotacao para quem não for admin/gerente
-    if (phase === 'cotacao' && req.user.role !== 'ALL' && req.user.role !== 'GERENTE') {
+    // Impedir upload para cotacao para quem não for admin/gerente/compras
+    if (phase === 'cotacao' && req.user.role !== 'ALL' && req.user.role !== 'GERENTE' && req.user.role !== 'COMPRAS') {
         if (file) {
             fs.unlinkSync(file.path);
         }
@@ -8210,8 +8218,8 @@ app.get('/api/attachments/:projectCode', authenticateToken, async (req, res) => 
     try {
         let rows = await dbAll('SELECT * FROM attachments WHERE projectCode = ?', [req.params.projectCode]);
         
-        // Filtrar arquivo 4 da fase 1 (Cotação) para quem não for admin/gerente/diretor
-        if (req.user.role !== 'ALL' && req.user.role !== 'GERENTE' && req.user.role !== 'DIRETOR') {
+        // Filtrar arquivo 4 da fase 1 (Cotação) para quem não for admin/gerente/diretor/compras
+        if (req.user.role !== 'ALL' && req.user.role !== 'GERENTE' && req.user.role !== 'DIRETOR' && req.user.role !== 'COMPRAS') {
             rows = rows.filter(r => r.phase !== 'cotacao');
         }
 
@@ -8233,8 +8241,8 @@ app.delete('/api/attachments/:id', authenticateToken, async (req, res) => {
             return res.status(404).json({ error: 'Anexo não encontrado.' });
         }
 
-        // Impedir exclusão de cotação para quem não for admin/gerente
-        if (attachment.phase === 'cotacao' && req.user.role !== 'ALL' && req.user.role !== 'GERENTE') {
+        // Impedir exclusão de cotação para quem não for admin/gerente/compras
+        if (attachment.phase === 'cotacao' && req.user.role !== 'ALL' && req.user.role !== 'GERENTE' && req.user.role !== 'COMPRAS') {
             return res.status(403).json({ error: 'Acesso negado: Apenas o Administrador ou o Gerente de Projetos podem remover este anexo.' });
         }
 
