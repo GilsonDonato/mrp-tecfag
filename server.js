@@ -857,6 +857,7 @@ function seedDefaultStockSuppliers() {
     setTimeout(autoFixInvoiceBIT26_0404W, 4000);
     setTimeout(autoFixInvoiceBIT26_0606W, 6000);
     setTimeout(autoFixInvoiceBIT26_0616W, 8000);
+    setTimeout(autoFixInvoiceHL26CP009098, 10000);
 }
 
 // Rotina de auditoria e correção automática da ordem BIT26-0404W (40 itens)
@@ -1038,6 +1039,48 @@ async function autoFixInvoiceBIT26_0616W() {
         console.log('[SUPPLY CHAIN AUTO-FIX] Ordem PO-BIT26-0616W atualizada com sucesso com 31 itens (US$ 149.080,00)!');
     } catch (err) {
         console.error('[SUPPLY CHAIN AUTO-FIX 0616W ERROR]', err.message);
+    }
+}
+
+// Rotina de auditoria e correção automática da ordem HL26CP009098-BRTC07 (Hualian, 13 itens / 282 peças conforme Packing List & Invoice)
+async function autoFixInvoiceHL26CP009098() {
+    try {
+        const order = await dbGet("SELECT * FROM stock_orders WHERE invoice_number LIKE '%HL26CP009098%' OR po_number LIKE '%HL26CP009098%' LIMIT 1");
+        if (!order) {
+            console.log('[SUPPLY CHAIN AUTO-FIX HL009098] Ordem HL26CP009098 não encontrada.');
+            return;
+        }
+
+        const correctItems = [
+            { sku: 'BSF-5640LG', desc: 'Automatic L-Seal Cutting Machine (Portuguese touch screen with Tecfag logo) 220V/60Hz, 1P', qty: 2, price: 3200.00, notes: 'Volumes 1-2 (2 W/C)' },
+            { sku: 'BSF-5545LE', desc: 'Side Sealing Machine (Portuguese touch screen with Tecfag logo) 220V/60Hz, 1P', qty: 2, price: 4700.00, notes: 'Volumes 3-4 (2 W/C)' },
+            { sku: 'BSF-5640LG', desc: 'Automatic L-Seal Cutting Machine (Portuguese touch screen with Tecfag logo) 220V/60Hz, 1P', qty: 1, price: 3200.00, notes: 'Volume 5 (1 W/C)' },
+            { sku: 'HLCDXGZ-1', desc: 'Automatic Capping Machine (201 S/S, 220, 60Hz, 1P, suitable for Cap dia 20~100mm, Bottle dia φ20-115mm, Bottle height 70-250mm), with 1 guide rail', qty: 1, price: 4215.00, notes: 'Volumes 8-9 (2 W/C)' },
+            { sku: 'BS-6535LA', desc: 'Shrink Tunnel (rod conveyor, with 150mm height adjustment foot stand)- 220V/60Hz, 1P', qty: 5, price: 527.00, notes: 'Volumes 10-14 (5 W/C)' },
+            { sku: 'HLSF-1600', desc: 'Electric handheld capping machine', qty: 100, price: 59.50, notes: 'Volumes 15-19 (5 PKG)' },
+            { sku: 'HLSF-1750', desc: 'Pneumatic handheld capping machine', qty: 100, price: 98.00, notes: 'Volumes 20-32 (13 PKG)' },
+            { sku: 'HLCDXGZ-1', desc: 'Automatic Capping Machine (201 S/S, 220, 60Hz, 1P, suitable for Cap dia 20~100mm, Bottle dia φ20-115mm, Bottle height 70-250mm), with 1 guide rail', qty: 3, price: 4215.00, notes: 'Volumes 37-42 (6 W/C)' },
+            { sku: 'HL-P', desc: 'Semi-automatic roller wheel bottle cap tightening machine (201 S/S housing) 220V/60HZ,1P', qty: 15, price: 490.00, notes: 'Volumes 43-57 (15 W/C)' },
+            { sku: 'HL-CO2', desc: '40W Laser printer 220V 60Hz 1P', qty: 3, price: 1795.00, notes: 'Volumes 58-63 (6 PKG)' },
+            { sku: 'A03', desc: 'Manual filler', qty: 50, price: 60.00, notes: 'Volumes 64-113 (50 CTN)' },
+            { sku: 'DOMESTIC FREIGHT', desc: 'Domestic freight charge for 40HQ containers', qty: 1, price: 1280.00, notes: 'Frete interno até porto Ningbo' },
+            { sku: 'SINOSURE INTEREST', desc: 'Sinosure 90 days interest', qty: 1, price: 748.23, notes: 'Juros prazo Sinosure 90 dias' }
+        ];
+
+        console.log('[SUPPLY CHAIN AUTO-FIX] Sincronizando itens e quantidades da ordem HL26CP009098-BRTC07...');
+        await dbRun("DELETE FROM stock_order_items WHERE order_id = ?", [order.id]);
+        for (const it of correctItems) {
+            await dbRun(`INSERT INTO stock_order_items (
+                order_id, sku, description, qty_ordered, qty_shipped, qty_backorder, unit_price_fob, total_price_fob, status, notes, created_at
+            ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'SHIPPED', ?, ?)`, [
+                order.id, it.sku, it.desc, it.qty, it.qty, it.price, (it.qty * it.price), it.notes || '', new Date().toISOString()
+            ]);
+        }
+        await dbRun("UPDATE stock_orders SET total_fob_value = 72008.23, invoice_date = '2026-10-17' WHERE id = ?", [order.id]);
+        await refreshOrderPaymentDates(order.id);
+        console.log('[SUPPLY CHAIN AUTO-FIX] Ordem HL26CP009098-BRTC07 atualizada com sucesso com 13 itens / 282 peças (US$ 72.008,23)!');
+    } catch (err) {
+        console.error('[SUPPLY CHAIN AUTO-FIX HL009098 ERROR]', err.message);
     }
 }
 
@@ -1801,6 +1844,16 @@ app.get('/api/test-clients', async (req, res) => {
 });
 
 // Rota de diagnóstico para verificar ordens de importação em produção
+
+app.get('/api/admin/fix-hl009098', authenticateToken, async (req, res) => {
+    try {
+        await autoFixInvoiceHL26CP009098();
+        res.json({ success: true, message: 'Ordem HL26CP009098 sincronizada com sucesso!' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/test-stock-orders', async (req, res) => {
     try {
         const orders = await dbAll("SELECT id, po_number, supplier_name, invoice_number, total_fob_value, stage, created_at FROM stock_orders ORDER BY id DESC");
