@@ -7762,13 +7762,13 @@ function generateLocalFallbackSpareParts(project) {
     return parts;
 }
 
-// Auditor de Engenharia Tecfag - Validação Físico-Mecânica e Dimensional
+// Auditor de Engenharia Tecfag - Validação Físico-Mecânica e Dimensional (Consultivo)
 function getEngineeringErrors(segment, diagnostico, extraParams) {
     const errors = [];
     const diagLower = (diagnostico || '').toLowerCase();
     const params = extraParams || {};
     
-    // 1. O Veto Autônomo (Auditoria Físico-Mecânica)
+    // 1. Auditoria Físico-Mecânica Consultiva
     const doser = params["Tipo de Alimentador/Dosador*"] || params["Equipamento de Dosagem Superior Acoplado*"] || "";
     const viscosity = params["Viscosidade / Fluidez do Produto*"] || "";
     const physicalChars = params["Características Físicas do Produto*"] || "";
@@ -7777,11 +7777,10 @@ function getEngineeringErrors(segment, diagnostico, extraParams) {
     if (doser.includes("Rosca Sem Fim") || doser.includes("Rosca")) {
         const isLiquidViscosity = viscosity.includes("Líquido") || viscosity.includes("Água") || viscosity.includes("Mel") || viscosity.includes("Xarope") || viscosity.includes("Creme") || viscosity.includes("Shampoo") || viscosity.includes("Pasta");
         if (isLiquidViscosity) {
-            errors.push("🔴 ERRO TÉCNICO DE ENGENHARIA: Alimentador de Rosca Sem Fim selecionado para produto com comportamento de líquido ou viscoso. Rosca sem fim é exclusiva para pós densos/farináceos; fluidos irão vazar pelas espirais por gravidade. Use dosador por Pistão Pneumático ou Bomba.");
+            errors.push("💡 NOTA DA ENGENHARIA (FASE 1): Rosca sem fim indicada para líquido/viscoso. A Engenharia ajustará para dosador por Pistão Pneumático ou Bomba na Fase 1.");
         } else if (physicalChars.includes("Pó seco / Fluidez livre") || physicalChars.includes("Fluidez livre") || diagLower.includes("fluidez livre") || diagLower.includes("grãos") || diagLower.includes("graos") || diagLower.includes("granulado")) {
-            // Apenas alertar se for fluidez livre de grãos/granulados
             if (!viscosity.includes("Pó Fino") && !viscosity.includes("Pó Denso") && !viscosity.includes("Pó Granulado")) {
-                errors.push("🔴 ERRO TÉCNICO DE ENGENHARIA: Alimentador de Rosca Sem Fim selecionado para produto com fluidez livre. Pós com fluidez livre ou granulados escorrem por gravidade através da rosca parada, causando superdosagem e vazamentos. Use dosador por calha vibratória, gravidade ou gaveta volumétrica.");
+                errors.push("💡 NOTA DA ENGENHARIA (FASE 1): Produto com fluidez livre escorre por gravidade na rosca. A Engenharia avaliará dosador por calha vibratória na Fase 1.");
             }
         }
     }
@@ -7790,133 +7789,72 @@ function getEngineeringErrors(segment, diagnostico, extraParams) {
     if (doser.includes("Copo Volumétrico") || doser.includes("Balança Multicabeçote") || doser.includes("Balança de Caneca")) {
         const isLiquidViscosity = viscosity.includes("Líquido") || viscosity.includes("Água") || viscosity.includes("Mel") || viscosity.includes("Xarope") || viscosity.includes("Creme") || viscosity.includes("Shampoo") || viscosity.includes("Pasta");
         if (isLiquidViscosity) {
-            errors.push("🔴 ERRO TÉCNICO DE ENGENHARIA: Dosador volumétrico de copos ou balança selecionado para produtos pastosos/líquidos. Copos volumétricos e balanças são exclusivos para sólidos, granulados e grãos; produtos viscosos ou pastosos irão aderir às paredes ou vazar, impedindo a dosagem. Use dosador por Pistão Pneumático ou Bomba.");
+            errors.push("💡 NOTA DA ENGENHARIA (FASE 1): Copo volumétrico/balança selecionado para pastoso/líquido. A Engenharia ajustará para Pistão Pneumático na Fase 1.");
         }
     }
 
     // Pistão Pneumático para pós
     if (doser.includes("Pistão Pneumático") || doser.includes("Bomba de Pistão")) {
         if (physicalChars.includes("Pó seco") || diagLower.includes("pó seco") || diagLower.includes("po seco") || diagLower.includes("farinha") || diagLower.includes("amido")) {
-            errors.push("🔴 ERRO TÉCNICO DE ENGENHARIA: Dosador por Pistão Pneumático selecionado para pó seco. Pistões são exclusivos para líquidos e pastosos; pós secos irão travar o pistão e danificar as vedações. Use dosador por Rosca Sem Fim.");
+            errors.push("💡 NOTA DA ENGENHARIA (FASE 1): Pistão pneumático para pó seco. A Engenharia ajustará para dosador de Rosca Sem Fim na Fase 1.");
         }
     }
 
-    // 2. Tolerância Zero Dimensional
-    const genericTerms = ['tamanhos variados', 'tamanho variado', 'variados', 'padrão', 'padrao', 'estimado', 'estimados', 'variado', 'tamanhos diversos', 'diversos tamanhos', 'diversos', 'medidas variadas', 'varias medidas', 'várias medidas'];
-    
+    // 2. Dimensões
+    const genericTerms = ['tamanhos variados', 'tamanho variado', 'variados', 'estimado', 'estimados', 'variado', 'tamanhos diversos', 'diversos tamanhos', 'medidas variadas', 'varias medidas', 'várias medidas'];
     let hasGenericDim = false;
     for (const term of genericTerms) {
         if (diagLower.includes(term)) {
             hasGenericDim = true;
         }
-        for (const [k, val] of Object.entries(params)) {
-            const keyLower = k.toLowerCase();
-            // Só verifica termos genéricos em campos que realmente digitem dimensões
-            const isDimensionKey = keyLower.includes('largura') || keyLower.includes('altura') || keyLower.includes('comprimento') || keyLower.includes('dimens') || keyLower.includes('diâmetro') || keyLower.includes('tamanho') || keyLower.includes('medida');
-            if (isDimensionKey && typeof val === 'string' && val.toLowerCase().includes(term)) {
-                hasGenericDim = true;
-            }
-        }
+    }
+    const hasExactMeasurements = /\d+\s*(?:mm|mil[ií]metros|cm|x\s*\d+)/i.test(diagLower);
+    if (hasGenericDim && !hasExactMeasurements) {
+        errors.push("💡 Dica para a próxima conversa com o cliente: tente obter as medidas aproximadas em milímetros (ex: 50x50x10 mm). A Engenharia definirá o molde na Fase 1.");
     }
 
-    // Se o diagnóstico ou os parâmetros contêm medidas exatas especificadas em mm/cm/etc., inibe a trava de dimensões genéricas
-    const hasExactMeasurements = /\d+\s*(?:mm|mil[ií]metros|cm|x\s*\d+)/i.test(diagLower) || 
-                                 Object.entries(params).some(([k, v]) => {
-                                     const keyLower = k.toLowerCase();
-                                     const isDimensionKey = keyLower.includes('largura') || keyLower.includes('altura') || keyLower.includes('comprimento') || keyLower.includes('dimens') || keyLower.includes('diâmetro') || keyLower.includes('tamanho') || keyLower.includes('medida');
-                                     return isDimensionKey && typeof v === 'string' && /\d+/.test(v) && !v.toLowerCase().includes('padrao') && !v.toLowerCase().includes('variado');
-                                 });
-
-    if (hasGenericDim && hasExactMeasurements) {
-        hasGenericDim = false;
-    }
-    
-    if (hasGenericDim) {
-        errors.push("🔴 ERRO TÉCNICO DE ENGENHARIA: Uso de dimensões genéricas ('tamanhos variados', 'padrão', etc.) detectado. A engenharia da Tecfag exige o preenchimento exato da geometria da embalagem e suas dimensões em milímetros (ex: 'Frasco quadrado de 80mm x 80mm com gargalo de 30mm').");
-    }
-
-    // Contexto de Operação (sachês / sticks)
-    const isSachetOrStick = diagLower.includes("sachê") || diagLower.includes("sache") || diagLower.includes("stick") || 
-                            (params["Formato da Embalagem*"] && (params["Formato da Embalagem*"].toLowerCase().includes("sachê") || params["Formato da Embalagem*"].toLowerCase().includes("stick")));
-    if (isSachetOrStick) {
-        const hasOutsourceInfo = diagLower.includes("própria") || diagLower.includes("propria") || diagLower.includes("terceiriza") || diagLower.includes("terceiro") || diagLower.includes("produção própria") || diagLower.includes("producao propria");
-        if (!hasOutsourceInfo) {
-            errors.push("⚠️ QUALIFICAÇÃO DE SETUP DE FÁBRICA: Para projetos de sachês ou sticks, é obrigatório qualificar se a produção é própria (produzida no local) ou terceirizada pelo cliente, para fins de setup e testes FAT na fábrica chinesa.");
-        }
-    }
-    
     return errors;
 }
 
-// Helper de validação local de rascunhos (Fallback)
+// Helper de validação local de rascunhos (Comercial Amigável)
 function localValidationFallback(segment, diagnostico, extraParams) {
     const missing = [];
     const satisfied = [];
-    let score = 100;
-    
-    // Mapeamento de prefixo de segmento
-    const mapping = {
-        "MISTURADORES": "1.",
-        "ENCAPSULADORAS": "2.",
-        "GOMAS": "3.",
-        "DOSAGEM_SEMIAUTOMATICA": "4.",
-        "DOSAGEM_EMPACOTAMENTO": "5.",
-        "ENVASE": "6.",
-        "FECHAMENTO_TAMPAGEM": "7.",
-        "VACUO_TERMOFORMADORAS": "8.",
-        "ROTULADORAS": "9.",
-        "TERMOENCOLHIVEL": "10.",
-        "FINAL_LINHA": "11.",
-        "PROJETOS_ESPECIAIS": "12.",
-        "SELADORAS_CONTINUAS": "13."
-    };
-    const prefix = mapping[segment];
-    
-    try {
-        const reqPath = path.join(__dirname, 'data', 'requisitos.json');
-        if (fs.existsSync(reqPath) && prefix) {
-            const reqData = JSON.parse(fs.readFileSync(reqPath, 'utf8'));
-            // Filtra os campos que pertencem a este segmento e que são obrigatórios (terminam com *)
-            const mandatoryFields = reqData.filter(f => f.segmento.startsWith(prefix) && f.campo.endsWith('*'));
-            
-            if (mandatoryFields.length > 0) {
-                let requiredCount = mandatoryFields.length;
-                let prefilledCount = 0;
-                
-                // Adiciona Tensão como utilidade essencial obrigatória
-                requiredCount += 1;
-                const tensionVal = extraParams.tension || extraParams["Tensão Elétrica*"] || "";
-                if (tensionVal && tensionVal !== "-" && tensionVal !== "") {
-                    prefilledCount += 1;
-                    satisfied.push("Tensão elétrica informada");
-                } else {
-                    missing.push("Qual a tensão elétrica disponível na fábrica (220V/380V)?");
-                }
-                
-                mandatoryFields.forEach(f => {
-                    const fieldVal = extraParams[f.campo] || "";
-                    if (fieldVal && fieldVal !== "-" && fieldVal !== "") {
-                        prefilledCount += 1;
-                        satisfied.push(`${f.campo.replace('*', '')} preenchido`);
-                    } else {
-                        missing.push(`Falta preencher: ${f.campo.replace('*', '')}`);
-                    }
-                });
-                
-                score = Math.round((prefilledCount / requiredCount) * 100);
-            }
-        }
-    } catch (err) {
-        console.error("Erro no localValidationFallback:", err);
+    let score = 50; // Pontuação base
+    const diagLower = (diagnostico || '').toLowerCase();
+    const params = extraParams || {};
+
+    // 1. Identificação do produto / aplicação
+    const hasProduct = diagLower.length > 5 || params.product || params["Produto"] || params["Tipo de Produto"];
+    if (hasProduct) {
+        score += 20;
+        satisfied.push("Aplicação / produto identificado");
+    } else {
+        missing.push("💡 Dica: Informe qual produto o cliente deseja embalar/produzir.");
     }
-    
-    if (score < 0) score = 0;
+
+    // 2. Dimensões ou formato
+    const hasDimensions = /\d+\s*(?:mm|cm|ml|g|kg|x\s*\d+)/i.test(diagLower) || 
+                          Object.entries(params).some(([k, v]) => String(v).length > 0 && /\d+/.test(String(v)));
+    if (hasDimensions) {
+        score += 15;
+        satisfied.push("Dimensões / volume aproximado especificado");
+    } else {
+        missing.push("💡 Dica: Informe as dimensões ou volume aproximado do produto.");
+    }
+
+    // 3. Cadência / Produção
+    const hasProduction = /(?:\d+[\.,]?\d*|\d+)\s*(?:un|pe[çc]as?|potes?|sacos?|bpm|ppm|por hora|\/h|kg|batidas)/i.test(diagLower) ||
+                          params["Produção Alvo*"] || params["Meta de Produção"];
+    if (hasProduction) {
+        score += 15;
+        satisfied.push("Meta de produção / cadência informada");
+    } else {
+        missing.push("💡 Dica: Informe a produção desejada pelo cliente (un/hora ou kg/dia).");
+    }
+
     if (score > 100) score = 100;
-    
-    let color = "red";
-    if (score >= 80) color = "green";
-    else if (score >= 50) color = "yellow";
-    
+    let color = score >= 80 ? "green" : (score >= 50 ? "yellow" : "red");
     return { score, color, missing, satisfied };
 }
 
@@ -7932,68 +7870,44 @@ async function executeCopilotValidation(segment, diagnostico, extraParams) {
     if (apiKey && apiKey.trim() !== '') {
         try {
             const prompt = `
-Você é o Engenheiro de Aplicações Sênior da Tecfag, especialista em projetar, validar e instalar linhas de máquinas industriais de embalagem.
+Você é o Copiloto Consultivo de Vendas da Tecfag, especialista em apoiar a equipe comercial a registrar oportunidades e qualificar as necessidades de automação industrial dos clientes.
 
-Sua tarefa é analisar o rascunho de informações inserido pelo vendedor e dar uma nota de Completude do Escopo e uma lista de pendências.
-Segmento de Equipamento Principal Selecionado: "${segment}"
-Descrição/Diagnóstico Adicional do Vendedor (Opcional): "${diagnostico}"
-Parâmetros Técnicos Digitados: ${JSON.stringify(extraParams)}
+Sua tarefa é analisar o rascunho de informações inserido pelo vendedor e fornecer:
+1. Uma nota de "Completude Comercial" (0 a 100).
+2. Dicas construtivas e perguntas fáceis para a próxima conversa com o cliente (missing).
+3. Pontos positivos já bem identificados (satisfied).
 
-REGRA MESTRA DE COMPLETUDE:
-A nota de completude (score) deve ser baseada UNICAMENTE nos Parâmetros Técnicos Digitados estruturados (extraParams) e informações de infraestrutura (como tension, nr12).
-O campo "Descrição/Diagnóstico Adicional" é Opcional. Se ele estiver vazio, NÃO diminua a nota de completude.
-Sua nota deve chegar a 100 se todos os campos técnicos necessários para o segmento "${segment}" estiverem preenchidos no objeto de parâmetros estruturados.
+Segmento Selecionado: "${segment}"
+Diagnóstico / Observações do Vendedor: "${diagnostico}"
+Parâmetros Estruturados: ${JSON.stringify(extraParams)}
 
-REGRA MESTRA ABSOLUTA:
-Avalie o escopo EXCLUSIVAMENTE sob as regras do segmento selecionado ("${segment}"). NUNCA misture regras ou faça perguntas de um segmento para o outro.
+REGRA DE OURO - VISÃO COMERCIAL (NÃO EXIJA CÁLCULOS DE LABORATÓRIO):
+O vendedor está cadastrando o lead. Ele NÃO é engenheiro mecânico e NÃO possui cálculos de:
+- Pressão residual de vácuo em mbar ou capacidade da bomba em m³/h
+- Consumo de ar comprimido em PCM ou litros/minuto, nem pressão em bar
+- Micragem exata, número de camadas ou taxas OTR/WVTR de filmes flexíveis
+- Rugosidade de solda Ra ou graus de proteção elétrica IP
+NUNCA penalize ou cobre esses cálculos na nota de completude! A Engenharia da Tecfag cuidará disso na Fase 1.
 
-DIRETRIZES DE ENGENHARIA POR SEGMENTO:
-1. "MISTURADORES" (Processamento e Mistura):
-   - Essencial: Capacidade em litros ou quilos, densidade aparente do pó, riscos de abrasividade/corrosividade, umidade do material e se o pó é explosivo/inflamável (necessidade de motores EX).
-2. "ENCAPSULADORAS" (Encapsulamento & Linhas Farmacêuticas):
-   - Essencial: Tamanho da cápsula (ex: 00, 0, Softgel), comportamento higroscópico/sensibilidade térmica do pó e, se for Softgel, viscosidade da pasta de preenchimento e espessura da gelatina.
-3. "GOMAS" (Fabricação de Gomas & Balas Gummy):
-   - Essencial: Tipo de gelificante (pectina, gelatina ou amido), formato do molde (3D, teflon, silicone), capacidade em kg/hora, temperatura de dosagem e tipo de agente desmoldante (óleo/amido).
-4. "DOSAGEM_SEMIAUTOMATICA" (Dosadores Semiautomáticos):
-   - Essencial: Faixa de dosagem (gramas ou ml), comportamento de fluidez/viscosidade e se o produto gera pó em suspensão (necessidade de bico com exaustão ou gaveta corta-fluxo).
-5. "DOSAGEM_EMPACOTAMENTO" (Empacotamento Automático VFFS / Flow Pack):
-   - Se Formato for "Flow Pack Horizontal":
-     • Essencial: Dimensões do produto (Comprimento x Largura x Altura em mm), sistema de alimentação do produto (esteira de talas/manual ou automático), posição da bobina (superior ou inferior) e tipo de mordente (rotativo ou box motion). NUNCA exija dosador superior ou sensibilidade à queda para Flow Pack!
-   - Se Formato for Vertical (VFFS, Stand-up, Stick):
-     • Essencial: Tipo de dosador superior (balança, rosca, copo ou pistão), dimensões do sachê, tipo de material do filme (Laminado, PE, PP, Papel), tipo de solda e se o filme possui fotocélula.
-6. "ENVASE" (Envasadoras Automáticas de Líquidos/Pastosos):
-   - Essencial: Comportamento de viscosidade (baixo, médio, alto), temperatura de envase, presença de pedaços/sólidos no líquido, diâmetro do gargalo, corrosividade/PH ácido do produto (Inox 316L) e se gera espuma (necessidade de bico mergulhador).
-7. "FECHAMENTO_TAMPAGEM" (Tampadoras, Rosqueadoras, Indução):
-   - Essencial: Diâmetro da tampa, tipo de tampa (rosca, batoque, pressão), torque dinâmico requerido (N.m), presença de lacre inviolável e necessidade de seladora de indução de alumínio.
-8. "VACUO_TERMOFORMADORAS" (Seladoras a Vácuo & Termoformadoras):
-   - Essencial: Dimensões da câmara/bandeja, nível de vácuo desejado, nível de barreira de oxigênio do filme, tipo de bomba de vácuo (m3/h) e se exige injeção de gás (MAP).
-9. "ROTULADORAS" (Rotuladoras & Etiquetadoras):
-   - Essencial: Dimensões do rótulo (largura e altura), formato do frasco (cilíndrico, plano, cônico - conicidade exige cabeçote angular), se o rótulo é transparente (necessidade de sensor especial) e velocidade da esteira.
-10. "TERMOENCOLHIVEL" (Seladoras L, Túneis, Enfardadoras):
-    - Essencial: Dimensões do pacote ou agrupamento de produtos, tipo de filme encolhível (PE, PVC, poliolefínico) e estabilidade do agrupamento (necessidade de bandeja de papelão suporte).
-11. "FINAL_LINHA" (Fechadoras de Caixas, Paletização):
-    - Essencial: Dimensões externas das caixas, peso máximo, tipo de fechamento (fita adesiva ou cola hot-melt), sentido de fluxo da linha e altura da esteira de entrada/saída.
-12. "PROJETOS_ESPECIAIS" (Customizações Personnalité sob Medida):
-    - Essencial: Requisitos específicos de layout de fábrica, normas reguladoras (NR12, sala limpa), pontos de utilidades de fábrica (vazão de ar comprimido em PCM, pressão) e desenho técnico básico.
-13. "SELADORAS_CONTINUAS" (Seladoras Contínuas de Sacos):
-    - Essencial: Material do saco (plástico simples, metalizado, papel Kraft), espessura do saco (micras), peso por saco e tipo de datador (inkjet ou rolo de tinta).
+CRITÉRIOS DE PONTUAÇÃO (COMPLETUDE COMERCIAL):
+- Se o produto a ser embalado/dosado/misturado foi informado: +30 pontos
+- Se as dimensões aproximadas ou formato foram informados: +25 pontos
+- Se a cadência / produção desejada (un/h, kg/h, batidas/min) foi informada: +25 pontos
+- Se a tensão elétrica aproximada (220V, 380V ou "A verificar") foi informada: +20 pontos
+Se esses itens básicos estiverem informados, o score DEVE ser entre 85% e 100% (Verde)!
 
-AVALIAÇÃO DA NOTA DE COMPLETUDE E INCOMPATIBILIDADES FÍSICAS CRÍTICAS (0 a 100):
-1. REGRAS DE INCOMPATIBILIDADE FÍSICA (SE DETECTADAS, SCORE DEVE SER FORÇADO A ZERO "0" E INJETAR O ALERTA NO ARRAY "missing"):
-   - INCOMPATIBILIDADE DE LARGURA VS BALANÇA (Empacotadoras VFFS): Se o dosador superior for "Balança Multicabeçote" ou o produto for grãos/snacks/parafusos E a largura da embalagem for menor que 50 mm (ex: 20 mm, 2 cm, 3 cm, 40 mm), defina "score": 0 e adicione em "missing": "INCOMPATIBILIDADE FÍSICA CRÍTICA: Uma largura de pacote de X mm é estreita demais para escoar produto de Balança Multicabeçote sem entupir. Confirme a largura correta (ex: 200 mm) ou mude o dosador para micro-volumétrico."
-   - INCOMPATIBILIDADE DE VELOCIDADE VS FILME PE (Empacotadoras VFFS): Se o filme especificado for "PE simples" / "PE" (Polietileno Monocamada) E a velocidade requerida for acima de 40 ppm (ex: 80 batidas/minuto, 80 ppm), defina "score": 0 e adicione em "missing": "INCOMPATIBILIDADE CRÍTICA: Selagem de filme PE simples exige tempo de resfriamento (impulso) e é incompatível com velocidades de X ppm. Para 80 ppm, é obrigatório o uso de filme Laminado (BOPP/PE) com selagem por calor constante ou reduzir a velocidade alvo."
+TRATAMENTO DE RESPOSTAS NEGATIVAS:
+- Se o cliente ou vendedor escreveu "sem vácuo", "não se aplica", "não precisa de vácuo" ou similar, NUNCA aponte contradição nem exija bomba de vácuo ou gás MAP! Apenas registre como termoformagem/selagem por calor simples.
 
-2. DESCONTOS DE PREENCHIMENTO REGULARES (Se não houver incompatibilidade física crítica):
-   - Se não tem a produção alvo (velocidade/hora ou minuto) para QUALQUER segmento: desconte 20 pontos.
-   - Se não tem a tensão elétrica (monofásico/trifásico/voltagem) para QUALQUER segmento: desconte 15 pontos.
-   - Se os dados essenciais listados no segmento selecionado acima NÃO foram informados no diagnóstico nem nos parâmetros: desconte 45 pontos.
-   - Se um item não pertence ao segmento selecionado, considere-o como SATISFEITO (não desconte pontos).
+DICAS CONSTRUTIVAS:
+Em "missing", nunca critique com mensagens agressivas. Formate como dicas úteis:
+- "💡 Dica para a próxima conversa com o cliente: [dica amigável]"
 
 Responda ESTRITAMENTE em formato JSON com a seguinte estrutura:
 {
-  "score": 75,
-  "color": "yellow", // "red" para score < 50, "yellow" para 50 <= score < 80, "green" para score >= 80
-  "missing": ["Pergunta/Pendência técnica 1?", "Pergunta/Pendência técnica 2?"],
+  "score": 90,
+  "color": "green",
+  "missing": ["💡 Dica útil 1", "💡 Dica útil 2"],
   "satisfied": ["Parâmetro bem especificado 1", "Parâmetro bem especificado 2"]
 }
 `;
@@ -8030,10 +7944,10 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura:
             score: 100,
             color: "green",
             missing: [
-                "⚠️ ALERTA DE CUSTOMIZAÇÃO: Este escopo sairá do fluxo padrão e exigirá aprovação prévia da Engenharia de Projetos. Não prometa prazos de entrega ou valores finais ao cliente nesta etapa."
+                "💡 Dica da Engenharia: Este escopo terá análise personalizada de Fernando na Fase 1 para definição de prazos e memorial descritivo."
             ],
             satisfied: [
-                "Descrição Detalhada da Dor do Cliente fornecida"
+                "Descrição da necessidade do cliente fornecida"
             ]
         };
     }
@@ -8042,12 +7956,10 @@ Responda ESTRITAMENTE em formato JSON com a seguinte estrutura:
         result = localValidationFallback(segment, diagnostico, extraParams);
     }
     
-    // Aplica validações estritas de engenharia do auditor Tecfag
-    const engineeringErrors = getEngineeringErrors(segment, diagnostico, extraParams);
-    if (engineeringErrors.length > 0) {
-        result.score = 0;
-        result.color = "red";
-        result.missing = [...engineeringErrors, ...(result.missing || [])];
+    // Anexa notas consultivas sem zerar a nota de qualificação do vendedor
+    const engineeringNotes = getEngineeringErrors(segment, diagnostico, extraParams);
+    if (engineeringNotes.length > 0) {
+        result.missing = [...engineeringNotes, ...(result.missing || [])];
     }
     
     return {
@@ -8071,6 +7983,161 @@ app.post('/api/projects/validate-draft', authenticateToken, async (req, res) => 
     } catch (err) {
         res.status(500).json({ error: 'Erro ao validar rascunho: ' + err.message });
     }
+});
+
+// Helper de extração local inteligente caso Gemini esteja indisponível
+function localExtractIntakeFallback(rawText) {
+    const text = rawText || '';
+    
+    // CNPJ
+    let cnpj = null;
+    const cnpjMatch = text.match(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/);
+    if (cnpjMatch) {
+        cnpj = cnpjMatch[0].replace(/\D/g, '');
+    }
+
+    // Telefone / WhatsApp
+    let phone = null;
+    const phoneMatch = text.match(/(?:\(?([1-9]{2})\)?\s*)?(?:(9\d{4})[-\s]?(\d{4})|(\d{4})[-\s]?(\d{4}))/);
+    if (phoneMatch) {
+        phone = phoneMatch[0].trim();
+    }
+
+    // Email
+    let email = null;
+    const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    if (emailMatch) {
+        email = emailMatch[0].trim();
+    }
+
+    // Tensão
+    let tension = 'Não Sabe';
+    if (/380\s*v/i.test(text)) tension = '380V';
+    else if (/220\s*v/i.test(text)) tension = '220V';
+
+    // Dimensões
+    let dimensions = '';
+    const dimMatch = text.match(/\b\d+\s*x\s*\d+(?:\s*x\s*\d+)?(?:\s*(?:mm|cm|m))?\b/i);
+    if (dimMatch) {
+        dimensions = dimMatch[0].trim();
+    }
+
+    // Produção / Cadência
+    let production = '';
+    const prodMatch = text.match(/\b\d+[\.,]?\d*\s*(?:un(?:idades)?|pe[çc]as?|potes?|sacos?|bpm|ppm|por hora|\/h|kg(?:\/h)?)\b/i);
+    if (prodMatch) {
+        production = prodMatch[0].trim();
+    }
+
+    // Detecção de Segmento
+    const lower = text.toLowerCase();
+    let segment = 'PROJETOS_ESPECIAIS';
+    if (lower.includes('misturador') || lower.includes('moinho') || lower.includes('ribbon')) segment = 'MISTURADORES';
+    else if (lower.includes('cápsula') || lower.includes('capsula') || lower.includes('softgel')) segment = 'ENCAPSULADORAS';
+    else if (lower.includes('goma') || lower.includes('gummy') || lower.includes('bala')) segment = 'GOMAS';
+    else if (lower.includes('dosador') && (lower.includes('semi') || lower.includes('manual') || lower.includes('pedal'))) segment = 'DOSAGEM_SEMIAUTOMATICA';
+    else if (lower.includes('flow pack') || lower.includes('flowpack') || lower.includes('vffs') || lower.includes('empacotad') || lower.includes('sachê') || lower.includes('sache')) segment = 'DOSAGEM_EMPACOTAMENTO';
+    else if (lower.includes('envase') || lower.includes('envasadora') || lower.includes('líquido') || lower.includes('liquido') || lower.includes('suco') || lower.includes('frasco')) segment = 'ENVASE';
+    else if (lower.includes('tampa') || lower.includes('rosqueadeira') || lower.includes('indução') || lower.includes('inducao')) segment = 'FECHAMENTO_TAMPAGEM';
+    else if (lower.includes('vácuo') || lower.includes('vacuo') || lower.includes('termoform') || lower.includes('bandeja') || lower.includes('skin')) segment = 'VACUO_TERMOFORMADORAS';
+    else if (lower.includes('rótulo') || lower.includes('rotulo') || lower.includes('rotuladora') || lower.includes('etiqueta')) segment = 'ROTULADORAS';
+    else if (lower.includes('termoencolh') || lower.includes('seladora l') || lower.includes('túnel') || lower.includes('tunel') || lower.includes('enfard')) segment = 'TERMOENCOLHIVEL';
+    else if (lower.includes('caixa') || lower.includes('fechadora de caixa') || lower.includes('paletiz')) segment = 'FINAL_LINHA';
+    else if (lower.includes('seladora contínua') || lower.includes('seladora continua')) segment = 'SELADORAS_CONTINUAS';
+
+    return {
+        client: null,
+        cnpj,
+        contact_name: null,
+        contact_phone: phone,
+        contact_email: email,
+        project_name: 'Projeto de Automação - ' + segment.replace(/_/g, ' '),
+        segment,
+        product: '',
+        dimensions,
+        production_target: production,
+        tension,
+        observations: text,
+        sku_suggested: 'A DEFINIR PELA ENGENHARIA (FASE 1)'
+    };
+}
+
+// POST /api/projects/ai-extract-intake - Extrai dados cadastrais e técnicos de texto livre (WhatsApp, notas) usando IA
+app.post('/api/projects/ai-extract-intake', authenticateToken, async (req, res) => {
+    const { text } = req.body;
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+        return res.status(400).json({ error: 'Nenhum texto informado para extração.' });
+    }
+
+    const rawText = text.trim();
+    const apiKey = process.env.GEMINI_API_KEY;
+    let extracted = null;
+
+    if (apiKey && apiKey.trim() !== '') {
+        try {
+            const prompt = `
+Você é o assistente de inteligência artificial da Tecfag Automação Industrial.
+Sua missão é ler uma anotação comercial, mensagem ou histórico de WhatsApp de uma conversa com um cliente e extrair os dados estruturados para preencher a abertura de um Novo Projeto no MRP.
+
+Texto bruto recebido:
+"""
+${rawText}
+"""
+
+Extraia as seguintes informações e retorne ESTRITAMENTE em formato JSON (sem blocos markdown extras nem explicações):
+{
+  "client": "Nome ou Razão Social da Empresa do Cliente (se não informado, retorne null)",
+  "cnpj": "CNPJ com 14 dígitos (apenas dígitos numéricos, se informado, senão null)",
+  "contact_name": "Nome da pessoa de contato (se informado, senão null)",
+  "contact_phone": "Telefone ou WhatsApp com DDD (se informado, senão null)",
+  "contact_email": "E-mail de contato (se informado, senão null)",
+  "project_name": "Nome descritivo e profissional para o projeto (Ex: Linha de Termoformagem Bandejas 50x50mm)",
+  "segment": "Um dos seguintes exatos: MISTURADORES, ENCAPSULADORAS, GOMAS, DOSAGEM_SEMIAUTOMATICA, DOSAGEM_EMPACOTAMENTO, ENVASE, FECHAMENTO_TAMPAGEM, VACUO_TERMOFORMADORAS, ROTULADORAS, TERMOENCOLHIVEL, FINAL_LINHA, PROJETOS_ESPECIAIS, SELADORAS_CONTINUAS",
+  "product": "O que será produzido ou embalado (Ex: Bandeja plástica, Sachê de café, Frasco com líquido)",
+  "dimensions": "Dimensões ou volume informados (Ex: 50x50x10 mm, 500 ml)",
+  "production_target": "Cadência ou produção desejada (Ex: 8.000 un/hora, 30 bpm)",
+  "tension": "Tensão elétrica se mencionada ('220V', '380V' ou 'Não Sabe')",
+  "observations": "Resumo limpo e profissional de todas as particularidades comerciais e necessidades do cliente.",
+  "sku_suggested": "Sugestão inicial de SKU da Tecfag ou 'A DEFINIR PELA ENGENHARIA (FASE 1)'"
+}
+`;
+            const modelName = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            };
+            
+            const response = await fetch(geminiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
+                    const parsed = cleanAndParseJSON(data.candidates[0].content.parts[0].text);
+                    if (parsed && typeof parsed === 'object') {
+                        extracted = parsed;
+                    }
+                }
+            } else {
+                console.error(`[GEMINI EXTRACT INTAKE ERROR] Status: ${response.status}`);
+            }
+        } catch (e) {
+            console.error('[AI EXTRACT INTAKE ERROR]', e);
+        }
+    }
+
+    if (!extracted) {
+        extracted = localExtractIntakeFallback(rawText);
+    }
+
+    res.json({
+        success: true,
+        extracted
+    });
 });
 
 // GET /api/projects/:code/validate - Executa recálculo de validação do Copiloto para um projeto existente
