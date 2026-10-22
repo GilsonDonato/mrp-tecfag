@@ -511,6 +511,51 @@ function initializeDatabase() {
         db.run(`CREATE INDEX IF NOT EXISTS idx_stock_items_sku ON stock_order_items(sku)`);
         db.run(`CREATE INDEX IF NOT EXISTS idx_stock_payments_due ON stock_order_payments(due_date)`);
 
+        // 5. Tabelas de Gestão de Porto Seco (EADI Bauru) e Nacionalização Fracionada
+        db.run(`CREATE TABLE IF NOT EXISTS stock_eadi_clearances (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER NOT NULL,
+            di_number TEXT NOT NULL,
+            di_date TEXT NOT NULL,
+            exchange_rate REAL DEFAULT 1.0,
+            total_tax_paid REAL DEFAULT 0.0,
+            tax_ii REAL DEFAULT 0.0,
+            tax_ipi REAL DEFAULT 0.0,
+            tax_pis_cofins REAL DEFAULT 0.0,
+            tax_icms REAL DEFAULT 0.0,
+            storage_cost_paid REAL DEFAULT 0.0,
+            other_costs REAL DEFAULT 0.0,
+            nfe_number TEXT,
+            destination_type TEXT DEFAULT 'DOCA_TECFAG',
+            destination_project_id INTEGER,
+            notes TEXT,
+            created_by TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(order_id) REFERENCES stock_orders(id) ON DELETE CASCADE
+        )`);
+
+        db.run(`CREATE TABLE IF NOT EXISTS stock_eadi_clearance_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            clearance_id INTEGER NOT NULL,
+            order_item_id INTEGER NOT NULL,
+            sku TEXT NOT NULL,
+            qty_cleared INTEGER NOT NULL DEFAULT 1,
+            unit_price_fob REAL DEFAULT 0.0,
+            total_price_fob REAL DEFAULT 0.0,
+            FOREIGN KEY(clearance_id) REFERENCES stock_eadi_clearances(id) ON DELETE CASCADE,
+            FOREIGN KEY(order_item_id) REFERENCES stock_order_items(id)
+        )`);
+
+        db.run(`CREATE INDEX IF NOT EXISTS idx_stock_eadi_clearances_order ON stock_eadi_clearances(order_id)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_stock_eadi_clearance_items_sku ON stock_eadi_clearance_items(sku)`);
+
+        // Migrações seguras de colunas para EADI
+        db.run("ALTER TABLE stock_orders ADD COLUMN customs_regime TEXT DEFAULT 'DIRETO_SANTOS'", (err) => {});
+        db.run("ALTER TABLE stock_orders ADD COLUMN dta_number TEXT", (err) => {});
+        db.run("ALTER TABLE stock_orders ADD COLUMN eadi_entry_date TEXT", (err) => {});
+        db.run("ALTER TABLE stock_orders ADD COLUMN eadi_da_number TEXT", (err) => {});
+        db.run("ALTER TABLE stock_order_items ADD COLUMN qty_eadi_admitted INTEGER DEFAULT 0", (err) => {});
+
         // Executar importação assíncrona se necessário
         setTimeout(importClientsCsvIfEmpty, 1000);
     });
@@ -8535,11 +8580,38 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
         sql += ' ORDER BY id DESC';
         const orders = await dbAll(sql, params);
 
-        // Anexar itens e pagamentos de cada ordem
+        // Obter mapa de baixas parciais do EADI
+        const allClearanceItems = await dbAll(`
+            SELECT ci.order_item_id, SUM(ci.qty_cleared) as total_cleared
+            FROM stock_eadi_clearance_items ci
+            JOIN stock_eadi_clearances c ON ci.clearance_id = c.id
+            GROUP BY ci.order_item_id
+        `);
+        const clearedMap = {};
+        allClearanceItems.forEach(r => clearedMap[r.order_item_id] = r.total_cleared || 0);
+
+        const now = new Date();
+
+        // Anexar itens, pagamentos e saldos EADI de cada ordem
         for (const o of orders) {
             o.items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [o.id]);
+            for (const it of o.items) {
+                const admitted = it.qty_eadi_admitted > 0 ? it.qty_eadi_admitted : (it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered);
+                it.qty_cleared = clearedMap[it.id] || 0;
+                it.qty_eadi_balance = Math.max(0, admitted - it.qty_cleared);
+            }
             o.payments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [o.id]);
             o.total_machines = o.items.reduce((sum, it) => sum + (it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered), 0);
+            o.eadi_admitted = o.items.reduce((sum, it) => sum + (it.qty_eadi_admitted > 0 ? it.qty_eadi_admitted : (it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered)), 0);
+            o.eadi_cleared = o.items.reduce((sum, it) => sum + (it.qty_cleared || 0), 0);
+            o.eadi_balance = Math.max(0, o.eadi_admitted - o.eadi_cleared);
+
+            if (o.eadi_entry_date) {
+                const entryDate = new Date(o.eadi_entry_date + 'T00:00:00');
+                o.days_in_eadi = Math.max(0, Math.floor((now - entryDate) / (1000 * 60 * 60 * 24)));
+            } else {
+                o.days_in_eadi = 0;
+            }
         }
 
         // Estatísticas Globais
@@ -8551,12 +8623,19 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
             WHERE so.stage != 'CANCELADO'
         `);
 
+        const machinesInEadi = allItems.filter(i => i.stage === 'ENTREPOSTADO_EADI').reduce((sum, i) => {
+            const admitted = i.qty_eadi_admitted > 0 ? i.qty_eadi_admitted : (i.qty_shipped > 0 ? i.qty_shipped : i.qty_ordered);
+            const clr = clearedMap[i.id] || 0;
+            return sum + Math.max(0, admitted - clr);
+        }, 0);
+
         const stats = {
             total_active_orders: allOrders.filter(o => o.stage !== 'DOCA_GALPAO').length,
             total_fob_pipeline: allOrders.reduce((sum, o) => sum + (o.total_fob_value || 0), 0),
-            machines_in_fabrication: allItems.filter(i => i.stage === 'PO_EMITIDA' || i.stage === 'EM_FABRICACAO').reduce((sum, i) => sum + (i.qty_ordered || 0), 0),
+            machines_in_fabrication: allItems.filter(i => i.stage === 'PO_EMITIDA' || i.stage === 'EM_FABRICACAO' || i.stage === 'PACKING_LIST_EMBARQUE').reduce((sum, i) => sum + (i.qty_ordered || 0), 0),
             machines_on_sea: allItems.filter(i => i.stage === 'NO_NAVIO').reduce((sum, i) => sum + (i.qty_shipped || i.qty_ordered || 0), 0),
             machines_at_port: allItems.filter(i => i.stage === 'NO_PORTO_DESEMBARACO').reduce((sum, i) => sum + (i.qty_shipped || i.qty_ordered || 0), 0),
+            machines_in_eadi: machinesInEadi,
             machines_arrived: allItems.filter(i => i.stage === 'DOCA_GALPAO').reduce((sum, i) => sum + (i.qty_shipped || i.qty_ordered || 0), 0)
         };
 
@@ -8578,6 +8657,42 @@ app.get('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
         }
 
         order.items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [order.id]);
+        
+        // Carregar baixas parciais do EADI desta ordem
+        order.clearances = await dbAll('SELECT * FROM stock_eadi_clearances WHERE order_id = ? ORDER BY di_date DESC, id DESC', [order.id]);
+        for (const cl of order.clearances) {
+            cl.items = await dbAll(`
+                SELECT ci.*, soi.description 
+                FROM stock_eadi_clearance_items ci
+                JOIN stock_order_items soi ON ci.order_item_id = soi.id
+                WHERE ci.clearance_id = ?
+            `, [cl.id]);
+        }
+
+        const clearedMap = {};
+        for (const cl of order.clearances) {
+            for (const cit of cl.items) {
+                clearedMap[cit.order_item_id] = (clearedMap[cit.order_item_id] || 0) + cit.qty_cleared;
+            }
+        }
+
+        for (const it of order.items) {
+            const admitted = it.qty_eadi_admitted > 0 ? it.qty_eadi_admitted : (it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered);
+            it.qty_cleared = clearedMap[it.id] || 0;
+            it.qty_eadi_balance = Math.max(0, admitted - it.qty_cleared);
+        }
+
+        order.eadi_admitted = order.items.reduce((sum, it) => sum + (it.qty_eadi_admitted > 0 ? it.qty_eadi_admitted : (it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered)), 0);
+        order.eadi_cleared = order.items.reduce((sum, it) => sum + (it.qty_cleared || 0), 0);
+        order.eadi_balance = Math.max(0, order.eadi_admitted - order.eadi_cleared);
+
+        if (order.eadi_entry_date) {
+            const entryDate = new Date(order.eadi_entry_date + 'T00:00:00');
+            order.days_in_eadi = Math.max(0, Math.floor((new Date() - entryDate) / (1000 * 60 * 60 * 24)));
+        } else {
+            order.days_in_eadi = 0;
+        }
+
         order.payments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [order.id]);
         order.supplier = order.supplier_id ? await dbGet('SELECT * FROM stock_suppliers WHERE id = ?', [order.supplier_id]) : null;
 
@@ -8739,7 +8854,8 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
         po_number, supplier_id, supplier_name, invoice_number, invoice_date, currency,
         stage, fabrication_start_date, fabrication_end_date, container_id, vessel_name,
         bl_number, bl_date, origin_port, destination_port, etd_date, eta_port_date,
-        eta_warehouse_date, actual_arrival_date, payment_terms_type, payment_terms_desc, notes, items
+        eta_warehouse_date, actual_arrival_date, payment_terms_type, payment_terms_desc, notes, items,
+        customs_regime, dta_number, eadi_entry_date, eadi_da_number
     } = req.body;
 
     try {
@@ -8777,7 +8893,9 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
             bl_date = ?, origin_port = ?, destination_port = ?, etd_date = ?,
             eta_port_date = ?, eta_warehouse_date = ?, actual_arrival_date = ?,
             payment_terms_type = ?, payment_terms_desc = ?, invoice_file_path = ?,
-            packing_list_file_path = ?, bl_file_path = ?, notes = ?, updated_at = ?
+            packing_list_file_path = ?, bl_file_path = ?, notes = ?,
+            customs_regime = ?, dta_number = ?, eadi_entry_date = ?, eadi_da_number = ?,
+            updated_at = ?
             WHERE id = ?`, [
             po_number || existing.po_number,
             supplier_id !== undefined ? supplier_id : existing.supplier_id,
@@ -8802,6 +8920,10 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
             payment_terms_desc !== undefined ? payment_terms_desc : existing.payment_terms_desc,
             invoiceFilePath, packingListFilePath, blFilePath,
             notes !== undefined ? notes : existing.notes,
+            customs_regime !== undefined ? customs_regime : existing.customs_regime,
+            dta_number !== undefined ? dta_number : existing.dta_number,
+            eadi_entry_date !== undefined ? eadi_entry_date : existing.eadi_entry_date,
+            eadi_da_number !== undefined ? eadi_da_number : existing.eadi_da_number,
             new Date().toISOString(),
             orderId
         ]);
@@ -8850,17 +8972,19 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
     }
 });
 
-// POST /api/supply-chain/orders/:id/advance-stage - Avança etapa do pipeline
+// POST /api/supply-chain/orders/:id/advance-stage - Avança etapa do pipeline (com suporte a EADI)
 app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restrictToSupplyChain, async (req, res) => {
     const orderId = req.params.id;
     const user = req.user ? req.user.username : 'Sistema';
-    const stages = ['PO_EMITIDA', 'EM_FABRICACAO', 'PACKING_LIST_EMBARQUE', 'NO_NAVIO', 'NO_PORTO_DESEMBARACO', 'DOCA_GALPAO'];
+    const { target_stage } = req.body || {};
+    const stages = ['PO_EMITIDA', 'EM_FABRICACAO', 'PACKING_LIST_EMBARQUE', 'NO_NAVIO', 'NO_PORTO_DESEMBARACO', 'ENTREPOSTADO_EADI', 'DOCA_GALPAO'];
     const stageLabels = {
         'PO_EMITIDA': 'Proforma Emitida',
         'EM_FABRICACAO': 'Em Fabricação no Exterior',
         'PACKING_LIST_EMBARQUE': 'Packing List & Carga Pronta',
         'NO_NAVIO': 'Em Trânsito Marítimo',
         'NO_PORTO_DESEMBARACO': 'No Porto / Desembaraço Aduaneiro',
+        'ENTREPOSTADO_EADI': 'Porto Seco (EADI Bauru)',
         'DOCA_GALPAO': 'Entregue na Doca / Estoque Tecfag'
     };
 
@@ -8870,31 +8994,351 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
             return res.status(404).json({ error: 'Ordem não encontrada.' });
         }
 
-        const currentIndex = stages.indexOf(order.stage);
-        if (currentIndex === -1 || currentIndex >= stages.length - 1) {
-            return res.status(400).json({ error: 'A ordem já está na etapa final ou inválida.' });
+        let nextStage;
+        if (target_stage && stages.includes(target_stage)) {
+            nextStage = target_stage;
+        } else {
+            const currentIndex = stages.indexOf(order.stage);
+            if (currentIndex === -1 || currentIndex >= stages.length - 1) {
+                return res.status(400).json({ error: 'A ordem já está na etapa final ou inválida.' });
+            }
+            if (order.stage === 'NO_PORTO_DESEMBARACO') {
+                nextStage = (order.customs_regime === 'EADI_BAURU') ? 'ENTREPOSTADO_EADI' : 'DOCA_GALPAO';
+            } else {
+                nextStage = stages[currentIndex + 1];
+            }
         }
 
-        const nextStage = stages[currentIndex + 1];
         let actualArrival = order.actual_arrival_date;
         if (nextStage === 'DOCA_GALPAO' && !actualArrival) {
             actualArrival = new Date().toISOString().split('T')[0];
         }
 
-        await dbRun('UPDATE stock_orders SET stage = ?, actual_arrival_date = ?, updated_at = ? WHERE id = ?', [
-            nextStage, actualArrival, new Date().toISOString(), orderId
+        let eadiEntry = order.eadi_entry_date;
+        let customsRegime = order.customs_regime;
+        if (nextStage === 'ENTREPOSTADO_EADI') {
+            if (!eadiEntry) eadiEntry = new Date().toISOString().split('T')[0];
+            customsRegime = 'EADI_BAURU';
+
+            // Inicializar qty_eadi_admitted em stock_order_items se ainda for 0
+            const items = await dbAll('SELECT id, qty_ordered, qty_shipped, qty_eadi_admitted FROM stock_order_items WHERE order_id = ?', [orderId]);
+            for (const it of items) {
+                if (!it.qty_eadi_admitted || it.qty_eadi_admitted <= 0) {
+                    const admitted = it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered;
+                    await dbRun('UPDATE stock_order_items SET qty_eadi_admitted = ? WHERE id = ?', [admitted, it.id]);
+                }
+            }
+        }
+
+        await dbRun(`UPDATE stock_orders SET 
+            stage = ?, actual_arrival_date = ?, eadi_entry_date = ?, customs_regime = ?, updated_at = ? 
+            WHERE id = ?`, [
+            nextStage, actualArrival, eadiEntry, customsRegime, new Date().toISOString(), orderId
         ]);
 
+        const badgeColor = nextStage === 'ENTREPOSTADO_EADI' ? '#f59e0b' : (nextStage === 'DOCA_GALPAO' ? '#10b981' : '#a855f7');
         await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
             new Date().toISOString(),
-            '#a855f7',
-            `<strong>[SUPPLY CHAIN]</strong> Container/PO <strong>${order.po_number}</strong> avançou para a etapa <strong>${stageLabels[nextStage]}</strong> (por ${user}).`
+            badgeColor,
+            `<strong>[SUPPLY CHAIN]</strong> Container/PO <strong>${order.po_number}</strong> avançou para a etapa <strong>${stageLabels[nextStage] || nextStage}</strong> (por ${user}).`
         ]);
 
         const updated = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
         res.json({ success: true, order: updated });
     } catch (err) {
         res.status(500).json({ error: 'Erro ao avançar etapa: ' + err.message });
+    }
+});
+
+// POST /api/supply-chain/orders/:id/eadi-clearance - Registrar Nacionalização Parcial / Baixa de Lote do EADI
+app.post('/api/supply-chain/orders/:id/eadi-clearance', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const orderId = req.params.id;
+    const user = req.user ? req.user.username : 'Sistema';
+    const {
+        di_number,
+        di_date,
+        exchange_rate,
+        total_tax_paid,
+        tax_ii,
+        tax_ipi,
+        tax_pis_cofins,
+        tax_icms,
+        storage_cost_paid,
+        other_costs,
+        nfe_number,
+        destination_type,
+        destination_project_id,
+        notes,
+        items
+    } = req.body;
+
+    if (!di_number || !di_date || !items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: 'Número da DI, Data da DI e pelo menos um item são obrigatórios.' });
+    }
+
+    try {
+        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        if (!order) return res.status(404).json({ error: 'Ordem não encontrada.' });
+
+        // Validação de saldos disponíveis
+        const orderItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [orderId]);
+        const itemMap = {};
+        orderItems.forEach(it => itemMap[it.id] = it);
+
+        const currentClearances = await dbAll(`
+            SELECT ci.order_item_id, SUM(ci.qty_cleared) as total_cleared
+            FROM stock_eadi_clearance_items ci
+            JOIN stock_eadi_clearances c ON ci.clearance_id = c.id
+            WHERE c.order_id = ?
+            GROUP BY ci.order_item_id
+        `, [orderId]);
+        const clearedMap = {};
+        currentClearances.forEach(r => clearedMap[r.order_item_id] = r.total_cleared || 0);
+
+        for (const it of items) {
+            const original = itemMap[it.order_item_id];
+            if (!original) {
+                return res.status(400).json({ error: `Item ID ${it.order_item_id} não pertence a esta ordem.` });
+            }
+            const admitted = original.qty_eadi_admitted > 0 ? original.qty_eadi_admitted : (original.qty_shipped > 0 ? original.qty_shipped : original.qty_ordered);
+            const alreadyCleared = clearedMap[it.order_item_id] || 0;
+            const available = admitted - alreadyCleared;
+            if (parseInt(it.qty_cleared) > available) {
+                return res.status(400).json({ error: `Quantidade informada (${it.qty_cleared}) para ${it.sku} excede o saldo disponível no EADI (${available}).` });
+            }
+        }
+
+        // Inserir cabeçalho do desembaraço
+        const clRes = await dbRun(`
+            INSERT INTO stock_eadi_clearances (
+                order_id, di_number, di_date, exchange_rate, total_tax_paid,
+                tax_ii, tax_ipi, tax_pis_cofins, tax_icms, storage_cost_paid,
+                other_costs, nfe_number, destination_type, destination_project_id,
+                notes, created_by, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+            orderId,
+            di_number.trim(),
+            di_date,
+            parseFloat(exchange_rate) || 1.0,
+            parseFloat(total_tax_paid) || 0.0,
+            parseFloat(tax_ii) || 0.0,
+            parseFloat(tax_ipi) || 0.0,
+            parseFloat(tax_pis_cofins) || 0.0,
+            parseFloat(tax_icms) || 0.0,
+            parseFloat(storage_cost_paid) || 0.0,
+            parseFloat(other_costs) || 0.0,
+            (nfe_number || '').trim(),
+            destination_type || 'DOCA_TECFAG',
+            destination_project_id ? String(destination_project_id).trim() : null,
+            (notes || '').trim(),
+            user,
+            new Date().toISOString()
+        ]);
+
+        const clearanceId = clRes.lastID;
+
+        // Inserir itens baixados
+        let totalItemsCleared = 0;
+        for (const it of items) {
+            const qty = parseInt(it.qty_cleared);
+            if (qty > 0) {
+                totalItemsCleared += qty;
+                const unitPrice = parseFloat(it.unit_price_fob) || 0.0;
+                await dbRun(`
+                    INSERT INTO stock_eadi_clearance_items (
+                        clearance_id, order_item_id, sku, qty_cleared, unit_price_fob, total_price_fob
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                `, [
+                    clearanceId,
+                    it.order_item_id,
+                    it.sku,
+                    qty,
+                    unitPrice,
+                    qty * unitPrice
+                ]);
+            }
+        }
+
+        // Se vinculado a um projeto de automação, registrar histórico
+        if (destination_project_id) {
+            const proj = await dbGet('SELECT code, client FROM projects WHERE code = ?', [String(destination_project_id).trim()]);
+            if (proj) {
+                const itemsSummary = items.filter(i => parseInt(i.qty_cleared) > 0).map(i => `${i.qty_cleared}x ${i.sku}`).join(', ');
+                await dbRun(`
+                    INSERT INTO comments (projectCode, user, message, dateAdded)
+                    VALUES (?, ?, ?, ?)
+                `, [
+                    proj.code,
+                    user,
+                    `[SUPPLY CHAIN / EADI] ${itemsSummary} nacionalizada(s) sob DI ${di_number} (Container: ${order.container_id || order.po_number}) e vinculada(s) a este projeto.`,
+                    new Date().toISOString()
+                ]);
+            }
+        }
+
+        // Log no sistema
+        await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
+            new Date().toISOString(),
+            '#f59e0b',
+            `<strong>[EADI BAURU]</strong> Baixa parcial de <strong>${totalItemsCleared} máquina(s)</strong> registrada sob DI <strong>${di_number}</strong> para a ordem <strong>${order.po_number}</strong> (por ${user}).`
+        ]);
+
+        // Verificar se todo o container foi 100% nacionalizado
+        const updatedClearances = await dbAll(`
+            SELECT ci.order_item_id, SUM(ci.qty_cleared) as total_cleared
+            FROM stock_eadi_clearance_items ci
+            JOIN stock_eadi_clearances c ON ci.clearance_id = c.id
+            WHERE c.order_id = ?
+            GROUP BY ci.order_item_id
+        `, [orderId]);
+        const updatedClearedMap = {};
+        updatedClearances.forEach(r => updatedClearedMap[r.order_item_id] = r.total_cleared || 0);
+
+        let allCleared = true;
+        for (const orig of orderItems) {
+            const admitted = orig.qty_eadi_admitted > 0 ? orig.qty_eadi_admitted : (orig.qty_shipped > 0 ? orig.qty_shipped : orig.qty_ordered);
+            const clr = updatedClearedMap[orig.id] || 0;
+            if (clr < admitted) {
+                allCleared = false;
+                break;
+            }
+        }
+
+        if (allCleared) {
+            await dbRun(`UPDATE stock_orders SET stage = 'DOCA_GALPAO', actual_arrival_date = ?, updated_at = ? WHERE id = ?`, [
+                new Date().toISOString().split('T')[0],
+                new Date().toISOString(),
+                orderId
+            ]);
+            await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
+                new Date().toISOString(),
+                '#10b981',
+                `<strong>[EADI BAURU]</strong> Container/PO <strong>${order.po_number}</strong> teve 100% de sua carga nacionalizada e foi transferido para Doca Tecfag / Estoque Concluído.`
+            ]);
+        }
+
+        res.json({
+            success: true,
+            clearance_id: clearanceId,
+            all_cleared: allCleared,
+            message: allCleared ? 'Todas as máquinas foram nacionalizadas com sucesso! Container concluído.' : 'Nacionalização parcial registrada com sucesso!'
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao registrar baixa no EADI: ' + err.message });
+    }
+});
+
+// GET /api/supply-chain/eadi/inventory - Visão consolidada de todas as máquinas armazenadas no EADI Bauru
+app.get('/api/supply-chain/eadi/inventory', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    try {
+        const rows = await dbAll(`
+            SELECT 
+                soi.id as order_item_id,
+                soi.order_id,
+                soi.sku,
+                soi.description,
+                soi.qty_ordered,
+                soi.qty_shipped,
+                soi.qty_eadi_admitted,
+                soi.unit_price_fob,
+                so.po_number,
+                so.supplier_name,
+                so.container_id,
+                so.eadi_entry_date,
+                so.eadi_da_number,
+                so.stage,
+                so.currency
+            FROM stock_order_items soi
+            JOIN stock_orders so ON soi.order_id = so.id
+            WHERE so.stage = 'ENTREPOSTADO_EADI' OR so.customs_regime = 'EADI_BAURU'
+            ORDER BY so.eadi_entry_date ASC, soi.sku ASC
+        `);
+
+        const clearances = await dbAll(`
+            SELECT ci.order_item_id, SUM(ci.qty_cleared) as total_cleared
+            FROM stock_eadi_clearance_items ci
+            GROUP BY ci.order_item_id
+        `);
+        const clearedMap = {};
+        clearances.forEach(c => clearedMap[c.order_item_id] = c.total_cleared || 0);
+
+        const now = new Date();
+        const inventory = [];
+        let totalMachines = 0;
+        let totalFob = 0;
+        const containersSet = new Set();
+        let nearExpiryCount = 0;
+        let criticalExpiryCount = 0;
+
+        for (const r of rows) {
+            const admitted = r.qty_eadi_admitted > 0 ? r.qty_eadi_admitted : (r.qty_shipped > 0 ? r.qty_shipped : r.qty_ordered);
+            const cleared = clearedMap[r.order_item_id] || 0;
+            const balance = Math.max(0, admitted - cleared);
+
+            if (balance > 0) {
+                let daysInEadi = 0;
+                if (r.eadi_entry_date) {
+                    const entry = new Date(r.eadi_entry_date + 'T00:00:00');
+                    daysInEadi = Math.max(0, Math.floor((now - entry) / (1000 * 60 * 60 * 24)));
+                }
+
+                if (daysInEadi >= 270) criticalExpiryCount++;
+                else if (daysInEadi >= 180) nearExpiryCount++;
+
+                totalMachines += balance;
+                totalFob += balance * (r.unit_price_fob || 0);
+                if (r.container_id || r.po_number) containersSet.add(r.container_id || r.po_number);
+
+                inventory.push({
+                    order_item_id: r.order_item_id,
+                    order_id: r.order_id,
+                    po_number: r.po_number,
+                    supplier_name: r.supplier_name,
+                    container_id: r.container_id || 'S/N',
+                    eadi_da_number: r.eadi_da_number || 'Pendente',
+                    eadi_entry_date: r.eadi_entry_date,
+                    days_in_eadi: daysInEadi,
+                    sku: r.sku,
+                    description: r.description,
+                    qty_admitted: admitted,
+                    qty_cleared: cleared,
+                    qty_balance: balance,
+                    unit_price_fob: r.unit_price_fob || 0,
+                    total_fob_balance: balance * (r.unit_price_fob || 0),
+                    currency: r.currency || 'USD'
+                });
+            }
+        }
+
+        res.json({
+            inventory,
+            stats: {
+                total_machines_in_eadi: totalMachines,
+                total_fob_in_eadi: totalFob,
+                total_containers_in_eadi: containersSet.size,
+                near_expiry_count: nearExpiryCount,
+                critical_expiry_count: criticalExpiryCount
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao carregar inventário do EADI: ' + err.message });
+    }
+});
+
+// GET /api/supply-chain/projects-lookup - Lista rápida de projetos ativos para vinculação
+app.get('/api/supply-chain/projects-lookup', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    try {
+        const projects = await dbAll(`
+            SELECT code, client, project_name, sku, fase
+            FROM projects
+            WHERE fase < 6
+            ORDER BY rowid DESC
+            LIMIT 100
+        `);
+        res.json(projects);
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao buscar projetos: ' + err.message });
     }
 });
 
@@ -9258,6 +9702,7 @@ app.get('/api/supply-chain/sku-matrix', authenticateToken, restrictToSupplyChain
 
             const effectiveQty = row.qty_shipped > 0 ? row.qty_shipped : row.qty_ordered;
             matrixMap[skuKey].total_pipeline_qty += effectiveQty;
+            if (matrixMap[skuKey].qty_in_eadi === undefined) matrixMap[skuKey].qty_in_eadi = 0;
 
             if (row.stage === 'PO_EMITIDA' || row.stage === 'EM_FABRICACAO' || row.stage === 'PACKING_LIST_EMBARQUE') {
                 matrixMap[skuKey].qty_in_fabrication += effectiveQty;
@@ -9265,6 +9710,8 @@ app.get('/api/supply-chain/sku-matrix', authenticateToken, restrictToSupplyChain
                 matrixMap[skuKey].qty_on_sea += effectiveQty;
             } else if (row.stage === 'NO_PORTO_DESEMBARACO') {
                 matrixMap[skuKey].qty_at_port += effectiveQty;
+            } else if (row.stage === 'ENTREPOSTADO_EADI') {
+                matrixMap[skuKey].qty_in_eadi += effectiveQty;
             } else if (row.stage === 'DOCA_GALPAO') {
                 matrixMap[skuKey].qty_in_warehouse += effectiveQty;
             }

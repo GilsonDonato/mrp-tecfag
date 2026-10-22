@@ -3399,6 +3399,9 @@
                 <button id="sc-tab-btn-matrix" onclick="switchSupplyChainSubTab('matrix')" class="sc-subtab-btn" style="padding: 9px 18px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
                     🔍 <span>Matriz de Máquinas em Trânsito (SKU Search)</span>
                 </button>
+                <button id="sc-tab-btn-eadi" onclick="switchSupplyChainSubTab('eadi')" class="sc-subtab-btn" style="padding: 9px 18px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
+                    📦 <span>Porto Seco EADI Bauru</span> <span id="sc-badge-eadi-count" class="badge" style="background: rgba(245, 158, 11, 0.25); color: #f59e0b; margin-left: 4px; font-size: 0.72rem; padding: 2px 6px; border-radius: 10px;">0 un</span>
+                </button>
                 <button id="sc-tab-btn-payments" onclick="switchSupplyChainSubTab('payments')" class="sc-subtab-btn" style="padding: 9px 18px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
                     💵 <span>Calendário & Fluxo Cambial</span>
                 </button>
@@ -3409,7 +3412,7 @@
 
             <!-- SUB-TAB 1: KANBAN DE CONTAINERS -->
             <div id="sc-subtab-kanban" style="display: block;">
-                <div class="sc-kanban-board" style="display: grid; grid-template-columns: repeat(6, minmax(280px, 1fr)); gap: 14px; overflow-x: auto; padding-bottom: 20px;">
+                <div class="sc-kanban-board" style="display: grid; grid-template-columns: repeat(7, minmax(280px, 1fr)); gap: 14px; overflow-x: auto; padding-bottom: 20px;">
                     <!-- Column 1: Proforma Emitida -->
                     <div class="sc-kanban-col" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); border-top: 4px solid #38bdf8; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; min-height: 500px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -3455,10 +3458,19 @@
                         <div id="sc-cards-NO_PORTO_DESEMBARACO" class="sc-kanban-cards" style="display: flex; flex-direction: column; gap: 10px; flex: 1;"></div>
                     </div>
 
-                    <!-- Column 6: Doca Tecfag / Disponível -->
+                    <!-- Column 6: Porto Seco (EADI Bauru) -->
+                    <div class="sc-kanban-col" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(245, 158, 11, 0.3); border-top: 4px solid #f59e0b; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; min-height: 500px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div style="font-size: 0.8rem; font-weight: 800; color: #f59e0b;">6. NO PORTO SECO (EADI BAURU)</div>
+                            <span class="badge" id="sc-count-entrepostado-eadi" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px;">0</span>
+                        </div>
+                        <div id="sc-cards-ENTREPOSTADO_EADI" class="sc-kanban-cards" style="display: flex; flex-direction: column; gap: 10px; flex: 1;"></div>
+                    </div>
+
+                    <!-- Column 7: Doca Tecfag / Disponível -->
                     <div class="sc-kanban-col" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(16, 185, 129, 0.3); border-top: 4px solid #10b981; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; min-height: 500px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <div style="font-size: 0.8rem; font-weight: 800; color: #10b981;">6. DOCA TECFAG / ESTOQUE</div>
+                            <div style="font-size: 0.8rem; font-weight: 800; color: #10b981;">7. DOCA TECFAG / ESTOQUE</div>
                             <span class="badge" id="sc-count-doca-galpao" style="background: rgba(16, 185, 129, 0.2); color: #10b981; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px;">0</span>
                         </div>
                         <div id="sc-cards-DOCA_GALPAO" class="sc-kanban-cards" style="display: flex; flex-direction: column; gap: 10px; flex: 1;"></div>
@@ -3483,6 +3495,99 @@
                 <!-- Matrix Results Container -->
                 <div id="sc-sku-matrix-results" style="display: flex; flex-direction: column; gap: 16px;">
                     <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <!-- SUB-TAB EADI: GESTÃO DE ESTOQUE NO PORTO SECO (EADI BAURU) -->
+            <div id="sc-subtab-eadi" style="display: none;">
+                <div class="project-table-card" style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <h3 style="margin: 0; color: #f59e0b; font-size: 1.25rem;">📦 Armazém Porto Seco (EADI Bauru)</h3>
+                                <span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; font-weight: bold;">
+                                    Regime Especial de Entreposto Aduaneiro
+                                </span>
+                            </div>
+                            <p style="font-size: 0.78rem; color: var(--text-secondary); margin: 4px 0 0 0;">
+                                Cargas desovadas em Bauru com <strong>suspensão de impostos (IN RFB 241/2002)</strong>. Nacionalize por etapas à medida que os pedidos de venda ou projetos forem confirmados.
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" class="btn" onclick="loadEadiInventory()" style="background: rgba(255,255,255,0.08); color: white; padding: 8px 14px; font-size: 0.8rem; border-radius: 6px;">
+                                🔄 Atualizar Saldos
+                            </button>
+                            <button type="button" class="btn" onclick="openEadiClearanceModal(null)" style="background: #f59e0b; color: black; font-weight: 800; padding: 8px 16px; font-size: 0.8rem; border-radius: 6px;">
+                                ⚡ Nova Nacionalização Parcial
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KPIs do Porto Seco EADI -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px;">
+                        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 14px;">
+                            <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Máquinas no EADI (Saldo Físico)</div>
+                            <div style="font-size: 1.6rem; font-weight: 800; color: #f59e0b; margin-top: 4px;" id="sc-eadi-kpi-machines">0 un.</div>
+                            <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">Disponíveis para retirada rápida em 2 a 4 dias</div>
+                        </div>
+
+                        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 14px;">
+                            <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Valor FOB sob Suspensão</div>
+                            <div style="font-size: 1.6rem; font-weight: 800; color: #38bdf8; margin-top: 4px;" id="sc-eadi-kpi-fob">$ 0.00</div>
+                            <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">Capital preservado sem desembolso prévio de impostos</div>
+                        </div>
+
+                        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 14px;">
+                            <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Cargas / Containers Desovados</div>
+                            <div style="font-size: 1.6rem; font-weight: 800; color: #a855f7; margin-top: 4px;" id="sc-eadi-kpi-containers">0</div>
+                            <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">Containers devolvidos (sem custo de demurrage)</div>
+                        </div>
+
+                        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 14px;">
+                            <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Alertas de Permanência (>180d)</div>
+                            <div style="font-size: 1.6rem; font-weight: 800; color: #10b981; margin-top: 4px;" id="sc-eadi-kpi-alerts">0</div>
+                            <div style="font-size: 0.7rem; color: #64748b; margin-top: 2px;">Prazo legal RFB de até 1 ano sob DA</div>
+                        </div>
+                    </div>
+
+                    <!-- Filtros da Tabela EADI -->
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px;">
+                        <div style="flex: 1; min-width: 240px;">
+                            <input type="text" id="sc-eadi-filter-search" oninput="filterEadiInventoryTable()" class="form-control" placeholder="🔍 Filtrar por SKU, modelo da máquina ou container/PO..." style="padding: 8px 12px; font-size: 0.85rem;">
+                        </div>
+                        <div style="min-width: 180px;">
+                            <select id="sc-eadi-filter-days" onchange="filterEadiInventoryTable()" class="form-control" style="padding: 8px 12px; font-size: 0.85rem;">
+                                <option value="ALL">Todos os prazos</option>
+                                <option value="OVER_90">Mais de 90 dias no EADI</option>
+                                <option value="OVER_180">Mais de 180 dias (Atenção)</option>
+                                <option value="OVER_270">Mais de 270 dias (Crítico)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Tabela de Máquinas no EADI -->
+                    <div style="overflow-x: auto;">
+                        <table class="table" style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary); text-align: left;">
+                                    <th style="padding: 10px 8px;">Modelo / SKU</th>
+                                    <th style="padding: 10px 8px;">Descrição da Máquina</th>
+                                    <th style="padding: 10px 8px;">Container / PO</th>
+                                    <th style="padding: 10px 8px;">Entrada EADI</th>
+                                    <th style="padding: 10px 8px; text-align: center;">Permanência</th>
+                                    <th style="padding: 10px 8px; text-align: center;">Admitido</th>
+                                    <th style="padding: 10px 8px; text-align: center;">Nacionalizado</th>
+                                    <th style="padding: 10px 8px; text-align: center; color: #f59e0b; font-weight: bold;">Saldo EADI</th>
+                                    <th style="padding: 10px 8px; text-align: right;">Unit. FOB</th>
+                                    <th style="padding: 10px 8px; text-align: right;">FOB Total Saldo</th>
+                                    <th style="padding: 10px 8px; text-align: right;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sc-eadi-inventory-tbody">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -6123,12 +6228,46 @@
 
                     <!-- Abas internas dos Detalhes: Itens | Parcelas | Anexos -->
                     <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
-                        <div style="display: flex; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                        <!-- Campos EADI & Regime Aduaneiro -->
+                    <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                        <div style="font-size: 0.72rem; font-weight: 800; color: #f59e0b; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+                            <span>📦 Regime Aduaneiro & Entreposto (EADI Bauru)</span>
+                            <span id="sc-det-eadi-balance-badge" style="font-size: 0.72rem; font-weight: bold; color: #f59e0b;"></span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.68rem; font-weight: 700; color: #f59e0b;">Destino Aduaneiro:</label>
+                                <select id="sc-det-customs-regime" class="form-control" style="padding: 6px 8px; font-size: 0.8rem;">
+                                    <option value="DIRETO_SANTOS">Desembaraço Direto Santos</option>
+                                    <option value="EADI_BAURU">DTA para EADI Bauru (Porto Seco)</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Nº DTA (Trânsito Aduaneiro):</label>
+                                <input type="text" id="sc-det-dta-number" class="form-control" placeholder="Ex: 26/0491823-1" style="padding: 6px 8px; font-size: 0.8rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Data Entrada / Desova EADI:</label>
+                                <input type="date" id="sc-det-eadi-entry-date" class="form-control" style="padding: 6px 8px; font-size: 0.8rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Nº Declaração Admissão (D.A.):</label>
+                                <input type="text" id="sc-det-eadi-da-number" class="form-control" placeholder="Ex: 26/1849102-0" style="padding: 6px 8px; font-size: 0.8rem;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Abas internas dos Detalhes: Itens | Parcelas | EADI Clearances -->
+                    <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; flex-wrap: wrap;">
                             <button type="button" id="sc-det-tab-btn-items" onclick="switchDetailsSubTab('items')" class="btn" style="padding: 4px 12px; font-size: 0.75rem; font-weight: bold; background: #38bdf8; color: black;">
                                 ⚙️ Máquinas no Container
                             </button>
                             <button type="button" id="sc-det-tab-btn-payments" onclick="switchDetailsSubTab('payments')" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.75rem; font-weight: bold;">
                                 💵 Parcelas de Câmbio
+                            </button>
+                            <button type="button" id="sc-det-tab-btn-clearances" onclick="switchDetailsSubTab('clearances')" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.75rem; font-weight: bold; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;">
+                                📜 Nacionalizações EADI (DIs)
                             </button>
                         </div>
 
@@ -6167,6 +6306,33 @@
                                         </tr>
                                     </thead>
                                     <tbody id="sc-details-payments-tbody">
+                                        <!-- Populated via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="sc-det-subtab-clearances" style="display: none;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                                <span style="font-size: 0.75rem; color: var(--text-secondary);">Histórico de baixas parciais por Declaração de Importação (D.I.) e tributos recolhidos:</span>
+                                <button type="button" class="btn" onclick="openEadiClearanceModalForCurrentOrder()" style="background: #f59e0b; color: black; font-weight: bold; padding: 4px 12px; font-size: 0.72rem; border-radius: 4px;">
+                                    ⚡ Registrar Nova Baixa EADI
+                                </button>
+                            </div>
+                            <div style="overflow-x: auto;">
+                                <table class="table" style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left;">
+                                            <th style="padding: 6px;">Data D.I.</th>
+                                            <th style="padding: 6px;">Nº D.I. / DUIMP</th>
+                                            <th style="padding: 6px;">Máquinas Desembaraçadas</th>
+                                            <th style="padding: 6px; text-align: right;">PTAX (R$)</th>
+                                            <th style="padding: 6px; text-align: right;">Tributos Pagos</th>
+                                            <th style="padding: 6px;">NF-e Entrada</th>
+                                            <th style="padding: 6px;">Destino</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sc-details-clearances-tbody">
                                         <!-- Populated via JS -->
                                     </tbody>
                                 </table>
@@ -6343,6 +6509,217 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. MODAL REGISTRO DE NACIONALIZAÇÃO PARCIAL (BAIXA DE LOTE DO EADI BAURU) -->
+    <div class="modal-overlay" id="modal-eadi-clearance" style="z-index: 1280; display: none;">
+        <div class="modal" style="max-width: 850px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(30, 41, 59, 0.9) 100%); border-bottom: 1px solid rgba(245, 158, 11, 0.3);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5rem;">⚡</span>
+                    <div>
+                        <h3 style="margin: 0; color: #f59e0b;">Nacionalização Parcial de Lote (EADI Bauru)</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #94a3b8;">Desembaraço aduaneiro fracionado sob Regime Especial de Entreposto.</p>
+                    </div>
+                </div>
+                <button class="btn-icon" onclick="closeEadiClearanceModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
+                <form id="eadi-clearance-form" onsubmit="submitEadiClearance(event)">
+                    <!-- Seleção de Container / PO -->
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.75rem; font-weight: 700; color: #f59e0b;">Selecione o Container / PO com Carga no EADI *</label>
+                            <select id="eadi-cl-order-select" onchange="onEadiClearanceOrderChange()" class="form-control" style="padding: 10px; font-size: 0.88rem; font-weight: bold; border-color: rgba(245, 158, 11, 0.4);" required>
+                                <option value="">-- Selecione a ordem com carga no EADI --</option>
+                            </select>
+                        </div>
+                        <div id="eadi-cl-order-info" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.1); font-size: 0.75rem; color: #cbd5e1; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                            <span>Fornecedor: <strong id="eadi-cl-info-supplier">-</strong></span>
+                            <span>Entrada no EADI: <strong id="eadi-cl-info-entry">-</strong></span>
+                            <span>Permanência: <strong id="eadi-cl-info-days" style="color: #f59e0b;">-</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Tabela de Máquinas do Container para Seleção de Quantidades -->
+                    <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div style="font-size: 0.78rem; font-weight: 800; color: #38bdf8; text-transform: uppercase;">
+                                1. Selecione as Máquinas e Quantidades a Retirar Agora
+                            </div>
+                            <span style="font-size: 0.7rem; color: var(--text-secondary);">Digite a quantidade que será desembaraçada nesta D.I.</span>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table class="table" style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left;">
+                                        <th style="padding: 6px;">Modelo / SKU</th>
+                                        <th style="padding: 6px;">Descrição</th>
+                                        <th style="padding: 6px; text-align: center;">Admitido EADI</th>
+                                        <th style="padding: 6px; text-align: center; color: #f59e0b; font-weight: bold;">Saldo Disponível</th>
+                                        <th style="padding: 6px; text-align: center; width: 140px; color: #4ade80; font-weight: bold;">Qtd a Nacionalizar *</th>
+                                        <th style="padding: 6px; text-align: right;">FOB Unitário</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="eadi-cl-items-tbody">
+                                    <tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 16px;">Selecione um container acima para listar as máquinas disponíveis.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Dados da D.I. / DUIMP e Informações Fiscais -->
+                    <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div style="font-size: 0.78rem; font-weight: 800; color: #f59e0b; text-transform: uppercase; margin-bottom: 12px;">
+                            2. Dados Aduaneiros & Financeiros da Parcela
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: #f59e0b;">Número da D.I. / DUIMP *</label>
+                                <input type="text" id="eadi-cl-di-number" class="form-control" placeholder="Ex: 26/1849201-0" style="padding: 8px; font-size: 0.85rem;" required>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Data do Registro da D.I. *</label>
+                                <input type="date" id="eadi-cl-di-date" class="form-control" style="padding: 8px; font-size: 0.85rem;" required>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Taxa Cambial PTAX (R$/USD)</label>
+                                <input type="number" step="0.0001" id="eadi-cl-exchange-rate" class="form-control" value="5.4500" style="padding: 8px; font-size: 0.85rem;">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: #4ade80;">Total Desembolsado em Tributos (R$)</label>
+                                <input type="number" step="0.01" id="eadi-cl-total-tax" class="form-control" placeholder="Ex: 14500.00" style="padding: 8px; font-size: 0.85rem; border-color: rgba(74, 222, 128, 0.4);">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Número NF-e Entrada Tecfag</label>
+                                <input type="text" id="eadi-cl-nfe" class="form-control" placeholder="Ex: NF 12849" style="padding: 8px; font-size: 0.85rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Armazenagem EADI Paga (R$)</label>
+                                <input type="number" step="0.01" id="eadi-cl-storage-cost" class="form-control" placeholder="Ex: 850.00" style="padding: 8px; font-size: 0.85rem;">
+                            </div>
+                        </div>
+
+                        <!-- Detalhamento Opcional de Tributos -->
+                        <details style="margin-top: 8px; font-size: 0.75rem; color: #94a3b8;">
+                            <summary style="cursor: pointer; color: #38bdf8; font-weight: 600; margin-bottom: 8px;">+ Detalhar tributos individuais (II, IPI, PIS, COFINS, ICMS - Opcional)</summary>
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.65rem;">II (Imp. Imp.):</label>
+                                    <input type="number" step="0.01" id="eadi-cl-tax-ii" class="form-control" style="padding: 5px; font-size: 0.75rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.65rem;">IPI:</label>
+                                    <input type="number" step="0.01" id="eadi-cl-tax-ipi" class="form-control" style="padding: 5px; font-size: 0.75rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.65rem;">PIS / COFINS:</label>
+                                    <input type="number" step="0.01" id="eadi-cl-tax-pis-cofins" class="form-control" style="padding: 5px; font-size: 0.75rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.65rem;">ICMS Importação:</label>
+                                    <input type="number" step="0.01" id="eadi-cl-tax-icms" class="form-control" style="padding: 5px; font-size: 0.75rem;">
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+
+                    <!-- Destino Físico da Carga & Vínculo com Projeto -->
+                    <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div style="font-size: 0.78rem; font-weight: 800; color: #a855f7; text-transform: uppercase; margin-bottom: 12px;">
+                            3. Destino das Máquinas Desembaraçadas
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Destino Operacional:</label>
+                                <select id="eadi-cl-destination" onchange="toggleEadiClearanceDestination()" class="form-control" style="padding: 8px; font-size: 0.85rem;">
+                                    <option value="DOCA_TECFAG">🏢 Galpão Tecfag (Doca / Estoque Geral)</option>
+                                    <option value="PROJETO">🎯 Vincular Diretamente a Projeto Ativo de Automação</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="eadi-cl-project-group" style="margin-bottom: 0; display: none;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: #a855f7;">Selecione o Projeto / Cliente da Automação:</label>
+                                <select id="eadi-cl-project-select" class="form-control" style="padding: 8px; font-size: 0.85rem;">
+                                    <option value="">-- Selecione o Projeto Ativo --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0; margin-top: 10px;">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Observações & Motivo do Desembaraço:</label>
+                            <input type="text" id="eadi-cl-notes" class="form-control" placeholder="Ex: Máquinas liberadas para venda ao cliente X ou reposição de doca" style="padding: 8px; font-size: 0.85rem;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button type="button" class="btn btn-secondary" onclick="closeEadiClearanceModal()">Cancelar</button>
+                        <button type="submit" class="btn" style="background: #f59e0b; color: black; font-weight: 800; padding: 10px 24px; font-size: 0.9rem;">
+                            ⚡ Confirmar Nacionalização e Baixar Saldo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. MODAL ESCOLHA DE ROTA ADUANEIRA AO SAIR DO PORTO DE SANTOS -->
+    <div class="modal-overlay" id="modal-eadi-route-choice" style="z-index: 1280; display: none;">
+        <div class="modal" style="max-width: 600px; width: 95%;">
+            <div class="modal-header" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(30, 41, 59, 0.9) 100%);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5rem;">🚢</span>
+                    <div>
+                        <h3 style="margin: 0; color: #38bdf8;">Carga no Porto: Escolha o Destino Logístico</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #94a3b8;" id="sc-route-modal-subtitle">Container pronto para remoção ou desembaraço.</p>
+                    </div>
+                </div>
+                <button class="btn-icon" onclick="closeAdvancePortChoiceModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div class="modal-body" style="padding: 20px;">
+                <p style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 16px;">
+                    A carga atracou no Porto de Santos. Selecione como a Tecfag deseja operar esta carga:
+                </p>
+
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <!-- Option A: EADI Bauru (Recommended) -->
+                    <div style="background: rgba(245, 158, 11, 0.1); border: 2px solid #f59e0b; border-radius: 8px; padding: 16px; cursor: pointer; transition: transform 0.2s;" onclick="advanceOrderToSelectedRoute('ENTREPOSTADO_EADI')">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <div style="font-weight: 800; color: #f59e0b; font-size: 0.95rem;">
+                                📦 Opção 1: Remoção sob DTA para Porto Seco (EADI Bauru)
+                            </div>
+                            <span style="background: #f59e0b; color: black; font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 10px;">ESTRATÉGIA TECFAG</span>
+                        </div>
+                        <p style="font-size: 0.78rem; color: #cbd5e1; margin: 0 0 10px 0; line-height: 1.4;">
+                            A carga sobe sob Declaração de Trânsito sem recolher impostos imediatos. O container é desovado no EADI Bauru evitando <em>demurrage</em>, e as máquinas ficam disponíveis para nacionalização fracionada (por partes).
+                        </p>
+                        <button type="button" class="btn" style="background: #f59e0b; color: black; font-weight: bold; width: 100%; padding: 8px;">
+                            Mover para Porto Seco (EADI Bauru) ➡️
+                        </button>
+                    </div>
+
+                    <!-- Option B: Direct Clearance in Santos -->
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; cursor: pointer;" onclick="advanceOrderToSelectedRoute('DOCA_GALPAO')">
+                        <div style="font-weight: 800; color: #10b981; font-size: 0.95rem; margin-bottom: 6px;">
+                            🚚 Opção 2: Desembaraço Integral em Santos -> Doca Tecfag
+                        </div>
+                        <p style="font-size: 0.78rem; color: #94a3b8; margin: 0 0 10px 0; line-height: 1.4;">
+                            D.I. única registrada diretamente em Santos com pagamento imediato de 100% dos impostos federais e estaduais. O caminhão traz a carga liberada para a doca da Tecfag.
+                        </p>
+                        <button type="button" class="btn btn-secondary" style="border-color: #10b981; color: #10b981; font-weight: bold; width: 100%; padding: 8px;">
+                            Desembaraçar Direto em Santos ➡️
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -22030,13 +22407,13 @@
         function switchSupplyChainSubTab(subTabId) {
             supplyChainState.activeSubTab = subTabId;
             
-            ['kanban', 'matrix', 'payments', 'suppliers'].forEach(id => {
+            ['kanban', 'matrix', 'eadi', 'payments', 'suppliers'].forEach(id => {
                 const btn = document.getElementById(`sc-tab-btn-${id}`);
                 const view = document.getElementById(`sc-subtab-${id}`);
                 if (btn && view) {
                     if (id === subTabId) {
-                        btn.style.background = '#0ea5e9';
-                        btn.style.color = 'white';
+                        btn.style.background = (id === 'eadi' ? '#f59e0b' : '#0ea5e9');
+                        btn.style.color = (id === 'eadi' ? 'black' : 'white');
                         btn.style.borderColor = 'transparent';
                         view.style.display = 'block';
                     } else {
@@ -22050,6 +22427,8 @@
 
             if (subTabId === 'matrix') {
                 loadSkuMatrix();
+            } else if (subTabId === 'eadi') {
+                loadEadiInventory();
             } else if (subTabId === 'payments') {
                 renderSupplyChainPayments();
             } else if (subTabId === 'suppliers') {
@@ -22060,7 +22439,7 @@
         }
 
         function renderSupplyChainKanban() {
-            const stages = ['PO_EMITIDA', 'EM_FABRICACAO', 'PACKING_LIST_EMBARQUE', 'NO_NAVIO', 'NO_PORTO_DESEMBARACO', 'DOCA_GALPAO'];
+            const stages = ['PO_EMITIDA', 'EM_FABRICACAO', 'PACKING_LIST_EMBARQUE', 'NO_NAVIO', 'NO_PORTO_DESEMBARACO', 'ENTREPOSTADO_EADI', 'DOCA_GALPAO'];
             const counts = {};
             stages.forEach(s => counts[s] = 0);
 
@@ -22124,6 +22503,35 @@
                     `;
                 }
 
+                // Bloco Especial para Carga Entrepostada no EADI
+                let eadiProgressSnippet = '';
+                if (stage === 'ENTREPOSTADO_EADI') {
+                    const admitted = order.eadi_admitted || order.total_machines || 0;
+                    const cleared = order.eadi_cleared || 0;
+                    const balance = order.eadi_balance !== undefined ? order.eadi_balance : Math.max(0, admitted - cleared);
+                    const pct = admitted > 0 ? Math.round((cleared / admitted) * 100) : 0;
+                    const days = order.days_in_eadi || 0;
+
+                    let daysColor = '#cbd5e1';
+                    if (days >= 270) daysColor = '#ef4444';
+                    else if (days >= 180) daysColor = '#f59e0b';
+
+                    eadiProgressSnippet = `
+                        <div style="background: rgba(245, 158, 11, 0.08); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: 6px; padding: 6px 8px; margin-top: 2px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.68rem;">
+                                <span style="color: ${daysColor}; font-weight: 700;">⏱️ ${days}d no EADI</span>
+                                <span style="color: #f59e0b; font-weight: 800;">Saldo: ${balance} un.</span>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.3); border-radius: 4px; height: 5px; overflow: hidden; margin: 4px 0 2px 0;">
+                                <div style="background: #10b981; width: ${pct}%; height: 100%;"></div>
+                            </div>
+                            <div style="font-size: 0.64rem; color: #94a3b8; text-align: right;">
+                                ${cleared} de ${admitted} un. nacionalizadas (${pct}%)
+                            </div>
+                        </div>
+                    `;
+                }
+
                 card.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
                         <div>
@@ -22134,6 +22542,7 @@
                     </div>
 
                     ${logisticsSnippet}
+                    ${eadiProgressSnippet}
 
                     <div style="display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0;">
                         ${itemsBadgesHtml || '<span style="font-size: 0.68rem; color: #64748b;">Nenhuma máquina listada</span>'}
@@ -22153,6 +22562,11 @@
                                 📦 Carga
                             </button>
                         ` : ''}
+                        ${stage === 'ENTREPOSTADO_EADI' ? `
+                            <button type="button" class="btn" onclick="openEadiClearanceModal(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: #f59e0b; color: black;" title="Registrar Baixa D.I.">
+                                ⚡ Baixa EADI
+                            </button>
+                        ` : ''}
                         ${stage !== 'DOCA_GALPAO' ? `
                             <button type="button" class="btn" onclick="quickAdvanceOrderStage(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: #0ea5e9; color: white;" title="Avançar Etapa">
                                 ➡️
@@ -22164,12 +22578,13 @@
                 container.appendChild(card);
             });
 
-            // Atualizar contadores
+            // Atualizar contadores do Kanban
             const cPo = document.getElementById('sc-count-po-emitida');
             const cFab = document.getElementById('sc-count-em-fabricacao');
             const cPack = document.getElementById('sc-count-packing-list');
             const cSea = document.getElementById('sc-count-no-navio');
             const cPort = document.getElementById('sc-count-no-porto');
+            const cEadi = document.getElementById('sc-count-entrepostado-eadi');
             const cDoca = document.getElementById('sc-count-doca-galpao');
 
             if (cPo) cPo.innerText = counts['PO_EMITIDA'] || 0;
@@ -22177,21 +22592,53 @@
             if (cPack) cPack.innerText = counts['PACKING_LIST_EMBARQUE'] || 0;
             if (cSea) cSea.innerText = counts['NO_NAVIO'] || 0;
             if (cPort) cPort.innerText = counts['NO_PORTO_DESEMBARACO'] || 0;
+            if (cEadi) cEadi.innerText = counts['ENTREPOSTADO_EADI'] || 0;
             if (cDoca) cDoca.innerText = counts['DOCA_GALPAO'] || 0;
+
+            // Atualizar badge da aba EADI
+            const badgeEadi = document.getElementById('sc-badge-eadi-count');
+            if (badgeEadi) {
+                const eadiMachines = (supplyChainState.stats && supplyChainState.stats.machines_in_eadi) || 0;
+                badgeEadi.innerText = eadiMachines + ' un';
+            }
         }
 
-        async function quickAdvanceOrderStage(orderId) {
+        async function quickAdvanceOrderStage(orderId, targetStage) {
+            const order = (supplyChainState.orders || []).find(o => o.id === orderId);
+            
+            // Se estiver no porto e o destino não foi especificado, abrir escolha de rota Santos vs EADI Bauru
+            if (order && order.stage === 'NO_PORTO_DESEMBARACO' && !targetStage) {
+                openAdvancePortChoiceModal(orderId);
+                return;
+            }
+
+            // Se estiver no EADI e ainda tiver saldo de máquinas, confirmar encerramento
+            if (order && order.stage === 'ENTREPOSTADO_EADI' && !targetStage) {
+                const bal = order.eadi_balance !== undefined ? order.eadi_balance : 0;
+                if (bal > 0) {
+                    if (!confirm(`Ainda restam ${bal} máquina(s) armazenadas no EADI sob regime suspensivo. Deseja encerrar o card e transferir todo o saldo restante para a Doca Tecfag?`)) {
+                        return;
+                    }
+                }
+            }
+
             try {
                 const token = localStorage.getItem('tecfag_session_token');
-                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const headers = token ? { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+
+                const body = targetStage ? JSON.stringify({ target_stage: targetStage }) : JSON.stringify({});
 
                 const res = await fetch(`/api/supply-chain/orders/${orderId}/advance-stage`, {
                     method: 'POST',
-                    headers
+                    headers,
+                    body
                 });
 
                 if (res.ok) {
                     await loadSupplyChainData();
+                    if (supplyChainState.activeSubTab === 'eadi') {
+                        loadEadiInventory();
+                    }
                 } else {
                     const data = await res.json();
                     alert('Erro ao avançar etapa: ' + (data.error || 'Erro desconhecido.'));
@@ -22564,14 +23011,15 @@
                     'PACKING_LIST_EMBARQUE': '3. PACKING LIST & CARGA PRONTA',
                     'NO_NAVIO': '4. NO NAVIO (TRÂNSITO MARÍTIMO)',
                     'NO_PORTO_DESEMBARACO': '5. NO PORTO / DESEMBARAÇO',
-                    'DOCA_GALPAO': '6. ENTREGUE NA DOCA TECFAG'
+                    'ENTREPOSTADO_EADI': '6. NO PORTO SECO (EADI BAURU)',
+                    'DOCA_GALPAO': '7. ENTREGUE NA DOCA TECFAG'
                 };
 
                 if (title) title.innerText = `Container / PO: ${order.po_number} - ${order.supplier_name}`;
                 if (subtitle) subtitle.innerText = `Fatura: ${order.invoice_number || 'S/N'} • Condição: ${order.payment_terms_desc || order.payment_terms_type}`;
                 if (badge) badge.innerText = stageLabels[order.stage] || order.stage;
 
-                // Preencher campos
+                // Preencher campos logísticos e EADI
                 const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
                 setVal('sc-det-container-id', order.container_id);
                 setVal('sc-det-vessel-name', order.vessel_name);
@@ -22581,10 +23029,24 @@
                 setVal('sc-det-eta-port', order.eta_port_date);
                 setVal('sc-det-eta-wh', order.eta_warehouse_date);
                 setVal('sc-det-actual-arrival', order.actual_arrival_date);
+                setVal('sc-det-customs-regime', order.customs_regime || 'DIRETO_SANTOS');
+                setVal('sc-det-dta-number', order.dta_number);
+                setVal('sc-det-eadi-entry-date', order.eadi_entry_date);
+                setVal('sc-det-eadi-da-number', order.eadi_da_number);
 
-                // Renderizar itens
+                const balanceBadge = document.getElementById('sc-det-eadi-balance-badge');
+                if (balanceBadge) {
+                    if (order.stage === 'ENTREPOSTADO_EADI' || (order.eadi_balance !== undefined && order.eadi_balance > 0)) {
+                        balanceBadge.innerText = `Saldo no EADI: ${order.eadi_balance || 0} un. • ${order.days_in_eadi || 0} dias em armazém`;
+                    } else {
+                        balanceBadge.innerText = '';
+                    }
+                }
+
+                // Renderizar itens, parcelas e baixas EADI
                 renderDetailsItems(order.items || []);
                 renderDetailsPayments(order.payments || []);
+                renderDetailsClearances(order.clearances || []);
                 switchDetailsSubTab('items');
 
                 if (modal) modal.style.display = 'flex';
@@ -22602,20 +23064,59 @@
         function switchDetailsSubTab(tab) {
             const btnItems = document.getElementById('sc-det-tab-btn-items');
             const btnPay = document.getElementById('sc-det-tab-btn-payments');
+            const btnClear = document.getElementById('sc-det-tab-btn-clearances');
             const viewItems = document.getElementById('sc-det-subtab-items');
             const viewPay = document.getElementById('sc-det-subtab-payments');
+            const viewClear = document.getElementById('sc-det-subtab-clearances');
 
-            if (tab === 'items') {
-                if (btnItems) { btnItems.style.background = '#38bdf8'; btnItems.style.color = 'black'; }
-                if (btnPay) { btnPay.style.background = 'transparent'; btnPay.style.color = '#cbd5e1'; }
-                if (viewItems) viewItems.style.display = 'block';
-                if (viewPay) viewPay.style.display = 'none';
-            } else {
-                if (btnPay) { btnPay.style.background = '#38bdf8'; btnPay.style.color = 'black'; }
-                if (btnItems) { btnItems.style.background = 'transparent'; btnItems.style.color = '#cbd5e1'; }
-                if (viewPay) viewPay.style.display = 'block';
-                if (viewItems) viewItems.style.display = 'none';
+            [
+                { btn: btnItems, view: viewItems, id: 'items', color: '#38bdf8' },
+                { btn: btnPay, view: viewPay, id: 'payments', color: '#38bdf8' },
+                { btn: btnClear, view: viewClear, id: 'clearances', color: '#f59e0b' }
+            ].forEach(t => {
+                if (t.btn && t.view) {
+                    if (t.id === tab) {
+                        t.btn.style.background = t.color;
+                        t.btn.style.color = 'black';
+                        t.view.style.display = 'block';
+                    } else {
+                        t.btn.style.background = 'transparent';
+                        t.btn.style.color = (t.id === 'clearances' ? '#f59e0b' : '#cbd5e1');
+                        t.view.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        function renderDetailsClearances(clearances) {
+            const tbody = document.getElementById('sc-details-clearances-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (!clearances || clearances.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 15px;">Nenhuma nacionalização parcial registrada ainda para este container.</td></tr>';
+                return;
             }
+
+            clearances.forEach(cl => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                const diDateStr = cl.di_date ? new Date(cl.di_date + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
+                const itemsSummary = (cl.items || []).map(ci => `<span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 1px 6px; border-radius: 4px; font-weight: bold; margin-right: 4px;">${ci.qty_cleared}x ${ci.sku}</span>`).join(' ') || 'Nenhum item';
+                const taxPaidStr = 'R$ ' + (cl.total_tax_paid || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const ptaxStr = cl.exchange_rate ? cl.exchange_rate.toFixed(4) : '-';
+
+                tr.innerHTML = `
+                    <td style="padding: 8px 6px; font-weight: bold; color: #cbd5e1;">${diDateStr}</td>
+                    <td style="padding: 8px 6px; font-weight: 800; color: #f59e0b;">${cl.di_number}</td>
+                    <td style="padding: 8px 6px;">${itemsSummary}</td>
+                    <td style="padding: 8px 6px; text-align: right; color: #94a3b8;">${ptaxStr}</td>
+                    <td style="padding: 8px 6px; text-align: right; font-weight: bold; color: #4ade80;">${taxPaidStr}</td>
+                    <td style="padding: 8px 6px; color: #cbd5e1;">${cl.nfe_number || '-'}</td>
+                    <td style="padding: 8px 6px; font-size: 0.72rem; color: #38bdf8;">${cl.destination_type === 'PROJETO' ? '🎯 Projeto Automação' : '🏢 Doca Tecfag'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
 
         function renderDetailsItems(items) {
@@ -22695,7 +23196,11 @@
                 etd_date: document.getElementById('sc-det-etd-date')?.value || null,
                 eta_port_date: document.getElementById('sc-det-eta-port')?.value || null,
                 eta_warehouse_date: document.getElementById('sc-det-eta-wh')?.value || null,
-                actual_arrival_date: document.getElementById('sc-det-actual-arrival')?.value || null
+                actual_arrival_date: document.getElementById('sc-det-actual-arrival')?.value || null,
+                customs_regime: document.getElementById('sc-det-customs-regime')?.value || 'DIRETO_SANTOS',
+                dta_number: document.getElementById('sc-det-dta-number')?.value.trim() || null,
+                eadi_entry_date: document.getElementById('sc-det-eadi-entry-date')?.value || null,
+                eadi_da_number: document.getElementById('sc-det-eadi-da-number')?.value.trim() || null
             };
 
             try {
@@ -22979,6 +23484,7 @@
                             'PACKING_LIST_EMBARQUE': '<span style="background: rgba(236, 72, 153, 0.15); color: #ec4899; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold;">Packing List</span>',
                             'NO_NAVIO': '<span style="background: rgba(168, 85, 247, 0.15); color: #a855f7; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold;">Trânsito Marítimo</span>',
                             'NO_PORTO_DESEMBARACO': '<span style="background: rgba(234, 179, 8, 0.15); color: #eab308; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold;">No Porto / D.I.</span>',
+                            'ENTREPOSTADO_EADI': '<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold; border: 1px solid rgba(245, 158, 11, 0.4);">📦 Porto Seco (EADI Bauru)</span>',
                             'DOCA_GALPAO': '<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold;">Doca / Estoque</span>'
                         };
 
@@ -23022,6 +23528,9 @@
                                 </div>
                                 <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.2); padding: 4px 8px; border-radius: 6px;">
                                     <span style="color: #eab308;">🛃 No Porto:</span> <strong>${item.qty_at_port} un</strong>
+                                </div>
+                                <div style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); padding: 4px 8px; border-radius: 6px;" title="Disponível no Porto Seco EADI Bauru (Pronta Nacionalização em 2 a 4 dias)">
+                                    <span style="color: #f59e0b;">📦 No EADI:</span> <strong>${item.qty_in_eadi || 0} un</strong>
                                 </div>
                                 <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 4px 8px; border-radius: 6px;">
                                     <span style="color: #10b981;">📅 Próxima Doca:</span> <strong>${earliestEtaStr}</strong>
@@ -23396,6 +23905,385 @@
                 alert('Erro de conexão ao salvar fornecedor.');
             }
         }
+
+        // ==========================================
+        // GESTÃO DE ESTOQUE NO PORTO SECO (EADI BAURU)
+        // ==========================================
+
+        let eadiInventoryData = [];
+        let eadiActiveProjects = [];
+
+        async function loadEadiInventory() {
+            const tbody = document.getElementById('sc-eadi-inventory-tbody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--text-secondary); padding: 20px;">Carregando saldo do armazém EADI Bauru...</td></tr>';
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+
+                const res = await fetch('/api/supply-chain/eadi/inventory', { headers });
+                if (!res.ok) throw new Error('Erro ao buscar inventário do EADI');
+
+                const data = await res.json();
+                eadiInventoryData = data.inventory || [];
+
+                // Atualizar KPIs
+                const stats = data.stats || {};
+                const kpiM = document.getElementById('sc-eadi-kpi-machines');
+                const kpiF = document.getElementById('sc-eadi-kpi-fob');
+                const kpiC = document.getElementById('sc-eadi-kpi-containers');
+                const kpiA = document.getElementById('sc-eadi-kpi-alerts');
+
+                if (kpiM) kpiM.innerText = (stats.total_machines_in_eadi || 0) + ' un.';
+                if (kpiF) kpiF.innerText = '$ ' + (stats.total_fob_in_eadi || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                if (kpiC) kpiC.innerText = stats.total_containers_in_eadi || 0;
+                if (kpiA) {
+                    const totalAlerts = (stats.near_expiry_count || 0) + (stats.critical_expiry_count || 0);
+                    kpiA.innerText = totalAlerts;
+                    kpiA.style.color = stats.critical_expiry_count > 0 ? '#ef4444' : (stats.near_expiry_count > 0 ? '#f59e0b' : '#10b981');
+                }
+
+                // Atualizar badge da subtab
+                const badge = document.getElementById('sc-badge-eadi-count');
+                if (badge) badge.innerText = (stats.total_machines_in_eadi || 0) + ' un';
+
+                renderEadiInventoryTable(eadiInventoryData);
+            } catch (err) {
+                console.error(err);
+                if (tbody) tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: #ef4444; padding: 20px;">Erro ao carregar dados do EADI.</td></tr>';
+            }
+        }
+
+        function filterEadiInventoryTable() {
+            const search = (document.getElementById('sc-eadi-filter-search')?.value || '').toLowerCase().trim();
+            const daysFilter = document.getElementById('sc-eadi-filter-days')?.value || 'ALL';
+
+            const filtered = eadiInventoryData.filter(item => {
+                const matchText = (item.sku && item.sku.toLowerCase().includes(search)) ||
+                                  (item.description && item.description.toLowerCase().includes(search)) ||
+                                  (item.po_number && item.po_number.toLowerCase().includes(search)) ||
+                                  (item.container_id && item.container_id.toLowerCase().includes(search));
+                if (!matchText) return false;
+
+                if (daysFilter === 'OVER_90' && item.days_in_eadi < 90) return false;
+                if (daysFilter === 'OVER_180' && item.days_in_eadi < 180) return false;
+                if (daysFilter === 'OVER_270' && item.days_in_eadi < 270) return false;
+
+                return true;
+            });
+
+            renderEadiInventoryTable(filtered);
+        }
+
+        function renderEadiInventoryTable(items) {
+            const tbody = document.getElementById('sc-eadi-inventory-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--text-secondary); padding: 30px;">Nenhuma máquina encontrada no armazém do EADI com os filtros atuais.</td></tr>';
+                return;
+            }
+
+            items.forEach(it => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+
+                let daysBadge = '<span style="color: #4ade80; font-weight: bold;">' + it.days_in_eadi + 'd</span>';
+                if (it.days_in_eadi >= 270) {
+                    daysBadge = '<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(239, 68, 68, 0.4);">⚠️ ' + it.days_in_eadi + 'd (Crítico)</span>';
+                } else if (it.days_in_eadi >= 180) {
+                    daysBadge = '<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 2px 6px; border-radius: 4px; font-weight: bold;">⏱️ ' + it.days_in_eadi + 'd</span>';
+                }
+
+                const entryDateStr = it.eadi_entry_date ? new Date(it.eadi_entry_date + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
+                const unitFobStr = (it.currency || 'USD') + ' ' + (it.unit_price_fob || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                const totalFobStr = (it.currency || 'USD') + ' ' + (it.total_fob_balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+                tr.innerHTML = `
+                    <td style="padding: 10px 8px; font-weight: 800; color: #38bdf8;">${it.sku}</td>
+                    <td style="padding: 10px 8px; color: #cbd5e1; max-width: 220px; font-size: 0.78rem;">${it.description || '-'}</td>
+                    <td style="padding: 10px 8px;">
+                        <div style="font-weight: bold; color: #f8fafc;">${it.po_number}</div>
+                        <div style="font-size: 0.7rem; color: #94a3b8;">${it.container_id}</div>
+                    </td>
+                    <td style="padding: 10px 8px; color: #cbd5e1;">${entryDateStr}</td>
+                    <td style="padding: 10px 8px; text-align: center;">${daysBadge}</td>
+                    <td style="padding: 10px 8px; text-align: center; color: #94a3b8;">${it.qty_admitted}</td>
+                    <td style="padding: 10px 8px; text-align: center; color: #10b981;">${it.qty_cleared}</td>
+                    <td style="padding: 10px 8px; text-align: center; font-weight: 800; font-size: 0.95rem; color: #f59e0b; background: rgba(245, 158, 11, 0.08); border-radius: 4px;">
+                        ${it.qty_balance} un.
+                    </td>
+                    <td style="padding: 10px 8px; text-align: right; color: #94a3b8;">${unitFobStr}</td>
+                    <td style="padding: 10px 8px; text-align: right; font-weight: bold; color: #4ade80;">${totalFobStr}</td>
+                    <td style="padding: 10px 8px; text-align: right;">
+                        <button type="button" class="btn" onclick="openEadiClearanceModal(${it.order_id}, ${it.order_item_id})" style="background: #f59e0b; color: black; font-weight: bold; padding: 4px 10px; font-size: 0.72rem; border-radius: 4px;">
+                            ⚡ Nacionalizar
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function openEadiClearanceModal(preSelectedOrderId, preSelectedItemId) {
+            const modal = document.getElementById('modal-eadi-clearance');
+            const form = document.getElementById('eadi-clearance-form');
+            if (form) form.reset();
+
+            const dateInput = document.getElementById('eadi-cl-di-date');
+            if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
+            await loadProjectsForEadiClearance();
+
+            const select = document.getElementById('eadi-cl-order-select');
+            if (select) {
+                select.innerHTML = '<option value="">-- Selecione a ordem com carga no EADI --</option>';
+                const orders = supplyChainState.orders || [];
+                const eadiOrders = orders.filter(o => o.stage === 'ENTREPOSTADO_EADI' || (o.eadi_balance && o.eadi_balance > 0));
+                
+                eadiOrders.forEach(o => {
+                    const opt = document.createElement('option');
+                    opt.value = o.id;
+                    opt.innerText = o.po_number + ' - ' + o.supplier_name + ' (Container: ' + (o.container_id || 'S/N') + ' • Saldo: ' + (o.eadi_balance || o.total_machines || 0) + ' un.)';
+                    select.appendChild(opt);
+                });
+
+                if (preSelectedOrderId) {
+                    select.value = preSelectedOrderId;
+                } else if (eadiOrders.length > 0) {
+                    select.value = eadiOrders[0].id;
+                }
+            }
+
+            onEadiClearanceOrderChange(preSelectedItemId);
+
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeEadiClearanceModal() {
+            const modal = document.getElementById('modal-eadi-clearance');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function openEadiClearanceModalForCurrentOrder() {
+            if (supplyChainState.currentOrder) {
+                openEadiClearanceModal(supplyChainState.currentOrder.id);
+            }
+        }
+
+        async function loadProjectsForEadiClearance() {
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+                const res = await fetch('/api/supply-chain/projects-lookup', { headers });
+                if (res.ok) {
+                    eadiActiveProjects = await res.json();
+                    const projSelect = document.getElementById('eadi-cl-project-select');
+                    if (projSelect) {
+                        projSelect.innerHTML = '<option value="">-- Selecione o Projeto Ativo --</option>';
+                        eadiActiveProjects.forEach(p => {
+                            const opt = document.createElement('option');
+                            opt.value = p.code;
+                            opt.innerText = '[' + p.code + '] ' + p.client + ' - ' + (p.project_name || p.sku || 'Sem nome') + ' (Fase ' + p.fase + ')';
+                            projSelect.appendChild(opt);
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error('Erro ao buscar projetos para EADI:', e);
+            }
+        }
+
+        function toggleEadiClearanceDestination() {
+            const dest = document.getElementById('eadi-cl-destination')?.value;
+            const projGroup = document.getElementById('eadi-cl-project-group');
+            if (projGroup) {
+                projGroup.style.display = (dest === 'PROJETO') ? 'block' : 'none';
+            }
+        }
+
+        function onEadiClearanceOrderChange(focusItemId) {
+            const orderId = parseInt(document.getElementById('eadi-cl-order-select')?.value);
+            const infoBox = document.getElementById('eadi-cl-order-info');
+            const tbody = document.getElementById('eadi-cl-items-tbody');
+            if (!tbody) return;
+
+            if (!orderId) {
+                if (infoBox) infoBox.style.display = 'none';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 16px;">Selecione um container acima para listar as máquinas disponíveis.</td></tr>';
+                return;
+            }
+
+            const orders = supplyChainState.orders || [];
+            const order = orders.find(o => o.id === orderId);
+
+            if (!order) {
+                if (infoBox) infoBox.style.display = 'none';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 16px;">Ordem não encontrada.</td></tr>';
+                return;
+            }
+
+            if (infoBox) {
+                infoBox.style.display = 'flex';
+                document.getElementById('eadi-cl-info-supplier').innerText = order.supplier_name;
+                document.getElementById('eadi-cl-info-entry').innerText = order.eadi_entry_date ? new Date(order.eadi_entry_date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada';
+                document.getElementById('eadi-cl-info-days').innerText = (order.days_in_eadi || 0) + ' dias em armazém';
+            }
+
+            tbody.innerHTML = '';
+            const items = order.items || [];
+
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 16px;">Nenhum item encontrado nesta ordem.</td></tr>';
+                return;
+            }
+
+            items.forEach(it => {
+                const balance = it.qty_eadi_balance !== undefined ? it.qty_eadi_balance : Math.max(0, (it.qty_shipped || it.qty_ordered) - (it.qty_cleared || 0));
+                const admitted = it.qty_eadi_admitted > 0 ? it.qty_eadi_admitted : (it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered);
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+
+                const isTarget = focusItemId && it.id === focusItemId;
+                const defaultVal = isTarget ? Math.min(1, balance) : 0;
+
+                tr.innerHTML = `
+                    <td style="padding: 8px 6px; font-weight: bold; color: #38bdf8;">${it.sku}</td>
+                    <td style="padding: 8px 6px; color: #cbd5e1; font-size: 0.75rem;">${it.description || '-'}</td>
+                    <td style="padding: 8px 6px; text-align: center; color: #94a3b8;">${admitted} un.</td>
+                    <td style="padding: 8px 6px; text-align: center; font-weight: bold; color: #f59e0b;">${balance} un.</td>
+                    <td style="padding: 8px 6px; text-align: center;">
+                        <input type="number" min="0" max="${balance}" value="${defaultVal}" 
+                               data-item-id="${it.id}" data-sku="${it.sku}" data-fob="${it.unit_price_fob || 0}"
+                               class="eadi-clear-qty-input form-control" 
+                               style="width: 90px; text-align: center; padding: 4px; font-weight: bold; margin: 0 auto; ${balance === 0 ? 'opacity: 0.4;' : 'border-color: #4ade80;'}" 
+                               ${balance === 0 ? 'disabled' : ''}>
+                    </td>
+                    <td style="padding: 8px 6px; text-align: right; color: #cbd5e1;">$ ${(it.unit_price_fob || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function submitEadiClearance(event) {
+            event.preventDefault();
+            const orderId = parseInt(document.getElementById('eadi-cl-order-select')?.value);
+            if (!orderId) {
+                alert('Selecione uma ordem / container.');
+                return;
+            }
+
+            const diNumber = (document.getElementById('eadi-cl-di-number')?.value || '').trim();
+            const diDate = document.getElementById('eadi-cl-di-date')?.value;
+            if (!diNumber || !diDate) {
+                alert('Preencha o Número e a Data da D.I. / DUIMP.');
+                return;
+            }
+
+            const inputs = document.querySelectorAll('.eadi-clear-qty-input');
+            const items = [];
+            let totalQty = 0;
+
+            inputs.forEach(inp => {
+                const qty = parseInt(inp.value) || 0;
+                if (qty > 0) {
+                    totalQty += qty;
+                    items.push({
+                        order_item_id: parseInt(inp.dataset.itemId),
+                        sku: inp.dataset.sku,
+                        qty_cleared: qty,
+                        unit_price_fob: parseFloat(inp.dataset.fob) || 0.0
+                    });
+                }
+            });
+
+            if (items.length === 0 || totalQty === 0) {
+                alert('Informe a quantidade de pelo menos uma máquina para nacionalizar nesta D.I.');
+                return;
+            }
+
+            const destinationType = document.getElementById('eadi-cl-destination')?.value || 'DOCA_TECFAG';
+            const projectId = (destinationType === 'PROJETO') ? document.getElementById('eadi-cl-project-select')?.value : null;
+
+            const payload = {
+                di_number: diNumber,
+                di_date: diDate,
+                exchange_rate: parseFloat(document.getElementById('eadi-cl-exchange-rate')?.value) || 1.0,
+                total_tax_paid: parseFloat(document.getElementById('eadi-cl-total-tax')?.value) || 0.0,
+                tax_ii: parseFloat(document.getElementById('eadi-cl-tax-ii')?.value) || 0.0,
+                tax_ipi: parseFloat(document.getElementById('eadi-cl-tax-ipi')?.value) || 0.0,
+                tax_pis_cofins: parseFloat(document.getElementById('eadi-cl-tax-pis-cofins')?.value) || 0.0,
+                tax_icms: parseFloat(document.getElementById('eadi-cl-tax-icms')?.value) || 0.0,
+                storage_cost_paid: parseFloat(document.getElementById('eadi-cl-storage-cost')?.value) || 0.0,
+                nfe_number: (document.getElementById('eadi-cl-nfe')?.value || '').trim(),
+                destination_type: destinationType,
+                destination_project_id: projectId ? String(projectId).trim() : null,
+                notes: (document.getElementById('eadi-cl-notes')?.value || '').trim(),
+                items: items
+            };
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+
+                const res = await fetch('/api/supply-chain/orders/' + orderId + '/eadi-clearance', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    closeEadiClearanceModal();
+                    await loadSupplyChainData();
+                    if (supplyChainState.activeSubTab === 'eadi') {
+                        loadEadiInventory();
+                    }
+                    if (supplyChainState.currentOrder && supplyChainState.currentOrder.id === orderId) {
+                        openSupplyDetailsModal(orderId);
+                    }
+                    alert('✅ Nacionalização Parcial registrada com sucesso! ' + totalQty + ' máquina(s) desembaraçadas sob DI ' + diNumber + '.');
+                } else {
+                    alert('Erro ao registrar baixa: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao registrar nacionalização.');
+            }
+        }
+
+        // ==========================================
+        // MODAL ESCOLHA DE ROTA DO PORTO (SANTOS vs EADI)
+        // ==========================================
+
+        let activeRouteChoiceOrderId = null;
+
+        function openAdvancePortChoiceModal(orderId) {
+            activeRouteChoiceOrderId = orderId;
+            const modal = document.getElementById('modal-eadi-route-choice');
+            const orders = supplyChainState.orders || [];
+            const order = orders.find(o => o.id === orderId);
+            const sub = document.getElementById('sc-route-modal-subtitle');
+            if (sub && order) {
+                sub.innerText = 'Container: ' + (order.container_id || order.po_number) + ' • Fornecedor: ' + order.supplier_name;
+            }
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeAdvancePortChoiceModal() {
+            activeRouteChoiceOrderId = null;
+            const modal = document.getElementById('modal-eadi-route-choice');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function advanceOrderToSelectedRoute(targetStage) {
+            if (!activeRouteChoiceOrderId) return;
+            const orderId = activeRouteChoiceOrderId;
+            closeAdvancePortChoiceModal();
+            await quickAdvanceOrderStage(orderId, targetStage);
+        }
+
     </script>
 
     <!-- Modal de Recuperação de Senha -->
