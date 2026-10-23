@@ -3761,9 +3761,14 @@
                                 </div>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-secondary" style="padding: 5px 12px; font-size: 0.74rem; font-weight: bold; background: #f59e0b; color: #000; border: none; cursor: pointer; border-radius: 4px;" onclick="toggleWaitingVendorStatus(false)">
-                            🟢 Retomar SLA da Engenharia
-                        </button>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button type="button" class="btn" style="padding: 6px 14px; font-size: 0.74rem; font-weight: 800; background: #10b981; color: #fff; border: none; cursor: pointer; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);" onclick="focusVendorResponseField()">
+                                ✍️ Responder à Engenharia
+                            </button>
+                            <button type="button" class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.72rem; font-weight: bold; background: rgba(255,255,255,0.08); color: #cbd5e1; border: 1px solid rgba(245, 158, 11, 0.4); cursor: pointer; border-radius: 4px;" onclick="toggleWaitingVendorStatus(false)" title="Retoma o SLA sem registrar resposta escrita">
+                                Liberar SLA
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -3891,15 +3896,41 @@
                                 Mural integrado de comunicação entre Vendedor, Engenharia e Produção.
                             </p>
 
-                            <!-- Banner de Alerta de Bloqueio no Chat -->
-                            <div id="modal-chat-waiting-vendor-banner" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; align-items: center; justify-content: space-between; gap: 10px;">
-                                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #f59e0b; font-weight: 600;">
-                                    <span style="font-size: 1.1rem;">⏸️</span>
-                                    <span id="modal-chat-waiting-vendor-text">Aguardando resposta do Vendedor. SLA da Engenharia congelado.</span>
+                            <!-- Banner & Formulário Dedicado de Resposta do Vendedor à Engenharia -->
+                            <div id="modal-chat-waiting-vendor-banner" style="display: none; background: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.08) 100%); border: 1.5px solid #f59e0b; border-radius: 8px; padding: 14px; margin-bottom: 14px; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.12);">
+                                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px;">
+                                    <div style="display: flex; align-items: flex-start; gap: 8px; flex: 1;">
+                                        <span style="font-size: 1.3rem; line-height: 1;">❓</span>
+                                        <div style="flex: 1;">
+                                            <div style="color: #fbbf24; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
+                                                Solicitação Pendente da Engenharia ao Vendedor
+                                            </div>
+                                            <div id="modal-chat-waiting-vendor-text" style="color: #ffffff; font-size: 0.82rem; font-weight: 600; margin-top: 5px; background: rgba(0,0,0,0.35); padding: 8px 12px; border-radius: 5px; border-left: 3px solid #f59e0b; word-break: break-word;">
+                                                <!-- Texto da dúvida preenchido via JS -->
+                                            </div>
+                                            <div id="modal-chat-waiting-vendor-meta" style="font-size: 0.7rem; color: #fde68a; margin-top: 5px; font-style: italic;">
+                                                <!-- Metadados de tempo preenchidos via JS -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-secondary" onclick="toggleWaitingVendorStatus(false)" style="font-size: 0.68rem; padding: 3px 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(245, 158, 11, 0.35); color: #cbd5e1; cursor: pointer; white-space: nowrap;" title="Retoma o SLA sem registrar resposta escrita">
+                                        Liberar sem responder
+                                    </button>
                                 </div>
-                                <button type="button" class="btn btn-secondary" onclick="toggleWaitingVendorStatus(false)" style="font-size: 0.72rem; padding: 4px 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(245, 158, 11, 0.4); color: #f8fafc; font-weight: bold; cursor: pointer;">
-                                    🟢 Desbloquear SLA
-                                </button>
+
+                                <!-- Campo de Resposta Direta do Vendedor -->
+                                <div style="margin-top: 10px; border-top: 1px dashed rgba(245, 158, 11, 0.3); padding-top: 10px;">
+                                    <label for="modal-vendor-response-input" style="display: block; font-size: 0.74rem; font-weight: 700; color: #fbbf24; text-transform: uppercase; margin-bottom: 6px;">
+                                        ✍️ Digite sua Resposta para a Engenharia:
+                                    </label>
+                                    <textarea id="modal-vendor-response-input" class="form-control" style="height: 65px; resize: none; background: rgba(0,0,0,0.35); border: 1px solid #f59e0b; color: #ffffff; font-size: 0.8rem; padding: 8px;" placeholder="Ex: O cliente confirmou que o prazo solicitado é de 45 dias e enviará as amostras na próxima segunda-feira..."></textarea>
+                                    
+                                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 8px;">
+                                        <button type="button" id="btn-submit-vendor-response" class="btn" onclick="submitVendorDirectResponse()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; font-size: 0.76rem; font-weight: 800; padding: 7px 16px; border: none; border-radius: 5px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">
+                                            <span>✅</span> Enviar Resposta e Retomar SLA da Engenharia
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Caixa de Envio de Mensagem -->
@@ -7181,6 +7212,38 @@
                         isErrorResponse = true;
                         errorStatus = 404;
                         responseData = { error: 'Projeto não encontrado!' };
+                    }
+                } else if (url.includes('/comments')) {
+                    const code = decodeURIComponent(urlParts[urlParts.length - 2]);
+                    const allComments = JSON.parse(localStorage.getItem('tecfag_comments') || '[]');
+                    if (method === 'GET') {
+                        responseData = allComments.filter(c => c.projectCode === code);
+                    } else if (method === 'POST') {
+                        const formData = options.body;
+                        let msg = '';
+                        let isQuery = false;
+                        if (formData instanceof FormData) {
+                            msg = formData.get('message') || '';
+                            isQuery = formData.get('is_vendor_query') === 'true';
+                        } else if (typeof options.body === 'string') {
+                            try {
+                                const b = JSON.parse(options.body);
+                                msg = b.message || '';
+                                isQuery = b.is_vendor_query === true;
+                            } catch(e) { msg = options.body; }
+                        }
+                        const newC = {
+                            id: Date.now(),
+                            projectCode: code,
+                            user: (authenticatedUser && authenticatedUser.username) || 'Sistema',
+                            message: msg,
+                            dateAdded: new Date().toISOString(),
+                            attachmentPath: null,
+                            attachmentName: null
+                        };
+                        allComments.push(newC);
+                        localStorage.setItem('tecfag_comments', JSON.stringify(allComments));
+                        responseData = newC;
                     }
                 } else if (url.startsWith('/api/projects')) {
                     let projects = getLocalProjects();
@@ -16859,26 +16922,36 @@
             const chatBanner = document.getElementById('modal-chat-waiting-vendor-banner');
             const topSubtitle = document.getElementById('modal-waiting-vendor-top-subtitle');
             const chatBannerText = document.getElementById('modal-chat-waiting-vendor-text');
+            const chatBannerMeta = document.getElementById('modal-chat-waiting-vendor-meta');
 
             if (isWaitingVendor) {
                 const waitingSince = project.waiting_vendor_since ? new Date(project.waiting_vendor_since).toLocaleString('pt-BR') : 'Data não registrada';
-                const reasonStr = project.waiting_vendor_reason ? ` "${project.waiting_vendor_reason}"` : '';
+                const reasonStr = project.waiting_vendor_reason ? project.waiting_vendor_reason : 'A Engenharia solicitou dados ou esclarecimentos técnicos.';
                 
                 if (topAlert) {
                     topAlert.style.display = 'block';
                     if (topSubtitle) {
-                        topSubtitle.innerHTML = `O cronômetro da Engenharia está congelado desde <strong>${waitingSince}</strong> aguardando retorno de <strong>${creator}</strong>.${reasonStr ? '<br><em>Dúvida: ' + reasonStr + '</em>' : ''}`;
+                        topSubtitle.innerHTML = `O cronômetro da Engenharia está congelado desde <strong>${waitingSince}</strong> aguardando retorno de <strong>${creator}</strong>.<br><div style="margin-top: 4px; padding: 4px 8px; background: rgba(0,0,0,0.3); border-radius: 4px; border-left: 2px solid #f59e0b; color: #fff;"><em>❓ Dúvida: ${reasonStr}</em></div>`;
                     }
                 }
                 if (chatBanner) {
-                    chatBanner.style.display = 'flex';
+                    chatBanner.style.display = 'block';
                     if (chatBannerText) {
-                        chatBannerText.innerHTML = `Aguardando resposta do Vendedor (<strong>${creator}</strong>). O SLA da Engenharia está congelado.`;
+                        chatBannerText.innerText = reasonStr;
                     }
+                    if (chatBannerMeta) {
+                        chatBannerMeta.innerHTML = `Solicitado para <strong>${creator}</strong> em <strong>${waitingSince}</strong>. SLA da Engenharia congelado.`;
+                    }
+                    const respInput = document.getElementById('modal-vendor-response-input');
+                    if (respInput) respInput.value = '';
                 }
             } else {
                 if (topAlert) topAlert.style.display = 'none';
                 if (chatBanner) chatBanner.style.display = 'none';
+            }
+
+            if (typeof updateChatControlsForRole === 'function') {
+                updateChatControlsForRole(project);
             }
 
             // Gerar imagem do QR Code
@@ -17669,6 +17742,20 @@
             loadProjectCopilotValidation();
 
             renderSavedSetupFiles();
+
+            // 1. Limpa inputs de chat e anexos pendentes do modal
+            const chatInput = document.getElementById('modal-chat-input');
+            if (chatInput) chatInput.value = '';
+            clearModalChatAttachment();
+
+            const respInput = document.getElementById('modal-vendor-response-input');
+            if (respInput) respInput.value = '';
+
+            // 2. Garante abertura na aba padrão Visão Geral & Chat
+            switchProjectModalTab('overview');
+
+            // 3. Força o carregamento isolado das mensagens exclusivamente deste card ativo
+            loadModalComments();
 
             document.getElementById('project-detail-modal').classList.add('active');
         }
@@ -18660,6 +18747,10 @@
         async function loadModalComments() {
             const container = document.getElementById('modal-chat-messages-container');
             if (!container) return;
+            if (!activeProjectCode) {
+                container.innerHTML = '<div style="text-align:center; padding: 20px; color:var(--text-secondary); font-size:0.8rem;">Nenhum projeto selecionado.</div>';
+                return;
+            }
             container.innerHTML = `<div style="text-align:center; padding: 10px; color:var(--text-secondary); font-size:0.8rem;">Carregando mensagens...</div>`;
             
             try {
@@ -18671,19 +18762,34 @@
                 const comments = await res.json();
                 
                 container.innerHTML = '';
-                if (comments.length === 0) {
-                    container.innerHTML = `<div style="text-align:center; padding: 20px; color:var(--text-secondary); font-size:0.8rem;">Nenhum comentário ou aviso registrado ainda. Seja o primeiro!</div>`;
+                if (!Array.isArray(comments) || comments.length === 0) {
+                    container.innerHTML = `<div style="text-align:center; padding: 25px 15px; color:var(--text-secondary); font-size:0.8rem; line-height: 1.4;">💬 Nenhum comentário ou solicitação registrada ainda neste card.<br><span style="font-size: 0.72rem; color: #64748b;">Utilize o campo acima para se comunicar com a equipe técnica ou comercial.</span></div>`;
                     return;
                 }
                 
                 comments.forEach(c => {
                     const div = document.createElement('div');
                     div.style.background = 'rgba(255,255,255,0.03)';
-                    div.style.border = '1px solid rgba(255,255,255,0.05)';
-                    div.style.padding = '8px 10px';
-                    div.style.borderRadius = '5px';
+                    div.style.border = '1px solid rgba(255,255,255,0.06)';
+                    div.style.padding = '10px 12px';
+                    div.style.borderRadius = '6px';
                     div.style.fontSize = '0.78rem';
-                    div.style.lineHeight = '1.4';
+                    div.style.lineHeight = '1.45';
+
+                    const isQuery = c.message && (c.message.includes('SOLICITAÇÃO AO VENDEDOR') || c.message.includes('[DÚVIDA / SOLICITAÇÃO'));
+                    const isResponse = c.message && c.message.includes('RESPOSTA DO VENDEDOR');
+                    const isVendorToEng = c.message && c.message.includes('DÚVIDA DO VENDEDOR PARA A ENGENHARIA');
+
+                    if (isQuery) {
+                        div.style.background = 'rgba(245, 158, 11, 0.08)';
+                        div.style.border = '1px solid rgba(245, 158, 11, 0.4)';
+                    } else if (isResponse) {
+                        div.style.background = 'rgba(16, 185, 129, 0.08)';
+                        div.style.border = '1px solid rgba(16, 185, 129, 0.4)';
+                    } else if (isVendorToEng) {
+                        div.style.background = 'rgba(14, 165, 233, 0.08)';
+                        div.style.border = '1px solid rgba(14, 165, 233, 0.4)';
+                    }
                     
                     const date = new Date(c.dateAdded).toLocaleString('pt-BR');
                     const friendlyAuthor = getFriendlyUserName(c.user);
@@ -18720,10 +18826,19 @@
                             `;
                         }
                     }
+
+                    let authorBadge = `<strong style="color:var(--primary);">${friendlyAuthor}</strong>`;
+                    if (isQuery) {
+                        authorBadge = `<strong style="color:#f59e0b;">❓ ${friendlyAuthor} (Engenharia)</strong>`;
+                    } else if (isResponse) {
+                        authorBadge = `<strong style="color:#10b981;">✅ ${friendlyAuthor} (Vendedor)</strong>`;
+                    } else if (isVendorToEng) {
+                        authorBadge = `<strong style="color:#38bdf8;">💬 ${friendlyAuthor} (Vendedor)</strong>`;
+                    }
                     
                     div.innerHTML = `
                         <div style="display:flex; justify-content:space-between; margin-bottom: 4px; font-size:0.7rem; color:var(--text-secondary);">
-                            <strong style="color:var(--primary);">${friendlyAuthor}</strong>
+                            ${authorBadge}
                             <span>${date}</span>
                         </div>
                         <div style="color:#e2e8f0; white-space:pre-wrap; word-break:break-word;">${c.message}</div>
@@ -18794,10 +18909,21 @@
             try {
                 const token = localStorage.getItem('tecfag_session_token');
                 const formData = new FormData();
-                formData.append('message', message);
+                
                 if (isVendorQuery) {
-                    formData.append('is_vendor_query', 'true');
+                    if (currentRole === 'VENDAS') {
+                        // Vendedor enviando dúvida comercial para a Engenharia (não pausa SLA)
+                        formData.append('message', `💬 [DÚVIDA DO VENDEDOR PARA A ENGENHARIA]: ${message}`);
+                        formData.append('is_vendor_query', 'false');
+                    } else {
+                        // Engenharia solicitando esclarecimento ao Vendedor (pausa SLA)
+                        formData.append('message', message);
+                        formData.append('is_vendor_query', 'true');
+                    }
+                } else {
+                    formData.append('message', message);
                 }
+
                 if (modalChatSelectedFile) {
                     formData.append('file', modalChatSelectedFile);
                 }
@@ -18829,7 +18955,7 @@
                     state.projects[projectIdx].crm_last_interaction_date = new Date().toISOString();
                     state.projects[projectIdx].lastUpdate = new Date().toISOString();
                     
-                    if (isVendorQuery) {
+                    if (isVendorQuery && currentRole !== 'VENDAS') {
                         state.projects[projectIdx].waiting_vendor = 1;
                         state.projects[projectIdx].waiting_vendor_since = new Date().toISOString();
                         state.projects[projectIdx].waiting_vendor_reason = message;
@@ -18837,6 +18963,8 @@
                     } else if (state.projects[projectIdx].waiting_vendor === 1) {
                         state.projects[projectIdx].waiting_vendor = 0;
                         showIhmToast('🟢 Resposta enviada! O bloqueio foi encerrado e o SLA da Engenharia foi retomado.', 'success');
+                    } else if (isVendorQuery && currentRole === 'VENDAS') {
+                        showIhmToast('💬 Dúvida enviada à Engenharia de Aplicação!', 'info');
                     }
                     
                     renderKanban();
@@ -18850,6 +18978,105 @@
                     activeBtn.disabled = false;
                     activeBtn.innerText = oldText;
                 }
+            }
+        }
+
+        // Resposta Direta do Vendedor à Engenharia (com desbloqueio automático do SLA)
+        async function submitVendorDirectResponse() {
+            const input = document.getElementById('modal-vendor-response-input');
+            const submitBtn = document.getElementById('btn-submit-vendor-response');
+            if (!input) return;
+            
+            const responseText = input.value.trim();
+            if (!responseText) {
+                alert('Por favor, digite a resposta para a Engenharia antes de enviar.');
+                input.focus();
+                return;
+            }
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerText = 'Enviando resposta...';
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const formData = new FormData();
+                formData.append('message', `🟢 [RESPOSTA DO VENDEDOR]: ${responseText}`);
+                formData.append('is_vendor_query', 'false'); // Comentário normal -> backend remove waiting_vendor e soma SLA
+
+                const res = await fetch(`/api/projects/${activeProjectCode}/comments`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.error || 'Erro ao enviar resposta');
+                }
+
+                input.value = '';
+                showIhmToast('✅ Resposta enviada com sucesso à Engenharia! Bloqueio encerrado e SLA retomado.', 'success');
+
+                await loadProjectsDB();
+                await openProjectModal(activeProjectCode);
+            } catch (err) {
+                console.error('[VENDOR DIRECT RESPONSE ERROR]', err);
+                alert('Erro ao enviar resposta: ' + err.message);
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = '✅ Enviar Resposta e Retomar SLA da Engenharia';
+                }
+            }
+        }
+
+        function focusVendorResponseField() {
+            switchProjectModalTab('overview');
+            const respInput = document.getElementById('modal-vendor-response-input');
+            if (respInput) {
+                setTimeout(() => {
+                    respInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    respInput.focus();
+                }, 100);
+            }
+        }
+
+        function updateChatControlsForRole(project) {
+            const queryBtn = document.getElementById('btn-submit-vendor-query');
+            const submitBtn = document.getElementById('btn-submit-chat-message');
+            const chatInput = document.getElementById('modal-chat-input');
+            if (!queryBtn || !submitBtn) return;
+
+            const isWaiting = project && (project.waiting_vendor === 1 || project.waiting_vendor === true);
+            const isVendas = currentRole === 'VENDAS';
+
+            if (isWaiting) {
+                // Quando aguarda resposta do vendedor: esconde o botão duplicado de perguntar
+                queryBtn.style.display = 'none';
+                submitBtn.innerText = 'Enviar Comentário Interno';
+                if (chatInput) chatInput.placeholder = 'Digite um comentário interno adicional...';
+            } else if (isVendas) {
+                // Vendedor falando com a Engenharia
+                queryBtn.style.display = 'inline-flex';
+                queryBtn.style.background = '#0ea5e9';
+                queryBtn.style.borderColor = '#0ea5e9';
+                queryBtn.style.color = '#fff';
+                queryBtn.innerText = '❓ Dúvida para Engenharia';
+                queryBtn.title = 'Envia uma dúvida da área comercial diretamente para a equipe de Engenharia';
+                submitBtn.innerText = 'Enviar';
+                if (chatInput) chatInput.placeholder = 'Digite uma mensagem, dúvida técnica ou alinhamento comercial...';
+            } else {
+                // Engenharia / Gerência solicitando ao vendedor
+                queryBtn.style.display = 'inline-flex';
+                queryBtn.style.background = '#f59e0b';
+                queryBtn.style.borderColor = '#f59e0b';
+                queryBtn.style.color = '#000';
+                queryBtn.innerText = '❓ Solicitar ao Vendedor';
+                queryBtn.title = 'Envia a dúvida ao Vendedor, marca o projeto como Aguardando Vendedor e congela o cronômetro da Engenharia';
+                submitBtn.innerText = 'Enviar';
+                if (chatInput) chatInput.placeholder = 'Digite uma mensagem, dúvida técnica ou alinhamento comercial...';
             }
         }
 
@@ -19267,6 +19494,16 @@
                     console.error('Erro ao liberar trava:', err);
                 });
             }
+            
+            // Limpa o container de mensagens e inputs para evitar vazamento visual entre cards
+            const chatContainer = document.getElementById('modal-chat-messages-container');
+            if (chatContainer) chatContainer.innerHTML = '';
+            const chatInput = document.getElementById('modal-chat-input');
+            if (chatInput) chatInput.value = '';
+            clearModalChatAttachment();
+            const respInput = document.getElementById('modal-vendor-response-input');
+            if (respInput) respInput.value = '';
+
             document.getElementById('project-detail-modal').classList.remove('active');
             activeProjectCode = null;
         }
