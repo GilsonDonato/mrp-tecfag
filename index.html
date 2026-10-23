@@ -7297,18 +7297,37 @@
             };
         }
 
-        // Global Fetch interceptor for online mode auth header injection and 401/403 auto-logout
+        // Global Fetch interceptor for online mode auth header injection
         if (window.location.protocol !== 'file:') {
             const originalFetch = window.fetch;
             window.fetch = function(url, options) {
                 options = options || {};
-                options.headers = options.headers || {};
                 const token = localStorage.getItem('tecfag_session_token');
-                if (token) {
-                    options.headers['Authorization'] = 'Bearer ' + token;
+                const isInternalApi = typeof url === 'string' && (url.startsWith('/api') || url.startsWith('/uploads') || url.startsWith(window.location.origin + '/api'));
+                
+                if (token && isInternalApi) {
+                    if (!options.headers) {
+                        options.headers = { 'Authorization': 'Bearer ' + token };
+                    } else if (options.headers instanceof Headers) {
+                        if (!options.headers.has('Authorization')) {
+                            options.headers.set('Authorization', 'Bearer ' + token);
+                        }
+                    } else if (Array.isArray(options.headers)) {
+                        const hasAuth = options.headers.some(([k]) => k.toLowerCase() === 'authorization');
+                        if (!hasAuth) {
+                            options.headers.push(['Authorization', 'Bearer ' + token]);
+                        }
+                    } else if (typeof options.headers === 'object') {
+                        if (!options.headers['Authorization'] && !options.headers['authorization']) {
+                            options.headers['Authorization'] = 'Bearer ' + token;
+                        }
+                    }
                 }
+                
                 return originalFetch(url, options).then(response => {
-                    if (response.status === 401 || response.status === 403) {
+                    // Only auto-logout on 401 for explicit auth validation calls, never on 403 (business permissions)
+                    if (response.status === 401 && typeof url === 'string' && url.includes('/api/auth/me')) {
+                        console.warn('[AUTH] Sessão expirada no servidor.');
                         localStorage.removeItem('tecfag_session_token');
                         localStorage.removeItem('tecfag_user');
                         document.body.classList.add('not-logged-in');
@@ -12779,7 +12798,9 @@
 
         // Fetch attachments from Server API
         function getAttachmentsFromIDB(projectCode) {
-            return fetch(`/api/attachments/${projectCode}`)
+            const token = localStorage.getItem('tecfag_session_token');
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            return fetch(`/api/attachments/${projectCode}`, { headers })
                 .then(res => res.json())
                 .catch(err => {
                     console.error('Erro ao buscar anexos:', err);
@@ -12789,7 +12810,9 @@
 
         // Delete attachment from Server API
         function deleteAttachmentFromIDB(id) {
-            return fetch(`/api/attachments/${id}`, { method: 'DELETE' })
+            const token = localStorage.getItem('tecfag_session_token');
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            return fetch(`/api/attachments/${id}`, { method: 'DELETE', headers })
                 .then(res => res.json())
                 .catch(err => console.error('Erro ao excluir anexo:', err));
         }
@@ -12859,16 +12882,17 @@
                 loadSegmentTemplatesDB();
             }
 
+            const token = localStorage.getItem('tecfag_session_token');
+            const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+
             const fetchLocks = window.location.protocol !== 'file:'
-                ? fetch('/api/projects/locks/active').then(res => res.json()).catch(err => ({}))
+                ? fetch('/api/projects/locks/active', { headers: authHeaders }).then(res => res.json()).catch(err => ({}))
                 : Promise.resolve({});
 
             fetchLocks.then(locks => {
                 state.activeLocks = locks || {};
 
-                const token = localStorage.getItem('tecfag_session_token');
-                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-                fetch('/api/projects', { headers })
+                fetch('/api/projects', { headers: authHeaders })
                     .then(res => {
                         if (res.status === 403) {
                             return res.json().then(data => {
@@ -12891,8 +12915,11 @@
                                     }
                                 }
                             });
+                            state.projects = projects;
+                        } else {
+                            console.error('[LOAD PROJECTS] Resposta inválida ou erro do servidor:', projects);
+                            if (!Array.isArray(state.projects)) state.projects = [];
                         }
-                        state.projects = projects;
                     
                     // Migração automática de projetos locais do LocalStorage para o Banco SQLite do servidor
                     if (projects.length === 0) {
@@ -13201,11 +13228,15 @@
         }
 
         function loadLogsFromAPI() {
-            fetch('/api/logs')
+            const token = localStorage.getItem('tecfag_session_token');
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            fetch('/api/logs', { headers })
                 .then(res => res.json())
                 .then(logs => {
-                    state.logs = logs;
-                    renderLogs();
+                    if (Array.isArray(logs)) {
+                        state.logs = logs;
+                        renderLogs();
+                    }
                 })
                 .catch(err => console.error('Erro ao carregar logs do servidor:', err));
         }
@@ -16605,7 +16636,6 @@
 
         // Active project details in modal
         async function openProjectModal(code) {
-            currentCaseStudyMD = ''; // Limpa cache anterior
             setupSelectedFiles = [];
             const setupInput = document.getElementById('modal-setup-files-input');
             if (setupInput) setupInput.value = '';
@@ -16617,11 +16647,23 @@
             const project = state.projects.find(p => p.code === code);
             if (!project) return;
 
+            // Carregar estudo de caso persistido, se houver
+            if (project.setup_specs && project.setup_specs.case_study_md) {
+                currentCaseStudyMD = project.setup_specs.case_study_md;
+            } else {
+                currentCaseStudyMD = '';
+            }
+
             // Tenta obter a trava de concorrência com o servidor
             try {
-                const response = await fetch(`/api/projects/${code}/lock`, { method: 'POST' });
+                const token = localStorage.getItem('tecfag_session_token');
+                const lockHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const response = await fetch(`/api/projects/${code}/lock`, { 
+                    method: 'POST',
+                    headers: lockHeaders
+                });
                 const result = await response.json();
-                if (!result.success) {
+                if (result && !result.success && result.lockedBy) {
                     alert(`⚠️ CONFLITO DE EDIÇÃO:\nEste projeto está aberto/sendo editado pelo engenheiro/usuário "${result.lockedBy}" no momento.\n\nPara evitar que suas alterações sejam sobrescritas, a abertura deste projeto foi bloqueada temporariamente.`);
                     return;
                 }
@@ -16636,7 +16678,11 @@
             lockHeartbeatInterval = setInterval(async () => {
                 if (activeProjectCode === code) {
                     try {
-                        await fetch(`/api/projects/${code}/lock`, { method: 'POST' });
+                        const token = localStorage.getItem('tecfag_session_token');
+                        await fetch(`/api/projects/${code}/lock`, { 
+                            method: 'POST',
+                            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                        });
                     } catch (e) {
                         console.error('Falha ao enviar heartbeat de trava:', e);
                     }
@@ -17829,8 +17875,12 @@
             formData.append('projectCode', activeProjectCode);
             formData.append('phase', stepKey);
 
+            const token = localStorage.getItem('tecfag_session_token');
+            const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+
             fetch('/api/attachments', {
                 method: 'POST',
+                headers: authHeaders,
                 body: formData
             })
             .then(res => res.json())
@@ -17865,12 +17915,12 @@
                 
                 fetch('/api/logs', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...authHeaders },
                     body: JSON.stringify({ timestamp, color: '#a855f7', text: logText })
                 }).then(() => {
                     loadProjectsDB();
                     setTimeout(renderAttachments, 200);
-                });
+                }).catch(e => console.error('Erro log anexo:', e));
             })
             .catch(err => {
                 console.error(err);
@@ -17907,7 +17957,10 @@
             }
 
             if (confirm('Deseja realmente remover este arquivo anexado?')) {
-                fetch(`/api/attachments/${id}`, { method: 'DELETE' })
+                const token = localStorage.getItem('tecfag_session_token');
+                const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                fetch(`/api/attachments/${id}`, { method: 'DELETE', headers: authHeaders })
                 .then(res => res.json())
                 .then(data => {
                     if (data.error) {
@@ -17919,12 +17972,12 @@
                     
                     fetch('/api/logs', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...authHeaders },
                         body: JSON.stringify({ timestamp, color: '#64748b', text: logText })
                     }).then(() => {
                         loadProjectsDB();
                         setTimeout(renderAttachments, 200);
-                    });
+                    }).catch(e => console.error('Erro log remocao anexo:', e));
                 })
                 .catch(err => {
                     console.error(err);
@@ -18905,9 +18958,14 @@
             const isChecked = checkCompliance.checked;
             
             try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const authHeaders = {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                };
                 const response = await fetch(`/api/projects/${project.code}/handover`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: authHeaders,
                     body: JSON.stringify({ signed: isChecked })
                 });
                 
@@ -19065,7 +19123,11 @@
             }
             if (activeProjectCode) {
                 const codeToUnlock = activeProjectCode;
-                fetch(`/api/projects/${codeToUnlock}/unlock`, { method: 'POST' }).catch(err => {
+                const token = localStorage.getItem('tecfag_session_token');
+                fetch(`/api/projects/${codeToUnlock}/unlock`, { 
+                    method: 'POST',
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                }).catch(err => {
                     console.error('Erro ao liberar trava:', err);
                 });
             }
@@ -19245,9 +19307,15 @@
                 lastUpdate: new Date().toISOString()
             };
 
+            const token = localStorage.getItem('tecfag_session_token');
+            const authHeaders = {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            };
+
             fetch(`/api/projects/${project.code}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders,
                 body: JSON.stringify(updateBody)
             })
             .then(res => res.json())
@@ -19263,26 +19331,26 @@
                 // Post log
                 await fetch('/api/logs', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: authHeaders,
                     body: JSON.stringify({ timestamp, color: isChecked ? '#10b981' : '#94a3b8', text: logText })
-                });
+                }).catch(e => console.error('Erro log checklist:', e));
 
                 if (oldFase !== newFase) {
                     const routingText = `<strong>[ROTEAMENTO AUTOMÁTICO]</strong> Projeto <code>${project.code}</code> direcionado automaticamente para a <strong>Fase ${newFase}</strong>.`;
                     await fetch('/api/logs', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: authHeaders,
                         body: JSON.stringify({ timestamp, color: '#a855f7', text: routingText })
-                    });
+                    }).catch(e => console.error('Erro log routing:', e));
 
                     const bottleneck = getBottleneckRole({...project, fase: newFase});
                     if (newFase !== 7 && newFase !== 8) {
                         const alertText = `<strong>[ALERTA AUTOMÁTICO]</strong> Processo encaminhado para o responsável: <strong>${bottleneck}</strong>.`;
                         await fetch('/api/logs', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: authHeaders,
                             body: JSON.stringify({ timestamp, color: '#0ea5e9', text: alertText })
-                        });
+                        }).catch(e => console.error('Erro log bottleneck:', e));
                     }
                 }
 
@@ -19332,16 +19400,20 @@
             if (!project) return;
 
             const saveBtn = document.getElementById('btn-save-project-modal');
-            const oldBtnText = saveBtn ? saveBtn.innerText : 'Salvar Alterações';
-            
+            const token = localStorage.getItem('tecfag_session_token');
+            const authHeaders = {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            };
+
             if (saveBtn) {
                 saveBtn.disabled = true;
-                saveBtn.innerText = 'Enviando arquivos...';
+                saveBtn.innerText = 'Salvando dados...';
             }
 
             try {
                 if (setupSelectedFiles.length > 0) {
-                    const token = localStorage.getItem('tecfag_session_token');
+                    if (saveBtn) saveBtn.innerText = 'Enviando arquivos...';
                     for (const file of setupSelectedFiles) {
                         const formData = new FormData();
                         formData.append('file', file);
@@ -19355,7 +19427,7 @@
                         });
                         
                         if (!res.ok) {
-                            const errData = await res.json();
+                            const errData = await res.json().catch(() => ({}));
                             throw new Error(`Falha no upload do arquivo ${file.name}: ${errData.error || 'Erro desconhecido'}`);
                         }
                     }
@@ -19364,38 +19436,41 @@
                     if (statusText) statusText.innerText = 'Nenhum arquivo selecionado';
                     const listContainer = document.getElementById('modal-setup-selected-list');
                     if (listContainer) listContainer.innerHTML = '';
-                }
-
-                if (saveBtn) {
-                    saveBtn.innerText = 'Salvando dados...';
+                    if (saveBtn) saveBtn.innerText = 'Salvando dados...';
                 }
 
                 const serialInputs = document.querySelectorAll('.modal-machine-serial');
                 const routeSelects = document.querySelectorAll('.modal-machine-route');
                 
-                const updatedMachines = [];
+                let updatedMachines = [];
                 let triggerAutoPrint = false;
-                
-                serialInputs.forEach((input, idx) => {
-                    const serialVal = input.value.trim() || '-';
-                    const routeVal = routeSelects[idx] ? routeSelects[idx].value : '-';
-                    const oldMach = (project.machines && project.machines[idx]) || { sku: project.sku, serial: '-', route: '-' };
-                    
-                    updatedMachines.push({
-                        sku: oldMach.sku,
-                        serial: serialVal,
-                        route: routeVal
-                    });
 
-                    const hasSerialNow = serialVal !== '-';
-                    const hasRouteNow = routeVal !== '-';
-                    const serialJustAdded = (serialVal !== '-' && oldMach.serial === '-');
-                    const routeJustAdded = (routeVal !== '-' && oldMach.route === '-');
-                    
-                    if (hasSerialNow && hasRouteNow && (serialJustAdded || routeJustAdded)) {
-                        triggerAutoPrint = true;
-                    }
-                });
+                if (serialInputs.length > 0) {
+                    serialInputs.forEach((input, idx) => {
+                        const serialVal = input.value.trim() || '-';
+                        const routeVal = routeSelects[idx] ? routeSelects[idx].value : '-';
+                        const oldMach = (project.machines && project.machines[idx]) || { sku: project.sku, serial: '-', route: '-' };
+                        
+                        updatedMachines.push({
+                            sku: oldMach.sku,
+                            serial: serialVal,
+                            route: routeVal
+                        });
+
+                        const hasSerialNow = serialVal !== '-';
+                        const hasRouteNow = routeVal !== '-';
+                        const serialJustAdded = (serialVal !== '-' && oldMach.serial === '-');
+                        const routeJustAdded = (routeVal !== '-' && oldMach.route === '-');
+                        
+                        if (hasSerialNow && hasRouteNow && (serialJustAdded || routeJustAdded)) {
+                            triggerAutoPrint = true;
+                        }
+                    });
+                } else {
+                    updatedMachines = (project.machines && project.machines.length > 0) 
+                        ? project.machines 
+                        : [{ sku: project.sku, serial: project.serial || '-', route: project.route || '-' }];
+                }
 
                 const nonHyphenSerials = updatedMachines.map(m => m.serial).filter(s => s !== '-');
                 const projectSerial = nonHyphenSerials.length > 0 ? nonHyphenSerials.join(', ') : '-';
@@ -19403,7 +19478,7 @@
                 const nonHyphenRoutes = updatedMachines.map(m => m.route).filter(r => r !== '-');
                 const projectRoute = nonHyphenRoutes.length > 0 ? nonHyphenRoutes.join(', ') : '-';
 
-                let updatedChecklist = { ...project.checklist };
+                let updatedChecklist = { ...(project.checklist || {}) };
 
                 const fase1To5Completed = [
                     'diagnostico', 'customizacao', 'cotacao', 'fluxograma', 'planta_baixa',
@@ -19411,7 +19486,7 @@
                     'proforma', 'cambio_sinal', 'swift_pagamento',
                     'producao', 'embarque', 'pagamento', 'fedex',
                     'transporte_maritimo', 'desembaraco', 'chegada_tecfag'
-                ].every(k => project.checklist[k] === true);
+                ].every(k => updatedChecklist[k] === true);
 
                 const allMachinesHaveSerial = updatedMachines.every(m => m.serial !== '-');
                 const someMachinesJustGotSerial = updatedMachines.some((m, idx) => m.serial !== '-' && (project.machines && project.machines[idx] ? project.machines[idx].serial === '-' : true));
@@ -19436,27 +19511,30 @@
                     return el ? el.value.trim() : '';
                 };
 
+                const existingSpecs = project.setup_specs || {};
                 const setupSpecs = {
-                    frasco_tamanho: getVal('modal-spec-frasco'),
-                    tampa_tamanho: getVal('modal-spec-tampa'),
-                    espaco_disponivel: getVal('modal-spec-espaco'),
-                    tensao_eletrica: getVal('modal-spec-tensao'),
-                    ar_comprimido: getVal('modal-spec-ar'),
-                    obs_startup: getVal('modal-spec-obs'),
-                    obs_documentacao: getVal('modal-spec-documentacao'),
-                    formato_embalagem: getVal('modal-spec-formato'),
-                    largura_bobina: getVal('modal-spec-largura'),
-                    tipo_dosador: getVal('modal-spec-dosador'),
-                    bicos_envase: getVal('modal-spec-bicos'),
-                    higienizacao_cip: getVal('modal-spec-cip'),
-                    produto_fluidez: getVal('modal-spec-fluidez'),
-                    produto_densidade: getVal('modal-spec-densidade'),
-                    aco_grau: getVal('modal-spec-aco'),
-                    polimento_grau: getVal('modal-spec-polimento'),
-                    eletrica_frequencia: getVal('modal-spec-frequencia'),
-                    consumo_ar: getVal('modal-spec-consumo-ar'),
-                    seguranca_nr12: getVal('modal-spec-nr12'),
-                    portas_seguranca: getVal('modal-spec-portas')
+                    ...existingSpecs,
+                    frasco_tamanho: getVal('modal-spec-frasco') || existingSpecs.frasco_tamanho || '',
+                    tampa_tamanho: getVal('modal-spec-tampa') || existingSpecs.tampa_tamanho || '',
+                    espaco_disponivel: getVal('modal-spec-espaco') || existingSpecs.espaco_disponivel || '',
+                    tensao_eletrica: getVal('modal-spec-tensao') || existingSpecs.tensao_eletrica || '',
+                    ar_comprimido: getVal('modal-spec-ar') || existingSpecs.ar_comprimido || '',
+                    obs_startup: getVal('modal-spec-obs') || existingSpecs.obs_startup || '',
+                    obs_documentacao: getVal('modal-spec-documentacao') || existingSpecs.obs_documentacao || '',
+                    formato_embalagem: getVal('modal-spec-formato') || existingSpecs.formato_embalagem || '',
+                    largura_bobina: getVal('modal-spec-largura') || existingSpecs.largura_bobina || '',
+                    tipo_dosador: getVal('modal-spec-dosador') || existingSpecs.tipo_dosador || '',
+                    bicos_envase: getVal('modal-spec-bicos') || existingSpecs.bicos_envase || '',
+                    higienizacao_cip: getVal('modal-spec-cip') || existingSpecs.higienizacao_cip || '',
+                    produto_fluidez: getVal('modal-spec-fluidez') || existingSpecs.produto_fluidez || '',
+                    produto_densidade: getVal('modal-spec-densidade') || existingSpecs.produto_densidade || '',
+                    aco_grau: getVal('modal-spec-aco') || existingSpecs.aco_grau || '',
+                    polimento_grau: getVal('modal-spec-polimento') || existingSpecs.polimento_grau || '',
+                    eletrica_frequencia: getVal('modal-spec-frequencia') || existingSpecs.eletrica_frequencia || '',
+                    consumo_ar: getVal('modal-spec-consumo-ar') || existingSpecs.consumo_ar || '',
+                    seguranca_nr12: getVal('modal-spec-nr12') || existingSpecs.seguranca_nr12 || '',
+                    portas_seguranca: getVal('modal-spec-portas') || existingSpecs.portas_seguranca || '',
+                    case_study_md: currentCaseStudyMD || existingSpecs.case_study_md || ''
                 };
                 
                 const updateBody = {
@@ -19466,12 +19544,13 @@
                     checklist: updatedChecklist,
                     lastUpdate: new Date().toISOString(),
                     machines: updatedMachines,
-                    setup_specs: setupSpecs
+                    setup_specs: setupSpecs,
+                    spare_parts_recommendations: project.spare_parts_recommendations || []
                 };
 
                 const response = await fetch(`/api/projects/${project.code}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: authHeaders,
                     body: JSON.stringify(updateBody)
                 });
 
@@ -19479,12 +19558,17 @@
 
                 if (data.error) {
                     alert('Erro ao salvar projeto: ' + data.error);
-                    if (saveBtn) {
-                        saveBtn.disabled = false;
-                        saveBtn.innerText = 'Salvar Alterações';
-                    }
                     return;
                 }
+
+                // Sincroniza estado local do projeto imediatamente
+                project.serial = projectSerial;
+                project.route = projectRoute;
+                project.fase = finalFase;
+                project.checklist = updatedChecklist;
+                project.machines = updatedMachines;
+                project.setup_specs = setupSpecs;
+                project.lastUpdate = updateBody.lastUpdate;
 
                 // Audit log details
                 const timestamp = new Date().toLocaleTimeString() + ' ' + new Date().toLocaleDateString();
@@ -19493,9 +19577,9 @@
                 
                 await fetch('/api/logs', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: authHeaders,
                     body: JSON.stringify({ timestamp, color: '#10b981', text: logText })
-                });
+                }).catch(e => console.error('Erro ao registrar log de auditoria:', e));
 
                 closeProjectModal();
                 loadProjectsDB();
@@ -19532,8 +19616,9 @@
                     }, 400);
                 }
             } catch (err) {
-                console.error(err);
-                alert('Erro ao salvar alterações: ' + err.message);
+                console.error('Erro ao salvar alterações do projeto:', err);
+                alert('Erro ao salvar alterações: ' + (err.message || err));
+            } finally {
                 if (saveBtn) {
                     saveBtn.disabled = false;
                     saveBtn.innerText = 'Salvar Alterações';
@@ -19541,7 +19626,7 @@
             }
         }
 
-                // Delete project
+        // Delete project
         function deleteProjectFromModal() {
             if (!activeProjectCode) return;
             if (currentRole !== 'GERENTE' && currentRole !== 'ALL') {
@@ -19549,8 +19634,15 @@
                 return;
             }
             if (confirm(`Excluir permanentemente o projeto ${activeProjectCode}?`)) {
+                const token = localStorage.getItem('tecfag_session_token');
+                const authHeaders = {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                };
+
                 fetch(`/api/projects/${activeProjectCode}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: authHeaders
                 })
                 .then(res => res.json())
                 .then(async data => {
@@ -19563,9 +19655,9 @@
                     
                     await fetch('/api/logs', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: authHeaders,
                         body: JSON.stringify({ timestamp, color: '#64748b', text: logText })
-                    });
+                    }).catch(e => console.error('Erro ao registrar log de exclusão:', e));
 
                     closeProjectModal();
                     loadProjectsDB();
@@ -19643,9 +19735,9 @@
                 
                 await fetch('/api/logs', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: headers,
                     body: JSON.stringify({ timestamp, color: '#ef4444', text: logText })
-                });
+                }).catch(e => console.error('Erro log cancelamento:', e));
 
                 closeLostReasonModal();
                 closeProjectModal();
@@ -20729,9 +20821,15 @@
                 lastUpdate: new Date().toISOString()
             };
 
+            const token = localStorage.getItem('tecfag_session_token');
+            const authHeaders = {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            };
+
             fetch(`/api/projects/${project.code}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders,
                 body: JSON.stringify(updateBody)
             })
             .then(res => res.json())
@@ -20745,9 +20843,9 @@
                 
                 await fetch('/api/logs', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: authHeaders,
                     body: JSON.stringify({ timestamp, color: '#3b82f6', text: logText })
-                });
+                }).catch(e => console.error('Erro log reativacao:', e));
 
                 closeProjectModal();
                 loadProjectsDB();

@@ -1291,7 +1291,10 @@ async function refreshOrderPaymentDates(orderId) {
 
 async function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    let token = authHeader && authHeader.split(' ')[1];
+    if (!token) {
+        token = req.headers['x-access-token'] || req.query.token;
+    }
 
     if (!token) {
         return res.status(401).json({ error: 'Acesso negado: Token de sessão não fornecido.' });
@@ -1303,9 +1306,18 @@ async function authenticateToken(req, res, next) {
             return res.status(403).json({ error: 'Sessão inválida ou expirada.' });
         }
 
-        if (new Date(session.expires_at) < new Date()) {
+        const now = new Date();
+        const expiresAt = new Date(session.expires_at);
+
+        if (expiresAt < now) {
             await dbRun('DELETE FROM sessions WHERE token = ?', [token]);
             return res.status(403).json({ error: 'Sessão expirada. Faça login novamente.' });
+        }
+
+        // Sliding session extension: renova se expirar em menos de 3 dias
+        if ((expiresAt.getTime() - now.getTime()) < 3 * 24 * 60 * 60 * 1000) {
+            const newExpiry = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+            await dbRun('UPDATE sessions SET expires_at = ? WHERE token = ?', [newExpiry, token]).catch(() => {});
         }
 
         const user = await dbGet('SELECT username, role, phone, must_change_password FROM users WHERE username = ?', [session.username]);
@@ -7020,7 +7032,8 @@ app.put('/api/projects/:code', async (req, res) => {
         serial, route, fase, checklist, prazos, lastUpdate, motivoPerda, tech, machines, equipment_origin, handover_signed,
         crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date,
         setup_specs, pm, diagnostico, project_name,
-        waiting_vendor, waiting_vendor_since, waiting_vendor_reason, paused_sla_seconds
+        waiting_vendor, waiting_vendor_since, waiting_vendor_reason, paused_sla_seconds,
+        spare_parts_recommendations
     } = req.body;
     const { code } = req.params;
 
@@ -7037,7 +7050,7 @@ app.put('/api/projects/:code', async (req, res) => {
                 oldChecklist = oldProject.checklist ? JSON.parse(oldProject.checklist) : {};
             } catch (e) {}
             const creator = oldChecklist ? oldChecklist.diagnostico_user : null;
-            if (creator !== req.user.username) {
+            if (creator && creator.toLowerCase() !== req.user.username.toLowerCase()) {
                 return res.status(403).json({ error: 'Acesso negado: Você não tem permissão para editar este projeto.' });
             }
         }
@@ -7273,6 +7286,11 @@ app.put('/api/projects/:code', async (req, res) => {
         if (paused_sla_seconds !== undefined) {
             sql += `, paused_sla_seconds = ?`;
             params.push(parseInt(paused_sla_seconds) || 0);
+        }
+
+        if (spare_parts_recommendations !== undefined) {
+            sql += `, spare_parts_recommendations = ?`;
+            params.push(typeof spare_parts_recommendations === 'string' ? spare_parts_recommendations : JSON.stringify(spare_parts_recommendations));
         }
 
         sql += ` WHERE code = ?`;
