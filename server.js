@@ -1303,7 +1303,7 @@ async function authenticateToken(req, res, next) {
     try {
         const session = await dbGet('SELECT * FROM sessions WHERE token = ?', [token]);
         if (!session) {
-            return res.status(403).json({ error: 'Sessão inválida ou expirada.' });
+            return res.status(401).json({ error: 'Sessão inválida ou expirada. Faça login novamente.', code: 'SESSION_EXPIRED' });
         }
 
         const now = new Date();
@@ -1311,12 +1311,12 @@ async function authenticateToken(req, res, next) {
 
         if (expiresAt < now) {
             await dbRun('DELETE FROM sessions WHERE token = ?', [token]);
-            return res.status(403).json({ error: 'Sessão expirada. Faça login novamente.' });
+            return res.status(401).json({ error: 'Sessão expirada. Faça login novamente.', code: 'SESSION_EXPIRED' });
         }
 
-        // Sliding session extension: renova se expirar em menos de 3 dias
-        if ((expiresAt.getTime() - now.getTime()) < 3 * 24 * 60 * 60 * 1000) {
-            const newExpiry = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        // Sliding session extension: renova se expirar em menos de 15 dias
+        if ((expiresAt.getTime() - now.getTime()) < 15 * 24 * 60 * 60 * 1000) {
+            const newExpiry = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString();
             await dbRun('UPDATE sessions SET expires_at = ? WHERE token = ?', [newExpiry, token]).catch(() => {});
         }
 
@@ -1368,8 +1368,21 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     try {
-        const cleanUser = username.toLowerCase().trim();
-        const user = await dbGet('SELECT * FROM users WHERE username = ? OR email = ?', [cleanUser, cleanUser]);
+        let cleanUser = username.toLowerCase().trim();
+        const aliasMap = {
+            'diana': 'vendas',
+            'alex': 'vendas1',
+            'jhordan': 'vendas2',
+            'nardeli': 'vendas3',
+            'lucas': 'vendas4',
+            'patricia': 'vendas6',
+            'patrícia': 'vendas6'
+        };
+        if (aliasMap[cleanUser]) {
+            cleanUser = aliasMap[cleanUser];
+        }
+
+        const user = await dbGet('SELECT * FROM users WHERE username = ? OR email = ? COLLATE NOCASE', [cleanUser, cleanUser]);
         if (!user) {
             return res.status(400).json({ error: 'Usuário ou senha incorretos.' });
         }
@@ -1381,7 +1394,7 @@ app.post('/api/auth/login', async (req, res) => {
 
         const token = crypto.randomBytes(32).toString('hex');
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7);
+        expiresAt.setDate(expiresAt.getDate() + 60); // 60 dias de validade contínua para rotina de trabalho
 
         await dbRun('INSERT INTO sessions (token, username, expires_at) VALUES (?, ?, ?)', [
             token,

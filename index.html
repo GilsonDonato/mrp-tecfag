@@ -4494,6 +4494,34 @@
         </div>
     </div>
 
+    <!-- MODAL DE RENOVAÇÃO DE SESSÃO IN-PLACE (PROTEÇÃO CONTRA PERDA DE DADOS) -->
+    <div class="modal-overlay" id="session-expired-modal" style="z-index: 99999;">
+        <div class="modal" style="width: 440px; padding: 25px; border: 1px solid #ef4444; box-shadow: 0 10px 40px rgba(0,0,0,0.85); background: #111827;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                <div style="font-size: 2rem;">🔒</div>
+                <div>
+                    <h3 style="margin: 0; color: #f87171; font-size: 1.15rem; font-weight: 800;">Sua sessão encerrou</h3>
+                    <p style="margin: 4px 0 0 0; font-size: 0.78rem; color: #94a3b8; line-height: 1.3;">Digite sua senha para renovar o acesso sem perder os dados preenchidos na tela:</p>
+                </div>
+            </div>
+            <form onsubmit="handleSessionRenewSubmit(event)">
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="font-size: 0.72rem; text-transform: uppercase; color: #94a3b8;">Usuário</label>
+                    <input type="text" id="renew-username" class="form-control" readonly style="background: rgba(255,255,255,0.05); color: #cbd5e1; font-weight: 600;" />
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-size: 0.72rem; text-transform: uppercase; color: #94a3b8;">Senha de Acesso</label>
+                    <input type="password" id="renew-password" class="form-control" placeholder="Sua senha" required autofocus style="border-color: #3b82f6;" />
+                </div>
+                <div id="renew-error-alert" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: 4px; padding: 8px 12px; color: #fca5a5; font-size: 0.78rem; margin-bottom: 15px;"></div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" id="btn-renew-submit" class="btn" style="flex: 1; justify-content: center; background: #3b82f6; font-weight: 700;">Reconectar e Continuar</button>
+                    <button type="button" class="btn btn-secondary" onclick="handleLogout()" style="padding: 0 14px;">Fazer Logout</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL DE SELEÇÃO DE MOTIVO DE PERDA -->
     <div class="modal-overlay" id="lost-reason-modal" style="z-index: 1100;">
         <div class="modal" style="width: 500px; padding: 25px;">
@@ -7331,6 +7359,9 @@
                         localStorage.removeItem('tecfag_session_token');
                         localStorage.removeItem('tecfag_user');
                         document.body.classList.add('not-logged-in');
+                    } else if (response.status === 401 && typeof url === 'string' && isInternalApi && !url.includes('/api/auth/login')) {
+                        console.warn('[AUTH] Sessão expirou durante uma requisição:', url);
+                        showSessionExpiredModal();
                     }
                     return response;
                 });
@@ -7397,6 +7428,89 @@
                     submitBtn.innerText = 'Acessar Sistema';
                 }
             });
+        }
+
+        // ==========================================
+        // RENOVAÇÃO DE SESSÃO SEM PERDA DE DADOS
+        // ==========================================
+
+        function showSessionExpiredModal() {
+            const modal = document.getElementById('session-expired-modal');
+            if (!modal) return;
+            const renewUserInput = document.getElementById('renew-username');
+            const renewPassInput = document.getElementById('renew-password');
+            const renewErr = document.getElementById('renew-error-alert');
+            
+            let currentUser = '';
+            try {
+                const u = JSON.parse(localStorage.getItem('tecfag_user') || '{}');
+                currentUser = u.username || '';
+            } catch (e) {}
+            
+            if (renewUserInput) renewUserInput.value = currentUser || 'vendas';
+            if (renewPassInput) renewPassInput.value = '';
+            if (renewErr) {
+                renewErr.innerText = '';
+                renewErr.style.display = 'none';
+            }
+            modal.classList.add('active');
+            if (renewPassInput) {
+                setTimeout(() => renewPassInput.focus(), 100);
+            }
+        }
+
+        function closeSessionExpiredModal() {
+            const modal = document.getElementById('session-expired-modal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        async function handleSessionRenewSubmit(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            const renewUserInput = document.getElementById('renew-username');
+            const renewPassInput = document.getElementById('renew-password');
+            const renewErr = document.getElementById('renew-error-alert');
+            const submitBtn = document.getElementById('btn-renew-submit');
+
+            const username = renewUserInput ? renewUserInput.value.trim() : '';
+            const password = renewPassInput ? renewPassInput.value : '';
+
+            if (!username || !password) return;
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerText = 'Reconectando...';
+            }
+            if (renewErr) renewErr.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    throw new Error(data.error || 'Senha incorreta.');
+                }
+
+                localStorage.setItem('tecfag_session_token', data.token);
+                localStorage.setItem('tecfag_user', JSON.stringify(data.user));
+                closeSessionExpiredModal();
+                if (typeof showIhmToast === 'function') {
+                    showIhmToast('✅ Sessão renovada com sucesso! Você pode continuar seu trabalho.', 'success');
+                }
+            } catch (err) {
+                console.error('[AUTH RENEW]', err);
+                if (renewErr) {
+                    renewErr.innerText = '❌ ' + err.message;
+                    renewErr.style.display = 'block';
+                }
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = 'Reconectar e Continuar';
+                }
+            }
         }
 
         // ==========================================
@@ -12439,7 +12553,7 @@
             }
         }
 
-        function initializeSession() {
+        async function initializeSession() {
             const token = localStorage.getItem('tecfag_session_token');
             const userStr = localStorage.getItem('tecfag_user');
             
@@ -12448,8 +12562,30 @@
                 return;
             }
 
+            // Validar token no backend ao inicializar caso esteja conectado via HTTP/HTTPS
+            if (window.location.protocol !== 'file:') {
+                try {
+                    const authRes = await fetch('/api/auth/me', {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    if (!authRes.ok) {
+                        console.warn('[AUTH] Sessão armazenada expirou ou é inválida no servidor. Redirecionando para login.');
+                        localStorage.removeItem('tecfag_session_token');
+                        localStorage.removeItem('tecfag_user');
+                        document.body.classList.add('not-logged-in');
+                        return;
+                    }
+                    const freshData = await authRes.json();
+                    if (freshData && freshData.user) {
+                        localStorage.setItem('tecfag_user', JSON.stringify(freshData.user));
+                    }
+                } catch (netErr) {
+                    console.warn('[AUTH] Não foi possível contatar servidor para validar sessão:', netErr);
+                }
+            }
+
             try {
-                const user = JSON.parse(userStr);
+                const user = JSON.parse(localStorage.getItem('tecfag_user') || userStr);
                 document.body.classList.remove('not-logged-in');
                 
                 const avatar = document.getElementById('user-avatar-initials');
