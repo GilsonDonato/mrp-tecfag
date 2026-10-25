@@ -6393,9 +6393,14 @@
                     <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
                         <!-- Campos EADI & Regime Aduaneiro -->
                     <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
-                        <div style="font-size: 0.72rem; font-weight: 800; color: #f59e0b; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="font-size: 0.72rem; font-weight: 800; color: #f59e0b; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
                             <span>📦 Regime Aduaneiro & Entreposto (EADI Bauru)</span>
-                            <span id="sc-det-eadi-balance-badge" style="font-size: 0.72rem; font-weight: bold; color: #f59e0b;"></span>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span id="sc-det-eadi-balance-badge" style="font-size: 0.72rem; font-weight: bold; color: #f59e0b;"></span>
+                                <button type="button" class="btn" id="sc-det-eadi-audit-btn" onclick="openEadiInventoryAuditModalForCurrentOrder()" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; font-weight: bold; padding: 3px 8px; font-size: 0.68rem; border-radius: 4px;" title="Inventário / Ajustar Saldo Físico deste Container">
+                                    📝 Ajustar Saldo EADI
+                                </button>
+                            </div>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px;">
                             <div class="form-group" style="margin-bottom: 0;">
@@ -6677,7 +6682,7 @@
     </div>
 
     <!-- 5. MODAL REGISTRO DE NACIONALIZAÇÃO PARCIAL (BAIXA DE LOTE DO EADI BAURU) -->
-    <div class="modal-overlay" id="modal-eadi-clearance" style="z-index: 1280; display: none;">
+    <div class="modal-overlay" id="modal-eadi-clearance" style="z-index: 2100; display: none;">
         <div class="modal" style="max-width: 850px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
             <div class="modal-header" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(30, 41, 59, 0.9) 100%); border-bottom: 1px solid rgba(245, 158, 11, 0.3);">
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -6888,7 +6893,7 @@
     </div>
 
     <!-- 7. MODAL INVENTÁRIO & AJUSTE RÁPIDO DE SALDO DO EADI BAURU -->
-    <div class="modal-overlay" id="modal-eadi-inventory-audit" style="z-index: 1285; display: none;">
+    <div class="modal-overlay" id="modal-eadi-inventory-audit" style="z-index: 2200; display: none;">
         <div class="modal" style="max-width: 980px; width: 95%; max-height: 92vh; display: flex; flex-direction: column;">
             <div class="modal-header" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(30, 41, 59, 0.9) 100%); border-bottom: 1px solid rgba(56, 189, 248, 0.3);">
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -23382,24 +23387,24 @@
                     </div>
 
                     <div style="display: flex; gap: 6px; margin-top: 4px;">
-                        <button type="button" class="btn btn-secondary" onclick="openSupplyDetailsModal(${order.id})" style="flex: 1; padding: 5px; font-size: 0.72rem; font-weight: 600;">
+                        <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openSupplyDetailsModal(${order.id})" style="flex: 1; padding: 5px; font-size: 0.72rem; font-weight: 600;">
                             🔍 Detalhes
                         </button>
                         ${stage === 'PO_EMITIDA' || stage === 'EM_FABRICACAO' ? `
-                            <button type="button" class="btn btn-secondary" onclick="openReconcileModal(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; border-color: rgba(236, 72, 153, 0.4); color: #ec4899;" title="Conferir Carga / Packing List">
+                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openReconcileModal(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; border-color: rgba(236, 72, 153, 0.4); color: #ec4899;" title="Conferir Carga / Packing List">
                                 📦 Carga
                             </button>
                         ` : ''}
                         ${stage === 'ENTREPOSTADO_EADI' ? `
-                            <button type="button" class="btn" onclick="openEadiInventoryAuditModal(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8;" title="Inventário / Ajustar Saldo Físico">
+                            <button type="button" class="btn" onclick="event.stopPropagation(); openEadiInventoryAuditModal(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8;" title="Inventário / Ajustar Saldo Físico">
                                 📝 Saldo
                             </button>
-                            <button type="button" class="btn" onclick="openEadiClearanceModal(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: #f59e0b; color: black;" title="Registrar Baixa D.I.">
+                            <button type="button" class="btn" onclick="event.stopPropagation(); openEadiClearanceModal(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: #f59e0b; color: black;" title="Registrar Baixa D.I.">
                                 ⚡ Baixa
                             </button>
                         ` : ''}
                         ${stage !== 'DOCA_GALPAO' ? `
-                            <button type="button" class="btn" onclick="quickAdvanceOrderStage(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: #0ea5e9; color: white;" title="Avançar Etapa">
+                            <button type="button" class="btn" onclick="event.stopPropagation(); quickAdvanceOrderStage(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: #0ea5e9; color: white;" title="Avançar Etapa">
                                 ➡️
                             </button>
                         ` : ''}
@@ -23905,12 +23910,17 @@
                 setVal('sc-det-eadi-da-number', order.eadi_da_number);
 
                 const balanceBadge = document.getElementById('sc-det-eadi-balance-badge');
+                const auditBtn = document.getElementById('sc-det-eadi-audit-btn');
+                const isEadiActive = order.stage === 'ENTREPOSTADO_EADI' || (order.eadi_balance !== undefined && order.eadi_balance > 0);
                 if (balanceBadge) {
-                    if (order.stage === 'ENTREPOSTADO_EADI' || (order.eadi_balance !== undefined && order.eadi_balance > 0)) {
+                    if (isEadiActive) {
                         balanceBadge.innerText = `Saldo no EADI: ${order.eadi_balance || 0} un. • ${order.days_in_eadi || 0} dias em armazém`;
                     } else {
                         balanceBadge.innerText = '';
                     }
+                }
+                if (auditBtn) {
+                    auditBtn.style.display = isEadiActive ? 'inline-flex' : 'none';
                 }
 
                 // Renderizar itens, parcelas e baixas EADI
@@ -24906,37 +24916,45 @@
 
         async function openEadiClearanceModal(preSelectedOrderId, preSelectedItemId) {
             const modal = document.getElementById('modal-eadi-clearance');
-            const form = document.getElementById('eadi-clearance-form');
-            if (form) form.reset();
+            if (!modal) return;
 
-            const dateInput = document.getElementById('eadi-cl-di-date');
-            if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+            // 1. Abre o modal imediatamente para resposta tátil instantânea
+            modal.style.display = 'flex';
 
-            await loadProjectsForEadiClearance();
+            try {
+                const form = document.getElementById('eadi-clearance-form');
+                if (form) form.reset();
 
-            const select = document.getElementById('eadi-cl-order-select');
-            if (select) {
-                select.innerHTML = '<option value="">-- Selecione a ordem com carga no EADI --</option>';
-                const orders = supplyChainState.orders || [];
-                const eadiOrders = orders.filter(o => o.stage === 'ENTREPOSTADO_EADI' || (o.eadi_balance && o.eadi_balance > 0));
-                
-                eadiOrders.forEach(o => {
-                    const opt = document.createElement('option');
-                    opt.value = o.id;
-                    opt.innerText = o.po_number + ' - ' + o.supplier_name + ' (Container: ' + (o.container_id || 'S/N') + ' • Saldo: ' + (o.eadi_balance || o.total_machines || 0) + ' un.)';
-                    select.appendChild(opt);
-                });
+                const dateInput = document.getElementById('eadi-cl-di-date');
+                if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
 
-                if (preSelectedOrderId) {
-                    select.value = preSelectedOrderId;
-                } else if (eadiOrders.length > 0) {
-                    select.value = eadiOrders[0].id;
+                const select = document.getElementById('eadi-cl-order-select');
+                if (select) {
+                    select.innerHTML = '<option value="">-- Selecione a ordem com carga no EADI --</option>';
+                    const orders = supplyChainState.orders || [];
+                    const eadiOrders = orders.filter(o => o.stage === 'ENTREPOSTADO_EADI' || (o.eadi_balance && o.eadi_balance > 0));
+                    
+                    eadiOrders.forEach(o => {
+                        const opt = document.createElement('option');
+                        opt.value = o.id;
+                        opt.innerText = o.po_number + ' - ' + o.supplier_name + ' (Container: ' + (o.container_id || 'S/N') + ' • Saldo: ' + (o.eadi_balance || o.total_machines || 0) + ' un.)';
+                        select.appendChild(opt);
+                    });
+
+                    if (preSelectedOrderId) {
+                        select.value = preSelectedOrderId;
+                    } else if (eadiOrders.length > 0) {
+                        select.value = eadiOrders[0].id;
+                    }
                 }
+
+                onEadiClearanceOrderChange(preSelectedItemId);
+
+                // Carrega a lista de projetos em segundo plano sem travar a interface
+                loadProjectsForEadiClearance().catch(err => console.warn('Erro ao carregar lookup de projetos:', err));
+            } catch (err) {
+                console.error('[ERRO ABERTURA MODAL BAIXA EADI]', err);
             }
-
-            onEadiClearanceOrderChange(preSelectedItemId);
-
-            if (modal) modal.style.display = 'flex';
         }
 
         function closeEadiClearanceModal() {
@@ -25172,19 +25190,33 @@
             const modal = document.getElementById('modal-eadi-inventory-audit');
             if (!modal) return;
 
-            // Garantir que as ordens estejam carregadas
-            if (!supplyChainState.orders || supplyChainState.orders.length === 0) {
-                await loadSupplyChainData();
-            }
-
-            renderEadiAuditOrderDropdown(targetOrderId);
+            // 1. Abrir imediatamente o modal para resposta tátil instantânea
             modal.style.display = 'flex';
+
+            try {
+                // Se as ordens ainda não foram carregadas na memória, carrega mantendo o modal visível
+                if (!supplyChainState.orders || supplyChainState.orders.length === 0) {
+                    const tbody = document.getElementById('eadi-audit-items-tbody');
+                    if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-secondary); padding: 25px;">⏳ Carregando containers e saldos do EADI...</td></tr>';
+                    await loadSupplyChainData();
+                }
+
+                renderEadiAuditOrderDropdown(targetOrderId);
+            } catch (err) {
+                console.error('[ERRO ABERTURA MODAL AJUSTE EADI]', err);
+            }
         }
 
         function closeEadiInventoryAuditModal() {
             const modal = document.getElementById('modal-eadi-inventory-audit');
             if (modal) modal.style.display = 'none';
             currentAuditOrderId = null;
+        }
+
+        function openEadiInventoryAuditModalForCurrentOrder() {
+            if (supplyChainState.currentOrder) {
+                openEadiInventoryAuditModal(supplyChainState.currentOrder.id);
+            }
         }
 
         function renderEadiAuditOrderDropdown(preSelectedOrderId) {
