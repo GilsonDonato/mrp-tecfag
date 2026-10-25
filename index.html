@@ -6729,6 +6729,35 @@
 
             <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
                 <form id="eadi-clearance-form" onsubmit="submitEadiClearance(event)">
+                    <!-- Bloco de Importação Inteligente da D.I. com IA -->
+                    <div style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, rgba(245, 158, 11, 0.08) 100%); border: 1px dashed rgba(56, 189, 248, 0.4); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 1.4rem;">🤖</span>
+                                <div>
+                                    <div style="font-size: 0.84rem; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+                                        <span>Leitura Automática de D.I. / DUIMP com IA</span>
+                                        <span style="font-size: 0.65rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 1px 6px; border-radius: 4px; font-weight: 700;">NOVO</span>
+                                    </div>
+                                    <p style="margin: 2px 0 0 0; font-size: 0.72rem; color: #94a3b8;">
+                                        Anexe o Extrato da D.I. em PDF para preencher número, data, tributos e quantidades das máquinas automaticamente.
+                                    </p>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="file" id="eadi-cl-di-file" accept=".pdf,image/*" style="display: none;" onchange="handleDiFileSelected(this)">
+                                <input type="hidden" id="eadi-cl-di-file-path" value="">
+                                <button type="button" class="btn" onclick="document.getElementById('eadi-cl-di-file').click()" id="eadi-cl-btn-upload-di" style="background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%); color: #04101d; font-weight: 800; font-size: 0.78rem; padding: 8px 14px; border-radius: 6px; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(56, 189, 248, 0.25); cursor: pointer;">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    <span id="eadi-cl-btn-upload-di-text">Anexar Extrato D.I. (PDF)</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="eadi-cl-di-status-box" style="display: none; margin-top: 10px; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); color: #bae6fd;">
+                            <span id="eadi-cl-di-status-text"></span>
+                        </div>
+                    </div>
+
                     <!-- Seleção de Container / PO -->
                     <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
                         <div class="form-group" style="margin-bottom: 0;">
@@ -24155,10 +24184,11 @@
                 const itemsSummary = (cl.items || []).map(ci => `<span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 1px 6px; border-radius: 4px; font-weight: bold; margin-right: 4px;">${ci.qty_cleared}x ${ci.sku}</span>`).join(' ') || 'Nenhum item';
                 const taxPaidStr = 'R$ ' + (cl.total_tax_paid || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 const ptaxStr = cl.exchange_rate ? cl.exchange_rate.toFixed(4) : '-';
+                const diPdfLink = cl.di_file_path ? `<a href="/${cl.di_file_path}" target="_blank" style="display: inline-flex; align-items: center; gap: 3px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; padding: 1px 6px; border-radius: 4px; font-size: 0.68rem; margin-left: 6px; text-decoration: none;" title="Abrir Extrato da D.I. (PDF)"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF</a>` : '';
 
                 tr.innerHTML = `
                     <td style="padding: 8px 6px; font-weight: bold; color: #cbd5e1;">${diDateStr}</td>
-                    <td style="padding: 8px 6px; font-weight: 800; color: #f59e0b;">${cl.di_number}</td>
+                    <td style="padding: 8px 6px; font-weight: 800; color: #f59e0b;">${cl.di_number}${diPdfLink}</td>
                     <td style="padding: 8px 6px;">${itemsSummary}</td>
                     <td style="padding: 8px 6px; text-align: right; color: #94a3b8;">${ptaxStr}</td>
                     <td style="padding: 8px 6px; text-align: right; font-weight: bold; color: #4ade80;">${taxPaidStr}</td>
@@ -25102,6 +25132,168 @@
             });
         }
 
+        async function handleDiFileSelected(input) {
+            if (!input || !input.files || !input.files[0]) return;
+            const file = input.files[0];
+            const btn = document.getElementById('eadi-cl-btn-upload-di');
+            const btnText = document.getElementById('eadi-cl-btn-upload-di-text');
+            const statusBox = document.getElementById('eadi-cl-di-status-box');
+            const statusText = document.getElementById('eadi-cl-di-status-text');
+
+            try {
+                if (btn) btn.disabled = true;
+                if (btnText) btnText.innerText = 'Lendo D.I. com IA...';
+                if (statusBox) {
+                    statusBox.style.display = 'block';
+                    statusBox.style.background = 'rgba(56, 189, 248, 0.12)';
+                    statusBox.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+                    statusBox.style.color = '#bae6fd';
+                }
+                if (statusText) statusText.innerHTML = `⏳ <strong>Processando ${file.name}...</strong> A IA está analisando o Extrato da D.I., adições, tributos e saldos.`;
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const currentOrderId = document.getElementById('eadi-cl-order-select')?.value;
+                if (currentOrderId) {
+                    formData.append('order_id', currentOrderId);
+                }
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch('/api/supply-chain/extract-di', {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.error || `Erro HTTP ${res.status}`);
+                }
+
+                const data = await res.json();
+                const ext = data.extracted || {};
+
+                // 1. Se a IA sugeriu uma ordem e o dropdown está vazio ou diferente
+                const orderSelect = document.getElementById('eadi-cl-order-select');
+                if (data.suggested_order_id && orderSelect) {
+                    if (orderSelect.value !== String(data.suggested_order_id)) {
+                        orderSelect.value = data.suggested_order_id;
+                        onEadiClearanceOrderChange();
+                    }
+                }
+
+                // 2. Preencher dados do cabeçalho
+                if (ext.di_number) {
+                    const diNumInput = document.getElementById('eadi-cl-di-number');
+                    if (diNumInput) diNumInput.value = ext.di_number;
+                }
+
+                if (ext.di_date) {
+                    const diDateInput = document.getElementById('eadi-cl-di-date');
+                    if (diDateInput) diDateInput.value = ext.di_date;
+                }
+
+                if (ext.exchange_rate) {
+                    const ptaxInput = document.getElementById('eadi-cl-exchange-rate');
+                    if (ptaxInput) ptaxInput.value = ext.exchange_rate;
+                }
+
+                if (ext.total_tax_paid) {
+                    const taxInput = document.getElementById('eadi-cl-total-tax');
+                    if (taxInput) taxInput.value = ext.total_tax_paid;
+                }
+
+                if (ext.tax_ii) {
+                    const iiInput = document.getElementById('eadi-cl-tax-ii');
+                    if (iiInput) iiInput.value = ext.tax_ii;
+                }
+                if (ext.tax_ipi) {
+                    const ipiInput = document.getElementById('eadi-cl-tax-ipi');
+                    if (ipiInput) ipiInput.value = ext.tax_ipi;
+                }
+                if (ext.tax_pis_cofins) {
+                    const pisInput = document.getElementById('eadi-cl-tax-pis-cofins');
+                    if (pisInput) pisInput.value = ext.tax_pis_cofins;
+                }
+                if (ext.tax_icms) {
+                    const icmsInput = document.getElementById('eadi-cl-tax-icms');
+                    if (icmsInput) icmsInput.value = ext.tax_icms;
+                }
+
+                // 3. Salvar caminho do arquivo anexado
+                if (data.file_path || ext.file_path) {
+                    const pathInput = document.getElementById('eadi-cl-di-file-path');
+                    if (pathInput) pathInput.value = data.file_path || ext.file_path;
+                }
+
+                // 4. Preencher quantidades na tabela
+                let matchedCount = 0;
+                let totalQtyCleared = 0;
+                const items = ext.items || [];
+
+                // Zerar quantidades antes de preencher com a DI
+                document.querySelectorAll('.eadi-clear-qty-input').forEach(inp => {
+                    inp.value = 0;
+                    inp.style.background = '';
+                    inp.style.boxShadow = '';
+                    inp.style.borderColor = '';
+                });
+
+                items.forEach(it => {
+                    let targetInput = null;
+                    if (it.matched_order_item_id) {
+                        targetInput = document.querySelector(`.eadi-clear-qty-input[data-item-id="${it.matched_order_item_id}"]`);
+                    }
+                    if (!targetInput && it.sku) {
+                        const cleanSku = it.sku.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                        const allInputs = Array.from(document.querySelectorAll('.eadi-clear-qty-input'));
+                        targetInput = allInputs.find(inp => {
+                            const inpSku = (inp.dataset.sku || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                            return inpSku === cleanSku || inpSku.includes(cleanSku) || cleanSku.includes(inpSku);
+                        });
+                    }
+
+                    if (targetInput) {
+                        const maxVal = parseInt(targetInput.max) || 999;
+                        const qtyToSet = Math.min(parseInt(it.qty_cleared) || 1, maxVal);
+                        targetInput.value = qtyToSet;
+                        targetInput.style.background = 'rgba(74, 222, 128, 0.18)';
+                        targetInput.style.borderColor = '#4ade80';
+                        targetInput.style.boxShadow = '0 0 8px rgba(74, 222, 128, 0.35)';
+                        matchedCount++;
+                        totalQtyCleared += qtyToSet;
+                    }
+                });
+
+                if (statusBox) {
+                    statusBox.style.background = 'rgba(16, 185, 129, 0.15)';
+                    statusBox.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                    statusBox.style.color = '#6ee7b7';
+                }
+                if (statusText) {
+                    statusText.innerHTML = `✅ <strong>D.I. nº ${ext.di_number || 'Siscomex'} lida com sucesso!</strong> A IA identificou <strong>${totalQtyCleared} máquina(s)</strong> (${matchedCount} modelo(s)) desembaraçadas. Confira as quantidades destacadas em verde e clique em "Registrar Baixa".`;
+                }
+
+            } catch (err) {
+                console.error('[ERRO LEITURA DI IA]', err);
+                if (statusBox) {
+                    statusBox.style.display = 'block';
+                    statusBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    statusBox.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                    statusBox.style.color = '#fca5a5';
+                }
+                if (statusText) {
+                    statusText.innerHTML = `⚠️ <strong>Não foi possível ler todos os dados da D.I. automaticamente:</strong> ${err.message}. Você pode continuar o preenchimento manual.`;
+                }
+            } finally {
+                if (btn) btn.disabled = false;
+                if (btnText) btnText.innerText = 'Trocar D.I. (PDF)';
+            }
+        }
+
         async function openEadiClearanceModal(preSelectedOrderId, preSelectedItemId) {
             const modal = document.getElementById('modal-eadi-clearance');
             if (!modal) return;
@@ -25113,6 +25305,18 @@
             try {
                 const form = document.getElementById('eadi-clearance-form');
                 if (form) form.reset();
+
+                // Resetar campos de leitura de D.I. via IA
+                const diStatusBox = document.getElementById('eadi-cl-di-status-box');
+                if (diStatusBox) diStatusBox.style.display = 'none';
+                const diFilePath = document.getElementById('eadi-cl-di-file-path');
+                if (diFilePath) diFilePath.value = '';
+                const diFileInput = document.getElementById('eadi-cl-di-file');
+                if (diFileInput) diFileInput.value = '';
+                const diBtnText = document.getElementById('eadi-cl-btn-upload-di-text');
+                if (diBtnText) diBtnText.innerText = 'Anexar Extrato D.I. (PDF)';
+                const diBtn = document.getElementById('eadi-cl-btn-upload-di');
+                if (diBtn) diBtn.disabled = false;
 
                 const dateInput = document.getElementById('eadi-cl-di-date');
                 if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
@@ -25308,6 +25512,7 @@
                 destination_type: destinationType,
                 destination_project_id: projectId ? String(projectId).trim() : null,
                 notes: (document.getElementById('eadi-cl-notes')?.value || '').trim(),
+                di_file_path: (document.getElementById('eadi-cl-di-file-path')?.value || '').trim() || null,
                 items: items
             };
 

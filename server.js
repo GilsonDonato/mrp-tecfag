@@ -555,6 +555,7 @@ function initializeDatabase() {
         db.run("ALTER TABLE stock_orders ADD COLUMN eadi_entry_date TEXT", (err) => {});
         db.run("ALTER TABLE stock_orders ADD COLUMN eadi_da_number TEXT", (err) => {});
         db.run("ALTER TABLE stock_order_items ADD COLUMN qty_eadi_admitted INTEGER DEFAULT 0", (err) => {});
+        db.run("ALTER TABLE stock_eadi_clearances ADD COLUMN di_file_path TEXT", (err) => {});
 
         // Executar importação assíncrona se necessário
         setTimeout(importClientsCsvIfEmpty, 1000);
@@ -9216,6 +9217,7 @@ app.post('/api/supply-chain/orders/:id/eadi-clearance', authenticateToken, restr
         destination_type,
         destination_project_id,
         notes,
+        di_file_path,
         items
     } = req.body;
 
@@ -9261,8 +9263,8 @@ app.post('/api/supply-chain/orders/:id/eadi-clearance', authenticateToken, restr
                 order_id, di_number, di_date, exchange_rate, total_tax_paid,
                 tax_ii, tax_ipi, tax_pis_cofins, tax_icms, storage_cost_paid,
                 other_costs, nfe_number, destination_type, destination_project_id,
-                notes, created_by, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                notes, di_file_path, created_by, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             orderId,
             di_number.trim(),
@@ -9279,6 +9281,7 @@ app.post('/api/supply-chain/orders/:id/eadi-clearance', authenticateToken, restr
             destination_type || 'DOCA_TECFAG',
             destination_project_id ? String(destination_project_id).trim() : null,
             (notes || '').trim(),
+            (di_file_path || '').trim() || null,
             user,
             new Date().toISOString()
         ]);
@@ -10356,6 +10359,414 @@ function parseInvoiceTextHeuristically(text, suppliers) {
         currency: currency,
         total_fob_value: totalFob,
         payment_terms_desc: '',
+        items: items
+    };
+}
+
+// POST /api/supply-chain/extract-di - Extração de Extrato de D.I. / DUIMP por IA para Baixa de EADI
+app.post('/api/supply-chain/extract-di', authenticateToken, restrictToSupplyChain, supplyChainUpload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'Nenhum arquivo de D.I. / DUIMP enviado.' });
+    }
+
+    const filePath = req.file.path;
+    const fileMime = req.file.mimetype;
+    const orderIdParam = req.body.order_id ? parseInt(req.body.order_id) : null;
+    let extractedText = '';
+
+    try {
+        // 1. Extração de texto de PDF (para referência de OCR)
+        if (fileMime.includes('pdf') || req.file.originalname.toLowerCase().endsWith('.pdf')) {
+            try {
+                const dataBuffer = fs.readFileSync(filePath);
+                const pdfData = await pdfParse(dataBuffer);
+                extractedText = pdfData.text || '';
+            } catch (pdfErr) {
+                console.warn('[DI OCR] Aviso ao extrair texto bruto com pdf-parse:', pdfErr.message);
+            }
+        }
+
+        // 2. Preparar anexo multimodal nativo para o Gemini (PDF ou Imagem)
+        let inlinePart = null;
+        try {
+            const fileBuffer = fs.readFileSync(filePath);
+            let mime = fileMime;
+            const lowerName = req.file.originalname.toLowerCase();
+            if (lowerName.endsWith('.pdf') || (fileMime && fileMime.includes('pdf'))) {
+                mime = 'application/pdf';
+            } else if (lowerName.endsWith('.png')) {
+                mime = 'image/png';
+            } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+                mime = 'image/jpeg';
+            } else if (lowerName.endsWith('.webp')) {
+                mime = 'image/webp';
+            }
+
+            if (mime === 'application/pdf' || mime.startsWith('image/')) {
+                inlinePart = {
+                    inlineData: {
+                        mimeType: mime,
+                        data: fileBuffer.toString('base64')
+                    }
+                };
+            }
+        } catch (bufErr) {
+            console.warn('[DI OCR] Falha ao codificar buffer para inlineData:', bufErr.message);
+        }
+
+        // 3. Buscar contexto da ordem selecionada ou ordens candidatas no EADI
+        let targetOrder = null;
+        let targetOrderItems = [];
+        if (orderIdParam) {
+            targetOrder = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderIdParam]);
+            if (targetOrder) {
+                targetOrderItems = await dbAll(`
+                    SELECT oi.*, 
+                           COALESCE(SUM(ci.qty_cleared), 0) as total_cleared
+                    FROM stock_order_items oi
+                    LEFT JOIN stock_eadi_clearance_items ci ON ci.order_item_id = oi.id
+                    WHERE oi.order_id = ?
+                    GROUP BY oi.id
+                    ORDER BY oi.id ASC
+                `, [targetOrder.id]);
+            }
+        }
+
+        const candidateOrders = await dbAll(`
+            SELECT o.id, o.po_number, o.supplier_name, o.invoice_number, o.container_id, o.stage
+            FROM stock_orders o
+            WHERE o.stage = 'ENTREPOSTADO_EADI' OR o.customs_regime = 'ENTREPOSTO_EADI'
+            ORDER BY o.id DESC
+        `);
+
+        let orderContextPrompt = '';
+        if (targetOrder) {
+            orderContextPrompt = `
+=======================================================
+CONTAINER / ORDEM SELECIONADA NO SISTEMA (ORDEM ID: ${targetOrder.id}):
+- PO: "${targetOrder.po_number}"
+- Fornecedor: "${targetOrder.supplier_name}"
+- Invoice Declarada: "${targetOrder.invoice_number || ''}"
+- Container: "${targetOrder.container_id || ''}"
+
+MÁQUINAS CADASTRADAS NESTA ORDEM (CRUZE COM AS ADIÇÕES DA D.I.):
+${targetOrderItems.map(it => {
+    const admitted = it.qty_eadi_admitted > 0 ? it.qty_eadi_admitted : (it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered);
+    const balance = Math.max(0, admitted - it.total_cleared);
+    return `* ITEM ID: ${it.id} | SKU/MODELO: "${it.sku}" | DESCRIÇÃO: "${it.description || ''}" | SALDO NO EADI: ${balance} un. | PREÇO FOB: $${it.unit_price_fob || 0}`;
+}).join('\n')}
+=======================================================
+`;
+        } else if (candidateOrders.length > 0) {
+            orderContextPrompt = `
+=======================================================
+CONTAINERS / ORDENS ATIVAS NO ARMAZÉM EADI (SE NÃO HOUVER ORDEM SELECIONADA, IDENTIFIQUE A QUAL PERTENCE ESTA D.I.):
+${candidateOrders.map(o => `* ID: ${o.id} | PO: "${o.po_number}" | Invoice: "${o.invoice_number || ''}" | Container: "${o.container_id || ''}" | Fornecedor: "${o.supplier_name}"`).join('\n')}
+=======================================================
+`;
+        }
+
+        let aiResult = null;
+        const apiKey = process.env.GEMINI_API_KEY;
+
+        if (apiKey && apiKey.trim() !== '') {
+            try {
+                const prompt = `
+Você é o Auditor Sênior de Despacho Aduaneiro e Siscomex da Tecfag.
+Sua missão é extrair com precisão cirúrgica de 100% todos os dados do Extrato da Declaração de Importação (D.I.) ou Declaração Única de Importação (DUIMP) anexada.
+
+${orderContextPrompt}
+
+Texto Bruto Extraído (Referência Auxiliar):
+"""
+${extractedText.substring(0, 45000)}
+"""
+
+=======================================================
+INSTRUÇÕES DE EXTRAÇÃO DA D.I. / DUIMP:
+=======================================================
+
+1. CABEÇALHO ADUANEIRO:
+   - "di_number": Número oficial da Declaração de Importação (formato tradicional "AA/NNNNNNN-D", ex: "26/1849201-0") ou número da DUIMP ("XXBRXXXXXXXXX-X").
+   - "di_date": Data do registro ou desembaraço aduaneiro no formato "YYYY-MM-DD" (se estiver em DD/MM/AAAA, converta para YYYY-MM-DD).
+   - "exchange_rate": Taxa cambial / Dólar PTAX aplicado no cálculo dos tributos da D.I. (número com até 4 casas decimais, ex: 5.4520).
+   - "invoice_number_ref": Número da fatura comercial (Commercial Invoice) mencionada nas Informações Complementares, no campo 'Fatura Comercial' ou nas Adições.
+   - "container_id_ref": Número do contêiner informado no extrato (ex: TGHU1234567).
+   - "suggested_order_id": Se você conseguir identificar com certeza a qual ordem dos "CONTAINERS / ORDENS ATIVAS" esta D.I. pertence, preencha o ID correspondente; senão null.
+
+2. TRIBUTOS RECOLHIDOS (VALORES EM REAIS R$):
+   - "total_tax_paid": Valor TOTAL dos tributos debitados/recolhidos na D.I. (soma de II + IPI + PIS + COFINS + Taxa Siscomex).
+   - "tax_ii": Valor total recolhido de Imposto de Importação (II) em reais.
+   - "tax_ipi": Valor total recolhido de IPI em reais.
+   - "tax_pis_cofins": Valor total recolhido de PIS + COFINS em reais.
+   - "tax_icms": Valor de ICMS recolhido (se constar no documento, caso contrário 0.0).
+
+3. ADIÇÕES E MÁQUINAS NACIONALIZADAS ("items"):
+   - Analise cada Adição (Adição 001, Adição 002, etc.) da D.I.
+   - Para cada adição / máquina desembaraçada:
+     * "addition_no": Número da adição (ex: "001", "002").
+     * "sku": O modelo industrial da máquina (ex: "FR-770", "BSF-5640", "ARLB160A", "ATB1000", "BZH-120", "FL2000A", "BF650", "EW220", "MT-50", etc.). Encontre o modelo citado na descrição detalhada da mercadoria.
+     * "description": Descrição da máquina como consta na adição.
+     * "qty_cleared": Quantidade de máquinas desembaraçadas nesta adição (número inteiro de unidades físicas).
+     * "unit_price_fob": Preço unitário FOB em USD (se disponível) ou 0.0.
+     * "matched_order_item_id": Se fornecemos a lista "MÁQUINAS CADASTRADAS NESTA ORDEM", aponte o "ITEM ID" que corresponde exatamente a esta máquina. Se não houver correspondência ou não houver ordem pré-selecionada, preencha null.
+
+Estrutura JSON obrigatória:
+{
+  "di_number": "26/1849201-0",
+  "di_date": "YYYY-MM-DD",
+  "exchange_rate": 5.4500,
+  "total_tax_paid": 0.0,
+  "tax_ii": 0.0,
+  "tax_ipi": 0.0,
+  "tax_pis_cofins": 0.0,
+  "tax_icms": 0.0,
+  "invoice_number_ref": "",
+  "container_id_ref": "",
+  "suggested_order_id": null,
+  "items": [
+    {
+      "addition_no": "001",
+      "sku": "MODELO",
+      "description": "Descrição",
+      "qty_cleared": 1,
+      "unit_price_fob": 0.0,
+      "matched_order_item_id": null
+    }
+  ]
+}
+
+Responda APENAS o JSON puro. Não utilize blocos markdown (\`\`\`json).
+`;
+
+                const contentsParts = [];
+                if (inlinePart) contentsParts.push(inlinePart);
+                contentsParts.push({ text: prompt });
+
+                const candidateModels = [
+                    process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+                    'gemini-flash-latest',
+                    'gemini-2.0-flash'
+                ];
+
+                for (const modelName of candidateModels) {
+                    try {
+                        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                        const payload = {
+                            contents: [{ parts: contentsParts }],
+                            generationConfig: { responseMimeType: "application/json" }
+                        };
+
+                        const aiRes = await fetch(geminiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (aiRes.ok) {
+                            const aiData = await aiRes.json();
+                            if (aiData.candidates && aiData.candidates[0] && aiData.candidates[0].content && aiData.candidates[0].content.parts[0]) {
+                                const rawText = aiData.candidates[0].content.parts[0].text;
+                                let parsed = null;
+                                try {
+                                    const firstBrace = rawText.indexOf('{');
+                                    const lastBrace = rawText.lastIndexOf('}');
+                                    if (firstBrace !== -1 && lastBrace !== -1) {
+                                        parsed = JSON.parse(rawText.substring(firstBrace, lastBrace + 1));
+                                    } else {
+                                        parsed = cleanAndParseJSON(rawText);
+                                    }
+                                } catch (e) {
+                                    parsed = null;
+                                }
+
+                                if (parsed && parsed.di_number) {
+                                    aiResult = parsed;
+                                    break;
+                                }
+                            }
+                        } else {
+                            const errBody = await aiRes.text();
+                            console.warn(`[DI OCR] Modelo ${modelName} retornou status ${aiRes.status}:`, errBody.substring(0, 150));
+                        }
+                    } catch (mErr) {
+                        console.warn(`[DI OCR] Erro ao tentar modelo ${modelName}:`, mErr.message);
+                    }
+                }
+            } catch (geminiErr) {
+                console.warn('[DI OCR] Falha ao processar DI com Gemini:', geminiErr.message);
+            }
+        }
+
+        // 4. Parser Heurístico / Regex se a IA falhou ou não retornou dados mínimos
+        if (!aiResult || !aiResult.di_number) {
+            aiResult = parseDiTextHeuristically(extractedText, targetOrderItems);
+        }
+
+        // 5. Cruzamento inteligente de itens se matched_order_item_id ainda não estiver preenchido
+        let effectiveOrderId = targetOrder ? targetOrder.id : (aiResult.suggested_order_id || null);
+        if (!effectiveOrderId && (aiResult.invoice_number_ref || aiResult.container_id_ref)) {
+            const matchedOrder = await dbGet(`
+                SELECT id FROM stock_orders 
+                WHERE (stage = 'ENTREPOSTADO_EADI' OR customs_regime = 'ENTREPOSTO_EADI')
+                  AND (
+                    (invoice_number IS NOT NULL AND invoice_number != '' AND LOWER(invoice_number) LIKE LOWER(?))
+                    OR (container_id IS NOT NULL AND container_id != '' AND LOWER(container_id) LIKE LOWER(?))
+                    OR (po_number IS NOT NULL AND po_number != '' AND LOWER(po_number) LIKE LOWER(?))
+                  )
+                LIMIT 1
+            `, [
+                `%${(aiResult.invoice_number_ref || '___').trim()}%`,
+                `%${(aiResult.container_id_ref || '___').trim()}%`,
+                `%${(aiResult.invoice_number_ref || '___').trim()}%`
+            ]);
+            if (matchedOrder) {
+                effectiveOrderId = matchedOrder.id;
+                aiResult.suggested_order_id = matchedOrder.id;
+            }
+        }
+
+        if (effectiveOrderId && (!targetOrderItems || targetOrderItems.length === 0)) {
+            targetOrderItems = await dbAll(`
+                SELECT oi.*, 
+                       COALESCE(SUM(ci.qty_cleared), 0) as total_cleared
+                FROM stock_order_items oi
+                LEFT JOIN stock_eadi_clearance_items ci ON ci.order_item_id = oi.id
+                WHERE oi.order_id = ?
+                GROUP BY oi.id
+                ORDER BY oi.id ASC
+            `, [effectiveOrderId]);
+        }
+
+        if (targetOrderItems && targetOrderItems.length > 0 && aiResult && Array.isArray(aiResult.items)) {
+            aiResult.items.forEach(it => {
+                if (!it.matched_order_item_id && it.sku) {
+                    const cleanSku = it.sku.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                    const match = targetOrderItems.find(toi => {
+                        const toiClean = toi.sku.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                        return toiClean === cleanSku || toiClean.includes(cleanSku) || cleanSku.includes(toiClean);
+                    });
+                    if (match) {
+                        it.matched_order_item_id = match.id;
+                        it.sku = match.sku;
+                        if (!it.unit_price_fob || it.unit_price_fob === 0) {
+                            it.unit_price_fob = match.unit_price_fob || 0.0;
+                        }
+                    }
+                }
+            });
+        }
+
+        aiResult.file_path = 'uploads/' + req.file.filename;
+        aiResult.original_name = req.file.originalname;
+
+        res.json({
+            success: true,
+            extracted: aiResult,
+            suggested_order_id: effectiveOrderId
+        });
+
+    } catch (err) {
+        console.error('[DI OCR ERROR]', err);
+        res.status(500).json({ error: 'Erro ao processar arquivo da Declaração de Importação: ' + err.message });
+    }
+});
+
+// Função auxiliar de extração heurística via regex de Declaração de Importação (D.I.)
+function parseDiTextHeuristically(text, orderItems = []) {
+    let diNumber = '';
+    let diDate = new Date().toISOString().split('T')[0];
+    let exchangeRate = 5.45;
+    let totalTax = 0;
+    let taxIi = 0;
+    let taxIpi = 0;
+    let taxPisCofins = 0;
+    let taxIcms = 0;
+    let invoiceRef = '';
+    let containerRef = '';
+    const items = [];
+
+    // 1. Número da D.I. (formato XX/XXXXXXX-X)
+    const diMatch = text.match(/\b(\d{2}\/\d{7}-\d)\b/);
+    if (diMatch) {
+        diNumber = diMatch[1];
+    } else {
+        const duimpMatch = text.match(/\b(\d{2}BR\d{9,11}-\d)\b/i);
+        if (duimpMatch) diNumber = duimpMatch[1];
+    }
+
+    // 2. Data da D.I.
+    const dateMatch = text.match(/(?:registro|desembara[çc]o|emiss[aã]o|data)[:\s]+(\d{2}[\/\.-]\d{2}[\/\.-]\d{4})/i);
+    if (dateMatch) {
+        const parts = dateMatch[1].split(/[\/\.-]/);
+        if (parts.length === 3) {
+            diDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+    }
+
+    // 3. Taxa Cambial PTAX
+    const rateMatch = text.match(/(?:taxa\s+(?:cambial|de\s+c[aâ]mbio)|c[aâ]mbio|ptax|moeda\/real)[:\s]+(?:R\$\s*)?([\d.,]+)/i);
+    if (rateMatch) {
+        const val = parseFloat(rateMatch[1].replace(/\./g, '').replace(',', '.'));
+        if (!isNaN(val) && val > 0 && val < 50) {
+            exchangeRate = val;
+        }
+    }
+
+    // 4. Tributos
+    const totTaxMatch = text.match(/(?:total\s+(?:dos\s+)?tributos(?:\s+recolhidos)?|total\s+recolhido|d[eé]bito\s+em\s+conta|valor\s+total\s+(?:recolhido|pago))[:\s]+(?:R\$\s*)?([\d.,]+)/i);
+    if (totTaxMatch) {
+        totalTax = parseFloat(totTaxMatch[1].replace(/\./g, '').replace(',', '.')) || 0;
+    }
+
+    const iiMatch = text.match(/(?:imposto\s+de\s+importa[çc][aã]o(?:\s*\(II\))?|(?<![a-zA-Z])I\.?I\.?)[:\s]+(?:R\$\s*)?([\d.,]+)/i);
+    if (iiMatch) taxIi = parseFloat(iiMatch[1].replace(/\./g, '').replace(',', '.')) || 0;
+
+    const ipiMatch = text.match(/(?:(?<![a-zA-Z])I\.?P\.?I\.?)[:\s]+(?:R\$\s*)?([\d.,]+)/i);
+    if (ipiMatch) taxIpi = parseFloat(ipiMatch[1].replace(/\./g, '').replace(',', '.')) || 0;
+
+    const pisMatch = text.match(/(?:PIS(?:\s*\/\s*COFINS|\/PASEP)?|COFINS)[:\s]+(?:R\$\s*)?([\d.,]+)/i);
+    if (pisMatch) taxPisCofins = parseFloat(pisMatch[1].replace(/\./g, '').replace(',', '.')) || 0;
+
+    // 5. Referência de Invoice e Container
+    const invMatch = text.match(/(?:INVOICE|FATURA\s*COMERCIAL|FATURA)[:\s#]+([A-Za-z0-9\-_/]+)/i);
+    if (invMatch) invoiceRef = invMatch[1].trim();
+
+    const cntMatch = text.match(/\b([A-Z]{4}\s*\d{7})\b/i);
+    if (cntMatch) containerRef = cntMatch[1].replace(/\s+/g, '');
+
+    // 6. Tentar encontrar SKUs dos itens da ordem no texto
+    if (orderItems && orderItems.length > 0) {
+        orderItems.forEach((oi, idx) => {
+            const skuRegex = new RegExp(`\\b${oi.sku.replace(/[^a-zA-Z0-9]/g, '')}\\b`, 'i');
+            const cleanText = text.replace(/[^a-zA-Z0-9]/g, ' ');
+            if (skuRegex.test(cleanText) || text.toLowerCase().includes(oi.sku.toLowerCase())) {
+                const admitted = oi.qty_eadi_admitted > 0 ? oi.qty_eadi_admitted : (oi.qty_shipped > 0 ? oi.qty_shipped : oi.qty_ordered);
+                const balance = Math.max(0, admitted - (oi.total_cleared || 0));
+                items.push({
+                    addition_no: String(idx + 1).padStart(3, '0'),
+                    sku: oi.sku,
+                    description: oi.description,
+                    qty_cleared: Math.min(1, balance),
+                    unit_price_fob: oi.unit_price_fob || 0.0,
+                    matched_order_item_id: oi.id
+                });
+            }
+        });
+    }
+
+    return {
+        di_number: diNumber,
+        di_date: diDate,
+        exchange_rate: exchangeRate,
+        total_tax_paid: totalTax,
+        tax_ii: taxIi,
+        tax_ipi: taxIpi,
+        tax_pis_cofins: taxPisCofins,
+        tax_icms: taxIcms,
+        invoice_number_ref: invoiceRef,
+        container_id_ref: containerRef,
+        suggested_order_id: null,
         items: items
     };
 }
