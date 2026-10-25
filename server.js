@@ -8860,6 +8860,14 @@ app.post('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, s
     }
 
     try {
+        const cleanPo = po_number.trim();
+        const existingPo = await dbGet('SELECT id, po_number, supplier_name FROM stock_orders WHERE LOWER(po_number) = LOWER(?)', [cleanPo]);
+        if (existingPo) {
+            return res.status(400).json({
+                error: `Já existe uma ordem de importação cadastrada com o número de PO "${cleanPo}" (Fornecedor: ${existingPo.supplier_name}). Por favor, altere o campo "Número da PO / Container" (ex: adicione um sufixo como "${cleanPo}-02") para salvar.`
+            });
+        }
+
         let supplier = null;
         if (supplier_id) {
             supplier = await dbGet('SELECT * FROM stock_suppliers WHERE id = ?', [supplier_id]);
@@ -8962,6 +8970,11 @@ app.post('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, s
         res.status(201).json(createdOrder);
     } catch (err) {
         console.error('[CREATE ORDER ERROR]', err);
+        if (err.message && err.message.includes('UNIQUE constraint failed: stock_orders.po_number')) {
+            return res.status(400).json({
+                error: `Já existe uma ordem de importação cadastrada com o número de PO "${po_number}". Por favor, altere o campo "Número da PO / Container" (ex: adicione um sufixo como "${po_number}-02") para salvar.`
+            });
+        }
         res.status(500).json({ error: 'Erro ao criar ordem de importação: ' + err.message });
     }
 });
@@ -8986,6 +8999,13 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
         const existing = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
         if (!existing) {
             return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
+        }
+
+        if (po_number && po_number.trim() && po_number.trim().toLowerCase() !== (existing.po_number || '').toLowerCase()) {
+            const conflictPo = await dbGet('SELECT id, po_number FROM stock_orders WHERE LOWER(po_number) = LOWER(?) AND id != ?', [po_number.trim(), orderId]);
+            if (conflictPo) {
+                return res.status(400).json({ error: `Já existe outra ordem cadastrada com o número de PO "${po_number.trim()}".` });
+            }
         }
 
         let invoiceFilePath = existing.invoice_file_path;
@@ -9092,6 +9112,9 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
         res.json(updated);
     } catch (err) {
         console.error('[UPDATE ORDER ERROR]', err);
+        if (err.message && err.message.includes('UNIQUE constraint failed: stock_orders.po_number')) {
+            return res.status(400).json({ error: `O número de PO informado já existe em outra ordem no sistema.` });
+        }
         res.status(500).json({ error: 'Erro ao atualizar ordem de importação: ' + err.message });
     }
 });

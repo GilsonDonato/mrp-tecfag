@@ -23768,7 +23768,18 @@
                         const invInput = document.getElementById('sc-order-invoice-no');
                         if (invInput) invInput.value = ext.invoice_number;
                         const poInput = document.getElementById('sc-order-po');
-                        if (poInput && !poInput.value) poInput.value = 'PO-' + ext.invoice_number.replace(/[^a-zA-Z0-9]/g, '-');
+                        if (poInput && !poInput.value) {
+                            let basePo = 'PO-' + ext.invoice_number.replace(/[^a-zA-Z0-9]/g, '-');
+                            const existingOrders = supplyChainState.orders || [];
+                            if (existingOrders.some(o => o.po_number && o.po_number.toLowerCase() === basePo.toLowerCase())) {
+                                let suffix = 2;
+                                while (existingOrders.some(o => o.po_number && o.po_number.toLowerCase() === `${basePo}-${suffix}`.toLowerCase())) {
+                                    suffix++;
+                                }
+                                basePo = `${basePo}-${suffix}`;
+                            }
+                            poInput.value = basePo;
+                        }
                     }
 
                     if (ext.invoice_date) {
@@ -23916,6 +23927,24 @@
             e.preventDefault();
 
             const po = document.getElementById('sc-order-po')?.value.trim();
+            if (!po) {
+                alert('⚠️ Por favor, informe o campo "Número da PO / Container *".');
+                const poField = document.getElementById('sc-order-po');
+                if (poField) poField.focus();
+                return;
+            }
+
+            const existingOrder = (supplyChainState.orders || []).find(o => o.po_number && o.po_number.trim().toLowerCase() === po.toLowerCase());
+            if (existingOrder) {
+                alert(`⚠️ O número de PO "${po}" já está cadastrado no sistema (Ordem #${existingOrder.id} - ${existingOrder.supplier_name || 'Fornecedor'}).\n\nPara salvar esta ordem sem conflito, altere o campo "Número da PO / Container" (ex: adicione um sufixo como "${po}-02" ou o código do container).`);
+                const poField = document.getElementById('sc-order-po');
+                if (poField) {
+                    poField.focus();
+                    poField.select();
+                }
+                return;
+            }
+
             const suppSelect = document.getElementById('sc-order-supplier');
             const suppId = suppSelect?.value;
             const suppName = suppSelect?.options[suppSelect.selectedIndex]?.text || '';
