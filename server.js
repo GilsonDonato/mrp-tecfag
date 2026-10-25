@@ -10053,51 +10053,100 @@ app.post('/api/supply-chain/extract-invoice', authenticateToken, restrictToSuppl
         const suppliers = await dbAll('SELECT id, name, currency, payment_terms_type FROM stock_suppliers');
         const supplierNames = suppliers.map(s => s.name).join(', ');
 
-        // 1. Extração de texto de PDF
+        // 1. Extração de texto de PDF (para referência de OCR)
         if (fileMime.includes('pdf') || req.file.originalname.toLowerCase().endsWith('.pdf')) {
-            const dataBuffer = fs.readFileSync(filePath);
-            const pdfData = await pdfParse(dataBuffer);
-            extractedText = pdfData.text || '';
+            try {
+                const dataBuffer = fs.readFileSync(filePath);
+                const pdfData = await pdfParse(dataBuffer);
+                extractedText = pdfData.text || '';
+            } catch (pdfErr) {
+                console.warn('[INVOICE OCR] Aviso ao extrair texto bruto com pdf-parse:', pdfErr.message);
+            }
+        }
+
+        // 2. Preparar anexo multimodal nativo para o Gemini (PDF ou Imagem)
+        // Isso permite ao Gemini 'enxergar' a tabela visualmente linha por linha sem distorcer a ordem
+        let inlinePart = null;
+        try {
+            const fileBuffer = fs.readFileSync(filePath);
+            let mime = fileMime;
+            const lowerName = req.file.originalname.toLowerCase();
+            if (lowerName.endsWith('.pdf') || (fileMime && fileMime.includes('pdf'))) {
+                mime = 'application/pdf';
+            } else if (lowerName.endsWith('.png')) {
+                mime = 'image/png';
+            } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+                mime = 'image/jpeg';
+            } else if (lowerName.endsWith('.webp')) {
+                mime = 'image/webp';
+            }
+
+            if (mime === 'application/pdf' || mime.startsWith('image/')) {
+                inlinePart = {
+                    inlineData: {
+                        mimeType: mime,
+                        data: fileBuffer.toString('base64')
+                    }
+                };
+            }
+        } catch (bufErr) {
+            console.warn('[INVOICE OCR] Falha ao codificar buffer para inlineData:', bufErr.message);
         }
 
         let aiResult = null;
         const apiKey = process.env.GEMINI_API_KEY;
 
-        // 2. Análise com Gemini se API Key disponível
+        // 3. Análise visual direta com Gemini se API Key disponível
         if (apiKey && apiKey.trim() !== '') {
             try {
                 const prompt = `
 Você é o Especialista Sênior em Comércio Exterior e Supply Chain da Tecfag.
-Analise o texto abaixo extraído de uma Proforma Invoice ou Commercial Invoice de fabricantes internacionais de máquinas industriais.
+Sua missão é extrair com precisão cirúrgica de 100% todos os dados da Proforma Invoice / Commercial Invoice anexada.
 
-Lista de Fornecedores Cadastrados no Sistema:
+Lista de Fornecedores Cadastrados no Sistema da Tecfag:
 ${supplierNames}
 
-Texto do Documento (PDF OCR):
+Texto Bruto Extraído (Referência Auxiliar):
 """
-${extractedText.substring(0, 100000)}
+${extractedText.substring(0, 40000)}
 """
 
-INSTRUÇÕES CRÍTICAS DE EXTRAÇÃO:
-1. Reconstrua CUIDADOSAMENTE a tabela completa de TODOS os itens da fatura (podendo ter de 1 a mais de 40 itens distribuídos em múltiplas páginas).
-2. O texto do PDF pode ter extraído colunas de números (quantidades, preços unitários e totais) e colunas de descrições/modelos em blocos separados. Correlacione cada item pelo número sequencial de linha (1, 2, 3... N) e pelos valores.
-3. Se um item tiver 'MODEL: <CÓDIGO>' ou código de modelo (ex: 'ATB1000', 'ARLB160A', 'BZH-120', 'MT-50', 'FRD1000W', 'FL2000A', 'BF650', 'EW220'), extraia esse código limpo no campo "sku".
-4. Se um item for um conjunto/sistema com valor agrupado (ex: Linha 2 e 3 compondo sistema envasadora + vibradores), extraia a quantidade e o valor total corretamente sem zerar.
-5. Verifique se a soma de total_price_fob de todos os itens bate exatamente com o total_fob_value do documento.
-6. Mantenha a precisão decimal completa em unit_price_fob.
+=======================================================
+REGRAS OBRIGATÓRIAS E INEGOCIÁVEIS DE EXTRAÇÃO:
+=======================================================
 
-Extraia as seguintes informações estruturadas em JSON puro:
+1. SEQUÊNCIA VISUAL ESTRITA E IMUTÁVEL (MÁXIMA PRIORIDADE):
+   - Os itens no array "items" DEVEM seguir RIGOROSAMENTE A MESMA SEQUÊNCIA FÍSICA E NUMÉRICA em que aparecem na fatura original, linha por linha, de cima para baixo (do primeiro item no topo da página 1 até o último item na base da última página).
+   - É ESTRITAMENTE PROIBIDO:
+     a) Reordenar itens (NÃO ordene alfabeticamente, NÃO ordene por preço, NÃO agrupe por tipo);
+     b) Mesclar ou somar linhas repetidas (se um modelo aparece na Linha 1 com 2 unidades e novamente na Linha 5 com 3 unidades, mantenha DUAS linhas separadas, exatamente como constam na fatura original);
+     c) Pular ou omitir qualquer item, máquina, acessório ou peça listada na tabela da fatura.
+
+2. QUANTIDADES E VALORES LINHA A LINHA:
+   - Para CADA item, extraia a quantidade ("qty_ordered") e o preço unitário FOB ("unit_price_fob") EXCLUSIVAMENTE da linha correspondente daquele modelo.
+   - NUNCA troque ou desloque a quantidade de uma linha com o preço ou quantidade de outra linha.
+   - O campo "total_price_fob" de cada item deve ser exatamente: qty_ordered * unit_price_fob.
+
+3. MODELO / SKU PRECISO:
+   - Extraia o código do modelo industrial da máquina no campo "sku" (Exemplos comuns: FR-770, BSF-5640, BZH-120, ARLB160A, ATB1000, FL2000A, BF650, EW220, MT-50, etc.).
+   - Mantenha a descrição técnica completa no campo "description".
+
+4. CONFERÊNCIA MATEMÁTICA DO TOTAL:
+   - Calcule a soma de todos os "total_price_fob". Essa soma DEVE bater com o valor total da fatura ("total_fob_value").
+
+Estrutura JSON obrigatória:
 {
-  "supplier_name": "Nome do fornecedor (ex: Wenzhou Brother International Trade Co., Ltd., Hualian, etc.)",
-  "invoice_number": "Número da fatura / Proforma (ex: BIT26-0404W, PI2026-08)",
-  "invoice_date": "Data da fatura no formato YYYY-MM-DD (ex: 2026-09-29)",
+  "supplier_name": "Nome da fábrica fornecedora",
+  "invoice_number": "Número da Invoice / Proforma",
+  "invoice_date": "YYYY-MM-DD",
   "currency": "USD, EUR ou RMB",
   "total_fob_value": 0.0,
-  "payment_terms_desc": "Condição de pagamento informada no texto se houver",
+  "payment_terms_desc": "Condição de pagamento",
   "items": [
     {
-      "sku": "Código do modelo ou insumo (ex: ATB1000, ARLB160A, BZH-120, FRD1000W, BF650)",
-      "description": "Descrição do equipamento ou insumo em inglês ou português",
+      "item_no": 1,
+      "sku": "MODELO",
+      "description": "Descrição do equipamento",
       "qty_ordered": 1,
       "unit_price_fob": 0.0,
       "total_price_fob": 0.0
@@ -10105,26 +10154,50 @@ Extraia as seguintes informações estruturadas em JSON puro:
   ]
 }
 
-Responda APENAS o JSON puro. Não utilize blocos de código com crases (\`\`\`json).
+Responda APENAS o JSON puro. Não utilize blocos markdown (\`\`\`json).
 `;
-                const modelName = process.env.GEMINI_MODEL || 'gemini-flash-latest';
-                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-                const payload = {
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { responseMimeType: "application/json" }
-                };
 
-                const aiRes = await fetch(geminiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                const contentsParts = [];
+                if (inlinePart) {
+                    contentsParts.push(inlinePart);
+                }
+                contentsParts.push({ text: prompt });
 
-                if (aiRes.ok) {
-                    const aiData = await aiRes.json();
-                    if (aiData.candidates && aiData.candidates[0] && aiData.candidates[0].content && aiData.candidates[0].content.parts[0]) {
-                        const rawText = aiData.candidates[0].content.parts[0].text;
-                        aiResult = cleanAndParseJSON(rawText);
+                const candidateModels = [
+                    process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+                    'gemini-flash-latest',
+                    'gemini-2.0-flash'
+                ];
+
+                for (const modelName of candidateModels) {
+                    try {
+                        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                        const payload = {
+                            contents: [{ parts: contentsParts }],
+                            generationConfig: { responseMimeType: "application/json" }
+                        };
+
+                        const aiRes = await fetch(geminiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (aiRes.ok) {
+                            const aiData = await aiRes.json();
+                            if (aiData.candidates && aiData.candidates[0] && aiData.candidates[0].content && aiData.candidates[0].content.parts[0]) {
+                                const rawText = aiData.candidates[0].content.parts[0].text;
+                                aiResult = cleanAndParseJSON(rawText);
+                                if (aiResult && aiResult.items && aiResult.items.length > 0) {
+                                    break;
+                                }
+                            }
+                        } else {
+                            const errBody = await aiRes.text();
+                            console.warn(`[SUPPLY CHAIN OCR] Modelo ${modelName} retornou status ${aiRes.status}:`, errBody.substring(0, 150));
+                        }
+                    } catch (mErr) {
+                        console.warn(`[SUPPLY CHAIN OCR] Erro ao tentar modelo ${modelName}:`, mErr.message);
                     }
                 }
             } catch (geminiErr) {
@@ -10132,9 +10205,17 @@ Responda APENAS o JSON puro. Não utilize blocos de código com crases (\`\`\`js
             }
         }
 
-        // 3. Parser Heurístico / Regex se a IA falhou ou não retornou itens
+        // 4. Parser Heurístico / Regex se a IA falhou ou não retornou itens
         if (!aiResult || !aiResult.items || aiResult.items.length === 0) {
             aiResult = parseInvoiceTextHeuristically(extractedText, suppliers);
+        }
+
+        // Garantir que a ordem sequencial dos itens seja estritamente respeitada
+        if (aiResult && Array.isArray(aiResult.items)) {
+            const hasValidSeq = aiResult.items.every(it => it.item_no !== undefined && !isNaN(parseInt(it.item_no)));
+            if (hasValidSeq) {
+                aiResult.items.sort((a, b) => parseInt(a.item_no) - parseInt(b.item_no));
+            }
         }
 
         // Vincular ao ID do fornecedor se encontrado
@@ -10205,17 +10286,20 @@ function parseInvoiceTextHeuristically(text, suppliers) {
     }
 
     // Identificar Itens e Modelos
+    let lineIdx = 1;
     for (const line of lines) {
-        // Exemplo: FR-770 Continuous Band Sealer 10 PCS USD 180.00 USD 1,800.00
-        const itemMatch = line.match(/^([A-Z0-9\-\/]{3,20})\s+(.+?)\s+(\d+)\s*(?:PCS|SETS|UN|UNITS)?\s+[\$€¥]?\s*([\d,]+\.?\d*)\s+[\$€¥]?\s*([\d,]+\.?\d*)/i);
+        // Suportar linhas com ou sem número sequencial na frente (ex: "1. FR-770 ...", "1 FR-770 ...", "FR-770 ...")
+        const itemMatch = line.match(/^(?:(?:item\s*)?(\d{1,3})[\.\)\-]?\s+)?([A-Za-z0-9\-_/]{2,25})\s+(.+?)\s+(\d+)\s*(?:PCS|SETS|UN|UNITS|PCS\.)?\s+[\$€¥]?\s*([\d,]+\.?\d*)\s+[\$€¥]?\s*([\d,]+\.?\d*)/i);
         if (itemMatch) {
-            const sku = itemMatch[1].trim().toUpperCase();
-            const desc = itemMatch[2].trim();
-            const qty = parseInt(itemMatch[3]) || 1;
-            const unitPrice = parseFloat(itemMatch[4].replace(/,/g, '')) || 0;
-            const itemTotal = parseFloat(itemMatch[5].replace(/,/g, '')) || (qty * unitPrice);
+            const itemSeq = itemMatch[1] ? parseInt(itemMatch[1]) : lineIdx++;
+            const sku = itemMatch[2].trim().toUpperCase();
+            const desc = itemMatch[3].trim();
+            const qty = parseInt(itemMatch[4]) || 1;
+            const unitPrice = parseFloat(itemMatch[5].replace(/,/g, '')) || 0;
+            const itemTotal = parseFloat(itemMatch[6].replace(/,/g, '')) || (qty * unitPrice);
 
             items.push({
+                item_no: itemSeq,
                 sku: sku,
                 description: desc,
                 qty_ordered: qty,
