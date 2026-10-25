@@ -3485,6 +3485,33 @@
 
             <!-- SUB-TAB 1: KANBAN DE CONTAINERS -->
             <div id="sc-subtab-kanban" style="display: block;">
+                <!-- Barra de Filtros do Kanban: Fornecedor Internacional & Busca Rápida (Invoice / PO / Container / SKU) -->
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1;">
+                        <!-- Dropdown de Fornecedor Internacional -->
+                        <div style="min-width: 240px;">
+                            <select id="sc-kanban-filter-supplier" onchange="renderSupplyChainKanban()" class="form-control" style="padding: 8px 12px; font-size: 0.82rem; background: var(--bg-card); border-color: rgba(56, 189, 248, 0.4); color: #f8fafc; font-weight: 600;">
+                                <option value="ALL">🏭 Todos os Fornecedores</option>
+                            </select>
+                        </div>
+
+                        <!-- Campo de Busca Livre (Invoice, PO, Container, SKU) -->
+                        <div style="flex: 1; min-width: 260px; position: relative;">
+                            <input type="text" id="sc-kanban-filter-search" oninput="renderSupplyChainKanban()" class="form-control" placeholder="🔍 Filtrar por Invoice (ex: PI2026), PO, Container ou Modelo..." style="padding: 8px 12px; font-size: 0.82rem; width: 100%;">
+                        </div>
+
+                        <!-- Botão Limpar Filtros -->
+                        <button type="button" id="sc-kanban-clear-filters-btn" class="btn btn-secondary" onclick="clearSupplyKanbanFilters()" style="display: none; padding: 7px 12px; font-size: 0.78rem; font-weight: 600; border-color: rgba(239, 68, 68, 0.4); color: #ef4444;" title="Limpar todos os filtros">
+                            ✕ Limpar Filtros
+                        </button>
+                    </div>
+
+                    <!-- Indicador de Containers Filtrados -->
+                    <div style="font-size: 0.75rem; color: #94a3b8; white-space: nowrap;" id="sc-kanban-filter-summary">
+                        <!-- Populado via JS -->
+                    </div>
+                </div>
+
                 <div class="sc-kanban-board" style="display: grid; grid-template-columns: repeat(7, minmax(280px, 1fr)); gap: 14px; overflow-x: auto; padding-bottom: 20px;">
                     <!-- Column 1: Proforma Emitida -->
                     <div class="sc-kanban-col" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); border-top: 4px solid #38bdf8; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; min-height: 500px;">
@@ -3557,7 +3584,7 @@
                 <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <div style="flex: 1; min-width: 260px; position: relative;">
-                            <input type="text" id="sc-sku-search-input" oninput="debounceSkuMatrixSearch()" class="form-control" placeholder="🔍 Digite o modelo (ex: FR-770, MSZ, DZ-400, Seladora, Dosadora, PO-2026)..." style="width: 100%; padding: 12px 14px; font-size: 0.95rem; border-radius: 8px;">
+                            <input type="text" id="sc-sku-search-input" oninput="debounceSkuMatrixSearch()" class="form-control" placeholder="🔍 Digite o modelo (ex: FR-770), Fornecedor Internacional, Invoice ou PO..." style="width: 100%; padding: 12px 14px; font-size: 0.95rem; border-radius: 8px;">
                         </div>
                         <button type="button" class="btn" onclick="loadSkuMatrix()" style="background: #0ea5e9; color: white; padding: 12px 20px; font-weight: 700; border-radius: 8px;">
                             Buscar
@@ -3629,7 +3656,12 @@
                     <!-- Filtros da Tabela EADI -->
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px;">
                         <div style="flex: 1; min-width: 240px;">
-                            <input type="text" id="sc-eadi-filter-search" oninput="filterEadiInventoryTable()" class="form-control" placeholder="🔍 Filtrar por SKU, modelo da máquina ou container/PO..." style="padding: 8px 12px; font-size: 0.85rem;">
+                            <input type="text" id="sc-eadi-filter-search" oninput="filterEadiInventoryTable()" class="form-control" placeholder="🔍 Filtrar por Invoice, Fornecedor, SKU ou Container/PO..." style="padding: 8px 12px; font-size: 0.85rem;">
+                        </div>
+                        <div style="min-width: 220px;">
+                            <select id="sc-eadi-filter-supplier" onchange="filterEadiInventoryTable()" class="form-control" style="padding: 8px 12px; font-size: 0.85rem;">
+                                <option value="ALL">🏭 Todos os Fornecedores</option>
+                            </select>
                         </div>
                         <div style="min-width: 180px;">
                             <select id="sc-eadi-filter-days" onchange="filterEadiInventoryTable()" class="form-control" style="padding: 8px 12px; font-size: 0.85rem;">
@@ -23200,6 +23232,8 @@
                     supplyChainState.suppliers = await suppliersRes.json();
                     renderSupplyChainSuppliers();
                     populateSupplyOrderSuppliersSelect();
+                    populateSupplyKanbanSupplierFilter();
+                    populateEadiSupplierFilter();
                 }
 
                 if (paymentsRes.ok) {
@@ -23280,9 +23314,54 @@
                 if (container) container.innerHTML = '';
             });
 
-            const orders = supplyChainState.orders || [];
+            const filterSupplier = document.getElementById('sc-kanban-filter-supplier')?.value || 'ALL';
+            const filterSearch = (document.getElementById('sc-kanban-filter-search')?.value || '').trim().toLowerCase();
+            const clearBtn = document.getElementById('sc-kanban-clear-filters-btn');
+            const summaryEl = document.getElementById('sc-kanban-filter-summary');
 
-            orders.forEach(order => {
+            const isFilterActive = filterSupplier !== 'ALL' || filterSearch !== '';
+            if (clearBtn) clearBtn.style.display = isFilterActive ? 'inline-block' : 'none';
+
+            const allOrders = supplyChainState.orders || [];
+
+            const filteredOrders = allOrders.filter(order => {
+                // 1. Filtro por Fornecedor Internacional
+                if (filterSupplier !== 'ALL') {
+                    if (String(order.supplier_id) !== String(filterSupplier) &&
+                        (!order.supplier_name || !order.supplier_name.toLowerCase().includes(filterSupplier.toLowerCase()))) {
+                        return false;
+                    }
+                }
+
+                // 2. Busca Livre por Invoice, PO, Container ou Modelo (SKU)
+                if (filterSearch) {
+                    const poMatch = order.po_number && order.po_number.toLowerCase().includes(filterSearch);
+                    const invMatch = order.invoice_number && order.invoice_number.toLowerCase().includes(filterSearch);
+                    const suppMatch = order.supplier_name && order.supplier_name.toLowerCase().includes(filterSearch);
+                    const contMatch = order.container_id && order.container_id.toLowerCase().includes(filterSearch);
+                    const vesselMatch = order.vessel_name && order.vessel_name.toLowerCase().includes(filterSearch);
+                    const itemMatch = (order.items || []).some(it => 
+                        (it.sku && it.sku.toLowerCase().includes(filterSearch)) ||
+                        (it.description && it.description.toLowerCase().includes(filterSearch))
+                    );
+
+                    if (!poMatch && !invMatch && !suppMatch && !contMatch && !vesselMatch && !itemMatch) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            if (summaryEl) {
+                if (isFilterActive) {
+                    summaryEl.innerHTML = `Exibindo <strong style="color: #38bdf8;">${filteredOrders.length}</strong> de <strong>${allOrders.length}</strong> containers`;
+                } else {
+                    summaryEl.innerHTML = `Total de <strong style="color: #f8fafc;">${allOrders.length}</strong> containers`;
+                }
+            }
+
+            filteredOrders.forEach(order => {
                 const stage = order.stage || 'PO_EMITIDA';
                 if (counts[stage] !== undefined) counts[stage]++;
 
@@ -23308,6 +23387,7 @@
                 // Header do Card
                 const isRollover = order.is_rollover_order === 1;
                 const rolloverBadge = isRollover ? `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(245, 158, 11, 0.3);">SALDO REMANESCENTE</span>` : '';
+                const invoiceBadge = order.invoice_number ? `<span style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: bold;" title="Invoice / Proforma">📄 Inv: ${order.invoice_number}</span>` : '';
 
                 // Itens Preview
                 const items = order.items || [];
@@ -23366,8 +23446,11 @@
                 card.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
                         <div>
-                            <div style="font-weight: 800; color: #f8fafc; font-size: 0.88rem;">${order.po_number}</div>
-                            <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 600; margin-top: 1px;">${order.supplier_name}</div>
+                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                <span style="font-weight: 800; color: #f8fafc; font-size: 0.88rem;">${order.po_number}</span>
+                                ${invoiceBadge}
+                            </div>
+                            <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 600; margin-top: 2px;">🏭 ${order.supplier_name}</div>
                         </div>
                         ${rolloverBadge}
                     </div>
@@ -23411,6 +23494,16 @@
 
                 container.appendChild(card);
             });
+
+            // Se algum filtro estiver ativo e a coluna ficar vazia, exibir indicação suave
+            if (isFilterActive) {
+                stages.forEach(s => {
+                    const container = document.getElementById(`sc-cards-${s}`);
+                    if (container && counts[s] === 0) {
+                        container.innerHTML = '<div style="font-size: 0.7rem; color: #64748b; text-align: center; padding: 25px 8px; border: 1px dashed rgba(255,255,255,0.06); border-radius: 6px;">Nenhum container nesta coluna com os filtros ativos.</div>';
+                    }
+                });
+            }
 
             // Atualizar contadores do Kanban
             const cPo = document.getElementById('sc-count-po-emitida');
@@ -23546,6 +23639,56 @@
             if (currentVal && currentVal !== '__NEW_SUPPLIER__') {
                 select.value = currentVal;
             }
+        }
+
+        function populateSupplyKanbanSupplierFilter() {
+            const select = document.getElementById('sc-kanban-filter-supplier');
+            if (!select) return;
+            const currentVal = select.value || 'ALL';
+            select.innerHTML = '<option value="ALL">🏭 Todos os Fornecedores</option>';
+
+            const suppliers = supplyChainState.suppliers || [];
+            suppliers.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.innerText = s.name;
+                select.appendChild(opt);
+            });
+
+            if (suppliers.some(s => String(s.id) === String(currentVal))) {
+                select.value = currentVal;
+            } else {
+                select.value = 'ALL';
+            }
+        }
+
+        function populateEadiSupplierFilter() {
+            const select = document.getElementById('sc-eadi-filter-supplier');
+            if (!select) return;
+            const currentVal = select.value || 'ALL';
+            select.innerHTML = '<option value="ALL">🏭 Todos os Fornecedores</option>';
+
+            const suppliers = supplyChainState.suppliers || [];
+            suppliers.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.innerText = s.name;
+                select.appendChild(opt);
+            });
+
+            if (suppliers.some(s => String(s.id) === String(currentVal))) {
+                select.value = currentVal;
+            } else {
+                select.value = 'ALL';
+            }
+        }
+
+        function clearSupplyKanbanFilters() {
+            const suppSelect = document.getElementById('sc-kanban-filter-supplier');
+            const searchInput = document.getElementById('sc-kanban-filter-search');
+            if (suppSelect) suppSelect.value = 'ALL';
+            if (searchInput) searchInput.value = '';
+            renderSupplyChainKanban();
         }
 
         function handleOrderSupplierChange() {
@@ -24370,7 +24513,10 @@
 
                         batchesHtml += `
                             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.78rem;">
-                                <td style="padding: 6px 8px; font-weight: bold; color: #f8fafc;">${b.po_number}</td>
+                                <td style="padding: 6px 8px; font-weight: bold; color: #f8fafc;">
+                                    ${b.po_number}
+                                    ${b.invoice_number ? `<div style="font-size: 0.68rem; color: #38bdf8; font-weight: normal;">📄 Inv: ${b.invoice_number}</div>` : ''}
+                                </td>
                                 <td style="padding: 6px 8px; color: #94a3b8;">${b.supplier_name}</td>
                                 <td style="padding: 6px 8px;">${stageBadges[b.stage] || b.stage}</td>
                                 <td style="padding: 6px 8px; text-align: center; font-weight: bold; color: #38bdf8;">${b.qty} un.</td>
@@ -24840,13 +24986,27 @@
         function filterEadiInventoryTable() {
             const search = (document.getElementById('sc-eadi-filter-search')?.value || '').toLowerCase().trim();
             const daysFilter = document.getElementById('sc-eadi-filter-days')?.value || 'ALL';
+            const supplierFilter = document.getElementById('sc-eadi-filter-supplier')?.value || 'ALL';
 
             const filtered = eadiInventoryData.filter(item => {
-                const matchText = (item.sku && item.sku.toLowerCase().includes(search)) ||
-                                  (item.description && item.description.toLowerCase().includes(search)) ||
-                                  (item.po_number && item.po_number.toLowerCase().includes(search)) ||
-                                  (item.container_id && item.container_id.toLowerCase().includes(search));
-                if (!matchText) return false;
+                // Filtro por Fornecedor Internacional
+                if (supplierFilter !== 'ALL') {
+                    if (String(item.supplier_id) !== String(supplierFilter) &&
+                        (!item.supplier_name || !item.supplier_name.toLowerCase().includes(supplierFilter.toLowerCase()))) {
+                        return false;
+                    }
+                }
+
+                // Busca livre por SKU, descrição, PO, container, fornecedor ou invoice
+                if (search) {
+                    const matchText = (item.sku && item.sku.toLowerCase().includes(search)) ||
+                                      (item.description && item.description.toLowerCase().includes(search)) ||
+                                      (item.po_number && item.po_number.toLowerCase().includes(search)) ||
+                                      (item.container_id && item.container_id.toLowerCase().includes(search)) ||
+                                      (item.supplier_name && item.supplier_name.toLowerCase().includes(search)) ||
+                                      (item.invoice_number && item.invoice_number.toLowerCase().includes(search));
+                    if (!matchText) return false;
+                }
 
                 if (daysFilter === 'OVER_90' && item.days_in_eadi < 90) return false;
                 if (daysFilter === 'OVER_180' && item.days_in_eadi < 180) return false;
@@ -24888,7 +25048,8 @@
                     <td style="padding: 10px 8px; color: #cbd5e1; max-width: 220px; font-size: 0.78rem;">${it.description || '-'}</td>
                     <td style="padding: 10px 8px;">
                         <div style="font-weight: bold; color: #f8fafc;">${it.po_number}</div>
-                        <div style="font-size: 0.7rem; color: #94a3b8;">${it.container_id}</div>
+                        ${it.invoice_number ? `<div style="font-size: 0.7rem; color: #38bdf8; font-weight: 600;">📄 Inv: ${it.invoice_number}</div>` : ''}
+                        <div style="font-size: 0.7rem; color: #94a3b8;">${it.container_id || 'S/N'} • ${it.supplier_name || ''}</div>
                     </td>
                     <td style="padding: 10px 8px; color: #cbd5e1;">${entryDateStr}</td>
                     <td style="padding: 10px 8px; text-align: center;">${daysBadge}</td>

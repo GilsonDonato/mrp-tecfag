@@ -9534,7 +9534,9 @@ app.get('/api/supply-chain/eadi/inventory', authenticateToken, restrictToSupplyC
                 soi.qty_eadi_admitted,
                 soi.unit_price_fob,
                 so.po_number,
+                so.supplier_id,
                 so.supplier_name,
+                so.invoice_number,
                 so.container_id,
                 so.eadi_entry_date,
                 so.eadi_da_number,
@@ -9585,7 +9587,9 @@ app.get('/api/supply-chain/eadi/inventory', authenticateToken, restrictToSupplyC
                     order_item_id: r.order_item_id,
                     order_id: r.order_id,
                     po_number: r.po_number,
+                    supplier_id: r.supplier_id,
                     supplier_name: r.supplier_name,
+                    invoice_number: r.invoice_number,
                     container_id: r.container_id || 'S/N',
                     eadi_da_number: r.eadi_da_number || 'Pendente',
                     eadi_entry_date: r.eadi_entry_date,
@@ -9949,7 +9953,9 @@ app.get('/api/supply-chain/sku-matrix', authenticateToken, restrictToSupplyChain
                 soi.unit_price_fob,
                 so.id as order_id,
                 so.po_number,
+                so.supplier_id,
                 so.supplier_name,
+                so.invoice_number,
                 so.stage,
                 so.container_id,
                 so.vessel_name,
@@ -9965,9 +9971,9 @@ app.get('/api/supply-chain/sku-matrix', authenticateToken, restrictToSupplyChain
         const params = [];
 
         if (q) {
-            sql += ` AND (soi.sku LIKE ? OR soi.description LIKE ? OR so.po_number LIKE ? OR so.container_id LIKE ?)`;
+            sql += ` AND (soi.sku LIKE ? OR soi.description LIKE ? OR so.po_number LIKE ? OR so.container_id LIKE ? OR so.supplier_name LIKE ? OR so.invoice_number LIKE ?)`;
             const wildcard = `%${q}%`;
-            params.push(wildcard, wildcard, wildcard, wildcard);
+            params.push(wildcard, wildcard, wildcard, wildcard, wildcard, wildcard);
         }
 
         sql += ` ORDER BY so.eta_warehouse_date ASC, soi.sku ASC`;
@@ -10016,7 +10022,9 @@ app.get('/api/supply-chain/sku-matrix', authenticateToken, restrictToSupplyChain
             matrixMap[skuKey].batches.push({
                 order_id: row.order_id,
                 po_number: row.po_number,
+                supplier_id: row.supplier_id,
                 supplier_name: row.supplier_name,
+                invoice_number: row.invoice_number,
                 stage: row.stage,
                 qty: effectiveQty,
                 unit_price_fob: row.unit_price_fob,
