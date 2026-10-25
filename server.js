@@ -880,6 +880,32 @@ function seedDefaultStockSuppliers() {
             payment_terms_desc: '30% Sinal na Proforma e 70% contra cópia do B/L',
             contact_person: 'Sales Dept',
             notes: 'Linha de máquinas e equipamentos industriais de embalagem e tecnologia'
+        },
+        {
+            name: 'Wenzhou Urban Machinery Co.,Ltd',
+            country: 'China',
+            currency: 'USD',
+            lead_time_fabrication_days: 40,
+            lead_time_sea_days: 35,
+            lead_time_port_days: 15,
+            lead_time_warehouse_days: 3,
+            payment_terms_type: '30_70_BL_COPY',
+            payment_terms_desc: '30% Sinal na Proforma e 70% contra cópia do B/L',
+            contact_person: 'Sales Dept',
+            notes: 'Fabricante de máquinas e linhas de embalagem (Wenzhou, China)'
+        },
+        {
+            name: 'Shanghai Royal Pharmaceutical Machinery Co., Ltd',
+            country: 'China',
+            currency: 'USD',
+            lead_time_fabrication_days: 40,
+            lead_time_sea_days: 35,
+            lead_time_port_days: 15,
+            lead_time_warehouse_days: 3,
+            payment_terms_type: '30_70_BL_COPY',
+            payment_terms_desc: '30% Sinal na Proforma e 70% contra cópia do B/L',
+            contact_person: 'Sales Dept',
+            notes: 'Fabricante de máquinas farmacêuticas e industriais (Shanghai, China)'
         }
     ];
 
@@ -9324,6 +9350,173 @@ app.post('/api/supply-chain/orders/:id/eadi-clearance', authenticateToken, restr
         });
     } catch (err) {
         res.status(500).json({ error: 'Erro ao registrar baixa no EADI: ' + err.message });
+    }
+});
+
+// POST /api/supply-chain/orders/:id/eadi-audit - Ajuste rápido de inventário / saldo físico do EADI (Etapa 1)
+app.post('/api/supply-chain/orders/:id/eadi-audit', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const orderId = req.params.id;
+    const user = req.user ? req.user.username : 'Sistema';
+    const {
+        items,
+        eadi_entry_date,
+        eadi_da_number,
+        move_to_eadi,
+        auto_complete_if_zero,
+        reason
+    } = req.body;
+
+    try {
+        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        if (!order) {
+            return res.status(404).json({ error: 'Ordem / Container não encontrado.' });
+        }
+
+        const orderItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [orderId]);
+        if (!orderItems || orderItems.length === 0) {
+            return res.status(400).json({ error: 'Nenhum item encontrado nesta ordem.' });
+        }
+
+        // Buscar baixas já registradas para cada item
+        const clearances = await dbAll(`
+            SELECT ci.order_item_id, SUM(ci.qty_cleared) as total_cleared
+            FROM stock_eadi_clearance_items ci
+            JOIN stock_eadi_clearances c ON ci.clearance_id = c.id
+            WHERE c.order_id = ?
+            GROUP BY ci.order_item_id
+        `, [orderId]);
+        const clearedMap = {};
+        clearances.forEach(c => clearedMap[c.order_item_id] = c.total_cleared || 0);
+
+        let totalAdjustedDifference = 0;
+        let finalContainerBalance = 0;
+        const clearanceItemsToInsert = [];
+
+        // Atualizar cada item recebido
+        for (const it of (items || [])) {
+            const orig = orderItems.find(o => o.id === parseInt(it.order_item_id));
+            if (!orig) continue;
+
+            const currentAdmitted = orig.qty_eadi_admitted > 0 ? orig.qty_eadi_admitted : (orig.qty_shipped > 0 ? orig.qty_shipped : orig.qty_ordered);
+            const currentCleared = clearedMap[orig.id] || 0;
+            const currentBalance = Math.max(0, currentAdmitted - currentCleared);
+
+            const targetBalance = Math.max(0, parseInt(it.new_balance) >= 0 ? parseInt(it.new_balance) : currentBalance);
+            finalContainerBalance += targetBalance;
+
+            const delta = targetBalance - currentBalance;
+            totalAdjustedDifference += delta;
+
+            if (delta < 0) {
+                // O saldo físico real é MENOR que o do sistema (máquinas foram baixadas no passado)
+                const qtyToClear = Math.abs(delta);
+                if (!orig.qty_eadi_admitted || orig.qty_eadi_admitted <= 0) {
+                    await dbRun('UPDATE stock_order_items SET qty_eadi_admitted = ? WHERE id = ?', [currentAdmitted, orig.id]);
+                }
+                clearanceItemsToInsert.push({
+                    order_item_id: orig.id,
+                    sku: orig.sku,
+                    qty_cleared: qtyToClear,
+                    unit_price_fob: orig.unit_price_fob || 0.0
+                });
+            } else if (delta > 0) {
+                // O saldo físico real é MAIOR que o saldo do sistema
+                const newAdmitted = currentCleared + targetBalance;
+                await dbRun('UPDATE stock_order_items SET qty_eadi_admitted = ? WHERE id = ?', [newAdmitted, orig.id]);
+            } else {
+                if (!orig.qty_eadi_admitted || orig.qty_eadi_admitted <= 0) {
+                    await dbRun('UPDATE stock_order_items SET qty_eadi_admitted = ? WHERE id = ?', [currentAdmitted, orig.id]);
+                }
+            }
+        }
+
+        // Se houver itens a baixar por ajuste histórico
+        if (clearanceItemsToInsert.length > 0) {
+            const diDate = eadi_entry_date || order.eadi_entry_date || new Date().toISOString().split('T')[0];
+            const clRes = await dbRun(`
+                INSERT INTO stock_eadi_clearances (
+                    order_id, di_number, di_date, exchange_rate, total_tax_paid,
+                    notes, created_by, created_at, destination_type
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+                orderId,
+                'AJUSTE-INVENTARIO',
+                diDate,
+                1.0,
+                0.0,
+                (reason || 'Inventário de Abertura / Ajuste de Saldo Físico EADI').trim(),
+                user,
+                new Date().toISOString(),
+                'DOCA_TECFAG'
+            ]);
+
+            const clearanceId = clRes.lastID;
+            for (const cit of clearanceItemsToInsert) {
+                await dbRun(`
+                    INSERT INTO stock_eadi_clearance_items (
+                        clearance_id, order_item_id, sku, qty_cleared, unit_price_fob, total_price_fob
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                `, [
+                    clearanceId,
+                    cit.order_item_id,
+                    cit.sku,
+                    cit.qty_cleared,
+                    cit.unit_price_fob,
+                    cit.qty_cleared * cit.unit_price_fob
+                ]);
+            }
+        }
+
+        // Atualizar metadados do container (datas, D.A. e etapa se solicitado)
+        let newStage = order.stage;
+        let newRegime = order.customs_regime;
+
+        if (move_to_eadi && order.stage !== 'ENTREPOSTADO_EADI') {
+            newStage = 'ENTREPOSTADO_EADI';
+            newRegime = 'EADI_BAURU';
+        }
+
+        // Se o saldo final do container zerou e foi solicitado auto_complete
+        if (finalContainerBalance === 0 && (auto_complete_if_zero || order.stage === 'ENTREPOSTADO_EADI')) {
+            newStage = 'DOCA_GALPAO';
+        }
+
+        const newEntryDate = eadi_entry_date !== undefined ? eadi_entry_date : order.eadi_entry_date;
+        const newDaNumber = eadi_da_number !== undefined ? eadi_da_number : order.eadi_da_number;
+
+        await dbRun(`
+            UPDATE stock_orders SET 
+                stage = ?, customs_regime = ?, eadi_entry_date = ?, eadi_da_number = ?,
+                actual_arrival_date = CASE WHEN ? = 'DOCA_GALPAO' AND actual_arrival_date IS NULL THEN date('now') ELSE actual_arrival_date END,
+                updated_at = ?
+            WHERE id = ?
+        `, [
+            newStage,
+            newRegime,
+            newEntryDate,
+            newDaNumber,
+            newStage,
+            new Date().toISOString(),
+            orderId
+        ]);
+
+        // Registrar no log do sistema
+        await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
+            new Date().toISOString(),
+            '#38bdf8',
+            `<strong>[EADI BAURU]</strong> Inventário/Ajuste de saldo físico realizado para o container <strong>${order.po_number}</strong> (${order.container_id || 'S/N'}) por ${user}. Saldo resultante: <strong>${finalContainerBalance} máquina(s)</strong>.`
+        ]);
+
+        res.json({
+            success: true,
+            order_id: orderId,
+            final_balance: finalContainerBalance,
+            stage: newStage,
+            message: `Saldo atualizado com sucesso! Restam ${finalContainerBalance} máquina(s) neste container.`
+        });
+    } catch (err) {
+        console.error('Erro ao ajustar inventário EADI:', err);
+        res.status(500).json({ error: 'Erro ao processar ajuste de inventário: ' + err.message });
     }
 });
 

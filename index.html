@@ -3586,9 +3586,12 @@
                                 Cargas desovadas em Bauru com <strong>suspensão de impostos (IN RFB 241/2002)</strong>. Nacionalize por etapas à medida que os pedidos de venda ou projetos forem confirmados.
                             </p>
                         </div>
-                        <div style="display: flex; gap: 8px;">
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                             <button type="button" class="btn" onclick="loadEadiInventory()" style="background: rgba(255,255,255,0.08); color: white; padding: 8px 14px; font-size: 0.8rem; border-radius: 6px;">
                                 🔄 Atualizar Saldos
+                            </button>
+                            <button type="button" class="btn" onclick="openEadiInventoryAuditModal()" style="background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; font-weight: 700; padding: 8px 16px; font-size: 0.8rem; border-radius: 6px;">
+                                📝 Inventário / Ajuste de Saldos
                             </button>
                             <button type="button" class="btn" onclick="openEadiClearanceModal(null)" style="background: #f59e0b; color: black; font-weight: 800; padding: 8px 16px; font-size: 0.8rem; border-radius: 6px;">
                                 ⚡ Nova Nacionalização Parcial
@@ -6145,7 +6148,10 @@
                         </div>
 
                         <div class="form-group">
-                            <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Fornecedor Internacional *</label>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); margin: 0;">Fornecedor Internacional *</label>
+                                <button type="button" onclick="openEditSupplierModal(null)" style="background: none; border: none; color: #38bdf8; font-size: 0.7rem; font-weight: 700; cursor: pointer; padding: 0;" title="Cadastrar novo fornecedor">+ Novo Fabricante</button>
+                            </div>
                             <select id="sc-order-supplier" class="form-control" required onchange="handleOrderSupplierChange()" style="padding: 9px 12px; font-size: 0.85rem;">
                                 <option value="">Selecione o Fornecedor...</option>
                             </select>
@@ -6876,6 +6882,157 @@
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. MODAL INVENTÁRIO & AJUSTE RÁPIDO DE SALDO DO EADI BAURU -->
+    <div class="modal-overlay" id="modal-eadi-inventory-audit" style="z-index: 1285; display: none;">
+        <div class="modal" style="max-width: 980px; width: 95%; max-height: 92vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(30, 41, 59, 0.9) 100%); border-bottom: 1px solid rgba(56, 189, 248, 0.3);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5rem;">📝</span>
+                    <div>
+                        <h3 style="margin: 0; color: #38bdf8;">Inventário & Ajuste Rápido de Saldo (Porto Seco EADI)</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #94a3b8;">
+                            Ajuste direto do saldo físico atual das máquinas armazenadas no EADI para sincronizar containers novos e antigos.
+                        </p>
+                    </div>
+                </div>
+                <button class="btn-icon" onclick="closeEadiInventoryAuditModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
+                <form id="eadi-audit-form" onsubmit="submitEadiInventoryAudit(event)">
+                    <!-- Seletor de Container / PO -->
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;">
+                            <label style="font-size: 0.78rem; font-weight: 700; color: #38bdf8; text-transform: uppercase;">
+                                1. Selecione o Container / PO para Ajustar Saldo *
+                            </label>
+                            <label style="font-size: 0.72rem; color: #94a3b8; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="checkbox" id="eadi-audit-show-all-orders" onchange="renderEadiAuditOrderDropdown()">
+                                Exibir todas as ordens/containers do sistema
+                            </label>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <select id="eadi-audit-order-select" onchange="onEadiAuditOrderChange()" class="form-control" style="flex: 1; padding: 10px; font-size: 0.88rem; font-weight: bold; border-color: rgba(56, 189, 248, 0.4);" required>
+                                <option value="">-- Carregando containers... --</option>
+                            </select>
+                            <button type="button" class="btn btn-secondary" onclick="navigateAuditContainer(1)" title="Próximo Container" style="padding: 9px 14px; font-size: 0.85rem;">
+                                Próximo ❯
+                            </button>
+                        </div>
+
+                        <!-- Metadados do Container Selecionado -->
+                        <div id="eadi-audit-container-card" style="display: none; margin-top: 14px; padding: 12px; background: rgba(0,0,0,0.25); border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 0.75rem;">
+                                <div>
+                                    <span style="color: #94a3b8;">Fornecedor:</span>
+                                    <strong id="eadi-audit-supplier" style="display: block; color: #f8fafc; font-size: 0.82rem;">-</strong>
+                                </div>
+                                <div>
+                                    <span style="color: #94a3b8;">Container ID:</span>
+                                    <strong id="eadi-audit-container-id" style="display: block; color: #38bdf8; font-size: 0.82rem;">-</strong>
+                                </div>
+                                <div>
+                                    <label style="color: #94a3b8; font-size: 0.72rem; font-weight: bold; display: block; margin-bottom: 2px;">Entrada no EADI:</label>
+                                    <input type="date" id="eadi-audit-entry-date" class="form-control" style="padding: 5px 8px; font-size: 0.78rem;">
+                                </div>
+                                <div>
+                                    <label style="color: #94a3b8; font-size: 0.72rem; font-weight: bold; display: block; margin-bottom: 2px;">Nº D.A. EADI (Declaração de Admissão):</label>
+                                    <input type="text" id="eadi-audit-da-number" class="form-control" placeholder="Ex: 26/014920-DA" style="padding: 5px 8px; font-size: 0.78rem;">
+                                </div>
+                            </div>
+
+                            <div id="eadi-audit-stage-alert" style="display: none; margin-top: 10px; padding: 8px 12px; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; border-radius: 6px; font-size: 0.75rem; color: #f59e0b;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; font-weight: bold;">
+                                    <input type="checkbox" id="eadi-audit-move-stage-check" checked>
+                                    <span>⚠️ Esta carga está em <strong id="eadi-audit-current-stage-name">-</strong>. Marque para transferir para a coluna <strong>"6. NO PORTO SECO (EADI BAURU)"</strong>.</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabela de Ajuste de Saldos por SKU -->
+                    <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: gap; gap: 8px;">
+                            <div>
+                                <div style="font-size: 0.78rem; font-weight: 800; color: #4ade80; text-transform: uppercase;">
+                                    2. Estoque Físico Real das Máquinas no EADI
+                                </div>
+                                <span style="font-size: 0.7rem; color: var(--text-secondary);">Digite na coluna verde a quantidade que realmente está armazenada hoje no EADI Bauru.</span>
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <button type="button" class="btn btn-secondary" onclick="setAllAuditBalancesToZero()" style="padding: 4px 10px; font-size: 0.72rem; border-color: rgba(239, 68, 68, 0.4); color: #ef4444;" title="Zera o saldo de todos os itens se o container já tiver sido totalmente esvaziado no passado">
+                                    🧹 Zerar Todos (Container Vazio)
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="resetAuditBalancesToAdmitted()" style="padding: 4px 10px; font-size: 0.72rem;" title="Restaura todos os itens com a quantidade admitida original da PO">
+                                    🔄 Restaurar Originais
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="overflow-x: auto;">
+                            <table class="table" style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left;">
+                                        <th style="padding: 8px 6px;">Modelo / SKU</th>
+                                        <th style="padding: 8px 6px;">Descrição</th>
+                                        <th style="padding: 8px 6px; text-align: center;">Qtd Original</th>
+                                        <th style="padding: 8px 6px; text-align: center;">Admitido EADI</th>
+                                        <th style="padding: 8px 6px; text-align: center; color: #10b981;">Já Baixado</th>
+                                        <th style="padding: 8px 6px; text-align: center; color: #94a3b8;">Saldo Sistema</th>
+                                        <th style="padding: 8px 6px; text-align: center; width: 140px; color: #4ade80; font-weight: 800; background: rgba(74, 222, 128, 0.08);">NOVO SALDO REAL *</th>
+                                        <th style="padding: 8px 6px; text-align: center; width: 120px;">Ajuste</th>
+                                        <th style="padding: 8px 6px; text-align: center; width: 80px;">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="eadi-audit-items-tbody">
+                                    <tr><td colspan="9" style="text-align: center; color: var(--text-secondary); padding: 20px;">Selecione um container acima para listar os itens.</td></tr>
+                                </tbody>
+                                <tfoot id="eadi-audit-items-tfoot" style="border-top: 1px solid var(--border-color); font-weight: bold; display: none;">
+                                    <tr>
+                                        <td colspan="6" style="padding: 10px 8px; text-align: right; color: #cbd5e1;">Total de Máquinas Restantes neste Container:</td>
+                                        <td style="padding: 10px 8px; text-align: center; font-size: 1.05rem; color: #4ade80; background: rgba(74, 222, 128, 0.1);" id="eadi-audit-total-balance-cell">0 un.</td>
+                                        <td colspan="2" style="padding: 10px 8px; text-align: right; color: #38bdf8;" id="eadi-audit-total-fob-cell">$ 0.00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Configurações de Finalização e Justificativa -->
+                    <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div style="font-size: 0.78rem; font-weight: 800; color: #f59e0b; text-transform: uppercase; margin-bottom: 10px;">
+                            3. Finalização & Motivo do Ajuste
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Motivo do Ajuste:</label>
+                                <input type="text" id="eadi-audit-reason" class="form-control" value="Inventário de Implantação / Ajuste de Saldo Físico EADI" style="padding: 8px; font-size: 0.85rem;" required>
+                            </div>
+                            <div style="display: flex; align-items: center; padding-top: 16px;">
+                                <label style="font-size: 0.75rem; color: #cbd5e1; display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+                                    <input type="checkbox" id="eadi-audit-auto-complete" checked>
+                                    <span>Se o saldo total deste container zerar, transferir automaticamente para <strong>Doca / Concluído</strong></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <span style="font-size: 0.72rem; color: #94a3b8;" id="eadi-audit-status-msg"></span>
+                        <div style="display: flex; gap: 10px;">
+                            <button type="button" class="btn btn-secondary" onclick="closeEadiInventoryAuditModal()">Fechar</button>
+                            <button type="submit" class="btn" style="background: #38bdf8; color: black; font-weight: 800; padding: 10px 24px; font-size: 0.9rem;">
+                                💾 Salvar Saldo deste Container
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -23233,8 +23390,11 @@
                             </button>
                         ` : ''}
                         ${stage === 'ENTREPOSTADO_EADI' ? `
+                            <button type="button" class="btn" onclick="openEadiInventoryAuditModal(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8;" title="Inventário / Ajustar Saldo Físico">
+                                📝 Saldo
+                            </button>
                             <button type="button" class="btn" onclick="openEadiClearanceModal(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: #f59e0b; color: black;" title="Registrar Baixa D.I.">
-                                ⚡ Baixa EADI
+                                ⚡ Baixa
                             </button>
                         ` : ''}
                         ${stage !== 'DOCA_GALPAO' ? `
@@ -23357,10 +23517,10 @@
             if (modal) modal.style.display = 'none';
         }
 
-        function populateSupplyOrderSuppliersSelect() {
+        function populateSupplyOrderSuppliersSelect(preSelectId) {
             const select = document.getElementById('sc-order-supplier');
             if (!select) return;
-            const currentVal = select.value;
+            const currentVal = preSelectId || select.value;
             select.innerHTML = '<option value="">Selecione o Fornecedor...</option>';
 
             const suppliers = supplyChainState.suppliers || [];
@@ -23371,13 +23531,28 @@
                 select.appendChild(opt);
             });
 
-            if (currentVal) select.value = currentVal;
+            // Opção rápida de cadastrar novo fabricante
+            const newOpt = document.createElement('option');
+            newOpt.value = '__NEW_SUPPLIER__';
+            newOpt.innerText = '➕ Cadastrar Novo Fabricante...';
+            newOpt.style.color = '#38bdf8';
+            newOpt.style.fontWeight = 'bold';
+            select.appendChild(newOpt);
+
+            if (currentVal && currentVal !== '__NEW_SUPPLIER__') {
+                select.value = currentVal;
+            }
         }
 
         function handleOrderSupplierChange() {
             const select = document.getElementById('sc-order-supplier');
             if (!select) return;
             const supplierId = select.value;
+            if (supplierId === '__NEW_SUPPLIER__') {
+                select.value = '';
+                openEditSupplierModal(null);
+                return;
+            }
             const supplier = (supplyChainState.suppliers || []).find(s => s.id == supplierId);
             if (supplier) {
                 const termsSelect = document.getElementById('sc-order-payment-terms');
@@ -24563,8 +24738,13 @@
                 });
 
                 if (res.ok) {
+                    const savedSupplier = await res.json();
                     closeSupplierModal();
                     await loadSupplyChainData();
+                    if (!isEdit && savedSupplier && savedSupplier.id) {
+                        populateSupplyOrderSuppliersSelect(savedSupplier.id);
+                        handleOrderSupplierChange();
+                    }
                     alert(`✅ Fornecedor ${payload.name} salvo com sucesso!`);
                 } else {
                     const data = await res.json();
@@ -24686,7 +24866,10 @@
                     </td>
                     <td style="padding: 10px 8px; text-align: right; color: #94a3b8;">${unitFobStr}</td>
                     <td style="padding: 10px 8px; text-align: right; font-weight: bold; color: #4ade80;">${totalFobStr}</td>
-                    <td style="padding: 10px 8px; text-align: right;">
+                    <td style="padding: 10px 8px; text-align: right; white-space: nowrap;">
+                        <button type="button" class="btn" onclick="openEadiInventoryAuditModal(${it.order_id})" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: bold; padding: 4px 8px; font-size: 0.72rem; border-radius: 4px; margin-right: 4px;" title="Ajustar Saldo Físico deste Container">
+                            📝 Ajustar
+                        </button>
                         <button type="button" class="btn" onclick="openEadiClearanceModal(${it.order_id}, ${it.order_item_id})" style="background: #f59e0b; color: black; font-weight: bold; padding: 4px 10px; font-size: 0.72rem; border-radius: 4px;">
                             ⚡ Nacionalizar
                         </button>
@@ -24952,6 +25135,314 @@
             const orderId = activeRouteChoiceOrderId;
             closeAdvancePortChoiceModal();
             await quickAdvanceOrderStage(orderId, targetStage);
+        }
+
+        // ==========================================
+        // MODAL INVENTÁRIO & AJUSTE RÁPIDO DE SALDO DO EADI
+        // ==========================================
+
+        let currentAuditOrderId = null;
+
+        async function openEadiInventoryAuditModal(targetOrderId) {
+            const modal = document.getElementById('modal-eadi-inventory-audit');
+            if (!modal) return;
+
+            // Garantir que as ordens estejam carregadas
+            if (!supplyChainState.orders || supplyChainState.orders.length === 0) {
+                await loadSupplyChainData();
+            }
+
+            renderEadiAuditOrderDropdown(targetOrderId);
+            modal.style.display = 'flex';
+        }
+
+        function closeEadiInventoryAuditModal() {
+            const modal = document.getElementById('modal-eadi-inventory-audit');
+            if (modal) modal.style.display = 'none';
+            currentAuditOrderId = null;
+        }
+
+        function renderEadiAuditOrderDropdown(preSelectedOrderId) {
+            const select = document.getElementById('eadi-audit-order-select');
+            const showAll = document.getElementById('eadi-audit-show-all-orders')?.checked;
+            if (!select) return;
+
+            select.innerHTML = '';
+            const orders = supplyChainState.orders || [];
+
+            let candidateOrders = orders.filter(o => {
+                if (showAll) return o.stage !== 'CANCELADO';
+                return o.stage === 'ENTREPOSTADO_EADI' || o.customs_regime === 'EADI_BAURU' || (o.eadi_balance && o.eadi_balance > 0);
+            });
+
+            if (candidateOrders.length === 0) {
+                candidateOrders = orders.filter(o => o.stage !== 'CANCELADO');
+            }
+
+            candidateOrders.forEach(o => {
+                const opt = document.createElement('option');
+                opt.value = o.id;
+                const isEadi = o.stage === 'ENTREPOSTADO_EADI' ? '📦 [EADI]' : `[${o.stage}]`;
+                const bal = o.eadi_balance !== undefined ? o.eadi_balance : (o.total_machines || 0);
+                opt.innerText = `${isEadi} ${o.po_number} - ${o.supplier_name} (Container: ${o.container_id || 'S/N'} • Saldo: ${bal} un.)`;
+                select.appendChild(opt);
+            });
+
+            if (preSelectedOrderId && candidateOrders.some(o => o.id === preSelectedOrderId)) {
+                select.value = preSelectedOrderId;
+            } else if (currentAuditOrderId && candidateOrders.some(o => o.id === currentAuditOrderId)) {
+                select.value = currentAuditOrderId;
+            } else if (candidateOrders.length > 0) {
+                select.value = candidateOrders[0].id;
+            }
+
+            onEadiAuditOrderChange();
+        }
+
+        function onEadiAuditOrderChange() {
+            const select = document.getElementById('eadi-audit-order-select');
+            const orderId = parseInt(select?.value);
+            const containerCard = document.getElementById('eadi-audit-container-card');
+            const tbody = document.getElementById('eadi-audit-items-tbody');
+            const tfoot = document.getElementById('eadi-audit-items-tfoot');
+            const statusMsg = document.getElementById('eadi-audit-status-msg');
+            if (statusMsg) statusMsg.innerText = '';
+
+            if (!orderId) {
+                if (containerCard) containerCard.style.display = 'none';
+                if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-secondary); padding: 20px;">Selecione um container acima.</td></tr>';
+                if (tfoot) tfoot.style.display = 'none';
+                currentAuditOrderId = null;
+                return;
+            }
+
+            currentAuditOrderId = orderId;
+            const orders = supplyChainState.orders || [];
+            const order = orders.find(o => o.id === orderId);
+
+            if (!order) {
+                if (containerCard) containerCard.style.display = 'none';
+                if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-secondary); padding: 20px;">Ordem não encontrada.</td></tr>';
+                if (tfoot) tfoot.style.display = 'none';
+                return;
+            }
+
+            if (containerCard) {
+                containerCard.style.display = 'block';
+                document.getElementById('eadi-audit-supplier').innerText = order.supplier_name || '-';
+                document.getElementById('eadi-audit-container-id').innerText = (order.container_id || 'S/N') + ' (' + order.po_number + ')';
+                
+                const entryInput = document.getElementById('eadi-audit-entry-date');
+                if (entryInput) entryInput.value = order.eadi_entry_date || new Date().toISOString().split('T')[0];
+
+                const daInput = document.getElementById('eadi-audit-da-number');
+                if (daInput) daInput.value = order.eadi_da_number || '';
+
+                const stageAlert = document.getElementById('eadi-audit-stage-alert');
+                const stageName = document.getElementById('eadi-audit-current-stage-name');
+                if (stageAlert) {
+                    if (order.stage !== 'ENTREPOSTADO_EADI') {
+                        stageAlert.style.display = 'block';
+                        if (stageName) stageName.innerText = order.stage;
+                    } else {
+                        stageAlert.style.display = 'none';
+                    }
+                }
+            }
+
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            const items = order.items || [];
+
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-secondary); padding: 20px;">Nenhuma máquina vinculada a esta ordem.</td></tr>';
+                if (tfoot) tfoot.style.display = 'none';
+                return;
+            }
+
+            items.forEach(it => {
+                const admitted = it.qty_eadi_admitted > 0 ? it.qty_eadi_admitted : (it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered);
+                const cleared = it.qty_cleared || 0;
+                const sysBalance = it.qty_eadi_balance !== undefined ? it.qty_eadi_balance : Math.max(0, admitted - cleared);
+
+                const tr = document.createElement('tr');
+                tr.id = `eadi-audit-row-${it.id}`;
+                tr.style.borderBottom = '1px solid rgba(255,255,255,0.06)';
+
+                tr.innerHTML = `
+                    <td style="padding: 8px 6px; font-weight: bold; color: #38bdf8;">${it.sku}</td>
+                    <td style="padding: 8px 6px; color: #cbd5e1; font-size: 0.75rem; max-width: 200px;">${it.description || '-'}</td>
+                    <td style="padding: 8px 6px; text-align: center; color: #94a3b8;">${it.qty_ordered || 0}</td>
+                    <td style="padding: 8px 6px; text-align: center; color: #94a3b8;" id="eadi-audit-admitted-${it.id}">${admitted}</td>
+                    <td style="padding: 8px 6px; text-align: center; color: #10b981;">${cleared}</td>
+                    <td style="padding: 8px 6px; text-align: center; font-weight: bold; color: #f59e0b;" id="eadi-audit-sysbal-${it.id}">${sysBalance}</td>
+                    <td style="padding: 6px; text-align: center; background: rgba(74, 222, 128, 0.05);">
+                        <input type="number" min="0" value="${sysBalance}" 
+                               id="eadi-audit-input-${it.id}"
+                               data-item-id="${it.id}" 
+                               data-sys-balance="${sysBalance}"
+                               data-admitted="${admitted}"
+                               data-fob="${it.unit_price_fob || 0}"
+                               oninput="recalcAuditRow(${it.id})"
+                               class="form-control eadi-audit-qty-input" 
+                               style="width: 85px; text-align: center; padding: 6px; font-weight: 800; font-size: 0.95rem; margin: 0 auto; border-color: #4ade80; color: #4ade80; background: rgba(15,23,42,0.8);">
+                    </td>
+                    <td style="padding: 8px 6px; text-align: center; font-size: 0.72rem;" id="eadi-audit-delta-${it.id}">
+                        <span style="color: #94a3b8;">✓ Sem alteração</span>
+                    </td>
+                    <td style="padding: 8px 6px; text-align: center; white-space: nowrap;">
+                        <button type="button" class="btn btn-secondary" onclick="setAuditItemValue(${it.id}, 0)" style="padding: 2px 6px; font-size: 0.7rem; border-color: rgba(239, 68, 68, 0.4); color: #ef4444;" title="Zerar saldo (já retirado)">0</button>
+                        <button type="button" class="btn btn-secondary" onclick="setAuditItemValue(${it.id}, ${admitted})" style="padding: 2px 6px; font-size: 0.7rem;" title="Restaurar para quantidade admitida">Max</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (tfoot) tfoot.style.display = 'table-footer-group';
+            recalcAuditTotals();
+        }
+
+        function setAuditItemValue(itemId, val) {
+            const input = document.getElementById(`eadi-audit-input-${itemId}`);
+            if (input) {
+                input.value = Math.max(0, parseInt(val) || 0);
+                recalcAuditRow(itemId);
+            }
+        }
+
+        function recalcAuditRow(itemId) {
+            const input = document.getElementById(`eadi-audit-input-${itemId}`);
+            const deltaCell = document.getElementById(`eadi-audit-delta-${itemId}`);
+            if (!input || !deltaCell) return;
+
+            const sysBalance = parseInt(input.dataset.sysBalance) || 0;
+            const newVal = parseInt(input.value) >= 0 ? parseInt(input.value) : 0;
+            const diff = newVal - sysBalance;
+
+            if (diff < 0) {
+                deltaCell.innerHTML = `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 2px 6px; border-radius: 4px; font-weight: bold;">-${Math.abs(diff)} un. (Baixado)</span>`;
+            } else if (diff > 0) {
+                deltaCell.innerHTML = `<span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold;">+${diff} un. (Adicionar)</span>`;
+            } else {
+                deltaCell.innerHTML = `<span style="color: #94a3b8;">✓ Sem alteração</span>`;
+            }
+
+            recalcAuditTotals();
+        }
+
+        function recalcAuditTotals() {
+            const inputs = document.querySelectorAll('.eadi-audit-qty-input');
+            let totalBalance = 0;
+            let totalFob = 0;
+
+            inputs.forEach(inp => {
+                const val = parseInt(inp.value) >= 0 ? parseInt(inp.value) : 0;
+                const fob = parseFloat(inp.dataset.fob) || 0;
+                totalBalance += val;
+                totalFob += val * fob;
+            });
+
+            const balCell = document.getElementById('eadi-audit-total-balance-cell');
+            const fobCell = document.getElementById('eadi-audit-total-fob-cell');
+            if (balCell) balCell.innerText = totalBalance + ' un.';
+            if (fobCell) fobCell.innerText = '$ ' + totalFob.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+        }
+
+        function setAllAuditBalancesToZero() {
+            if (!confirm('Deseja zerar o saldo de TODAS as máquinas deste container?')) return;
+            const inputs = document.querySelectorAll('.eadi-audit-qty-input');
+            inputs.forEach(inp => {
+                inp.value = 0;
+                const itemId = parseInt(inp.dataset.itemId);
+                recalcAuditRow(itemId);
+            });
+        }
+
+        function resetAuditBalancesToAdmitted() {
+            const inputs = document.querySelectorAll('.eadi-audit-qty-input');
+            inputs.forEach(inp => {
+                const admitted = parseInt(inp.dataset.admitted) || 0;
+                inp.value = admitted;
+                const itemId = parseInt(inp.dataset.itemId);
+                recalcAuditRow(itemId);
+            });
+        }
+
+        function navigateAuditContainer(direction) {
+            const select = document.getElementById('eadi-audit-order-select');
+            if (!select || select.options.length <= 1) return;
+
+            let nextIdx = select.selectedIndex + direction;
+            if (nextIdx >= select.options.length) nextIdx = 0;
+            if (nextIdx < 0) nextIdx = select.options.length - 1;
+
+            select.selectedIndex = nextIdx;
+            onEadiAuditOrderChange();
+        }
+
+        async function submitEadiInventoryAudit(event) {
+            event.preventDefault();
+            const orderId = currentAuditOrderId;
+            if (!orderId) {
+                alert('Selecione um container.');
+                return;
+            }
+
+            const inputs = document.querySelectorAll('.eadi-audit-qty-input');
+            const items = [];
+            inputs.forEach(inp => {
+                items.push({
+                    order_item_id: parseInt(inp.dataset.itemId),
+                    new_balance: parseInt(inp.value) >= 0 ? parseInt(inp.value) : 0
+                });
+            });
+
+            const entryDate = document.getElementById('eadi-audit-entry-date')?.value;
+            const daNumber = (document.getElementById('eadi-audit-da-number')?.value || '').trim();
+            const moveToEadi = document.getElementById('eadi-audit-move-stage-check')?.checked || false;
+            const autoComplete = document.getElementById('eadi-audit-auto-complete')?.checked !== false;
+            const reason = (document.getElementById('eadi-audit-reason')?.value || '').trim();
+
+            const payload = {
+                items,
+                eadi_entry_date: entryDate,
+                eadi_da_number: daNumber,
+                move_to_eadi: moveToEadi,
+                auto_complete_if_zero: autoComplete,
+                reason: reason
+            };
+
+            const statusMsg = document.getElementById('eadi-audit-status-msg');
+            if (statusMsg) statusMsg.innerHTML = '<span style="color: #38bdf8;">⏳ Salvando ajuste de saldo...</span>';
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+
+                const res = await fetch('/api/supply-chain/orders/' + orderId + '/eadi-audit', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    if (statusMsg) statusMsg.innerHTML = '<span style="color: #4ade80; font-weight: bold;">✅ ' + (data.message || 'Saldo atualizado com sucesso!') + '</span>';
+                    await loadSupplyChainData();
+                    if (supplyChainState.activeSubTab === 'eadi') {
+                        loadEadiInventory();
+                    }
+                    renderEadiAuditOrderDropdown(orderId);
+                    alert('✅ Saldo do container atualizado com sucesso!\n' + (data.message || ''));
+                } else {
+                    if (statusMsg) statusMsg.innerHTML = '<span style="color: #ef4444;">❌ ' + (data.error || 'Erro ao salvar.') + '</span>';
+                    alert('Erro ao salvar ajuste: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                if (statusMsg) statusMsg.innerHTML = '<span style="color: #ef4444;">❌ Erro de conexão.</span>';
+                alert('Erro de conexão ao salvar ajuste de inventário.');
+            }
         }
 
     </script>
