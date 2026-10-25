@@ -6389,9 +6389,7 @@
                         </div>
                     </div>
 
-                    <!-- Abas internas dos Detalhes: Itens | Parcelas | Anexos -->
-                    <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
-                        <!-- Campos EADI & Regime Aduaneiro -->
+                    <!-- Campos EADI & Regime Aduaneiro -->
                     <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
                         <div style="font-size: 0.72rem; font-weight: 800; color: #f59e0b; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
                             <span>📦 Regime Aduaneiro & Entreposto (EADI Bauru)</span>
@@ -24920,6 +24918,7 @@
 
             // 1. Abre o modal imediatamente para resposta tátil instantânea
             modal.style.display = 'flex';
+            modal.classList.add('active');
 
             try {
                 const form = document.getElementById('eadi-clearance-form');
@@ -24959,7 +24958,10 @@
 
         function closeEadiClearanceModal() {
             const modal = document.getElementById('modal-eadi-clearance');
-            if (modal) modal.style.display = 'none';
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('active');
+            }
         }
 
         function openEadiClearanceModalForCurrentOrder() {
@@ -25192,6 +25194,7 @@
 
             // 1. Abrir imediatamente o modal para resposta tátil instantânea
             modal.style.display = 'flex';
+            modal.classList.add('active');
 
             try {
                 // Se as ordens ainda não foram carregadas na memória, carrega mantendo o modal visível
@@ -25209,7 +25212,10 @@
 
         function closeEadiInventoryAuditModal() {
             const modal = document.getElementById('modal-eadi-inventory-audit');
-            if (modal) modal.style.display = 'none';
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('active');
+            }
             currentAuditOrderId = null;
         }
 
