@@ -3560,10 +3560,14 @@
 
                     <!-- Column 6: Porto Seco (EADI Bauru) -->
                     <div class="sc-kanban-col" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(245, 158, 11, 0.3); border-top: 4px solid #f59e0b; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; min-height: 500px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <div style="font-size: 0.8rem; font-weight: 800; color: #f59e0b;">6. NO PORTO SECO (EADI BAURU)</div>
                             <span class="badge" id="sc-count-entrepostado-eadi" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px;">0</span>
                         </div>
+                        <button type="button" class="btn" onclick="openEadiSupplierBalancesModal()" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.08) 100%); border: 1px solid rgba(245, 158, 11, 0.6); color: #f59e0b; font-weight: 800; font-size: 0.74rem; padding: 6px 10px; border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15);" title="Ver Saldo Líquido em Dólar por Fornecedor Internacional">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            <span>📊 Saldo Líquido por Fornecedor (USD)</span>
+                        </button>
                         <div id="sc-cards-ENTREPOSTADO_EADI" class="sc-kanban-cards" style="display: flex; flex-direction: column; gap: 10px; flex: 1;"></div>
                     </div>
 
@@ -3614,6 +3618,10 @@
                             </p>
                         </div>
                         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button type="button" class="btn" onclick="openEadiSupplierBalancesModal()" style="background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); color: #0f172a; font-weight: 800; padding: 8px 16px; font-size: 0.8rem; border-radius: 6px; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                <span>📊 Saldo Líquido por Fornecedor (USD)</span>
+                            </button>
                             <button type="button" class="btn" onclick="loadEadiInventory()" style="background: rgba(255,255,255,0.08); color: white; padding: 8px 14px; font-size: 0.8rem; border-radius: 6px;">
                                 🔄 Atualizar Saldos
                             </button>
@@ -6911,6 +6919,83 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL RELATÓRIO FINANCEIRO: SALDO LÍQUIDO EM DÓLAR POR FORNECEDOR NO EADI -->
+    <div class="modal-overlay" id="modal-eadi-supplier-balances" style="z-index: 2200; display: none;">
+        <div class="modal" style="max-width: 1050px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(30, 41, 59, 0.95) 100%); border-bottom: 1px solid rgba(245, 158, 11, 0.3);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.6rem;">📊</span>
+                    <div>
+                        <h3 style="margin: 0; color: #f59e0b;">Saldo Líquido em Dólar por Fornecedor (EADI Bauru)</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #94a3b8;">Visão financeira consolidada de mercadorias no Porto Seco descontando baixas parciais de D.I.</p>
+                    </div>
+                </div>
+                <button class="btn-icon" onclick="closeEadiSupplierBalancesModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
+                <!-- KPIs de Topo -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 8px; padding: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                        <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Saldo Líquido Total no EADI</div>
+                        <div style="font-size: 1.7rem; font-weight: 800; color: #f59e0b; margin-top: 4px;" id="sc-supp-bal-kpi-net">$ 0.00</div>
+                        <div style="font-size: 0.7rem; color: #4ade80; margin-top: 2px;" id="sc-supp-bal-kpi-machines">0 máquinas retidas</div>
+                    </div>
+
+                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
+                        <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Valor Faturado Original (FOB)</div>
+                        <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;" id="sc-supp-bal-kpi-orig">$ 0.00</div>
+                        <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;" id="sc-supp-bal-kpi-suppliers">0 fornecedores internacionais</div>
+                    </div>
+
+                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
+                        <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Já Nacionalizado / Desembaraçado</div>
+                        <div style="font-size: 1.4rem; font-weight: 800; color: #38bdf8; margin-top: 4px;" id="sc-supp-bal-kpi-cleared">$ 0.00</div>
+                        <div style="font-size: 0.7rem; color: #38bdf8; margin-top: 2px;" id="sc-supp-bal-kpi-cleared-pct">0% do valor liberado</div>
+                    </div>
+                </div>
+
+                <!-- Tabela de Fornecedores -->
+                <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; margin-bottom: 16px;">
+                    <div style="overflow-x: auto;">
+                        <table class="table" style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: rgba(15, 23, 42, 0.85); color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left;">
+                                    <th style="padding: 10px 12px;">Fornecedor Internacional</th>
+                                    <th style="padding: 10px 8px; text-align: center;">Invoices no EADI</th>
+                                    <th style="padding: 10px 8px; text-align: center;">Máquinas no Armazém</th>
+                                    <th style="padding: 10px 10px; text-align: right;">Total Original (FOB)</th>
+                                    <th style="padding: 10px 10px; text-align: right; color: #38bdf8;">Já Nacionalizado</th>
+                                    <th style="padding: 10px 12px; text-align: right; color: #f59e0b; font-weight: 800; font-size: 0.9rem;">Saldo Líquido no EADI (USD)</th>
+                                    <th style="padding: 10px 10px; text-align: center; width: 90px;">Invoices</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sc-supp-bal-tbody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 30px;">
+                                        Carregando saldos por fornecedor...
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot id="sc-supp-bal-tfoot" style="background: rgba(15, 23, 42, 0.95); font-weight: 800; border-top: 2px solid rgba(245, 158, 11, 0.5);">
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-top: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.9);">
+                <button type="button" class="btn btn-secondary" onclick="printEadiSupplierBalancesReport()" style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    <span>Imprimir / Gerar PDF</span>
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeEadiSupplierBalancesModal()">Fechar</button>
             </div>
         </div>
     </div>
@@ -25949,6 +26034,216 @@
                 if (statusMsg) statusMsg.innerHTML = '<span style="color: #ef4444;">❌ Erro de conexão.</span>';
                 alert('Erro de conexão ao salvar ajuste de inventário.');
             }
+        }
+
+        // ==========================================
+        // MODAL SALDO LÍQUIDO POR FORNECEDOR NO EADI
+        // ==========================================
+
+        let eadiSupplierBalancesCache = null;
+
+        async function openEadiSupplierBalancesModal() {
+            const modal = document.getElementById('modal-eadi-supplier-balances');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            modal.classList.add('active');
+
+            const tbody = document.getElementById('sc-supp-bal-tbody');
+            const tfoot = document.getElementById('sc-supp-bal-tfoot');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 30px;">Carregando saldo consolidado por fornecedor...</td></tr>';
+            }
+            if (tfoot) tfoot.innerHTML = '';
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch('/api/supply-chain/eadi/supplier-balances', { headers });
+                if (!res.ok) throw new Error('Falha ao carregar saldos por fornecedor');
+
+                const data = await res.json();
+                eadiSupplierBalancesCache = data;
+                renderEadiSupplierBalancesModal(data);
+            } catch (err) {
+                console.error('[ERRO SALDO POR FORNECEDOR]', err);
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #ef4444; padding: 25px;">Erro ao carregar dados: ${err.message}</td></tr>`;
+                }
+            }
+        }
+
+        function closeEadiSupplierBalancesModal() {
+            const modal = document.getElementById('modal-eadi-supplier-balances');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('active');
+            }
+        }
+
+        function renderEadiSupplierBalancesModal(data) {
+            const suppliers = data.suppliers || [];
+            const totals = data.grandTotals || {};
+
+            // Atualizar KPIs de Topo
+            const kpiNet = document.getElementById('sc-supp-bal-kpi-net');
+            const kpiMachines = document.getElementById('sc-supp-bal-kpi-machines');
+            const kpiOrig = document.getElementById('sc-supp-bal-kpi-orig');
+            const kpiSuppliers = document.getElementById('sc-supp-bal-kpi-suppliers');
+            const kpiCleared = document.getElementById('sc-supp-bal-kpi-cleared');
+            const kpiClearedPct = document.getElementById('sc-supp-bal-kpi-cleared-pct');
+
+            if (kpiNet) kpiNet.innerText = '$ ' + (totals.total_net_balance_fob || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' USD';
+            if (kpiMachines) kpiMachines.innerText = `${totals.total_machines_balance || 0} máquinas retidas no EADI`;
+            if (kpiOrig) kpiOrig.innerText = '$ ' + (totals.total_fob_admitted || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            if (kpiSuppliers) kpiSuppliers.innerText = `${totals.total_suppliers || 0} fornecedor(es) com carga ativa`;
+            if (kpiCleared) kpiCleared.innerText = '$ ' + (totals.total_fob_cleared || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            const pctCleared = (totals.total_fob_admitted > 0) ? Math.round(((totals.total_fob_cleared || 0) / totals.total_fob_admitted) * 100) : 0;
+            if (kpiClearedPct) kpiClearedPct.innerText = `${pctCleared}% do valor total já nacionalizado`;
+
+            const tbody = document.getElementById('sc-supp-bal-tbody');
+            const tfoot = document.getElementById('sc-supp-bal-tfoot');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (suppliers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 30px;">Nenhum fornecedor com carga no Entreposto (EADI) no momento.</td></tr>';
+                return;
+            }
+
+            suppliers.forEach((s, idx) => {
+                const tr = document.createElement('tr');
+                tr.style.cssText = 'border-bottom: 1px solid rgba(255,255,255,0.06); transition: background 0.15s;';
+                tr.onmouseenter = () => tr.style.background = 'rgba(245, 158, 11, 0.05)';
+                tr.onmouseleave = () => tr.style.background = '';
+
+                const invoicesBadge = s.invoicesCount === 1 ? '1 invoice' : `${s.invoicesCount} invoices`;
+
+                tr.innerHTML = `
+                    <td style="padding: 12px; font-weight: 800; color: #f8fafc;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.1rem;">🏭</span>
+                            <div>
+                                <div style="font-size: 0.9rem; color: #f8fafc;">${s.supplier_name}</div>
+                                <div style="font-size: 0.7rem; color: #94a3b8; font-weight: normal;">Origem: China • Moeda: ${s.currency}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="padding: 12px 8px; text-align: center;">
+                        <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 0.75rem;">
+                            ${invoicesBadge}
+                        </span>
+                    </td>
+                    <td style="padding: 12px 8px; text-align: center; font-weight: 700; color: #cbd5e1; font-size: 0.85rem;">
+                        ${s.total_machines_balance} un.
+                    </td>
+                    <td style="padding: 12px 10px; text-align: right; color: #94a3b8;">
+                        $ ${(s.total_fob_admitted || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td style="padding: 12px 10px; text-align: right; color: #38bdf8;">
+                        $ ${(s.total_fob_cleared || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td style="padding: 12px; text-align: right;">
+                        <span style="color: #f59e0b; font-weight: 800; font-size: 1.05rem; background: rgba(245, 158, 11, 0.1); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(245, 158, 11, 0.3);">
+                            $ ${(s.net_balance_fob || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                    </td>
+                    <td style="padding: 12px 10px; text-align: center;">
+                        <button type="button" class="btn btn-secondary" onclick="toggleSupplierInvoices(${idx})" id="sc-supp-toggle-btn-${idx}" style="padding: 4px 10px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                            <span>👁️ Ver</span>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+
+                // Sub-row expansível para detalhar invoices
+                const subTr = document.createElement('tr');
+                subTr.id = `sc-supp-inv-row-${idx}`;
+                subTr.style.display = 'none';
+                subTr.style.background = 'rgba(15, 23, 42, 0.75)';
+
+                let subHtml = `
+                    <td colspan="7" style="padding: 12px 16px; border-bottom: 2px solid rgba(245, 158, 11, 0.3);">
+                        <div style="font-size: 0.74rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px;">
+                            Invoices no EADI de ${s.supplier_name}:
+                        </div>
+                        <table style="width: 100%; font-size: 0.76rem; border-collapse: collapse; background: rgba(0,0,0,0.25); border-radius: 6px; overflow: hidden;">
+                            <thead>
+                                <tr style="background: rgba(0,0,0,0.4); color: #94a3b8; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06);">
+                                    <th style="padding: 6px 10px;">Invoice / Proforma</th>
+                                    <th style="padding: 6px 10px;">Número da PO</th>
+                                    <th style="padding: 6px 10px;">Container</th>
+                                    <th style="padding: 6px 10px; text-align: center;">Máquinas Restantes</th>
+                                    <th style="padding: 6px 10px; text-align: right;">Total Fatura (FOB)</th>
+                                    <th style="padding: 6px 10px; text-align: right;">Já Baixado</th>
+                                    <th style="padding: 6px 10px; text-align: right; color: #f59e0b; font-weight: bold;">Saldo Líquido no EADI</th>
+                                    <th style="padding: 6px 10px; text-align: center;">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                (s.invoicesList || []).forEach(inv => {
+                    subHtml += `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+                            <td style="padding: 6px 10px; font-weight: bold; color: #38bdf8;">${inv.invoice_number || 'S/N'}</td>
+                            <td style="padding: 6px 10px; color: #f8fafc;">${inv.po_number}</td>
+                            <td style="padding: 6px 10px; color: #cbd5e1;">${inv.container_id || 'S/N'}</td>
+                            <td style="padding: 6px 10px; text-align: center; font-weight: bold; color: #f59e0b;">${inv.machines_balance} un.</td>
+                            <td style="padding: 6px 10px; text-align: right; color: #94a3b8;">$ ${(inv.fob_admitted || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                            <td style="padding: 6px 10px; text-align: right; color: #cbd5e1;">$ ${(inv.fob_cleared || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                            <td style="padding: 6px 10px; text-align: right; font-weight: 800; color: #4ade80;">$ ${(inv.net_balance_fob || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                            <td style="padding: 6px 10px; text-align: center;">
+                                <button type="button" class="btn btn-secondary" onclick="closeEadiSupplierBalancesModal(); openSupplyDetailsModal(${inv.order_id})" style="padding: 2px 8px; font-size: 0.68rem;">
+                                    Detalhes
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                subHtml += `
+                            </tbody>
+                        </table>
+                    </td>
+                `;
+
+                subTr.innerHTML = subHtml;
+                tbody.appendChild(subTr);
+            });
+
+            // Linha de Rodapé / Total Geral
+            if (tfoot) {
+                tfoot.innerHTML = `
+                    <tr style="color: #f8fafc; font-size: 0.88rem;">
+                        <td style="padding: 14px 12px;">TOTAL GERAL CONSOLIDADO</td>
+                        <td style="padding: 14px 8px; text-align: center;">${totals.total_invoices || 0} inv.</td>
+                        <td style="padding: 14px 8px; text-align: center; color: #f59e0b;">${totals.total_machines_balance || 0} un.</td>
+                        <td style="padding: 14px 10px; text-align: right;">$ ${(totals.total_fob_admitted || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td style="padding: 14px 10px; text-align: right; color: #38bdf8;">$ ${(totals.total_fob_cleared || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td style="padding: 14px 12px; text-align: right; font-size: 1.15rem; color: #10b981; font-weight: 900;">
+                            $ ${(totals.total_net_balance_fob || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                        </td>
+                        <td></td>
+                    </tr>
+                `;
+            }
+        }
+
+        function toggleSupplierInvoices(idx) {
+            const subRow = document.getElementById(`sc-supp-inv-row-${idx}`);
+            const btn = document.getElementById(`sc-supp-toggle-btn-${idx}`);
+            if (!subRow) return;
+            const isVisible = subRow.style.display !== 'none';
+            subRow.style.display = isVisible ? 'none' : 'table-row';
+            if (btn) {
+                btn.innerHTML = isVisible ? '<span>👁️ Ver</span>' : '<span>▲ Ocultar</span>';
+            }
+        }
+
+        function printEadiSupplierBalancesReport() {
+            window.print();
         }
 
     </script>

@@ -9682,6 +9682,144 @@ app.get('/api/supply-chain/eadi/inventory', authenticateToken, restrictToSupplyC
     }
 });
 
+// GET /api/supply-chain/eadi/supplier-balances - Saldo líquido consolidado por Fornecedor Internacional no EADI
+app.get('/api/supply-chain/eadi/supplier-balances', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    try {
+        const rows = await dbAll(`
+            SELECT 
+                soi.id as order_item_id,
+                soi.order_id,
+                soi.sku,
+                soi.description,
+                soi.qty_ordered,
+                soi.qty_shipped,
+                soi.qty_eadi_admitted,
+                soi.unit_price_fob,
+                so.po_number,
+                so.supplier_id,
+                so.supplier_name,
+                so.invoice_number,
+                so.container_id,
+                so.eadi_entry_date,
+                so.stage,
+                so.currency
+            FROM stock_order_items soi
+            JOIN stock_orders so ON soi.order_id = so.id
+            WHERE so.stage = 'ENTREPOSTADO_EADI' OR so.customs_regime = 'EADI_BAURU'
+            ORDER BY so.supplier_name ASC, so.invoice_number ASC
+        `);
+
+        const clearances = await dbAll(`
+            SELECT ci.order_item_id, SUM(ci.qty_cleared) as total_cleared
+            FROM stock_eadi_clearance_items ci
+            GROUP BY ci.order_item_id
+        `);
+        const clearedMap = {};
+        clearances.forEach(c => clearedMap[c.order_item_id] = c.total_cleared || 0);
+
+        const supplierMap = {};
+
+        for (const r of rows) {
+            const admitted = r.qty_eadi_admitted > 0 ? r.qty_eadi_admitted : (r.qty_shipped > 0 ? r.qty_shipped : r.qty_ordered);
+            const cleared = clearedMap[r.order_item_id] || 0;
+            const balance = Math.max(0, admitted - cleared);
+            const unitFob = parseFloat(r.unit_price_fob) || 0;
+            const itemFobAdmitted = admitted * unitFob;
+            const itemFobCleared = cleared * unitFob;
+            const itemFobBalance = balance * unitFob;
+
+            const suppKey = r.supplier_name || 'Fornecedor Não Identificado';
+            if (!supplierMap[suppKey]) {
+                supplierMap[suppKey] = {
+                    supplier_id: r.supplier_id,
+                    supplier_name: suppKey,
+                    currency: r.currency || 'USD',
+                    total_machines_admitted: 0,
+                    total_machines_cleared: 0,
+                    total_machines_balance: 0,
+                    total_fob_admitted: 0,
+                    total_fob_cleared: 0,
+                    net_balance_fob: 0,
+                    invoices: {}
+                };
+            }
+
+            const supp = supplierMap[suppKey];
+            supp.total_machines_admitted += admitted;
+            supp.total_machines_cleared += cleared;
+            supp.total_machines_balance += balance;
+            supp.total_fob_admitted += itemFobAdmitted;
+            supp.total_fob_cleared += itemFobCleared;
+            supp.net_balance_fob += itemFobBalance;
+
+            const invKey = r.invoice_number || r.po_number || `ORD-${r.order_id}`;
+            if (!supp.invoices[invKey]) {
+                supp.invoices[invKey] = {
+                    order_id: r.order_id,
+                    po_number: r.po_number,
+                    invoice_number: r.invoice_number,
+                    container_id: r.container_id,
+                    eadi_entry_date: r.eadi_entry_date,
+                    machines_admitted: 0,
+                    machines_cleared: 0,
+                    machines_balance: 0,
+                    fob_admitted: 0,
+                    fob_cleared: 0,
+                    net_balance_fob: 0,
+                    items: []
+                };
+            }
+
+            const inv = supp.invoices[invKey];
+            inv.machines_admitted += admitted;
+            inv.machines_cleared += cleared;
+            inv.machines_balance += balance;
+            inv.fob_admitted += itemFobAdmitted;
+            inv.fob_cleared += itemFobCleared;
+            inv.net_balance_fob += itemFobBalance;
+
+            if (balance > 0) {
+                inv.items.push({
+                    sku: r.sku,
+                    description: r.description,
+                    admitted,
+                    cleared,
+                    balance,
+                    unit_price_fob: unitFob,
+                    net_fob: itemFobBalance
+                });
+            }
+        }
+
+        // Converter invoices object para array ordenado
+        const suppliersList = Object.values(supplierMap).map(s => {
+            s.invoicesList = Object.values(s.invoices);
+            s.invoicesCount = s.invoicesList.length;
+            return s;
+        });
+
+        // Ordenar por maior saldo líquido
+        suppliersList.sort((a, b) => b.net_balance_fob - a.net_balance_fob);
+
+        const grandTotals = {
+            total_suppliers: suppliersList.length,
+            total_invoices: suppliersList.reduce((sum, s) => sum + s.invoicesCount, 0),
+            total_machines_balance: suppliersList.reduce((sum, s) => sum + s.total_machines_balance, 0),
+            total_fob_admitted: suppliersList.reduce((sum, s) => sum + s.total_fob_admitted, 0),
+            total_fob_cleared: suppliersList.reduce((sum, s) => sum + s.total_fob_cleared, 0),
+            total_net_balance_fob: suppliersList.reduce((sum, s) => sum + s.net_balance_fob, 0)
+        };
+
+        res.json({
+            suppliers: suppliersList,
+            grandTotals
+        });
+    } catch (err) {
+        console.error('[SUPPLIER BALANCES ERROR]', err);
+        res.status(500).json({ error: 'Erro ao calcular saldos por fornecedor: ' + err.message });
+    }
+});
+
 // GET /api/supply-chain/projects-lookup - Lista rápida de projetos ativos para vinculação
 app.get('/api/supply-chain/projects-lookup', authenticateToken, restrictToSupplyChain, async (req, res) => {
     try {
