@@ -926,10 +926,45 @@ function seedDefaultStockSuppliers() {
         });
     });
 
+    setTimeout(autoFixBrotherMachineryOrders, 3000);
     setTimeout(autoFixInvoiceBIT26_0404W, 4000);
     setTimeout(autoFixInvoiceBIT26_0606W, 6000);
     setTimeout(autoFixInvoiceBIT26_0616W, 8000);
     setTimeout(autoFixInvoiceHL26CP009098, 10000);
+}
+
+// Rotina de auditoria para vincular as 4 invoices a Brother Machinery Group Co., Ltd.
+async function autoFixBrotherMachineryOrders() {
+    try {
+        const brother = await dbGet("SELECT id, name FROM stock_suppliers WHERE LOWER(name) LIKE '%brother%' LIMIT 1");
+        if (!brother) {
+            console.warn('[SUPPLY CHAIN AUTO-FIX] Fornecedor Brother Machinery não encontrado no cadastro.');
+            return;
+        }
+
+        const targetInvoices = ['0626W', '260808W2', '0808W3', '0808W4'];
+        for (const token of targetInvoices) {
+            const orders = await dbAll(`
+                SELECT id, po_number, invoice_number, supplier_name 
+                FROM stock_orders 
+                WHERE invoice_number LIKE ? OR po_number LIKE ?
+            `, [`%${token}%`, `%${token}%`]);
+
+            for (const order of orders) {
+                if (order.supplier_name !== brother.name || order.supplier_id !== brother.id) {
+                    console.log(`[SUPPLY CHAIN AUTO-FIX] Atualizando ordem #${order.id} (${order.po_number} / ${order.invoice_number}) para fornecedor "${brother.name}"...`);
+                    await dbRun(`
+                        UPDATE stock_orders 
+                        SET supplier_id = ?, supplier_name = ?, updated_at = ?
+                        WHERE id = ?
+                    `, [brother.id, brother.name, new Date().toISOString(), order.id]);
+                }
+            }
+        }
+        console.log('[SUPPLY CHAIN AUTO-FIX] Invoices da Brother Machinery Group verificadas e atualizadas com sucesso.');
+    } catch (err) {
+        console.error('[SUPPLY CHAIN AUTO-FIX BROTHER ERROR]', err.message);
+    }
 }
 
 // Rotina de auditoria e correção automática da ordem BIT26-0404W (40 itens)

@@ -6383,6 +6383,25 @@
 
                 <!-- Formulário de Campos Logísticos -->
                 <form id="sc-details-form" onsubmit="saveSupplyOrderDetails(event)">
+                    <!-- Fornecedor Internacional & Fatura Comercial -->
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                        <div style="font-size: 0.75rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px;">
+                            Origem & Fabricante Internacional
+                        </div>
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: #f59e0b;">Fornecedor Internacional (Fabricante) *</label>
+                                <select id="sc-det-supplier-select" class="form-control" style="padding: 8px; font-size: 0.85rem; font-weight: bold; border-color: rgba(245, 158, 11, 0.4);">
+                                    <option value="">-- Selecione o Fornecedor --</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Número da Invoice</label>
+                                <input type="text" id="sc-det-invoice-number" class="form-control" style="padding: 8px; font-size: 0.82rem;">
+                            </div>
+                        </div>
+                    </div>
+
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
                         <div class="form-group">
                             <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Identificação do Container</label>
@@ -24108,6 +24127,25 @@
                 setVal('sc-det-eadi-entry-date', order.eadi_entry_date);
                 setVal('sc-det-eadi-da-number', order.eadi_da_number);
 
+                // Preencher fornecedor no select de detalhes
+                const suppSelect = document.getElementById('sc-det-supplier-select');
+                if (suppSelect) {
+                    suppSelect.innerHTML = '<option value="">-- Selecione o Fornecedor --</option>';
+                    (supplyChainState.suppliers || []).forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.innerText = s.name;
+                        suppSelect.appendChild(opt);
+                    });
+                    if (order.supplier_id) {
+                        suppSelect.value = order.supplier_id;
+                    } else if (order.supplier_name) {
+                        const found = (supplyChainState.suppliers || []).find(s => s.name.toLowerCase() === order.supplier_name.toLowerCase());
+                        if (found) suppSelect.value = found.id;
+                    }
+                }
+                setVal('sc-det-invoice-number', order.invoice_number);
+
                 const balanceBadge = document.getElementById('sc-det-eadi-balance-badge');
                 const auditBtn = document.getElementById('sc-det-eadi-audit-btn');
                 const isEadiActive = order.stage === 'ENTREPOSTADO_EADI' || (order.eadi_balance !== undefined && order.eadi_balance > 0);
@@ -24282,6 +24320,16 @@
                 eadi_entry_date: document.getElementById('sc-det-eadi-entry-date')?.value || null,
                 eadi_da_number: document.getElementById('sc-det-eadi-da-number')?.value.trim() || null
             };
+
+            const suppSelect = document.getElementById('sc-det-supplier-select');
+            if (suppSelect && suppSelect.value) {
+                payload.supplier_id = parseInt(suppSelect.value);
+                payload.supplier_name = suppSelect.options[suppSelect.selectedIndex]?.text;
+            }
+            const invInput = document.getElementById('sc-det-invoice-number');
+            if (invInput) {
+                payload.invoice_number = invInput.value.trim();
+            }
 
             try {
                 const token = localStorage.getItem('tecfag_session_token');
