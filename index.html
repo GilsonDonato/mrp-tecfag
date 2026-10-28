@@ -23804,6 +23804,9 @@
                             </button>
                         ` : ''}
                         ${stage === 'ENTREPOSTADO_EADI' ? `
+                            <button type="button" class="btn" onclick="event.stopPropagation(); openEadiContainerExportModal(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: rgba(14, 165, 233, 0.2); border: 1px solid #38bdf8; color: #38bdf8;" title="Exportar Planilha de Desembaraço deste Container">
+                                📑 Planilha
+                            </button>
                             <button type="button" class="btn" onclick="event.stopPropagation(); openEadiInventoryAuditModal(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8;" title="Inventário / Ajustar Saldo Físico">
                                 📝 Saldo
                             </button>
@@ -26691,6 +26694,52 @@
                     }
                 } catch (e) {
                     console.warn('[EADI EXPORT] Servidor indisponível ou offline:', e);
+                }
+
+                // Fallback para ler de supplyChainState.orders se já carregados no Kanban
+                if (!loaded && typeof supplyChainState !== 'undefined' && Array.isArray(supplyChainState.orders) && supplyChainState.orders.length > 0) {
+                    const eadiOrders = supplyChainState.orders.filter(o => 
+                        o.stage === 'ENTREPOSTADO_EADI' || 
+                        o.customs_regime === 'EADI_BAURU' || 
+                        (o.eadi_balance && o.eadi_balance > 0)
+                    );
+                    if (eadiOrders.length > 0) {
+                        eadiExportContainers = eadiOrders.map(o => {
+                            let totalUnits = 0;
+                            const items = (o.items || []).map(it => {
+                                const admitted = it.qty_eadi_admitted > 0 ? it.qty_eadi_admitted : (it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered);
+                                const cleared = it.qty_cleared || 0;
+                                const balance = Math.max(0, admitted - cleared);
+                                totalUnits += balance;
+                                return {
+                                    id: it.id,
+                                    order_id: o.id,
+                                    sku: it.sku,
+                                    description: it.description || '',
+                                    ncm: it.ncm || '',
+                                    qty_admitted: admitted,
+                                    qty_cleared: cleared,
+                                    qty_balance: balance,
+                                    unit_price_fob: it.unit_price_fob || 0
+                                };
+                            });
+                            return {
+                                id: o.id,
+                                po_number: o.po_number,
+                                container_id: o.container_id,
+                                supplier_name: o.supplier_name,
+                                invoice_number: o.invoice_number,
+                                eadi_da_number: o.eadi_da_number,
+                                dta_number: o.dta_number || '-',
+                                bl_number: o.bl_number || '-',
+                                eadi_entry_date: o.eadi_entry_date,
+                                currency: o.currency || 'USD',
+                                total_balance_units: totalUnits,
+                                items: items
+                            };
+                        });
+                        loaded = true;
+                    }
                 }
 
                 if (!loaded && typeof eadiInventoryData !== 'undefined' && eadiInventoryData.length > 0) {
