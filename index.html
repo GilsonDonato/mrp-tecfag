@@ -24064,6 +24064,9 @@ function renderKanban() {
                         <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openSupplyDetailsModal(${order.id})" style="flex: 1; padding: 5px; font-size: 0.72rem; font-weight: 600;">
                             🔍 Detalhes
                         </button>
+                        <button type="button" class="btn" onclick="event.stopPropagation(); quickDeleteSupplyOrder(${order.id}, '${order.po_number}')" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171;" title="Excluir Ordem / Cancelar Card">
+                            🗑️
+                        </button>
                         ${stage === 'PO_EMITIDA' || stage === 'EM_FABRICACAO' ? `
                             <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openReconcileModal(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; border-color: rgba(236, 72, 153, 0.4); color: #ec4899;" title="Conferir Carga / Packing List">
                                 📦 Carga
@@ -24912,6 +24915,34 @@ function renderKanban() {
             if (!supplyChainState.currentOrder) return;
             await quickAdvanceOrderStage(supplyChainState.currentOrder.id);
             await openSupplyDetailsModal(supplyChainState.currentOrder.id);
+        }
+
+        async function quickDeleteSupplyOrder(orderId, poNumber) {
+            if (!confirm("Deseja realmente excluir a ordem " + poNumber + "? Esta ação removerá o card da importação e não será recriada automaticamente.")) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': "Bearer " + token } : {};
+
+                const res = await fetch("/api/supply-chain/orders/" + orderId, {
+                    method: 'DELETE',
+                    headers
+                });
+
+                if (res.ok) {
+                    await loadSupplyChainData();
+                    if (typeof loadProjects === 'function') await loadProjects();
+                    alert("✅ Ordem " + poNumber + " excluída com sucesso!");
+                } else {
+                    const data = await res.json();
+                    alert('Erro ao excluir: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao excluir a ordem.');
+            }
         }
 
         async function deleteCurrentSupplyOrder() {

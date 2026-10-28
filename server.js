@@ -609,6 +609,13 @@ async function syncImportProjectsToStockOrders() {
             else if (p.code === 'PRJTEC000000036') poNumber = 'PO-PRJ36';
             else if (p.code === 'PRJTEC000000026') poNumber = 'PO-PRJ26';
 
+            let chk = {};
+            try { chk = p.checklist ? JSON.parse(p.checklist) : {}; } catch(e){}
+            if (chk.import_order_deleted || chk.import_order_unlinked) {
+                // Usuário já excluiu ou desvinculou essa ordem manualmente. Não recriar.
+                continue;
+            }
+
             const existing = await dbGet("SELECT id FROM stock_orders WHERE project_code = ? OR po_number = ?", [p.code, poNumber]);
             if (!existing) {
                 let stage = 'PO_EMITIDA';
@@ -10405,6 +10412,27 @@ app.delete('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyCh
             return res.status(404).json({ error: 'Ordem não encontrada.' });
         }
 
+        // Se a ordem estiver vinculada a um projeto, marcar no checklist do projeto para não recriar na rotina de sync
+        if (order.project_code) {
+            const project = await dbGet('SELECT checklist FROM projects WHERE code = ?', [order.project_code]);
+            if (project) {
+                let chk = {};
+                try { chk = project.checklist ? JSON.parse(project.checklist) : {}; } catch(e){}
+                chk.import_order_deleted = true;
+                chk.import_order_unlinked = true;
+                await dbRun('UPDATE projects SET checklist = ?, lastUpdate = ? WHERE code = ?', [
+                    JSON.stringify(chk),
+                    new Date().toISOString(),
+                    order.project_code
+                ]);
+            }
+            await recordAuditLog(order.project_code, user, "Ordem de importação " + order.po_number + " foi excluída/desvinculada pelo usuário " + user + ".");
+        }
+
+        // Excluir dependências em cascata
+        await dbRun('DELETE FROM stock_order_items WHERE order_id = ?', [orderId]);
+        await dbRun('DELETE FROM stock_order_payments WHERE order_id = ?', [orderId]);
+        await dbRun('DELETE FROM stock_eadi_clearances WHERE order_id = ?', [orderId]);
         await dbRun('DELETE FROM stock_orders WHERE id = ?', [orderId]);
 
         await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
