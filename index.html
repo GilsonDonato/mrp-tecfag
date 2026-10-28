@@ -3596,7 +3596,11 @@
                             <div style="font-size: 0.8rem; font-weight: 800; color: #f59e0b;">6. NO PORTO SECO (EADI BAURU)</div>
                             <span class="badge" id="sc-count-entrepostado-eadi" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px;">0</span>
                         </div>
-                        <button type="button" class="btn" onclick="openEadiSupplierBalancesModal()" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.08) 100%); border: 1px solid rgba(245, 158, 11, 0.6); color: #f59e0b; font-weight: 800; font-size: 0.74rem; padding: 6px 10px; border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15);" title="Ver Saldo Líquido em Dólar por Fornecedor Internacional">
+                        <button type="button" class="btn" onclick="openEadiContainerExportModal()" style="background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%); color: white; font-weight: 800; padding: 8px 16px; font-size: 0.8rem; border-radius: 6px; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                <span>📑 Exportar Planilha por Container</span>
+                            </button>
+                            <button type="button" class="btn" onclick="openEadiSupplierBalancesModal()" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.08) 100%); border: 1px solid rgba(245, 158, 11, 0.6); color: #f59e0b; font-weight: 800; font-size: 0.74rem; padding: 6px 10px; border-radius: 6px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15);" title="Ver Saldo Líquido em Dólar por Fornecedor Internacional">
                             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                             <span>📊 Saldo Líquido por Fornecedor (USD)</span>
                         </button>
@@ -7234,6 +7238,164 @@
                         </div>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- 6. MODAL EXPORTAR PLANILHA DE NACIONALIZAÇÃO FRACIONADA POR CONTAINER (DESPACHANTE) -->
+    <div class="modal-overlay" id="modal-eadi-container-export" style="z-index: 2250; display: none;">
+        <div class="modal" style="max-width: 960px; width: 95%; max-height: 92vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(30, 41, 59, 0.95) 100%); border-bottom: 1px solid rgba(14, 165, 233, 0.3);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5rem;">📑</span>
+                    <div>
+                        <h3 style="margin: 0; color: #38bdf8;">Instrução de Nacionalização Fracionada (Despachante)</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #94a3b8;">
+                            Selecione <strong>1 container</strong>, marque os produtos e quantidades a retirar e exporte a planilha oficial pronta para o despachante aduaneiro.
+                        </p>
+                    </div>
+                </div>
+                <button class="btn-icon" onclick="closeEadiContainerExportModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
+                <!-- Alerta de Regra Fiscal / Aduaneira -->
+                <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 0.78rem; color: #bae6fd; display: flex; align-items: flex-start; gap: 10px;">
+                    <span style="font-size: 1.2rem; line-height: 1;">⚖️</span>
+                    <div>
+                        <strong style="color: #38bdf8;">Regra Aduaneira do Entreposto (IN RFB 241/2002):</strong>
+                        Cada Declaração de Importação (D.I.) fracionada vincula-se exclusivamente a <strong>um único container / DTA</strong> admitido no Porto Seco EADI. Esta ferramenta garante a integridade fiscal isolando os itens do container escolhido.
+                    </div>
+                </div>
+
+                <!-- Passo 1: Escolha do Container -->
+                <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                    <label style="font-size: 0.8rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                        <span>1. Selecionar Container no EADI Bauru *</span>
+                    </label>
+                    <select id="eadi-exp-order-select" onchange="onEadiExportOrderChange()" class="form-control" style="padding: 10px; font-size: 0.88rem; font-weight: bold; border-color: rgba(56, 189, 248, 0.5);">
+                        <option value="">-- Carregando containers com saldo... --</option>
+                    </select>
+
+                    <!-- Detalhes Aduaneiros do Container Selecionado -->
+                    <div id="eadi-exp-container-card" style="display: none; margin-top: 12px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 12px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 0.78rem;">
+                            <div>
+                                <span style="color: #94a3b8;">Container:</span>
+                                <div style="font-weight: 800; color: #f8fafc;" id="eadi-exp-card-container">-</div>
+                            </div>
+                            <div>
+                                <span style="color: #94a3b8;">Ordem / PO:</span>
+                                <div style="font-weight: 700; color: #38bdf8;" id="eadi-exp-card-po">-</div>
+                            </div>
+                            <div>
+                                <span style="color: #94a3b8;">Invoice Internacional:</span>
+                                <div style="font-weight: 700; color: #cbd5e1;" id="eadi-exp-card-invoice">-</div>
+                            </div>
+                            <div>
+                                <span style="color: #94a3b8;">Fornecedor:</span>
+                                <div style="font-weight: 700; color: #f59e0b;" id="eadi-exp-card-supplier">-</div>
+                            </div>
+                            <div>
+                                <span style="color: #94a3b8;">D.A. (Admissão EADI):</span>
+                                <div style="font-weight: 800; color: #4ade80;" id="eadi-exp-card-da">-</div>
+                            </div>
+                            <div>
+                                <span style="color: #94a3b8;">DTA / B/L:</span>
+                                <div style="font-weight: 600; color: #cbd5e1;" id="eadi-exp-card-dta">-</div>
+                            </div>
+                            <div>
+                                <span style="color: #94a3b8;">Entrada no EADI:</span>
+                                <div style="font-weight: 600; color: #cbd5e1;" id="eadi-exp-card-entry">-</div>
+                            </div>
+                            <div>
+                                <span style="color: #94a3b8;">Saldo Total no Container:</span>
+                                <div style="font-weight: 800; color: #f59e0b;" id="eadi-exp-card-balance">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Passo 2: Seleção dos Produtos e Quantidades -->
+                <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                        <div>
+                            <div style="font-size: 0.8rem; font-weight: 800; color: #4ade80; text-transform: uppercase;">
+                                2. Escolha os Produtos e Quantidades a Nacionalizar
+                            </div>
+                            <span style="font-size: 0.7rem; color: var(--text-secondary);">Marque as caixas de seleção e informe as unidades que farão parte desta D.I. fracionada.</span>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" class="btn btn-secondary" onclick="setAllEadiExportMaxQty()" style="padding: 4px 10px; font-size: 0.72rem; border-color: rgba(74, 222, 128, 0.4); color: #4ade80;" title="Preenche a quantidade máxima disponível para todos os itens">
+                                ⚡ Saldo Máximo (Todos)
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="clearAllEadiExportSelections()" style="padding: 4px 10px; font-size: 0.72rem; border-color: rgba(239, 68, 68, 0.4); color: #ef4444;" title="Desmarca todos os itens">
+                                🧹 Limpar Seleções
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table class="table" style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+                            <thead>
+                                <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left;">
+                                    <th style="padding: 8px 6px; text-align: center; width: 40px;">
+                                        <input type="checkbox" id="eadi-exp-check-all" onchange="toggleEadiExportSelectAll(this)" title="Selecionar Todos">
+                                    </th>
+                                    <th style="padding: 8px 6px;">Modelo / SKU</th>
+                                    <th style="padding: 8px 6px;">Descrição Comercial</th>
+                                    <th style="padding: 8px 6px; width: 130px;">NCM</th>
+                                    <th style="padding: 8px 6px; text-align: center; width: 90px; color: #f59e0b;">Saldo EADI</th>
+                                    <th style="padding: 8px 6px; text-align: center; width: 140px; color: #4ade80; font-weight: 800; background: rgba(74, 222, 128, 0.08);">QTD RETIRAR *</th>
+                                    <th style="padding: 8px 6px; text-align: right; width: 100px;">Unit. FOB</th>
+                                    <th style="padding: 8px 6px; text-align: right; width: 110px;">Total FOB</th>
+                                </tr>
+                            </thead>
+                            <tbody id="eadi-exp-items-tbody">
+                                <tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 25px;">Selecione um container acima para listar os produtos disponíveis.</td></tr>
+                            </tbody>
+                            <tfoot id="eadi-exp-items-tfoot" style="border-top: 1px solid var(--border-color); font-weight: bold; display: none;">
+                                <tr style="background: rgba(15, 23, 42, 0.8);">
+                                    <td colspan="5" style="padding: 10px 8px; text-align: right; color: #cbd5e1;">TOTAL SELECIONADO PARA ESTA PLANILHA:</td>
+                                    <td style="padding: 10px 8px; text-align: center; font-size: 1rem; color: #4ade80; background: rgba(74, 222, 128, 0.1);" id="eadi-exp-total-qty-cell">0 un.</td>
+                                    <td style="padding: 10px 8px;"></td>
+                                    <td style="padding: 10px 8px; text-align: right; font-size: 1rem; color: #38bdf8;" id="eadi-exp-total-fob-cell">$ 0.00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Passo 3: Observações Opcionais para o Despachante -->
+                <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                    <label style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 6px;">
+                        📝 Instruções / Observações Adicionais para o Despachante (Opcional):
+                    </label>
+                    <textarea id="eadi-exp-notes" rows="2" class="form-control" style="width: 100%; font-size: 0.8rem; resize: vertical;" placeholder="Ex: Desembaraço fracionado para atendimento imediato de projetos Tecfag. Doca de entrega em Valinhos. Favor instruir LI se exigido."></textarea>
+                </div>
+            </div>
+
+            <!-- Modal Footer com Botões de Exportação -->
+            <div class="modal-footer" style="background: rgba(15, 23, 42, 0.95); border-top: 1px solid var(--border-color); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="font-size: 0.78rem; color: #94a3b8;" id="eadi-exp-summary-pill">
+                    Nenhum item selecionado.
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary" onclick="closeEadiContainerExportModal()">Fechar</button>
+                    <button type="button" class="btn btn-secondary" onclick="copyEadiClearanceSummary()" style="display: flex; align-items: center; gap: 6px; border-color: rgba(34, 197, 94, 0.4); color: #4ade80;" title="Copia resumo formatado para colar direto no WhatsApp ou E-mail do Despachante">
+                        <span>📋 Copiar Resumo (WhatsApp)</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="downloadEadiClearanceCsv()" style="display: flex; align-items: center; gap: 6px;" title="Baixar arquivo no formato CSV compatível com Excel">
+                        <span>📄 Baixar CSV</span>
+                    </button>
+                    <button type="button" class="btn" onclick="downloadEadiClearanceExcel()" style="background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%); color: #04101d; font-weight: 800; padding: 10px 18px; font-size: 0.85rem; border-radius: 6px; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        <span>📊 Baixar Planilha Excel (.xlsx)</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -25285,6 +25447,9 @@
                     <td style="padding: 10px 8px; text-align: right; color: #94a3b8;">${unitFobStr}</td>
                     <td style="padding: 10px 8px; text-align: right; font-weight: bold; color: #4ade80;">${totalFobStr}</td>
                     <td style="padding: 10px 8px; text-align: right; white-space: nowrap;">
+                        <button type="button" class="btn" onclick="openEadiContainerExportModal(${it.order_id})" style="background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.4); color: #38bdf8; font-weight: bold; padding: 4px 8px; font-size: 0.72rem; border-radius: 4px; margin-right: 4px;" title="Exportar Planilha de Desembaraço deste Container">
+                            📑 Planilha
+                        </button>
                         <button type="button" class="btn" onclick="openEadiInventoryAuditModal(${it.order_id})" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: bold; padding: 4px 8px; font-size: 0.72rem; border-radius: 4px; margin-right: 4px;" title="Ajustar Saldo Físico deste Container">
                             📝 Ajustar
                         </button>
@@ -26485,6 +26650,489 @@
                 window.print();
                 setTimeout(() => document.body.classList.remove('printing-eadi-supplier-balances'), 1500);
             }
+        }
+
+    
+        // ==========================================
+        // EXPORTAÇÃO DE PLANILHA DE NACIONALIZAÇÃO FRACIONADA POR CONTAINER (EADI BAURU)
+        // ==========================================
+        let eadiExportContainers = [];
+        let currentExportContainer = null;
+
+        async function openEadiContainerExportModal(preSelectedOrderId) {
+            const modal = document.getElementById('modal-eadi-container-export');
+            if (!modal) return;
+
+            const select = document.getElementById('eadi-exp-order-select');
+            if (select) select.innerHTML = '<option value="">Carregando containers com saldo no EADI...</option>';
+
+            const tbody = document.getElementById('eadi-exp-items-tbody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 25px;">Carregando dados dos containers...</td></tr>';
+
+            const card = document.getElementById('eadi-exp-container-card');
+            if (card) card.style.display = 'none';
+
+            const tfoot = document.getElementById('eadi-exp-items-tfoot');
+            if (tfoot) tfoot.style.display = 'none';
+
+            modal.style.display = 'flex';
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+
+                let loaded = false;
+                try {
+                    const res = await fetch('/api/supply-chain/eadi/containers', { headers });
+                    if (res.ok) {
+                        const data = await res.json();
+                        eadiExportContainers = data.containers || [];
+                        loaded = true;
+                    }
+                } catch (e) {
+                    console.warn('[EADI EXPORT] Servidor indisponível ou offline:', e);
+                }
+
+                if (!loaded && typeof eadiInventoryData !== 'undefined' && eadiInventoryData.length > 0) {
+                    const containerMap = {};
+                    eadiInventoryData.forEach(it => {
+                        const ordId = it.order_id || it.po_number;
+                        if (!containerMap[ordId]) {
+                            containerMap[ordId] = {
+                                id: it.order_id,
+                                po_number: it.po_number,
+                                container_id: it.container_id,
+                                supplier_name: it.supplier_name,
+                                invoice_number: it.invoice_number,
+                                eadi_da_number: it.eadi_da_number,
+                                dta_number: it.dta_number || '-',
+                                bl_number: it.bl_number || '-',
+                                eadi_entry_date: it.eadi_entry_date,
+                                currency: it.currency || 'USD',
+                                total_balance_units: 0,
+                                items: []
+                            };
+                        }
+                        const c = containerMap[ordId];
+                        c.total_balance_units += (it.qty_balance || 0);
+                        c.items.push({
+                            id: it.order_item_id,
+                            sku: it.sku,
+                            description: it.description,
+                            ncm: it.ncm || '',
+                            qty_admitted: it.qty_admitted,
+                            qty_cleared: it.qty_cleared,
+                            qty_balance: it.qty_balance,
+                            unit_price_fob: it.unit_price_fob || 0
+                        });
+                    });
+                    eadiExportContainers = Object.values(containerMap);
+                }
+
+                if (select) {
+                    select.innerHTML = '<option value="">-- Selecione o Container para Desembaraço --</option>';
+                    if (eadiExportContainers.length === 0) {
+                        select.innerHTML = '<option value="">Nenhum container com saldo no EADI no momento.</option>';
+                        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 25px;">Nenhum container com saldo encontrado no Porto Seco EADI.</td></tr>';
+                        return;
+                    }
+
+                    eadiExportContainers.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        const contName = c.container_id || 'S/N';
+                        const poName = c.po_number || '-';
+                        const suppName = c.supplier_name ? ' • ' + c.supplier_name : '';
+                        const balStr = (c.total_balance_units || 0) + ' un. em saldo';
+                        opt.textContent = '📦 Container: ' + contName + ' | PO: ' + poName + suppName + ' (' + balStr + ')';
+                        select.appendChild(opt);
+                    });
+
+                    if (preSelectedOrderId && eadiExportContainers.some(c => String(c.id) === String(preSelectedOrderId))) {
+                        select.value = preSelectedOrderId;
+                    } else if (eadiExportContainers.length === 1) {
+                        select.value = eadiExportContainers[0].id;
+                    }
+                    onEadiExportOrderChange();
+                }
+            } catch (err) {
+                console.error('[EADI EXPORT ERROR]', err);
+                if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 25px;">Erro ao carregar dados do container.</td></tr>';
+            }
+        }
+
+        function closeEadiContainerExportModal() {
+            const modal = document.getElementById('modal-eadi-container-export');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function onEadiExportOrderChange() {
+            const select = document.getElementById('eadi-exp-order-select');
+            const orderId = select ? select.value : '';
+            const card = document.getElementById('eadi-exp-container-card');
+            const tbody = document.getElementById('eadi-exp-items-tbody');
+            const tfoot = document.getElementById('eadi-exp-items-tfoot');
+            const checkAll = document.getElementById('eadi-exp-check-all');
+
+            if (checkAll) checkAll.checked = false;
+
+            if (!orderId) {
+                if (card) card.style.display = 'none';
+                if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 25px;">Selecione um container acima para listar os produtos disponíveis.</td></tr>';
+                if (tfoot) tfoot.style.display = 'none';
+                currentExportContainer = null;
+                updateEadiExportCalculations();
+                return;
+            }
+
+            const container = eadiExportContainers.find(c => String(c.id) === String(orderId));
+            currentExportContainer = container;
+
+            if (!container) return;
+
+            if (card) {
+                card.style.display = 'block';
+                document.getElementById('eadi-exp-card-container').innerText = container.container_id || 'S/N';
+                document.getElementById('eadi-exp-card-po').innerText = container.po_number || '-';
+                document.getElementById('eadi-exp-card-invoice').innerText = container.invoice_number || '-';
+                document.getElementById('eadi-exp-card-supplier').innerText = container.supplier_name || '-';
+                document.getElementById('eadi-exp-card-da').innerText = container.eadi_da_number || 'Pendente';
+                document.getElementById('eadi-exp-card-dta').innerText = (container.dta_number || '-') + ' / BL: ' + (container.bl_number || '-');
+                const entryStr = container.eadi_entry_date ? new Date(container.eadi_entry_date + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
+                document.getElementById('eadi-exp-card-entry').innerText = entryStr;
+                document.getElementById('eadi-exp-card-balance').innerText = (container.total_balance_units || 0) + ' un.';
+            }
+
+            if (tbody) {
+                tbody.innerHTML = '';
+                const items = container.items || [];
+                if (items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 25px;">Nenhum produto cadastrado com saldo neste container.</td></tr>';
+                    if (tfoot) tfoot.style.display = 'none';
+                    return;
+                }
+
+                items.forEach(it => {
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                    tr.dataset.itemId = it.id;
+                    tr.dataset.sku = it.sku;
+                    tr.dataset.description = it.description || '';
+                    tr.dataset.unitFob = it.unit_price_fob || 0;
+                    tr.dataset.balance = it.qty_balance || 0;
+
+                    const curr = container.currency || 'USD';
+                    const unitFobStr = curr + ' ' + (it.unit_price_fob || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+                    tr.innerHTML = `
+                        <td style="padding: 8px 6px; text-align: center;">
+                            <input type="checkbox" class="eadi-exp-item-check" onchange="updateEadiExportCalculations()" style="cursor: pointer;">
+                        </td>
+                        <td style="padding: 8px 6px; font-weight: 800; color: #38bdf8;">${it.sku}</td>
+                        <td style="padding: 8px 6px; color: #cbd5e1; font-size: 0.78rem;">${it.description || '-'}</td>
+                        <td style="padding: 8px 6px;">
+                            <input type="text" class="form-control eadi-exp-item-ncm" value="${it.ncm || ''}" placeholder="00000000" style="padding: 4px 6px; font-size: 0.76rem; width: 100px; text-align: center; font-family: monospace;">
+                        </td>
+                        <td style="padding: 8px 6px; text-align: center; font-weight: bold; color: #f59e0b;">
+                            ${it.qty_balance} un.
+                        </td>
+                        <td style="padding: 8px 6px; text-align: center;">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                <input type="number" class="form-control eadi-exp-item-qty" min="1" max="${it.qty_balance}" value="${it.qty_balance > 0 ? 1 : 0}" oninput="onEadiExportQtyInput(this)" style="padding: 4px 6px; font-size: 0.85rem; font-weight: 800; width: 65px; text-align: center; border-color: rgba(74, 222, 128, 0.4); color: #4ade80;">
+                                <button type="button" class="btn btn-secondary" onclick="setEadiExportRowMax(this)" style="padding: 2px 6px; font-size: 0.65rem; border-color: rgba(74, 222, 128, 0.3); color: #4ade80;" title="Preencher saldo máximo deste item">Max</button>
+                            </div>
+                        </td>
+                        <td style="padding: 8px 6px; text-align: right; color: #94a3b8; font-size: 0.76rem;">${unitFobStr}</td>
+                        <td style="padding: 8px 6px; text-align: right; font-weight: bold; color: #4ade80;" class="eadi-exp-row-subtotal">$ 0,00</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                if (tfoot) tfoot.style.display = 'table-footer-group';
+                updateEadiExportCalculations();
+            }
+        }
+
+        function onEadiExportQtyInput(input) {
+            const tr = input.closest('tr');
+            if (!tr) return;
+            const max = parseInt(tr.dataset.balance) || 1;
+            let val = parseInt(input.value) || 0;
+            if (val > max) {
+                val = max;
+                input.value = max;
+            } else if (val < 0) {
+                val = 0;
+                input.value = 0;
+            }
+            const cb = tr.querySelector('.eadi-exp-item-check');
+            if (cb && val > 0 && !cb.checked) {
+                cb.checked = true;
+            }
+            updateEadiExportCalculations();
+        }
+
+        function setEadiExportRowMax(btn) {
+            const tr = btn.closest('tr');
+            if (!tr) return;
+            const input = tr.querySelector('.eadi-exp-item-qty');
+            const cb = tr.querySelector('.eadi-exp-item-check');
+            const max = parseInt(tr.dataset.balance) || 0;
+            if (input) input.value = max;
+            if (cb) cb.checked = true;
+            updateEadiExportCalculations();
+        }
+
+        function toggleEadiExportSelectAll(checkAllEl) {
+            const checks = document.querySelectorAll('#eadi-exp-items-tbody .eadi-exp-item-check');
+            checks.forEach(c => c.checked = checkAllEl.checked);
+            updateEadiExportCalculations();
+        }
+
+        function setAllEadiExportMaxQty() {
+            const rows = document.querySelectorAll('#eadi-exp-items-tbody tr');
+            rows.forEach(tr => {
+                const cb = tr.querySelector('.eadi-exp-item-check');
+                const input = tr.querySelector('.eadi-exp-item-qty');
+                const max = parseInt(tr.dataset.balance) || 0;
+                if (cb) cb.checked = true;
+                if (input) input.value = max;
+            });
+            const checkAll = document.getElementById('eadi-exp-check-all');
+            if (checkAll) checkAll.checked = true;
+            updateEadiExportCalculations();
+        }
+
+        function clearAllEadiExportSelections() {
+            const rows = document.querySelectorAll('#eadi-exp-items-tbody tr');
+            rows.forEach(tr => {
+                const cb = tr.querySelector('.eadi-exp-item-check');
+                if (cb) cb.checked = false;
+            });
+            const checkAll = document.getElementById('eadi-exp-check-all');
+            if (checkAll) checkAll.checked = false;
+            updateEadiExportCalculations();
+        }
+
+        function getEadiExportSelectedData() {
+            if (!currentExportContainer) return null;
+            const rows = document.querySelectorAll('#eadi-exp-items-tbody tr');
+            const selectedItems = [];
+
+            rows.forEach(tr => {
+                const cb = tr.querySelector('.eadi-exp-item-check');
+                if (cb && cb.checked) {
+                    const qtyInput = tr.querySelector('.eadi-exp-item-qty');
+                    const ncmInput = tr.querySelector('.eadi-exp-item-ncm');
+                    const qty = parseInt(qtyInput ? qtyInput.value : 0) || 0;
+                    if (qty > 0) {
+                        const unitFob = parseFloat(tr.dataset.unitFob) || 0;
+                        selectedItems.push({
+                            order_item_id: parseInt(tr.dataset.itemId),
+                            sku: tr.dataset.sku,
+                            description: tr.dataset.description,
+                            ncm: ncmInput ? ncmInput.value.trim() : '',
+                            qty_to_clear: qty,
+                            unit_price_fob: unitFob,
+                            total_price_fob: qty * unitFob
+                        });
+                    }
+                }
+            });
+
+            return {
+                container: currentExportContainer,
+                items: selectedItems,
+                notes: document.getElementById('eadi-exp-notes')?.value || ''
+            };
+        }
+
+        function updateEadiExportCalculations() {
+            const rows = document.querySelectorAll('#eadi-exp-items-tbody tr');
+            let totalSelectedQty = 0;
+            let totalSelectedFob = 0;
+            let selectedCount = 0;
+
+            rows.forEach(tr => {
+                const cb = tr.querySelector('.eadi-exp-item-check');
+                const qtyInput = tr.querySelector('.eadi-exp-item-qty');
+                const subtotalEl = tr.querySelector('.eadi-exp-row-subtotal');
+                const unitFob = parseFloat(tr.dataset.unitFob) || 0;
+                const qty = parseInt(qtyInput ? qtyInput.value : 0) || 0;
+                const subtotal = qty * unitFob;
+
+                if (subtotalEl) {
+                    subtotalEl.innerText = '$ ' + subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+
+                if (cb && cb.checked && qty > 0) {
+                    selectedCount++;
+                    totalSelectedQty += qty;
+                    totalSelectedFob += subtotal;
+                    tr.style.background = 'rgba(14, 165, 233, 0.08)';
+                } else {
+                    tr.style.background = '';
+                }
+            });
+
+            const totalQtyCell = document.getElementById('eadi-exp-total-qty-cell');
+            const totalFobCell = document.getElementById('eadi-exp-total-fob-cell');
+            const summaryPill = document.getElementById('eadi-exp-summary-pill');
+
+            if (totalQtyCell) totalQtyCell.innerText = totalSelectedQty + ' un.';
+            if (totalFobCell) totalFobCell.innerText = '$ ' + totalSelectedFob.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            if (summaryPill) {
+                if (selectedCount === 0) {
+                    summaryPill.innerHTML = '<span style="color: #94a3b8;">Nenhum item selecionado.</span>';
+                } else {
+                    summaryPill.innerHTML = '<strong>' + selectedCount + ' modelo(s)</strong> selecionado(s) • <strong style="color: #4ade80;">' + totalSelectedQty + ' un.</strong> • Total: <strong style="color: #38bdf8;">$ ' + totalSelectedFob.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + '</strong>';
+                }
+            }
+        }
+
+        async function downloadEadiClearanceExcel() {
+            const data = getEadiExportSelectedData();
+            if (!data || data.items.length === 0) {
+                alert('⚠️ Selecione pelo menos 1 produto e informe a quantidade a nacionalizar antes de exportar a planilha.');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': 'Bearer ' + token } : {})
+                };
+
+                const res = await fetch('/api/supply-chain/eadi/export-clearance-spreadsheet', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        order_id: data.container.id,
+                        items: data.items,
+                        notes: data.notes
+                    })
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.error || ('Erro HTTP ' + res.status));
+                }
+
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const cleanName = (data.container.container_id || data.container.po_number || 'EADI').replace(/[^a-zA-Z0-9_-]/g, '_');
+                a.download = 'Instrucao_Desembaraco_' + cleanName + '_' + (new Date().toISOString().split('T')[0]) + '.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error('[EXCEL EXPORT ERROR]', err);
+                alert('Aviso: Baixando em formato CSV devido a erro no servidor: ' + err.message);
+                downloadEadiClearanceCsv();
+            }
+        }
+
+        function downloadEadiClearanceCsv() {
+            const data = getEadiExportSelectedData();
+            if (!data || data.items.length === 0) {
+                alert('⚠️ Selecione pelo menos 1 produto e informe a quantidade a nacionalizar antes de exportar.');
+                return;
+            }
+
+            const c = data.container;
+            const todayStr = new Date().toLocaleDateString('pt-BR');
+            const lines = [];
+
+            lines.push('"TECFAG INDUSTRIAL LTDA - INSTRUCAO DE NACIONALIZACAO FRACIONADA"');
+            lines.push('"PORTO SECO / ENTREPOSTO ADUANEIRO (EADI BAURU) - REGIME ESPECIAL"');
+            lines.push('');
+            lines.push('"Container:";"' + (c.container_id || 'S/N') + '";"D.A. (Admissao):";"' + (c.eadi_da_number || 'Pendente') + '";"Emissao:";"' + todayStr + '"');
+            lines.push('"Ordem / PO:";"' + (c.po_number || '-') + '";"DTA:";"' + (c.dta_number || 'Pendente') + '";"Moeda:";"' + (c.currency || 'USD') + '"');
+            lines.push('"Fornecedor:";"' + (c.supplier_name || '-') + '";"B/L:";"' + (c.bl_number || '-') + '";"Invoice:";"' + (c.invoice_number || '-') + '"');
+            lines.push('');
+            lines.push('"Item";"Container";"D.A. EADI";"Codigo SKU / Modelo";"Descricao Comercial";"NCM";"Qtd a Nacionalizar";"Valor Unit. FOB (USD)";"Valor Total FOB (USD)"');
+
+            let totalQty = 0;
+            let totalFob = 0;
+
+            data.items.forEach((it, idx) => {
+                totalQty += it.qty_to_clear;
+                totalFob += it.total_price_fob;
+                const unitFobStr = it.unit_price_fob.toFixed(2).replace('.', ',');
+                const totalFobStr = it.total_price_fob.toFixed(2).replace('.', ',');
+                lines.push('"' + (idx + 1) + '";"' + (c.container_id || 'S/N') + '";"' + (c.eadi_da_number || 'Pendente') + '";"' + it.sku + '";"' + (it.description.replace(/"/g, '""')) + '";"' + it.ncm + '";' + it.qty_to_clear + ';"' + unitFobStr + ';"' + totalFobStr + '"');
+            });
+
+            lines.push('');
+            lines.push('"TOTAL GERAL:";"";"";"";"";"";' + totalQty + ';"";"' + totalFob.toFixed(2).replace('.', ',') + '"');
+
+            if (data.notes && data.notes.trim()) {
+                lines.push('');
+                lines.push('"OBSERVACOES / INSTRUCOES PARA O DESPACHANTE:"');
+                lines.push('"' + data.notes.trim().replace(/"/g, '""') + '"');
+            }
+
+            const csvContent = '\uFEFF' + lines.join('\r\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const cleanName = (c.container_id || c.po_number || 'EADI').replace(/[^a-zA-Z0-9_-]/g, '_');
+            a.download = 'Instrucao_Desembaraco_' + cleanName + '_' + (new Date().toISOString().split('T')[0]) + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function copyEadiClearanceSummary() {
+            const data = getEadiExportSelectedData();
+            if (!data || data.items.length === 0) {
+                alert('⚠️ Selecione pelo menos 1 produto para copiar o resumo.');
+                return;
+            }
+
+            const c = data.container;
+            const todayStr = new Date().toLocaleDateString('pt-BR');
+            let text = '*SOLICITAÇÃO DE DESEMBARAÇO FRACIONADO - EADI BAURU*\n';
+            text += '*Tecfag Industrial Ltda* | ' + todayStr + '\n';
+            text += '--------------------------------------------------\n';
+            text += '📦 *Container:* ' + (c.container_id || 'S/N') + '\n';
+            text += '📄 *D.A. (Declaração de Admissão):* ' + (c.eadi_da_number || 'Pendente') + '\n';
+            text += '📋 *DTA:* ' + (c.dta_number || '-') + ' | *B/L:* ' + (c.bl_number || '-') + '\n';
+            text += '🏭 *Fornecedor:* ' + (c.supplier_name || '-') + '\n';
+            text += '📑 *PO / Invoice:* ' + (c.po_number || '-') + ' / ' + (c.invoice_number || '-') + '\n';
+            text += '--------------------------------------------------\n';
+            text += '*MÁQUINAS A NACIONALIZAR DESTE CONTAINER:*\n\n';
+
+            let totalQty = 0;
+            let totalFob = 0;
+            data.items.forEach((it, idx) => {
+                totalQty += it.qty_to_clear;
+                totalFob += it.total_price_fob;
+                const ncmStr = it.ncm ? ' (NCM: ' + it.ncm + ')' : '';
+                text += (idx + 1) + '. *' + it.sku + '* - ' + it.description + ncmStr + '\n';
+                text += '   Qtd: *' + it.qty_to_clear + ' un.* | Unit: $ ' + it.unit_price_fob.toFixed(2) + ' | Total: $ ' + it.total_price_fob.toFixed(2) + '\n\n';
+            });
+
+            text += '--------------------------------------------------\n';
+            text += '📊 *TOTAL DO LOTE:* ' + totalQty + ' un. | *FOB Total:* $ ' + totalFob.toFixed(2) + '\n';
+
+            if (data.notes && data.notes.trim()) {
+                text += '\n📝 *Observações:* ' + data.notes.trim() + '\n';
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Resumo copiado para a área de transferência! Pronto para colar no WhatsApp ou E-mail do Despachante.');
+            }).catch(err => {
+                console.error(err);
+                alert('Não foi possível copiar automaticamente para a área de transferência.');
+            });
         }
 
     </script>

@@ -9,7 +9,34 @@ const crypto = require('crypto');
 const https = require('https');
 const http = require('http');
 const pdfParse = require('pdf-parse');
+const xlsx = require('xlsx');
 require('dotenv').config();
+
+// Cache em memória de NCM por SKU a partir de skus.csv
+const skuNcmMap = {};
+function initSkuNcmMap() {
+    try {
+        const skusPath = path.join(__dirname, 'skus.csv');
+        if (fs.existsSync(skusPath)) {
+            const wb = xlsx.readFile(skusPath);
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+            for (let i = 1; i < data.length; i++) {
+                const r = data[i];
+                if (!r) continue;
+                const code = String(r[2] || '').trim();
+                const ncm = String(r[6] || '').trim();
+                if (code && ncm) {
+                    skuNcmMap[code] = ncm;
+                }
+            }
+            console.log(`[SKU NCM CACHE] Mapeados ${Object.keys(skuNcmMap).length} SKUs com NCM oficial.`);
+        }
+    } catch (err) {
+        console.warn('[SKU NCM CACHE] Aviso ao carregar skus.csv:', err.message);
+    }
+}
+initSkuNcmMap();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -555,6 +582,7 @@ function initializeDatabase() {
         db.run("ALTER TABLE stock_orders ADD COLUMN eadi_entry_date TEXT", (err) => {});
         db.run("ALTER TABLE stock_orders ADD COLUMN eadi_da_number TEXT", (err) => {});
         db.run("ALTER TABLE stock_order_items ADD COLUMN qty_eadi_admitted INTEGER DEFAULT 0", (err) => {});
+        db.run("ALTER TABLE stock_order_items ADD COLUMN ncm TEXT", (err) => {});
         db.run("ALTER TABLE stock_eadi_clearances ADD COLUMN di_file_path TEXT", (err) => {});
 
         // Executar importação assíncrona se necessário
@@ -9817,6 +9845,193 @@ app.get('/api/supply-chain/eadi/supplier-balances', authenticateToken, restrictT
     } catch (err) {
         console.error('[SUPPLIER BALANCES ERROR]', err);
         res.status(500).json({ error: 'Erro ao calcular saldos por fornecedor: ' + err.message });
+    }
+});
+
+// GET /api/supply-chain/eadi/containers - Lista containers com mercadorias e saldos disponíveis no EADI Bauru
+app.get('/api/supply-chain/eadi/containers', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    try {
+        const orders = await dbAll(`
+            SELECT id, po_number, container_id, supplier_id, supplier_name,
+                   invoice_number, invoice_date, currency, stage, customs_regime,
+                   eadi_da_number, dta_number, bl_number, origin_port, destination_port,
+                   eadi_entry_date, notes
+            FROM stock_orders
+            WHERE stage = 'ENTREPOSTADO_EADI' OR customs_regime = 'EADI_BAURU'
+            ORDER BY eadi_entry_date DESC, id DESC
+        `);
+
+        const clearanceRows = await dbAll(`
+            SELECT ci.order_item_id, SUM(ci.qty_cleared) as total_cleared
+            FROM stock_eadi_clearance_items ci
+            GROUP BY ci.order_item_id
+        `);
+        const clearedMap = {};
+        clearanceRows.forEach(c => clearedMap[c.order_item_id] = c.total_cleared || 0);
+
+        const result = [];
+        for (const o of orders) {
+            const items = await dbAll(`
+                SELECT id, order_id, sku, description, qty_ordered, qty_shipped,
+                       qty_eadi_admitted, unit_price_fob, total_price_fob, ncm
+                FROM stock_order_items
+                WHERE order_id = ?
+                ORDER BY id ASC
+            `, [o.id]);
+
+            let containerBalance = 0;
+            const processedItems = items.map(it => {
+                const admitted = it.qty_eadi_admitted > 0 ? it.qty_eadi_admitted : (it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered);
+                const cleared = clearedMap[it.id] || 0;
+                const balance = Math.max(0, admitted - cleared);
+                containerBalance += balance;
+                return {
+                    id: it.id,
+                    order_id: it.order_id,
+                    sku: it.sku,
+                    description: it.description || '',
+                    ncm: it.ncm || skuNcmMap[it.sku] || '',
+                    qty_ordered: it.qty_ordered,
+                    qty_admitted: admitted,
+                    qty_cleared: cleared,
+                    qty_balance: balance,
+                    unit_price_fob: it.unit_price_fob || 0.0,
+                    total_price_fob: balance * (it.unit_price_fob || 0.0)
+                };
+            });
+
+            // Adiciona se houver saldo disponível ou se requisitado todos
+            if (containerBalance > 0 || req.query.all === 'true') {
+                result.push({
+                    ...o,
+                    container_id: o.container_id || 'S/N',
+                    eadi_da_number: o.eadi_da_number || 'Pendente',
+                    total_balance_units: containerBalance,
+                    items: processedItems
+                });
+            }
+        }
+
+        res.json({ containers: result });
+    } catch (err) {
+        console.error('[EADI CONTAINERS ERROR]', err);
+        res.status(500).json({ error: 'Erro ao listar containers do EADI: ' + err.message });
+    }
+});
+
+// POST /api/supply-chain/eadi/export-clearance-spreadsheet - Gera e exporta planilha XLSX de instrução de desembaraço fracionado
+app.post('/api/supply-chain/eadi/export-clearance-spreadsheet', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    try {
+        const { order_id, items, notes } = req.body;
+        if (!order_id) {
+            return res.status(400).json({ error: 'Identificação da Ordem / Container é obrigatória.' });
+        }
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'Nenhum item selecionado para exportação.' });
+        }
+
+        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [order_id]);
+        if (!order) {
+            return res.status(404).json({ error: 'Ordem / Container não encontrado.' });
+        }
+
+        // Atualizar NCMs no banco caso o usuário tenha editado/inserido no modal
+        for (const it of items) {
+            if (it.order_item_id && it.ncm) {
+                await dbRun('UPDATE stock_order_items SET ncm = ? WHERE id = ?', [String(it.ncm).trim(), it.order_item_id]);
+            }
+        }
+
+        const todayStr = new Date().toLocaleDateString('pt-BR');
+        const containerLabel = order.container_id || order.po_number || `ORD-${order.id}`;
+
+        // Construir matriz de dados para a planilha oficial
+        const sheetData = [
+            ['TECFAG INDUSTRIAL LTDA - INSTRUÇÃO DE NACIONALIZAÇÃO FRACIONADA'],
+            ['PORTO SECO / ENTREPOSTO ADUANEIRO (EADI BAURU) - REGIME ESPECIAL'],
+            [],
+            ['DADOS DO EMBARQUE / CONTAINER:', '', 'DADOS ADUANEIROS / REFERÊNCIA:', '', 'DATA DE SOLICITAÇÃO:'],
+            [`Container: ${containerLabel}`, '', `D.A. (Declaração Admissão): ${order.eadi_da_number || 'Pendente'}`, '', `Emissão: ${todayStr}`],
+            [`Ordem de Compra / PO: ${order.po_number || '-'}`, '', `DTA: ${order.dta_number || 'Pendente'}`, '', `Moeda: ${order.currency || 'USD'}`],
+            [`Fornecedor: ${order.supplier_name || '-'}`, '', `Conhecimento B/L: ${order.bl_number || '-'}`, '', `Entrada EADI: ${order.eadi_entry_date ? new Date(order.eadi_entry_date + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}`],
+            [`Invoice Internacional: ${order.invoice_number || '-'}`, '', `Porto de Origem: ${order.origin_port || 'Ningbo, China'}`, '', `Destino: EADI Bauru / Doca Tecfag`],
+            [],
+            ['ITENS SELECIONADOS PARA DESEMBARAÇO FRACIONADO (DESTE CONTAINER):'],
+            ['Item', 'Container', 'D.A. EADI', 'Código SKU / Modelo', 'Descrição Comercial da Máquina', 'NCM', 'Qtd a Nacionalizar', 'Valor Unit. FOB (USD)', 'Valor Total FOB (USD)']
+        ];
+
+        let totalQty = 0;
+        let totalFob = 0;
+
+        items.forEach((it, idx) => {
+            const qty = parseInt(it.qty_to_clear) || 0;
+            const unitFob = parseFloat(it.unit_price_fob) || 0;
+            const subtotalFob = qty * unitFob;
+            totalQty += qty;
+            totalFob += subtotalFob;
+
+            sheetData.push([
+                idx + 1,
+                containerLabel,
+                order.eadi_da_number || 'Pendente',
+                it.sku || '',
+                it.description || '',
+                it.ncm || '',
+                qty,
+                unitFob,
+                subtotalFob
+            ]);
+        });
+
+        sheetData.push([]);
+        sheetData.push([
+            'TOTAL GERAL:',
+            '',
+            '',
+            '',
+            '',
+            '',
+            totalQty,
+            '',
+            totalFob
+        ]);
+
+        if (notes && String(notes).trim()) {
+            sheetData.push([]);
+            sheetData.push(['INSTRUÇÕES / OBSERVAÇÕES PARA O DESPACHANTE:']);
+            sheetData.push([String(notes).trim()]);
+        }
+
+        // Criar pasta de trabalho XLSX
+        const wb = xlsx.utils.book_new();
+        const ws = xlsx.utils.aoa_to_sheet(sheetData);
+
+        // Definir larguras de colunas ideais
+        ws['!cols'] = [
+            { wch: 8 },  // Item
+            { wch: 18 }, // Container
+            { wch: 20 }, // D.A. EADI
+            { wch: 20 }, // SKU
+            { wch: 45 }, // Descricao
+            { wch: 14 }, // NCM
+            { wch: 18 }, // Qtd a Nacionalizar
+            { wch: 22 }, // Unit FOB
+            { wch: 24 }  // Total FOB
+        ];
+
+        const cleanName = containerLabel.replace(/[^a-zA-Z0-9_-]/g, '_');
+        const filename = `Instrucao_Desembaraco_${cleanName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+        xlsx.utils.book_append_sheet(wb, ws, "Desembaraco_Fracionado");
+        const fileBuffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Length', fileBuffer.length);
+        res.send(fileBuffer);
+    } catch (err) {
+        console.error('[EXPORT CLEARANCE SPREADSHEET ERROR]', err);
+        res.status(500).json({ error: 'Erro ao gerar planilha de desembaraço: ' + err.message });
     }
 });
 
