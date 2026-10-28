@@ -2048,7 +2048,8 @@ async function sendAutoHygieneWarningEmails() {
             let prazos = {};
             try { prazos = p.prazos ? JSON.parse(p.prazos) : {}; } catch(e) {}
             
-            const defaultLimit = (p.fase === 1) ? 3 : 5;
+            const phaseSlas = { 1: 5, 2: 10, 3: 3, 4: 50, 5: 40, 6: 10, 7: 5 };
+            const defaultLimit = phaseSlas[p.fase] || 5;
             const limitDays = (prazos && prazos[`fase${p.fase}`] !== undefined) ? parseInt(prazos[`fase${p.fase}`]) : defaultLimit;
             
             const lastInteractionStr = p.crm_last_interaction_date || p.faseEntryDate;
@@ -2067,7 +2068,18 @@ async function sendAutoHygieneWarningEmails() {
                     code: p.code,
                     client: p.client,
                     fase: p.fase,
-                    faseName: p.fase === 1 ? '1. Engenharia de Aplicação & Escopo' : '2. Comercial & Contrato',
+                    faseName: (function(f) {
+                        const m = {
+                            1: '1. Viabilidade Técnica (Apenas Especiais)',
+                            2: '2. Pedido Fechado (Venda Ganha no RD)',
+                            3: '3. Proforma, Câmbio & PO Fornecedor',
+                            4: '4. Fabricação Internacional & Embarque',
+                            5: '5. Trânsito Marítimo & EADI Bauru',
+                            6: '6. Oficina, Setup & Testes (FAT/SAT)',
+                            7: '7. Faturamento, Entrega & Concluído'
+                        };
+                        return m[f] || ('Fase ' + f);
+                    })(p.fase),
                     delayDays,
                     daysToCancel: daysToCancel > 0 ? daysToCancel : 0
                 });
@@ -2181,23 +2193,26 @@ app.post('/api/projects/:code/extend', authenticateToken, async (req, res) => {
         let phaseRoleText = "da etapa atual";
         
         if (project.fase === 1) {
-            extensionLabel = "+3 dias";
-            phaseRoleText = "técnico da Engenharia de Escopo (Fase 1)";
+            extensionLabel = "+5 dias";
+            phaseRoleText = "da Viabilidade Técnica de Especiais (Fase 1)";
         } else if (project.fase === 2) {
-            extensionLabel = "+5 dias";
-            phaseRoleText = "comercial de Vendas & Contrato (Fase 2)";
+            extensionLabel = "+10 dias";
+            phaseRoleText = "do Pedido Fechado no RD (Fase 2)";
         } else if (project.fase === 3) {
-            extensionLabel = "+5 dias";
-            phaseRoleText = "de Proforma, Câmbio & Pagamento Inicial (Fase 3)";
+            extensionLabel = "+3 dias";
+            phaseRoleText = "de Proforma, Câmbio & PO Fornecedor (Fase 3)";
         } else if (project.fase === 4) {
-            extensionLabel = "+55 dias";
-            phaseRoleText = "de Compras, Produção & Embarque (Fase 4)";
+            extensionLabel = "+50 dias";
+            phaseRoleText = "de Fabricação Internacional & Embarque (Fase 4)";
         } else if (project.fase === 5) {
-            extensionLabel = "+55 dias";
-            phaseRoleText = "de Transporte Marítimo & Nacionalização (Fase 5)";
+            extensionLabel = "+40 dias";
+            phaseRoleText = "de Trânsito Marítimo & EADI Bauru (Fase 5)";
         } else if (project.fase === 6) {
             extensionLabel = "+10 dias";
             phaseRoleText = "de Oficina, Setup & SAT (Fase 6)";
+        } else if (project.fase === 7) {
+            extensionLabel = "+5 dias";
+            phaseRoleText = "de Faturamento, Entrega & Conclusão (Fase 7)";
         }
         
         const logText = `<strong>[PRAZO PRORROGADO]</strong> Usuário <strong>${username}</strong> prorrogou o prazo ${phaseRoleText} do projeto <code>${code}</code> (${extensionLabel}). Justificativa: ${justification}`;
@@ -2230,7 +2245,8 @@ async function runAutoPipelineHygiene() {
                 prazos = p.prazos ? JSON.parse(p.prazos) : {};
             } catch(e) {}
             
-            const defaultLimit = (p.fase === 1) ? 3 : 5;
+            const phaseSlas = { 1: 5, 2: 10, 3: 3, 4: 50, 5: 40, 6: 10, 7: 5 };
+            const defaultLimit = phaseSlas[p.fase] || 5;
             const limitDays = (prazos && prazos[`fase${p.fase}`] !== undefined) ? parseInt(prazos[`fase${p.fase}`]) : defaultLimit;
             const lastInteractionStr = p.crm_last_interaction_date || p.faseEntryDate;
             const lastInteractionDate = new Date(lastInteractionStr);

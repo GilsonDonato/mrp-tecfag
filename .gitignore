@@ -4,6 +4,7 @@ data/backups/
 data/tecfag_mrp.db
 uploads/
 *.db
+*.sqlite
 *.xls
 *.xlsx
 *.csv

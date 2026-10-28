@@ -566,7 +566,7 @@
         /* KANBAN BOARD */
         .kanban-board {
             display: grid;
-            grid-template-columns: repeat(8, minmax(215px, 1fr));
+            grid-template-columns: repeat(7, minmax(230px, 1fr));
             gap: 14px;
             align-items: start;
             overflow-x: auto;
@@ -2403,69 +2403,61 @@
 
             <!-- Pipeline Board -->
             <div class="kanban-board" id="kanban-board-wrapper">
-                <!-- Coluna 1: Engenharia de Escopo -->
-                <div class="kanban-column crm-col" id="col-fase1">
+                <!-- Coluna 1: Viabilidade Técnica (Apenas Especiais) - 5 dias -->
+                <div class="kanban-column" id="col-fase1">
                     <div class="column-header" style="--column-color: var(--color-fase1)">
-                        <h3>1. Engenharia</h3>
+                        <h3>1. Viabilidade (5d)</h3>
                         <span class="column-counter" id="count-fase1">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase1"></div>
                 </div>
-                <!-- Coluna 2: Comercial & Contrato -->
-                <div class="kanban-column crm-col" id="col-fase2">
+                <!-- Coluna 2: Pedido Fechado (Venda Ganha no RD) - 10 dias -->
+                <div class="kanban-column" id="col-fase2">
                     <div class="column-header" style="--column-color: var(--color-fase2)">
-                        <h3>2. Comercial</h3>
+                        <h3>2. Pedido Fechado (10d)</h3>
                         <span class="column-counter" id="count-fase2">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase2"></div>
                 </div>
-                <!-- Coluna 3: Proforma, Câmbio & Sinal -->
-                <div class="kanban-column mrp-col" id="col-fase3">
+                <!-- Coluna 3: Proforma, Câmbio & PO Fornecedor - 3 dias -->
+                <div class="kanban-column" id="col-fase3">
                     <div class="column-header" style="--column-color: var(--color-fase3)">
-                        <h3>3. Proforma & Câmbio</h3>
+                        <h3>3. Proforma & Câmbio (3d)</h3>
                         <span class="column-counter" id="count-fase3">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase3"></div>
                 </div>
-                <!-- Coluna 4: Compras, Produção & Embarque -->
-                <div class="kanban-column mrp-col" id="col-fase4">
+                <!-- Coluna 4: Fabricação Internacional & Embarque - 50 dias -->
+                <div class="kanban-column" id="col-fase4">
                     <div class="column-header" style="--column-color: var(--color-fase4)">
-                        <h3>4. Compras & Prod.</h3>
+                        <h3>4. Fabricação (50d)</h3>
                         <span class="column-counter" id="count-fase4">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase4"></div>
                 </div>
-                <!-- Coluna 5: Transporte Marítimo & Nacionalização -->
-                <div class="kanban-column mrp-col" id="col-fase5">
+                <!-- Coluna 5: Trânsito Marítimo & EADI Bauru - 40 dias -->
+                <div class="kanban-column" id="col-fase5">
                     <div class="column-header" style="--column-color: var(--color-fase5)">
-                        <h3>5. Transporte & Nac.</h3>
+                        <h3>5. Marítimo & EADI (40d)</h3>
                         <span class="column-counter" id="count-fase5">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase5"></div>
                 </div>
-                <!-- Coluna 6: Oficina, Instalação & SAT -->
-                <div class="kanban-column mrp-col" id="col-fase6">
+                <!-- Coluna 6: Oficina, Setup & Testes (FAT/SAT) - 10 dias -->
+                <div class="kanban-column" id="col-fase6">
                     <div class="column-header" style="--column-color: var(--color-fase6)">
-                        <h3>6. Oficina & SAT</h3>
+                        <h3>6. Oficina & SAT (10d)</h3>
                         <span class="column-counter" id="count-fase6">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase6"></div>
                 </div>
-                <!-- Coluna 7: Concluído -->
+                <!-- Coluna 7: Faturamento, Entrega & Concluído - 5 dias -->
                 <div class="kanban-column" id="col-fase7">
                     <div class="column-header" style="--column-color: var(--color-fase7)">
-                        <h3>7. Concluído</h3>
+                        <h3>7. Entrega & Concluído (5d)</h3>
                         <span class="column-counter" id="count-fase7">0</span>
                     </div>
                     <div class="column-cards" id="cards-fase7"></div>
-                </div>
-                <!-- Coluna 8: Cancelado -->
-                <div class="kanban-column" id="col-fase8">
-                    <div class="column-header" style="--column-color: var(--color-fase8)">
-                        <h3>8. Cancelado</h3>
-                        <span class="column-counter" id="count-fase8">0</span>
-                    </div>
-                    <div class="column-cards" id="cards-fase8"></div>
                 </div>
             </div>
         </div>
@@ -2479,14 +2471,14 @@
                         <input type="search" class="form-control" id="search-prj" name="search_prj_field_custom" autocomplete="new-password" data-lpignore="true" data-form-type="other" readonly onfocus="this.removeAttribute('readonly');" onblur="if(!this.value) this.setAttribute('readonly', 'readonly');" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Buscar projeto, cliente..." oninput="renderProjectsTable()" style="padding: 8px 16px;">
                         <select class="form-control" id="filter-fase" onchange="renderProjectsTable()" style="padding: 8px 16px;">
                             <option value="ALL">Fase: Todas</option>
-                            <option value="1">1. Engenharia de Aplicação & Escopo</option>
-                            <option value="2">2. Comercial & Contrato</option>
-                            <option value="3">3. Proforma, Câmbio & Pagamento Inicial</option>
-                            <option value="4">4. Compras, Produção & Embarque</option>
-                            <option value="5">5. Transporte Marítimo & Nacionalização</option>
-                            <option value="6">6. Oficina, Instalação, Setup & SAT</option>
-                            <option value="7">7. Concluído ("Joinha" Aceito)</option>
-                            <option value="8">8. Cancelado / Perdido</option>
+                            <option value="1">1. Viabilidade Técnica (Apenas Especiais)</option>
+                            <option value="2">2. Pedido Fechado (Venda Ganha no RD)</option>
+                            <option value="3">3. Proforma, Câmbio & PO Fornecedor</option>
+                            <option value="4">4. Fabricação Internacional & Embarque</option>
+                            <option value="5">5. Trânsito Marítimo & EADI Bauru</option>
+                            <option value="6">6. Oficina, Setup & Testes (FAT/SAT)</option>
+                            <option value="7">7. Faturamento, Entrega & Concluído</option>
+                            <option value="8">8. Histórico / Arquivados</option>
                         </select>
                     </div>
                 </div>
@@ -2898,28 +2890,32 @@
                         </div>
                         <div class="form-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
                             <div class="form-group">
-                                <label for="prj-days-fase1">Fase 1: Eng. & Escopo (dias)*</label>
-                                <input type="number" id="prj-days-fase1" class="form-control" value="3" readonly required>
+                                <label for="prj-days-fase1">Fase 1: Viabilidade (5d)*</label>
+                                <input type="number" id="prj-days-fase1" class="form-control" value="5" readonly required>
                             </div>
                             <div class="form-group">
-                                <label for="prj-days-fase2">Fase 2: Comercial & Contrato (dias)*</label>
-                                <input type="number" id="prj-days-fase2" class="form-control" value="5" readonly required>
+                                <label for="prj-days-fase2">Fase 2: Pedido Fechado (10d)*</label>
+                                <input type="number" id="prj-days-fase2" class="form-control" value="10" readonly required>
                             </div>
                             <div class="form-group">
-                                <label for="prj-days-fase3">Fase 3: Proforma & Câmbio (dias)*</label>
-                                <input type="number" id="prj-days-fase3" class="form-control" value="5" readonly required>
+                                <label for="prj-days-fase3">Fase 3: Proforma & PO (3d)*</label>
+                                <input type="number" id="prj-days-fase3" class="form-control" value="3" readonly required>
                             </div>
                             <div class="form-group">
-                                <label for="prj-days-fase4">Fase 4: Compras & Prod. (dias)*</label>
-                                <input type="number" id="prj-days-fase4" class="form-control" value="55" readonly required>
+                                <label for="prj-days-fase4">Fase 4: Fabricação (50d)*</label>
+                                <input type="number" id="prj-days-fase4" class="form-control" value="50" readonly required>
                             </div>
                             <div class="form-group">
-                                <label for="prj-days-fase5">Fase 5: Transporte & Nac. (dias)*</label>
-                                <input type="number" id="prj-days-fase5" class="form-control" value="55" readonly required>
+                                <label for="prj-days-fase5">Fase 5: Marítimo & EADI (40d)*</label>
+                                <input type="number" id="prj-days-fase5" class="form-control" value="40" readonly required>
                             </div>
                             <div class="form-group">
-                                <label for="prj-days-fase6">Fase 6: Oficina & SAT (dias)*</label>
+                                <label for="prj-days-fase6">Fase 6: Oficina & SAT (10d)*</label>
                                 <input type="number" id="prj-days-fase6" class="form-control" value="10" readonly required>
+                            </div>
+                            <div class="form-group">
+                                <label for="prj-days-fase7">Fase 7: Entrega (5d)*</label>
+                                <input type="number" id="prj-days-fase7" class="form-control" value="5" readonly required>
                             </div>
                         </div>
 
@@ -3402,39 +3398,44 @@
                         </div>
                         <div>
                             <h3 style="color: var(--primary); margin: 0; font-size: 1.15rem;">Matriz de Prazos Limites (SLAs Padrão)</h3>
-                            <p style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px;">Estrutura padronizada de prazos em dias para cada fase da esteira de automação industrial (Total: 133 dias).</p>
+                            <p style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px;">Estrutura padronizada de prazos para a esteira de execução de pedidos da Tecfag (Total: 123 dias).</p>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
                         <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid var(--color-fase1); border-radius: 8px; padding: 14px;">
-                            <div style="font-size: 0.75rem; color: var(--color-fase1); font-weight: bold; text-transform: uppercase;">Fase 1: Engenharia & Escopo</div>
-                            <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">3 dias</div>
-                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Engenharia | Diagnóstico & Viabilidade</div>
-                        </div>
-                        <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid var(--color-fase2); border-radius: 8px; padding: 14px;">
-                            <div style="font-size: 0.75rem; color: var(--color-fase2); font-weight: bold; text-transform: uppercase;">Fase 2: Comercial & Contrato</div>
+                            <div style="font-size: 0.75rem; color: var(--color-fase1); font-weight: bold; text-transform: uppercase;">Fase 1: Viabilidade Técnica</div>
                             <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">5 dias</div>
-                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Vendas | Aprovação & Assinatura</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Fernando | Estudo de Especiais</div>
+                        </div>
+                        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid var(--color-fase2); border-radius: 8px; padding: 14px;">
+                            <div style="font-size: 0.75rem; color: var(--color-fase2); font-weight: bold; text-transform: uppercase;">Fase 2: Pedido Fechado</div>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">10 dias</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Vendas/RD | Contrato & Especificação</div>
                         </div>
                         <div style="background: rgba(236, 72, 153, 0.08); border: 1px solid var(--color-fase3); border-radius: 8px; padding: 14px;">
                             <div style="font-size: 0.75rem; color: var(--color-fase3); font-weight: bold; text-transform: uppercase;">Fase 3: Proforma & Câmbio</div>
-                            <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">5 dias</div>
-                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Compras | Sinal 30% & SWIFT</div>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">3 dias</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Compras | PO, Sinal & Câmbio</div>
                         </div>
                         <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid var(--color-fase4); border-radius: 8px; padding: 14px;">
-                            <div style="font-size: 0.75rem; color: var(--color-fase4); font-weight: bold; text-transform: uppercase;">Fase 4: Compras & Produção</div>
-                            <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">55 dias</div>
-                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Compras | Fabricação, Saldo 70% & BL</div>
+                            <div style="font-size: 0.75rem; color: var(--color-fase4); font-weight: bold; text-transform: uppercase;">Fase 4: Fabricação Internacional</div>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">50 dias</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Supply Chain | Produção & Embarque</div>
                         </div>
                         <div style="background: rgba(6, 182, 212, 0.08); border: 1px solid var(--color-fase5); border-radius: 8px; padding: 14px;">
-                            <div style="font-size: 0.75rem; color: var(--color-fase5); font-weight: bold; text-transform: uppercase;">Fase 5: Transporte & Nac.</div>
-                            <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">55 dias</div>
-                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Estoque | Transit Time, DI & Chegada</div>
+                            <div style="font-size: 0.75rem; color: var(--color-fase5); font-weight: bold; text-transform: uppercase;">Fase 5: Marítimo & EADI</div>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">40 dias</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Comex/EADI | Navio, DTA & Porto Seco</div>
                         </div>
                         <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid var(--color-fase6); border-radius: 8px; padding: 14px;">
                             <div style="font-size: 0.75rem; color: var(--color-fase6); font-weight: bold; text-transform: uppercase;">Fase 6: Oficina & SAT</div>
                             <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">10 dias</div>
-                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Técnico | Setup, Start-up & Aceite</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Técnico | Setup & Teste com Amostra</div>
+                        </div>
+                        <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid var(--color-fase7); border-radius: 8px; padding: 14px;">
+                            <div style="font-size: 0.75rem; color: var(--color-fase7); font-weight: bold; text-transform: uppercase;">Fase 7: Entrega & Conclusão</div>
+                            <div style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 4px;">5 dias</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">Resp: Logística | Expedição & Start-up</div>
                         </div>
                     </div>
                 </div>
@@ -13250,12 +13251,13 @@
             const project = state.projects.find(p => p.code === activeProjectCode);
             const currentFase = project ? parseInt(project.fase) : 1;
             const phaseConfig = {
-                1: { days: 3, label: 'Engenharia (+3 dias)' },
-                2: { days: 5, label: 'Comercial (+5 dias)' },
-                3: { days: 5, label: 'Proforma & Câmbio (+5 dias)' },
-                4: { days: 55, label: 'Compras & Produção (+55 dias)' },
-                5: { days: 55, label: 'Transporte & Nacionalização (+55 dias)' },
-                6: { days: 10, label: 'Oficina & Instalação (+10 dias)' }
+                1: { days: 5, label: 'Viabilidade Técnica (+5 dias)' },
+                2: { days: 10, label: 'Pedido Fechado (+10 dias)' },
+                3: { days: 3, label: 'Proforma & Câmbio (+3 dias)' },
+                4: { days: 50, label: 'Fabricação Internacional (+50 dias)' },
+                5: { days: 40, label: 'Trânsito Marítimo & EADI (+40 dias)' },
+                6: { days: 10, label: 'Oficina & SAT (+10 dias)' },
+                7: { days: 5, label: 'Faturamento & Entrega (+5 dias)' }
             };
             const config = phaseConfig[currentFase] || { days: 5, label: `Fase ${currentFase}` };
             const daysAdded = config.days;
@@ -13738,14 +13740,13 @@
                 chartArea.innerHTML = "";
 
                 const phaseLabels = {
-                    1: '1. Eng. Aplicação & Escopo',
-                    2: '2. Comercial & Contrato',
-                    3: '3. Proforma & Câmbio',
-                    4: '4. Compras & Produção',
-                    5: '5. Transporte & Nac.',
-                    6: '6. Oficina & SAT',
-                    7: '7. Concluído',
-                    8: '8. Cancelado / Perdido'
+                    1: '1. Viabilidade Técnica (Especiais)',
+                    2: '2. Pedido Fechado (Venda RD)',
+                    3: '3. Proforma, Câmbio & PO',
+                    4: '4. Fabricação Internacional',
+                    5: '5. Trânsito Marítimo & EADI',
+                    6: '6. Oficina, Setup & SAT',
+                    7: '7. Faturamento & Concluído'
                 };
 
                 const phaseColors = {
@@ -13810,12 +13811,13 @@
 
                     sortedGargalos.forEach(g => {
                         const phaseLabelsBrief = {
-                            1: 'Eng. Aplicação',
-                            2: 'Comercial',
+                            1: 'Viabilidade Técnica',
+                            2: 'Pedido Fechado',
                             3: 'Proforma & Câmbio',
-                            4: 'Compras & Prod.',
-                            5: 'Transporte & Nac.',
-                            6: 'Oficina & SAT'
+                            4: 'Fabricação',
+                            5: 'Marítimo & EADI',
+                            6: 'Oficina & SAT',
+                            7: 'Entrega'
                         };
                         const rowHtml = `
                             <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-primary);">
@@ -16291,12 +16293,13 @@
                 }
 
                 const prazos = {
-                    fase1: 3,
-                    fase2: 5,
-                    fase3: 5,
-                    fase4: 55,
-                    fase5: 55,
-                    fase6: 10
+                    fase1: 5,
+                    fase2: 10,
+                    fase3: 3,
+                    fase4: 50,
+                    fase5: 40,
+                    fase6: 10,
+                    fase7: 5
                 };
 
                 const token = localStorage.getItem('tecfag_session_token');
@@ -16693,7 +16696,7 @@
 
         // Kanban Board columns
         function renderKanban() {
-            const phasesList = [1, 2, 3, 4, 5, 6, 7, 8];
+            const phasesList = [1, 2, 3, 4, 5, 6, 7];
             phasesList.forEach(i => {
                 const el = document.getElementById(`cards-fase${i}`);
                 if (el) el.innerHTML = '';
@@ -16722,14 +16725,14 @@
                 let responsibleText = "";
                 if (isWaitingVendor) {
                     responsibleText = `<span style="color: #f59e0b; font-weight: bold;">⏸️ Aguardando Vendedor (${cardCreator})</span>`;
-                } else if (project.fase === 1) responsibleText = "Eng. Aplicação & Escopo";
-                else if (project.fase === 2) responsibleText = "Comercial & Contrato";
-                else if (project.fase === 3) responsibleText = "Proforma, Câmbio & Pag. Sinal";
-                else if (project.fase === 4) responsibleText = "Compras & Prod. Internacional";
-                else if (project.fase === 5) responsibleText = "Transporte & Nacionalização";
+                } else if (project.fase === 1) responsibleText = "Viabilidade Técnica (Especiais)";
+                else if (project.fase === 2) responsibleText = "Pedido Fechado (Venda RD)";
+                else if (project.fase === 3) responsibleText = "Proforma, Câmbio & PO";
+                else if (project.fase === 4) responsibleText = "Fabricação & Embarque";
+                else if (project.fase === 5) responsibleText = "Marítimo & EADI Bauru";
                 else if (project.fase === 6) responsibleText = "Oficina, Setup & SAT";
-                else if (project.fase === 7) responsibleText = "Concluído";
-                else if (project.fase === 8) responsibleText = "Cancelado / Perdido";
+                else if (project.fase === 7) responsibleText = "Faturamento & Entrega";
+                else if (project.fase === 8) responsibleText = "Cancelado (Histórico)";
 
                 // Prazos do Kanban
                 let deadlineStr = "-";
@@ -16773,8 +16776,12 @@
                             ` : ''}
                         </div>
                     `;
-                } else if (project.fase >= 1 && project.fase <= 6) {
-                    const daysLimit = project.prazos ? parseInt(project.prazos[`fase${project.fase}`]) : null;
+                } else if (project.fase >= 1 && project.fase <= 7) {
+                    const defaultPhaseSlas = { 1: 5, 2: 10, 3: 3, 4: 50, 5: 40, 6: 10, 7: 5 };
+                    const defaultLimit = defaultPhaseSlas[project.fase] || 5;
+                    const daysLimit = (project.prazos && project.prazos[`fase${project.fase}`] !== undefined) 
+                        ? parseInt(project.prazos[`fase${project.fase}`]) 
+                        : defaultLimit;
                     if (daysLimit !== null && !isNaN(daysLimit)) {
                         const pausedMs = (project.paused_sla_seconds || 0) * 1000;
                         const entryDate = project.faseEntryDate ? new Date(project.faseEntryDate) : (project.lastUpdate ? new Date(project.lastUpdate) : new Date());
@@ -16911,7 +16918,7 @@
                             <span>Fase Atual:</span>
                             <span class="responsible-label">${responsibleText}</span>
                         </div>
-                        ${(project.fase !== 7 && project.fase !== 8) ? `
+                        ${(project.fase !== 8) ? `
                             <div class="project-deadline-box ${deadlineClass}">
                                 <span>Prazo:</span>
                                 <strong>${deadlineStr}${deadlineLabel}</strong>
@@ -17015,14 +17022,14 @@
             }
 
             const faseTextos = {
-                1: '1. Eng. Aplicação',
-                2: '2. Comercial',
+                1: '1. Viabilidade Técnica',
+                2: '2. Pedido Fechado',
                 3: '3. Proforma & Câmbio',
-                4: '4. Compras & Prod.',
-                5: '5. Transporte & Nac.',
+                4: '4. Fabricação Internacional',
+                5: '5. Trânsito Marítimo & EADI',
                 6: '6. Oficina & SAT',
-                7: '7. Concluído',
-                8: '8. Cancelado'
+                7: '7. Faturamento & Entrega',
+                8: '8. Cancelado (Histórico)'
             };
 
             const faseClasses = {
@@ -17424,14 +17431,15 @@
             const btnProrrogar = document.getElementById('btn-prorrogar-prazo');
             if (btnProrrogar) {
                 const currentFase = parseInt(project.fase);
-                btnProrrogar.style.display = (currentFase >= 1 && currentFase <= 6) ? 'flex' : 'none';
+                btnProrrogar.style.display = (currentFase >= 1 && currentFase <= 7) ? 'flex' : 'none';
                 const phaseLabelsMap = {
-                    1: "Prorrogar o prazo da Fase 1 (Engenharia) por +3 dias",
-                    2: "Prorrogar o prazo da Fase 2 (Comercial) por +5 dias",
-                    3: "Prorrogar o prazo da Fase 3 (Proforma & Câmbio) por +5 dias",
-                    4: "Prorrogar o prazo da Fase 4 (Compras & Produção) por +55 dias",
-                    5: "Prorrogar o prazo da Fase 5 (Transporte & Nac.) por +55 dias",
-                    6: "Prorrogar o prazo da Fase 6 (Oficina & SAT) por +10 dias"
+                    1: "Prorrogar o prazo da Fase 1 (Viabilidade Técnica) por +5 dias",
+                    2: "Prorrogar o prazo da Fase 2 (Pedido Fechado) por +10 dias",
+                    3: "Prorrogar o prazo da Fase 3 (Proforma & Câmbio) por +3 dias",
+                    4: "Prorrogar o prazo da Fase 4 (Fabricação Internacional) por +50 dias",
+                    5: "Prorrogar o prazo da Fase 5 (Trânsito Marítimo & EADI) por +40 dias",
+                    6: "Prorrogar o prazo da Fase 6 (Oficina & SAT) por +10 dias",
+                    7: "Prorrogar o prazo da Fase 7 (Faturamento & Entrega) por +5 dias"
                 };
                 btnProrrogar.title = phaseLabelsMap[currentFase] || "Prorrogar prazo da fase atual";
             }
@@ -20654,14 +20662,14 @@
 
             // Fases definitions
             const phaseLabels = {
-                1: 'Fase 1: Engenharia de Aplicação & Escopo',
-                2: 'Fase 2: Comercial & Contrato',
-                3: 'Fase 3: Proforma, Câmbio & Pagamento Inicial',
-                4: 'Fase 4: Compras, Produção & Embarque',
-                5: 'Fase 5: Transporte Marítimo & Nacionalização',
-                6: 'Fase 6: Oficina, Instalação, Setup & SAT',
-                7: 'Fase 7: Concluído (SAT)',
-                8: 'Fase 8: Cancelado / Venda Perdida'
+                1: 'Fase 1: Viabilidade Técnica (Apenas Especiais)',
+                2: 'Fase 2: Pedido Fechado (Venda Ganha no RD)',
+                3: 'Fase 3: Proforma, Câmbio & PO Fornecedor',
+                4: 'Fase 4: Fabricação Internacional & Embarque',
+                5: 'Fase 5: Trânsito Marítimo & EADI Bauru',
+                6: 'Fase 6: Oficina, Setup & Testes (FAT/SAT)',
+                7: 'Fase 7: Faturamento, Entrega & Concluído',
+                8: 'Fase 8: Cancelado (Histórico)'
             };
 
             // Checklist label descriptions mapping
@@ -21656,12 +21664,14 @@
 
                 const phone = data.phone ? data.phone.replace(/\D/g, '') : null;
                 const phaseNames = {
-                    1: 'Vendas & Escopo',
-                    2: 'Compras & Importação',
-                    3: 'Recebimento & Bipagem',
-                    4: 'Instalação / SAT',
-                    5: 'Concluído',
-                    6: 'Cancelado/Perdido'
+                    1: 'Viabilidade Técnica (Especiais)',
+                    2: 'Pedido Fechado (Venda RD)',
+                    3: 'Proforma, Câmbio & PO Fornecedor',
+                    4: 'Fabricação Internacional & Embarque',
+                    5: 'Trânsito Marítimo & EADI Bauru',
+                    6: 'Oficina, Setup & Testes (FAT/SAT)',
+                    7: 'Faturamento, Entrega & Concluído',
+                    8: 'Cancelado'
                 };
                 const faseName = phaseNames[project.fase] || 'Processamento';
                 const messageText = `Olá, ${friendlySeller}! 🚀\n\nPassando para avisar que o projeto *${project.code}* (${project.client}) avançou de status.\n*Fase Atual:* Fase ${project.fase} - ${faseName}\n\nAcompanhe os detalhes no sistema: ${window.location.origin}`;
