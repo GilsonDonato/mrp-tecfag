@@ -591,7 +591,74 @@ function initializeDatabase() {
 
         // Executar importação assíncrona se necessário
         setTimeout(importClientsCsvIfEmpty, 1000);
+        setTimeout(syncImportProjectsToStockOrders, 1500);
     });
+}
+
+// Sincronização automática de projetos em fase internacional (3, 4, 5) para o módulo de Importação & Estoque
+async function syncImportProjectsToStockOrders() {
+    try {
+        const importProjects = await dbAll("SELECT * FROM projects WHERE fase IN (3, 4, 5)");
+        console.log("[SYNC-IMPORT] Verificando sincronização de " + importProjects.length + " projetos internacionais.");
+
+        for (const p of importProjects) {
+            let poNumber = 'PO-' + p.code.replace('PRJTEC000000', 'PRJ');
+            if (p.code === 'PRJTEC000000001') poNumber = 'PO-PRJ01';
+            else if (p.code === 'PRJTEC000000030') poNumber = 'PO-PRJ30';
+            else if (p.code === 'PRJTEC000000031') poNumber = 'PO-PRJ31';
+            else if (p.code === 'PRJTEC000000036') poNumber = 'PO-PRJ36';
+            else if (p.code === 'PRJTEC000000026') poNumber = 'PO-PRJ26';
+
+            const existing = await dbGet("SELECT id FROM stock_orders WHERE project_code = ? OR po_number = ?", [p.code, poNumber]);
+            if (!existing) {
+                let stage = 'PO_EMITIDA';
+                if (p.fase === 4) stage = 'EM_FABRICACAO';
+                else if (p.fase === 5) {
+                    if (p.code === 'PRJTEC000000036') stage = 'ENTREPOSTADO_EADI';
+                    else if (p.code === 'PRJTEC000000001') stage = 'EM_FABRICACAO';
+                    else stage = 'PO_EMITIDA';
+                }
+
+                const now = new Date().toISOString();
+                const supplier = (p.code === 'PRJTEC000000001' || p.code === 'PRJTEC000000030') ? 'Amy Machinery' : (p.code === 'PRJTEC000000036' ? 'Liracon/Amy' : 'Fornecedor Internacional');
+                const customsRegime = (stage === 'ENTREPOSTADO_EADI') ? 'EADI_BAURU' : 'IMPORTACAO_DIRETA';
+                const fobVal = p.crm_value && p.crm_value > 0 ? (p.crm_value / 5.5) : 25000;
+
+                const res = await dbRun(
+                    "INSERT INTO stock_orders (" +
+                    "po_number, project_code, client_name, supplier_name, invoice_number, " +
+                    "currency, total_fob_value, stage, created_by, created_at, updated_at, " +
+                    "notes, customs_regime, container_id, destination_port, origin_port" +
+                    ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    [
+                        poNumber, p.code, p.client, supplier, 'PI-' + p.code,
+                        'USD', fobVal, stage, 'Sistema', now, now,
+                        "Importação do Projeto Especial " + p.code + " (" + p.client + ")",
+                        customsRegime, (stage === 'ENTREPOSTADO_EADI' ? 'MSDU-BAURU-01' : null),
+                        'Santos (SP)', 'Ningbo, China'
+                    ]
+                );
+
+                const orderId = res.lastID;
+                const desc = (p.project_name || p.sku || 'Máquina Especial') + ' - Cliente: ' + p.client;
+
+                await dbRun(
+                    "INSERT INTO stock_order_items (" +
+                    "order_id, sku, description, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at" +
+                    ") VALUES (?, ?, ?, 1, 0, ?, ?, 'PENDING', ?)",
+                    [orderId, p.sku || p.code, desc, fobVal, fobVal, now]
+                );
+
+                console.log("[SYNC-IMPORT] ✅ Ordem " + poNumber + " criada para o projeto " + p.code + " (" + p.client + ") na etapa " + stage);
+            } else {
+                await dbRun("UPDATE stock_orders SET project_code = ?, client_name = ? WHERE id = ? AND (project_code IS NULL OR client_name IS NULL)", [
+                    p.code, p.client, existing.id
+                ]);
+            }
+        }
+    } catch (err) {
+        console.error('[SYNC-IMPORT] Erro ao sincronizar projetos para stock_orders:', err);
+    }
 }
 
 // Importação automática do cadastro de clientes

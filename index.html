@@ -2326,6 +2326,25 @@
                 </div>
             </div>
 
+            <!-- Banner Informativo de Projetos em Importação Internacional -->
+            <div id="banner-importing-projects" style="background: linear-gradient(90deg, rgba(14, 165, 233, 0.12), rgba(139, 92, 246, 0.12)); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 12px 18px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 1.4rem;">🚢</span>
+                    <div>
+                        <div style="font-size: 0.85rem; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
+                            <span>PROJETOS EM IMPORTAÇÃO INTERNACIONAL (CHINA / MARÍTIMO / EADI):</span>
+                            <span id="count-transit-projects" style="background: #38bdf8; color: #0f172a; padding: 1px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 900;">0</span>
+                        </div>
+                        <div id="desc-transit-projects" style="font-size: 0.74rem; color: #94a3b8; margin-top: 2px;">
+                            Acompanhamento logístico e aduaneiro no módulo de Comércio Exterior & Estoque.
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn" onclick="switchTab('supply-chain')" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; font-size: 0.74rem; font-weight: 800; padding: 8px 16px; border-radius: 6px; border: 1px solid #38bdf8; display: flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);">
+                    <span>Ver na Gestão de Importação & Estoque</span> ➔
+                </button>
+            </div>
+
             <!-- Filtros do Kanban -->
             <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; background: rgba(23, 29, 44, 0.5); border: 1px solid var(--border-color); padding: 12px 18px; border-radius: 8px; width: 100%; max-width: 100%; box-sizing: border-box; backdrop-filter: blur(8px);">
                 <!-- Filtro de Busca -->
@@ -16596,6 +16615,20 @@
             if (document.getElementById('kpi-fase5')) document.getElementById('kpi-fase5').innerText = countFase(5);
             if (document.getElementById('kpi-fase6')) document.getElementById('kpi-fase6').innerText = countFase(6);
             if (document.getElementById('kpi-fase7')) document.getElementById('kpi-fase7').innerText = countFase(7);
+
+            // Atualizar banner de projetos em importação internacional
+            const inTransitProjects = (state.projects || []).filter(p => p.fase >= 3 && p.fase <= 5);
+            const countEl = document.getElementById('count-transit-projects');
+            const descEl = document.getElementById('desc-transit-projects');
+            if (countEl) countEl.innerText = inTransitProjects.length;
+            if (descEl && inTransitProjects.length > 0) {
+                const clientNames = inTransitProjects.map(p => {
+                    let c = p.client.split(' ')[0];
+                    if (p.code === 'PRJTEC000000001') c = 'Sheep Agro';
+                    return c;
+                }).join(', ');
+                descEl.innerHTML = '<strong>' + inTransitProjects.length + ' máquina(s) em trânsito:</strong> ' + clientNames + ' — Retornam automaticamente para Oficina (Fase 3) na chegada Tecfag.';
+            }
             if (document.getElementById('kpi-fase8')) document.getElementById('kpi-fase8').innerText = countFase(8);
 
             // Contadores de colunas individuais
@@ -24048,7 +24081,12 @@ function renderKanban() {
                             </button>
                         ` : ''}
                         ${stage !== 'DOCA_GALPAO' ? `
-                            <button type="button" class="btn" onclick="event.stopPropagation(); quickAdvanceOrderStage(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: #0ea5e9; color: white;" title="Avançar Etapa">
+                            ${order.project_code ? `
+                            <button type="button" class="btn" onclick="event.stopPropagation(); switchTab('dash'); setTimeout(() => openProjectModal('${order.project_code}'), 100);" style="padding: 5px 8px; font-size: 0.72rem; font-weight: 800; background: linear-gradient(135deg, #9333ea, #7e22ce); color: white; border: 1px solid #c084fc;" title="Abrir Ficha Técnica e Estudo de Caso do Projeto">
+                                📐 ${order.project_code.replace('PRJTEC000000', 'PRJ')}
+                            </button>
+                        ` : ''}
+                        <button type="button" class="btn" onclick="event.stopPropagation(); quickAdvanceOrderStage(${order.id})" style="padding: 5px 8px; font-size: 0.72rem; font-weight: bold; background: #0ea5e9; color: white;" title="Avançar Etapa">
                                 ➡️
                             </button>
                         ` : ''}
