@@ -9351,7 +9351,7 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
     const { target_stage } = req.body || {};
     const stages = ['PO_EMITIDA', 'EM_FABRICACAO', 'PACKING_LIST_EMBARQUE', 'NO_NAVIO', 'NO_PORTO_DESEMBARACO', 'ENTREPOSTADO_EADI', 'DOCA_GALPAO'];
     const stageLabels = {
-        'PO_EMITIDA': 'Proforma Emitida',
+        'PO_EMITIDA': 'Proforma',
         'EM_FABRICACAO': 'Em Fabricação no Exterior',
         'PACKING_LIST_EMBARQUE': 'Packing List & Carga Pronta',
         'NO_NAVIO': 'Em Trânsito Marítimo',

@@ -3528,10 +3528,10 @@
                 </div>
 
                 <div class="sc-kanban-board" style="display: grid; grid-template-columns: repeat(7, minmax(280px, 1fr)); gap: 14px; overflow-x: auto; padding-bottom: 20px;">
-                    <!-- Column 1: Proforma Emitida -->
+                    <!-- Column 1: Proforma -->
                     <div class="sc-kanban-col" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); border-top: 4px solid #38bdf8; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; min-height: 500px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <div style="font-size: 0.8rem; font-weight: 800; color: #38bdf8;">1. PROFORMA EMITIDA</div>
+                            <div style="font-size: 0.8rem; font-weight: 800; color: #38bdf8;">1. PROFORMA</div>
                             <span class="badge" id="sc-count-po-emitida" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px;">0</span>
                         </div>
                         <div id="sc-cards-PO_EMITIDA" class="sc-kanban-cards" style="display: flex; flex-direction: column; gap: 10px; flex: 1;"></div>
@@ -6399,7 +6399,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
                         <div>
                             <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Etapa Atual do Container:</span>
-                            <div style="font-size: 1.1rem; font-weight: 800; color: #38bdf8; margin-top: 2px;" id="sc-details-stage-badge">1. PROFORMA EMITIDA</div>
+                            <div style="font-size: 1.1rem; font-weight: 800; color: #38bdf8; margin-top: 2px;" id="sc-details-stage-badge">1. PROFORMA</div>
                         </div>
                         <div style="display: flex; gap: 8px;">
                             <button type="button" class="btn" id="sc-details-btn-advance" onclick="advanceCurrentOrderStage()" style="background: #a855f7; color: white; font-weight: bold; padding: 8px 16px; font-size: 0.78rem;">
@@ -9436,7 +9436,7 @@
                 <input type="hidden" id="transfer-prj-code">
                 <div style="padding: 16px 0; display: flex; flex-direction: column; gap: 12px;">
                     <p style="font-size: 0.8rem; color: #cbd5e1; margin: 0; line-height: 1.4;">
-                        O alinhamento técnico com o fornecedor foi concluído! Ao transferir, este projeto <strong>sairá da tela de projetos</strong> e entrará na <strong>Gestão de Importação & Estoque (Proforma Emitida)</strong>.
+                        O alinhamento técnico com o fornecedor foi concluído! Ao transferir, este projeto <strong>sairá da tela de projetos</strong> e entrará na <strong>Gestão de Importação & Estoque (Proforma)</strong>.
                     </p>
                     <div class="form-group">
                         <label for="transfer-supplier-name" style="font-size: 0.72rem; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Fornecedor Internacional*</label>
@@ -20219,7 +20219,7 @@ function renderKanban() {
                 "Máquina: " + (project.project_name || project.sku || 'Especial') + "\n\n" +
                 "Ao confirmar:\n" +
                 "1. Este card sairá do Quadro de Desenvolvimento de Projetos.\n" +
-                "2. Será transferido diretamente para a tela de \"Gestão de Importação & Estoque\" (Fase 1: Proforma Emitida).\n" +
+                "2. Será transferido diretamente para a tela de \"Gestão de Importação & Estoque\" (Fase 1: Proforma).\n" +
                 "3. Assim que a máquina chegar fisicamente na Tecfag (Doca Liberada), o card retornará automaticamente para cá na coluna de \"Oficina, Setup & Testes (SAT)\".\n\n" +
                 "Deseja prosseguir com a transferência?";
 
@@ -24655,7 +24655,7 @@ function renderKanban() {
                 const badge = document.getElementById('sc-details-stage-badge');
 
                 const stageLabels = {
-                    'PO_EMITIDA': '1. PROFORMA EMITIDA',
+                    'PO_EMITIDA': '1. PROFORMA',
                     'EM_FABRICACAO': '2. EM FABRICAÇÃO NO EXTERIOR',
                     'PACKING_LIST_EMBARQUE': '3. PACKING LIST & CARGA PRONTA',
                     'NO_NAVIO': '4. NO NAVIO (TRÂNSITO MARÍTIMO)',
@@ -25191,7 +25191,7 @@ function renderKanban() {
                     let batchesHtml = '';
                     (item.batches || []).forEach(b => {
                         const stageBadges = {
-                            'PO_EMITIDA': '<span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold;">Proforma Emitida</span>',
+                            'PO_EMITIDA': '<span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold;">Proforma</span>',
                             'EM_FABRICACAO': '<span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold;">Em Fabricação</span>',
                             'PACKING_LIST_EMBARQUE': '<span style="background: rgba(236, 72, 153, 0.15); color: #ec4899; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold;">Packing List</span>',
                             'NO_NAVIO': '<span style="background: rgba(168, 85, 247, 0.15); color: #a855f7; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: bold;">Trânsito Marítimo</span>',
