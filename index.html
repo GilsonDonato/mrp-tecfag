@@ -16703,7 +16703,150 @@
         }
 
         // Kanban Board columns
-        function renderKanban() {
+                // =========================================================================
+        // HELPERS: RESUMO TÉCNICO & DE IMPORTAÇÃO PARA O CARD KANBAN
+        // =========================================================================
+        function extractCardTechnicalSummary(p) {
+            let ss = {};
+            try { ss = p.setup_specs ? (typeof p.setup_specs === 'string' ? JSON.parse(p.setup_specs) : p.setup_specs) : {}; } catch(e){}
+            
+            // Tensão elétrica
+            let tensao = ss.tensao_eletrica || '';
+            if (!tensao && p.diagnostico) {
+                try {
+                    const d = JSON.parse(p.diagnostico);
+                    if (d.infra && d.infra.tension) tensao = d.infra.tension;
+                } catch(e){}
+            }
+            if (tensao && tensao.length > 20) tensao = tensao.substring(0, 20);
+            
+            // Detalhe técnico / requisitos da máquina
+            let detalhe = '';
+            if (ss.obs_startup) {
+                const lines = ss.obs_startup.split('\n').map(l => l.trim()).filter(l => l.length > 5);
+                if (lines.length > 0) detalhe = lines[0];
+            }
+            
+            if (!detalhe && (ss.frasco_tamanho || ss.formato_embalagem)) {
+                detalhe = [ss.frasco_tamanho, ss.tampa_tamanho, ss.formato_embalagem].filter(Boolean).join(' | ');
+            }
+            
+            if (!detalhe && p.diagnostico) {
+                try {
+                    const d = JSON.parse(p.diagnostico);
+                    if (d.observations && d.observations.trim()) {
+                        detalhe = d.observations.split('\n')[0].trim();
+                    } else if (d.legacyText && d.legacyText.trim()) {
+                        detalhe = d.legacyText.split('\n')[0].trim();
+                    } else if (d.segment) {
+                        detalhe = 'Segmento: ' + d.segment.replace(/_/g, ' ');
+                    }
+                } catch(e) {
+                    detalhe = p.diagnostico.split('\n')[0].trim();
+                }
+            }
+            
+            if (!detalhe || detalhe.startsWith('{') || detalhe.includes('"isStructured"')) {
+                detalhe = p.project_name || p.sku || 'Especificação conforme Estudo Técnico';
+            }
+            if (detalhe.length > 95) detalhe = detalhe.substring(0, 92) + '...';
+            
+            let cadencia = ss.espaco_disponivel || '';
+            if (cadencia.length > 25) cadencia = cadencia.substring(0, 25);
+            
+            // Status de Amostras Físicas do Cliente
+            const chk = typeof p.checklist === 'string' ? JSON.parse(p.checklist || '{}') : (p.checklist || {});
+            let amostraStatus = 'Aguard. Amostras';
+            let amostraColor = '#f59e0b';
+            let amostraIcon = '⚠️';
+            
+            if (chk.sat || chk.vistoria) {
+                amostraStatus = 'Testada na Oficina';
+                amostraColor = '#10b981';
+                amostraIcon = '✅';
+            } else if (chk.customizacao || chk.embarque) {
+                amostraStatus = 'Amostras Validadas';
+                amostraColor = '#10b981';
+                amostraIcon = '✅';
+            } else if (chk.diagnostico) {
+                amostraStatus = 'Em Homologação';
+                amostraColor = '#38bdf8';
+                amostraIcon = '🧪';
+            }
+            
+            return { tensao, detalhe, cadencia, amostraStatus, amostraColor, amostraIcon };
+        }
+
+        function extractCardImportSummary(p) {
+            const chk = typeof p.checklist === 'string' ? JSON.parse(p.checklist || '{}') : (p.checklist || {});
+            let statusText = 'Pendente PO';
+            let statusColor = '#94a3b8';
+            let icon = '📑';
+            let badgeText = 'Fase ' + p.fase;
+            
+            if (p.fase === 1) {
+                statusText = 'Viabilidade Técnica em Análise';
+                statusColor = '#0ea5e9';
+                icon = '📐';
+                badgeText = 'Viabilidade';
+            } else if (p.fase === 2) {
+                statusText = 'Pedido Fechado (Venda Ganha)';
+                statusColor = '#6366f1';
+                icon = '✅';
+                badgeText = 'Pedido Fechado';
+            } else if (p.fase === 3) {
+                badgeText = 'Proforma & Câmbio';
+                if (chk.swift_pagamento || chk.cambio_sinal) {
+                    statusText = 'Sinal 30% Pago (SWIFT)';
+                    statusColor = '#10b981';
+                    icon = '💵';
+                } else if (chk.proforma) {
+                    statusText = 'PI Emitida (Aguard. Câmbio)';
+                    statusColor = '#ec4899';
+                    icon = '📑';
+                } else {
+                    statusText = 'Aguardando Emissão da PI';
+                    statusColor = '#f59e0b';
+                    icon = '⏳';
+                }
+            } else if (p.fase === 4) {
+                badgeText = 'Fábrica / China';
+                if (chk.embarque) {
+                    statusText = 'Embarque Concluído / Pronto';
+                    statusColor = '#10b981';
+                    icon = '🚢';
+                } else {
+                    statusText = 'Em Fabricação no Fornecedor';
+                    statusColor = '#f59e0b';
+                    icon = '🏭';
+                }
+            } else if (p.fase === 5) {
+                badgeText = 'Marítimo & EADI';
+                if (chk.chegada_tecfag) {
+                    statusText = 'Liberado EADI Bauru';
+                    statusColor = '#10b981';
+                    icon = '🏛️';
+                } else {
+                    statusText = 'Trânsito Marítimo & EADI Bauru';
+                    statusColor = '#06b6d4';
+                    icon = '🚢';
+                }
+            } else if (p.fase === 6) {
+                badgeText = 'Oficina Tecfag';
+                statusText = 'Setup & Testes com Amostra';
+                statusColor = '#8b5cf6';
+                icon = '🔧';
+            } else if (p.fase === 7) {
+                badgeText = 'Concluído';
+                statusText = 'FAT/SAT Aprovado & Entregue';
+                statusColor = '#10b981';
+                icon = '🚚';
+            }
+            
+            return { statusText, statusColor, icon, badgeText };
+        }
+
+function renderKanban() {
             const phasesList = [1, 2, 3, 4, 5, 6, 7];
             phasesList.forEach(i => {
                 const el = document.getElementById(`cards-fase${i}`);
@@ -16889,6 +17032,10 @@
                 }
 
                 const editingUser = state.activeLocks ? state.activeLocks[project.code] : null;
+                const techSummary = extractCardTechnicalSummary(project);
+                const importSummary = extractCardImportSummary(project);
+                const displayName = project.project_name || project.sku || 'Equipamento Sob Encomenda';
+
                 const card = document.createElement('div');
                 
                 let extraClass = "";
@@ -16905,78 +17052,75 @@
 
                 card.innerHTML = `
                     ${waitingVendorTopBannerHtml}
-                    <div class="project-card-header">
-                        <span class="project-client-name">${project.client}</span>
+                    <!-- Cabeçalho do Card: Cliente e Código -->
+                    <div class="project-card-header" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 4px;">
+                        <span class="project-client-name" style="font-weight: 800; font-size: 0.8rem; color: #f8fafc; line-height: 1.25; flex: 1;">${project.client}</span>
                         ${editingUser ? `
                             <span class="project-code-badge" style="background-color: #ef4444; color: white; display: inline-flex; align-items: center; gap: 3.5px; border: 1px solid rgba(239, 68, 68, 0.4); padding: 2px 6px; font-size: 0.65rem; text-transform: capitalize;" title="Edição bloqueada por: ${editingUser}">
                                 <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink: 0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                                 <span>${editingUser.split('@')[0].split('.')[0]}</span>
                             </span>
                         ` : `
-                            <span class="project-code-badge">${project.code}</span>
+                            <span class="project-code-badge" style="background: rgba(14, 165, 233, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); font-size: 0.62rem; padding: 2px 5px; border-radius: 4px; font-weight: 700; white-space: nowrap;">${project.code}</span>
                         `}
                     </div>
-                    ${project.project_name ? `
-                        <div class="project-name-card" style="font-size: 0.76rem; font-weight: bold; color: #38bdf8; margin: 4px 0 8px 0; border-bottom: 1px dashed rgba(56, 189, 248, 0.2); padding-bottom: 4px; word-break: break-word; text-transform: uppercase; letter-spacing: 0.3px;">
-                            ${project.project_name}
-                        </div>
-                    ` : ''}
-                    <div class="project-card-body">
-                        <div class="project-responsible-box">
-                            <span>Fase Atual:</span>
-                            <span class="responsible-label">${responsibleText}</span>
-                        </div>
-                        ${(project.fase !== 8) ? `
-                            <div class="project-deadline-box ${deadlineClass}">
-                                <span>Prazo:</span>
-                                <strong>${deadlineStr}${deadlineLabel}</strong>
-                            </div>
-                        ` : ''}
-                        ${project.fase === 8 ? `
-                            <div class="project-deadline-box deadline-overdue" style="background-color: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);">
-                                <span>Motivo de Perda:</span>
-                                <strong style="font-size: 0.72rem; word-break: break-word;">${project.motivoPerda || 'Não informado'}</strong>
-                            </div>
-                        ` : ''}
-                        ${waitingVendorBadgeHtml}
-                        <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
-                            ${crmAlertHtml}
-                            ${commentBadgeHtml}
-                        </div>
-                        <div class="progress-bar-wrapper" style="margin-top: 8px;">
-                            <div class="progress-bar-label">
-                                <span>Progresso</span>
-                                <strong>${progress}%</strong>
-                            </div>
-                            <div class="progress-bar-bg">
-                                <div class="progress-bar-fill" style="width: ${progress}%"></div>
-                            </div>
-                        </div>
+
+                    <!-- Modelo da Máquina / SKU -->
+                    <div class="project-name-card" style="font-size: 0.74rem; font-weight: 800; color: #38bdf8; margin: 2px 0 6px 0; background: rgba(56, 189, 248, 0.08); border-left: 3px solid #0ea5e9; padding: 4px 6px; border-radius: 0 4px 4px 0; word-break: break-word; text-transform: uppercase; letter-spacing: 0.2px;">
+                        📦 ${displayName}
                     </div>
-                    <div class="project-card-footer" style="display: flex; flex-direction: column; gap: 4px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px; margin-top: 6px;">
-                        ${project.crm_value ? `
-                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; font-weight: 700; color: #38bdf8;">
-                                <span style="font-size: 0.65rem; color: var(--text-secondary); font-weight: normal;">Valor:</span>
-                                <span>R$ ${parseFloat(project.crm_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                            </div>
-                        ` : ''}
-                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 0.68rem; color: var(--text-secondary);">
-                            <span class="project-pm-name" title="Gerente (PM)" style="max-width: 48%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-flex; align-items: center; gap: 3px;">
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                <span>${(project.pm || 'Sem PM').split(' ').slice(-2).join(' ')}</span>
-                            </span>
-                            <span class="project-vendedor-name" title="Vendedor: ${cardCreator}" style="color: ${isWaitingVendor ? '#fbbf24' : 'var(--text-secondary)'}; display: inline-flex; align-items: center; gap: 3px; font-weight: ${isWaitingVendor ? '700' : 'normal'}; max-width: 48%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                                <span>${cardCreator}</span>
-                            </span>
-                            ${hasWarning ? `
-                                <span class="critical-warning-icon" title="Alerta: Mais de 7 dias sem atualização nesta fase crítica!" style="flex-shrink: 0;">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+
+                    <div class="project-card-body" style="display: flex; flex-direction: column; gap: 6px;">
+                        <!-- BLOCO 1: VIABILIDADE TÉCNICA & CONFORMIDADE (100% da necessidade do cliente) -->
+                        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 3px;">
+                            <div style="font-size: 0.6rem; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; display: flex; align-items: center; justify-content: space-between;">
+                                <span>📐 ESPECIFICAÇÃO & AMOSTRAS</span>
+                                <span style="font-size: 0.58rem; color: ${techSummary.amostraColor}; font-weight: 800; background: rgba(0,0,0,0.35); padding: 1px 4px; border-radius: 3px;">
+                                    ${techSummary.amostraIcon} ${techSummary.amostraStatus}
                                 </span>
+                            </div>
+                            <div style="font-size: 0.68rem; color: #cbd5e1; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" title="${techSummary.detalhe}">
+                                ${techSummary.detalhe}
+                            </div>
+                            ${techSummary.tensao ? `
+                                <div style="display: flex; align-items: center; gap: 6px; font-size: 0.63rem; color: #38bdf8; font-weight: 600; margin-top: 1px;">
+                                    <span>⚡ ${techSummary.tensao}</span>
+                                    ${techSummary.cadencia ? `<span>• ⏱️ ${techSummary.cadencia}</span>` : ''}
+                                </div>
                             ` : ''}
                         </div>
+
+                        <!-- BLOCO 2: CONTROLE DE IMPORTAÇÃO & PONTUALIDADE (Da Invoice ao EADI) -->
+                        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 3px;">
+                            <div style="font-size: 0.6rem; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; display: flex; align-items: center; justify-content: space-between;">
+                                <span>🚢 IMPORTAÇÃO & SUPPLY</span>
+                                <span style="font-size: 0.58rem; color: ${importSummary.statusColor}; font-weight: 800;">
+                                    ${importSummary.icon} ${importSummary.badgeText}
+                                </span>
+                            </div>
+                            <div style="font-size: 0.68rem; color: #f1f5f9; display: flex; align-items: center; gap: 4px;">
+                                <strong style="color: ${importSummary.statusColor}; font-weight: 700;">${importSummary.statusText}</strong>
+                            </div>
+                            ${(project.fase !== 8) ? `
+                                <div class="project-deadline-box ${deadlineClass}" style="margin: 2px 0 0 0; padding: 3px 6px; font-size: 0.65rem; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 0.6rem;">⏱️ Prazo Etapa:</span>
+                                    <strong>${deadlineStr}${deadlineLabel}</strong>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        ${waitingVendorBadgeHtml}
                     </div>
-                `;
+
+                    <!-- Rodapé do Card -->
+                    <div class="project-card-footer" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 5px; margin-top: 5px; font-size: 0.66rem; color: var(--text-secondary);">
+                        <span style="display: inline-flex; align-items: center; gap: 4px; max-width: 65%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            👤 PM: <strong style="color: #f8fafc;">${(project.pm || 'Fernando').split(' ')[0]}</strong>
+                        </span>
+                        <span style="color: #38bdf8; font-weight: 700; font-size: 0.62rem; display: inline-flex; align-items: center; gap: 2px;">
+                            Detalhes ➔
+                        </span>
+                    </div>`;
                 const colEl = document.getElementById(`cards-fase${project.fase}`);
                 if (colEl) colEl.appendChild(card);
             });
