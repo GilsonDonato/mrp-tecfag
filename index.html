@@ -2639,6 +2639,13 @@
                             <!-- Origem do Equipamento & Seleção do Segmento Principal -->
                             <div class="form-row" style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 15px; margin-bottom: 15px;">
                                 <div class="form-group">
+                                    <label for="prj-intake-phase-type">Etapa Inicial no Kanban*</label>
+                                    <select id="prj-intake-phase-type" class="form-control" required style="border: 1px solid var(--primary); background: rgba(59, 130, 246, 0.03);">
+                                        <option value="2" selected>✅ Pedido Fechado (Venda Ganha no RD) - Fase 2</option>
+                                        <option value="1">📐 Viabilidade Técnica (Apenas Especiais) - Fase 1</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
                                     <label for="prj-intake-origin">Origem do Equipamento*</label>
                                     <select id="prj-intake-origin" class="form-control" required style="border: 1px solid var(--primary); background: rgba(59, 130, 246, 0.03);">
                                         <option value="Importação" selected>Importação</option>
@@ -3949,13 +3956,14 @@
                             <div style="display: grid; grid-template-columns: 1fr 140px; gap: 12px;">
                                 <div class="detail-card">
                                     <h5 style="color: var(--primary); margin: 0 0 10px 0; font-size: 0.8rem; text-transform: uppercase;">⏱️ Cronograma & SLAs (dias)</h5>
-                                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 0.72rem;">
-                                        <div><label style="color: var(--text-secondary); display: block; font-size: 0.65rem;">1. Eng.</label><input type="number" class="form-control" id="modal-deadline-fase1" style="padding: 4px; font-size: 0.72rem;" readonly></div>
-                                        <div><label style="color: var(--text-secondary); display: block; font-size: 0.65rem;">2. Com.</label><input type="number" class="form-control" id="modal-deadline-fase2" style="padding: 4px; font-size: 0.72rem;" readonly></div>
-                                        <div><label style="color: var(--text-secondary); display: block; font-size: 0.65rem;">3. Prof.</label><input type="number" class="form-control" id="modal-deadline-fase3" style="padding: 4px; font-size: 0.72rem;" readonly></div>
-                                        <div><label style="color: var(--text-secondary); display: block; font-size: 0.65rem;">4. Comp.</label><input type="number" class="form-control" id="modal-deadline-fase4" style="padding: 4px; font-size: 0.72rem;" readonly></div>
-                                        <div><label style="color: var(--text-secondary); display: block; font-size: 0.65rem;">5. Transp.</label><input type="number" class="form-control" id="modal-deadline-fase5" style="padding: 4px; font-size: 0.72rem;" readonly></div>
-                                        <div><label style="color: var(--text-secondary); display: block; font-size: 0.65rem;">6. SAT</label><input type="number" class="form-control" id="modal-deadline-fase6" style="padding: 4px; font-size: 0.72rem;" readonly></div>
+                                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-size: 0.72rem;">
+                                        <div><label style="color: var(--text-secondary); display: block; font-size: 0.65rem;">1. Viab. (5d)</label><input type="number" class="form-control" id="modal-deadline-fase1" style="padding: 4px; font-size: 0.72rem;" readonly></div>
+                                        <div><label style="color: var(--text-secondary); display: block; font-size: 0.65rem;">2. Ped. (10d)</label><input type="number" class="form-control" id="modal-deadline-fase2" style="padding: 4px; font-size: 0.72rem;" readonly></div>
+                                        <div><label style="color: var(--text-secondary); display: block; font-size: 0.65rem;">3. Prof. (3d)</label><input type="number" class="form-control" id="modal-deadline-fase3" style="padding: 4px; font-size: 0.72rem;" readonly></div>
+                                        <div><label style="color: var(--text-secondary); display: block; font-size: 0.65rem;">4. Fabr. (50d)</label><input type="number" class="form-control" id="modal-deadline-fase4" style="padding: 4px; font-size: 0.72rem;" readonly></div>
+                                        <div><label style="color: var(--text-secondary); display: block; font-size: 0.65rem;">5. Marít. (40d)</label><input type="number" class="form-control" id="modal-deadline-fase5" style="padding: 4px; font-size: 0.72rem;" readonly></div>
+                                        <div><label style="color: var(--text-secondary); display: block; font-size: 0.65rem;">6. Ofic. (10d)</label><input type="number" class="form-control" id="modal-deadline-fase6" style="padding: 4px; font-size: 0.72rem;" readonly></div>
+                                        <div><label style="color: var(--text-secondary); display: block; font-size: 0.65rem;">7. Entr. (5d)</label><input type="number" class="form-control" id="modal-deadline-fase7" style="padding: 4px; font-size: 0.72rem;" readonly></div>
                                     </div>
                                 </div>
                                 <div class="detail-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; text-align: center;">
@@ -4055,7 +4063,7 @@
                         <!-- Coluna Esquerda: Checklist Fase 1 + Copiloto IA -->
                         <div style="display: flex; flex-direction: column; gap: 16px;">
                             <div class="detail-card">
-                                <h4 style="margin-bottom: 15px; color: var(--color-fase1);">Fase 1: Engenharia de Aplicação & Escopo (SLA 3 dias)</h4>
+                                <h4 style="margin-bottom: 15px; color: var(--color-fase1);">Fase 1: Viabilidade Técnica (Apenas Especiais) (SLA 5 dias)</h4>
                                 <div class="checklist-group" style="--group-color: var(--color-fase1); border-bottom: none; padding-bottom: 0;">
                                     <div class="checklist-items">
                                         <div class="checklist-item" id="chk-diagnostico" onclick="toggleCheckItem('diagnostico')">
@@ -4307,7 +4315,7 @@
                         <!-- Coluna Esquerda: Fases 2 e 3 -->
                         <div style="display: flex; flex-direction: column; gap: 16px;">
                             <div class="detail-card">
-                                <h4 style="margin-bottom: 15px; color: var(--color-fase2);">Fase 2: Comercial & Contrato (Resp: Vendas - SLA 5 dias)</h4>
+                                <h4 style="margin-bottom: 15px; color: var(--color-fase2);">Fase 2: Pedido Fechado (Venda Ganha no RD) (Resp: Comercial - SLA 10 dias)</h4>
                                 <div class="checklist-group" style="--group-color: var(--color-fase2); border-bottom: none; padding-bottom: 0;">
                                     <div class="checklist-items">
                                         <div class="checklist-item" id="chk-aprovacao" onclick="toggleCheckItem('aprovacao')">
@@ -4328,7 +4336,7 @@
                             </div>
 
                             <div class="detail-card">
-                                <h4 style="margin-bottom: 15px; color: var(--color-fase3);">Fase 3: Proforma, Câmbio & Pagamento Inicial (Resp: Compras - SLA 5 dias)</h4>
+                                <h4 style="margin-bottom: 15px; color: var(--color-fase3);">Fase 3: Proforma, Câmbio & PO Fornecedor (Resp: Compras - SLA 3 dias)</h4>
                                 <div class="checklist-group" style="--group-color: var(--color-fase3); border-bottom: none; padding-bottom: 0;">
                                     <div class="checklist-items">
                                         <div class="checklist-item" id="chk-proforma" onclick="toggleCheckItem('proforma')">
@@ -4407,7 +4415,7 @@
                         <!-- Coluna Esquerda: Fases 4 e 5 -->
                         <div style="display: flex; flex-direction: column; gap: 16px;">
                             <div class="detail-card">
-                                <h4 style="margin-bottom: 15px; color: var(--color-fase4);">Fase 4: Compras, Produção & Embarque (Resp: Compras - SLA 55 dias)</h4>
+                                <h4 style="margin-bottom: 15px; color: var(--color-fase4);">Fase 4: Fabricação Internacional & Embarque (Resp: Supply Chain - SLA 50 dias)</h4>
                                 <div class="checklist-group" style="--group-color: var(--color-fase4); border-bottom: none; padding-bottom: 0;">
                                     <div class="checklist-items">
                                         <div class="checklist-item" id="chk-producao" onclick="toggleCheckItem('producao')">
@@ -4435,7 +4443,7 @@
                             </div>
 
                             <div class="detail-card">
-                                <h4 style="margin-bottom: 15px; color: var(--color-fase5);">Fase 5: Transporte Marítimo & Nacionalização (Resp: Estoque - SLA 55 dias)</h4>
+                                <h4 style="margin-bottom: 15px; color: var(--color-fase5);">Fase 5: Trânsito Marítimo & EADI Bauru (Resp: Comex/EADI - SLA 40 dias)</h4>
                                 <div class="checklist-group" style="--group-color: var(--color-fase5); border-bottom: none; padding-bottom: 0;">
                                     <div class="checklist-items">
                                         <div class="checklist-item" id="chk-transporte_maritimo" onclick="toggleCheckItem('transporte_maritimo')">
@@ -4490,7 +4498,7 @@
                             </div>
 
                             <div class="detail-card">
-                                <h4 style="margin-bottom: 15px; color: var(--color-fase6);">Fase 6: Oficina, Instalação, Setup & SAT (Resp: Técnico - SLA 10 dias)</h4>
+                                <h4 style="margin-bottom: 15px; color: var(--color-fase6);">Fase 6: Oficina, Setup & Testes (FAT/SAT) (Resp: Técnico - SLA 10 dias)</h4>
                                 <div class="checklist-group" style="--group-color: var(--color-fase6); border-bottom: none; padding-bottom: 0;">
                                     <div class="checklist-items">
                                         <div class="checklist-item" id="chk-vistoria" onclick="toggleCheckItem('vistoria')">
@@ -13629,12 +13637,8 @@
                     .then(async projects => {
                         if (Array.isArray(projects)) {
                             projects.forEach(p => {
-                                if (parseInt(p.fase) !== 8) {
-                                    const calculated = calculateProjectPhase(p);
-                                    if (calculated !== parseInt(p.fase)) {
-                                        p.fase = calculated;
-                                    }
-                                }
+                                // Preserva rigorosamente a fase canônica gravada no banco SQLite
+                                p.fase = parseInt(p.fase) || 1;
                             });
                             state.projects = projects;
                         } else {
@@ -16491,13 +16495,20 @@
                         tech,
                         serial: '-',
                         route: '-',
-                        fase: 1, // Prospecção & Qualificação
+                        fase: (function() {
+                            const sel = document.getElementById('prj-intake-phase-type');
+                            return sel ? parseInt(sel.value) : 2;
+                        })(),
                         checklist: {
                             diagnostico: segment !== "" ? true : false,
                             diagnostico_user: currentUser,
                             diagnostico_date: new Date().toISOString(),
-                            customizacao: false, aprovacao: false, cotacao: false, 
-                            fluxograma: false, contrato: false, planta_baixa: false,
+                            customizacao: (document.getElementById('prj-intake-phase-type')?.value === '1' ? false : true),
+                            aprovacao: (document.getElementById('prj-intake-phase-type')?.value === '1' ? false : true),
+                            cotacao: (document.getElementById('prj-intake-phase-type')?.value === '1' ? false : true), 
+                            fluxograma: (document.getElementById('prj-intake-phase-type')?.value === '1' ? false : true),
+                            contrato: false,
+                            planta_baixa: (document.getElementById('prj-intake-phase-type')?.value === '1' ? false : true),
                             pagamento: false, producao: false, embarque: false, fedex: false,
                             desembaraco: false, vistoria: false, travas: false, direcionamento: false,
                             logistica_saida: false, startup: false, sat: false
@@ -16657,23 +16668,25 @@
                 return 1; // Engenharia de Aplicação & Escopo
             }
 
+            let calculated = 1;
             // Fluxo Padrão (Importação / Sob Encomenda):
             if (hasF6 || f5Complete) {
-                return 6; // Oficina, Instalação, Setup & SAT
+                calculated = 6; // Oficina, Setup & SAT
+            } else if (hasF5 || f4Complete) {
+                calculated = 5; // Trânsito Marítimo & EADI Bauru
+            } else if (hasF4 || f3Complete) {
+                calculated = 4; // Fabricação Internacional & Embarque
+            } else if (hasF3 || f2Complete) {
+                calculated = 3; // Proforma, Câmbio & PO Fornecedor
+            } else if (hasF2 || f1Complete) {
+                calculated = 2; // Pedido Fechado (Venda Ganha no RD)
+            } else {
+                calculated = 1; // Viabilidade Técnica (Especiais)
             }
-            if (hasF5 || f4Complete) {
-                return 5; // Transporte Marítimo & Nacionalização
-            }
-            if (hasF4 || f3Complete) {
-                return 4; // Compras, Produção & Embarque
-            }
-            if (hasF3 || f2Complete) {
-                return 3; // Proforma, Câmbio & Pagamento Inicial
-            }
-            if (hasF2 || f1Complete) {
-                return 2; // Comercial & Contrato
-            }
-            return 1; // Engenharia de Aplicação & Escopo
+
+            const currentFase = parseInt(project.fase) || 1;
+            // Não regredir a fase se ela já estiver avançada no banco ou na operação física
+            return Math.max(currentFase, calculated);
         }
 
         // Cálculo do Progresso do Projeto (%) com base nas etapas do checklist
@@ -18219,12 +18232,13 @@
             });
 
             // Prazos no modal (Travados - Não Editáveis)
-            if (document.getElementById('modal-deadline-fase1')) document.getElementById('modal-deadline-fase1').value = project.prazos ? (project.prazos.fase1 || 3) : 3;
-            if (document.getElementById('modal-deadline-fase2')) document.getElementById('modal-deadline-fase2').value = project.prazos ? (project.prazos.fase2 || 5) : 5;
-            if (document.getElementById('modal-deadline-fase3')) document.getElementById('modal-deadline-fase3').value = project.prazos ? (project.prazos.fase3 || 5) : 5;
-            if (document.getElementById('modal-deadline-fase4')) document.getElementById('modal-deadline-fase4').value = project.prazos ? (project.prazos.fase4 || 55) : 55;
-            if (document.getElementById('modal-deadline-fase5')) document.getElementById('modal-deadline-fase5').value = project.prazos ? (project.prazos.fase5 || 55) : 55;
+            if (document.getElementById('modal-deadline-fase1')) document.getElementById('modal-deadline-fase1').value = project.prazos ? (project.prazos.fase1 || 5) : 5;
+            if (document.getElementById('modal-deadline-fase2')) document.getElementById('modal-deadline-fase2').value = project.prazos ? (project.prazos.fase2 || 10) : 10;
+            if (document.getElementById('modal-deadline-fase3')) document.getElementById('modal-deadline-fase3').value = project.prazos ? (project.prazos.fase3 || 3) : 3;
+            if (document.getElementById('modal-deadline-fase4')) document.getElementById('modal-deadline-fase4').value = project.prazos ? (project.prazos.fase4 || 50) : 50;
+            if (document.getElementById('modal-deadline-fase5')) document.getElementById('modal-deadline-fase5').value = project.prazos ? (project.prazos.fase5 || 40) : 40;
             if (document.getElementById('modal-deadline-fase6')) document.getElementById('modal-deadline-fase6').value = project.prazos ? (project.prazos.fase6 || 10) : 10;
+            if (document.getElementById('modal-deadline-fase7')) document.getElementById('modal-deadline-fase7').value = project.prazos ? (project.prazos.fase7 || 5) : 5;
 
             // Load Stage Attachments from IndexedDB
             renderAttachments();

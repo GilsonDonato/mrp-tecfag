@@ -2727,7 +2727,7 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
                     if (lastInteraction) {
                         const diffTime = Math.abs(new Date() - new Date(lastInteraction));
                         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                        const limitDays = fase === 1 ? 3 : 5;
+                        const limitDays = fase === 1 ? 5 : 10;
                         
                         if (diffDays >= limitDays) {
                             negligenceList.push({
@@ -2746,7 +2746,7 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
                     prazosObj = p.prazos ? JSON.parse(p.prazos) : {};
                 } catch(e) {}
 
-                const defaults = { 1: 3, 2: 5, 3: 5, 4: 55, 5: 55, 6: 10 };
+                const defaults = { 1: 5, 2: 10, 3: 3, 4: 50, 5: 40, 6: 10, 7: 5 };
                 const deadlineDays = prazosObj[`fase${fase}`] !== undefined ? parseInt(prazosObj[`fase${fase}`]) : (defaults[fase] || 7);
                 
                 const entryDateStr = p.faseEntryDate || p.lastUpdate || new Date().toISOString();
@@ -2756,12 +2756,13 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
                     delayedCount++;
                     
                     const phaseResponsible = {
-                        1: 'Engenharia de Aplicação & Escopo',
-                        2: 'Comercial & Contrato',
-                        3: 'Proforma, Câmbio & Pagamento Inicial',
-                        4: 'Compras, Produção & Embarque',
-                        5: 'Transporte Marítimo & Nacionalização',
-                        6: 'Oficina, Instalação, Setup & SAT'
+                        1: 'Viabilidade Técnica (Especiais)',
+                        2: 'Pedido Fechado (Venda Ganha)',
+                        3: 'Proforma, Câmbio & PO Fornecedor',
+                        4: 'Fabricação Internacional & Embarque',
+                        5: 'Trânsito Marítimo & EADI Bauru',
+                        6: 'Oficina, Setup & Testes (FAT/SAT)',
+                        7: 'Faturamento, Entrega & Concluído'
                     };
 
                     delayedProjects.push({
@@ -2811,15 +2812,17 @@ app.get('/api/metrics/lead-time', authenticateToken, async (req, res) => {
         const activeProjects = await dbAll('SELECT code, fase, faseEntryDate FROM projects WHERE fase NOT IN (6, 7)');
         
         const phaseNomes = {
-            1: 'Engenharia de Aplicação & Escopo',
-            2: 'Comercial & Contrato',
-            3: 'Compras & Produção Internacional',
-            4: 'Recebimento, Estoque e Roteamento',
-            5: 'Entrega, Instalação e SAT'
+            1: 'Viabilidade Técnica (Especiais)',
+            2: 'Pedido Fechado (Venda RD)',
+            3: 'Proforma, Câmbio & PO',
+            4: 'Fabricação Internacional',
+            5: 'Trânsito Marítimo & EADI Bauru',
+            6: 'Oficina, Setup & SAT',
+            7: 'Faturamento, Entrega & Concluído'
         };
 
-        const sums = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-        const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        const sums = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
+        const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
 
         // Somar tempos das transições passadas finalizadas
         history.forEach(h => {
@@ -2840,7 +2843,7 @@ app.get('/api/metrics/lead-time', authenticateToken, async (req, res) => {
         });
 
         const leadTimes = [];
-        for (let f = 1; f <= 5; f++) {
+        for (let f = 1; f <= 7; f++) {
             const avg = counts[f] > 0 ? parseFloat((sums[f] / counts[f]).toFixed(1)) : 0.0;
             leadTimes.push({
                 fase: f,
@@ -7246,7 +7249,7 @@ app.put('/api/projects/:code', async (req, res) => {
             await recordAuditLog(code, auditUser, `Alterou a Rota de "${oldProject.route || '-'}" para "${route || '-'}"`);
         }
         if (fase !== undefined && parseInt(fase) !== parseInt(oldFase)) {
-            const faseNomesBrief = { 1: 'Engenharia', 2: 'Comercial', 3: 'Proforma & Câmbio', 4: 'Compras & Produção', 5: 'Transporte & Nacionalização', 6: 'Oficina & SAT', 7: 'Concluído', 8: 'Cancelado' };
+            const faseNomesBrief = { 1: 'Viabilidade Técnica', 2: 'Pedido Fechado', 3: 'Proforma & Câmbio', 4: 'Fabricação Internacional', 5: 'Trânsito Marítimo & EADI', 6: 'Oficina & SAT', 7: 'Faturamento & Conclusão', 8: 'Cancelado' };
             await recordAuditLog(code, auditUser, `Mudou o projeto da fase "${faseNomesBrief[oldFase] || oldFase}" para "${faseNomesBrief[fase] || fase}"`);
         }
         if (tech !== undefined && tech !== oldProject.tech) {
