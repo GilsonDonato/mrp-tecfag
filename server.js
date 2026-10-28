@@ -390,6 +390,10 @@ function initializeDatabase() {
             }
         });
 
+        // Migração de colunas para vínculo entre Importação e Projetos
+        db.run("ALTER TABLE stock_orders ADD COLUMN project_code TEXT", () => {});
+        db.run("ALTER TABLE stock_orders ADD COLUMN client_name TEXT", () => {});
+
         // Migração para adicionar extração de texto em instalações existentes
         db.run("ALTER TABLE supplier_resources ADD COLUMN extracted_text TEXT", (err) => {
             if (err && !err.message.includes("duplicate column name")) {
@@ -8768,6 +8772,70 @@ app.delete('/api/supply-chain/suppliers/:id', authenticateToken, restrictToSuppl
     }
 });
 
+
+// POST /api/projects/:code/transfer-to-import - Transfere projeto para o pipeline de Importação & Estoque
+app.post('/api/projects/:code/transfer-to-import', authenticateToken, async (req, res) => {
+    const { code } = req.params;
+    const { supplier_name, invoice_number, total_fob_value, currency, notes } = req.body || {};
+    const user = req.user ? req.user.username : 'Sistema';
+
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) return res.status(404).json({ error: 'Projeto não encontrado.' });
+
+        const poNumber = 'PO-' + code;
+        const now = new Date().toISOString();
+        let order = await dbGet('SELECT * FROM stock_orders WHERE project_code = ?', [code]);
+
+        if (!order) {
+            const result = await dbRun(`
+                INSERT INTO stock_orders (
+                    po_number, project_code, client_name, supplier_name, invoice_number, 
+                    currency, total_fob_value, stage, created_by, created_at, updated_at, notes, customs_regime
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PO_EMITIDA', ?, ?, ?, ?, 'EADI_BAURU')
+            `, [
+                poNumber, code, project.client, supplier_name || 'Fornecedor Internacional', invoice_number || ('PI-' + code),
+                currency || 'USD', parseFloat(total_fob_value) || 0, user, now, now, notes || ('Importação referente ao projeto ' + code)
+            ]);
+
+            const orderId = result.lastID;
+
+            await dbRun(`
+                INSERT INTO stock_order_items (
+                    order_id, sku, description, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at
+                ) VALUES (?, ?, ?, 1, 0, ?, ?, 'PENDING', ?)
+            `, [
+                orderId, project.sku || project.code, (project.project_name || project.sku || 'Máquina') + ' (' + project.client + ')',
+                parseFloat(total_fob_value) || 0, parseFloat(total_fob_value) || 0, now
+            ]);
+        }
+
+        // Atualiza projeto para Fase 3 (Em Importação) para sair do Quadro de Desenvolvimento
+        let chk = {};
+        try { chk = project.checklist ? JSON.parse(project.checklist) : {}; } catch(e){}
+        chk.proforma = true;
+        chk.proforma_user = user;
+        chk.proforma_date = now;
+
+        await dbRun(`
+            UPDATE projects 
+            SET fase = 3, checklist = ?, lastUpdate = ?
+            WHERE code = ?
+        `, [JSON.stringify(chk), now, code]);
+
+        await recordAuditLog(code, user, `Fornecedor enviou Invoice (${invoice_number || 'PI'}). Projeto transferido para Gestão de Importação & Estoque (Ordem ${poNumber}).`);
+
+        res.json({ 
+            success: true, 
+            message: `Projeto ${code} transferido com sucesso para a Gestão de Importação & Estoque!`,
+            po_number: poNumber 
+        });
+    } catch(err) {
+        console.error('Erro ao transferir projeto para importação:', err);
+        res.status(500).json({ error: 'Erro ao transferir projeto para importação: ' + err.message });
+    }
+});
+
 // GET /api/supply-chain/orders - Lista todas as ordens / containers de estoque
 app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, async (req, res) => {
     try {
@@ -9242,6 +9310,17 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
         let actualArrival = order.actual_arrival_date;
         if (nextStage === 'DOCA_GALPAO' && !actualArrival) {
             actualArrival = new Date().toISOString().split('T')[0];
+        }
+
+        // Se a ordem avançou para DOCA_GALPAO (Chegada Tecfag / Liberado) e possui projeto vinculado:
+        // Retorna o projeto automaticamente ao Quadro de Projetos (Fase 6: Oficina, Setup & SAT)!
+        if (nextStage === 'DOCA_GALPAO' && order.project_code) {
+            const nowIso = new Date().toISOString();
+            await dbRun("UPDATE projects SET fase = 6, faseEntryDate = ?, lastUpdate = ? WHERE code = ?", [
+                nowIso, nowIso, order.project_code
+            ]);
+            await recordAuditLog(order.project_code, user, `Máquina liberada e entregue na Doca Tecfag. Projeto retornado ao Quadro de Projetos (Fase 6: Oficina, Setup & SAT).`);
+            console.log(`[SUPPLY CHAIN -> PROJETOS] Projeto ${order.project_code} retornado ao Quadro de Projetos na Fase 6 (Oficina).`);
         }
 
         let eadiEntry = order.eadi_entry_date;
