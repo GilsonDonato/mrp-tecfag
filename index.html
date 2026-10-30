@@ -4818,6 +4818,43 @@
         </div>
     </div>
 
+    <!-- MODAL PARA REGISTRAR RESPOSTA RECEBIDA DE E-MAIL -->
+    <div class="modal-overlay" id="modal-inbound-email" style="z-index: 10060; display: none; align-items: center; justify-content: center;">
+        <div class="modal" style="max-width: 600px; width: 92%; background: #0f172a; border: 1px solid rgba(52, 211, 153, 0.4); box-shadow: 0 10px 40px rgba(0,0,0,0.7); border-radius: 8px;">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; color: #34d399; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                    <span>📥</span> Registrar Resposta Recebida (E-mail / WhatsApp)
+                </h3>
+                <button type="button" class="btn-close" onclick="closeRegisterInboundEmailModal()" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">&times;</button>
+            </div>
+            <form onsubmit="handleConfirmInboundEmail(event)" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;">
+                <p style="font-size: 0.78rem; color: #cbd5e1; margin: 0; line-height: 1.4;">
+                    Cole aqui a resposta recebida do fornecedor ou cliente. O histórico será gravado no card e o <strong>Gemini IA analisará o texto na hora</strong>, resumindo preços, prazos e sugerindo a tréplica.
+                </p>
+                <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 10px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="font-size: 0.70rem; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Quem Respondeu? (De)</label>
+                        <input type="text" id="inbound-sender" class="form-control" placeholder="Ex: Amy Machinery / Kunshan / Cliente" style="padding: 7px 10px; font-size: 0.80rem;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="font-size: 0.70rem; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Assunto</label>
+                        <input type="text" id="inbound-subject" class="form-control" placeholder="Re: Order Inquiry..." style="padding: 7px 10px; font-size: 0.80rem;">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label style="font-size: 0.70rem; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Conteúdo da Resposta (Texto do E-mail)*</label>
+                    <textarea id="inbound-body" class="form-control" rows="6" required placeholder="Cole aqui o e-mail recebido em inglês ou português..." style="padding: 10px; font-size: 0.78rem;"></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeRegisterInboundEmailModal()" style="font-size: 0.78rem;">Cancelar</button>
+                    <button type="submit" id="btn-submit-inbound" class="btn" style="background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: bold; font-size: 0.80rem; padding: 8px 18px; border-radius: 6px; cursor: pointer;">
+                        📥 Salvar & Analisar com IA
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL DE RENOVAÇÃO DE SESSÃO IN-PLACE (PROTEÇÃO CONTRA PERDA DE DADOS) -->
     <div class="modal-overlay" id="session-expired-modal" style="z-index: 99999;">
         <div class="modal" style="width: 440px; padding: 25px; border: 1px solid #ef4444; box-shadow: 0 10px 40px rgba(0,0,0,0.85); background: #111827;">
@@ -13815,6 +13852,10 @@
         
         function openRegisterInboundEmailModal() {
             const modal = document.getElementById('modal-inbound-email');
+            if (!modal) {
+                alert('Erro: Modal de resposta não encontrado na página.');
+                return;
+            }
             const senderInput = document.getElementById('inbound-sender');
             const subjectInput = document.getElementById('inbound-subject');
             const bodyInput = document.getElementById('inbound-body');
@@ -13825,10 +13866,8 @@
                 if (senderInput) senderInput.value = project ? (project.import_supplier || project.contact || '') : '';
                 if (subjectInput) subjectInput.value = `Re: Project Inquiry [${activeProjectCode}]`;
             }
-            if (modal) {
-                modal.style.display = 'flex';
-                modal.classList.add('active');
-            }
+            modal.style.display = 'flex';
+            modal.classList.add('active');
         }
 
         function closeRegisterInboundEmailModal() {
