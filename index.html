@@ -9494,60 +9494,15 @@
                         </button>
                     </div>
                     ${printArea.innerHTML}
-                    <script>
-                        window.onload = function() {
-                            setTimeout(function() { window.print(); }, 400);
-                        };
-                    <\/script>
-                
-    <!-- MODAL DE TRANSFERÊNCIA DE PROJETO PARA GESTÃO DE IMPORTAÇÃO & ESTOQUE -->
-    <div class="modal" id="modal-transfer-import" style="display: none; align-items: center; justify-content: center; z-index: 10050;">
-        <div class="modal-content" style="max-width: 520px; width: 92%; background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.4); box-shadow: 0 10px 40px rgba(0,0,0,0.6);">
-            <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0; color: #38bdf8; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
-                    <span>🚢</span> Fornecedor Mandou a Invoice
-                </h3>
-                <button type="button" class="btn-close" onclick="closeTransferToImportModal()" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">&times;</button>
-            </div>
-            <form id="form-transfer-import" onsubmit="handleConfirmTransferToImport(event)">
-                <input type="hidden" id="transfer-prj-code">
-                <div style="padding: 16px 0; display: flex; flex-direction: column; gap: 12px;">
-                    <p style="font-size: 0.8rem; color: #cbd5e1; margin: 0; line-height: 1.4;">
-                        O alinhamento técnico com o fornecedor foi concluído! Ao transferir, este projeto <strong>sairá da tela de projetos</strong> e entrará na <strong>Gestão de Importação & Estoque (Proforma)</strong>.
-                    </p>
-                    <div class="form-group">
-                        <label for="transfer-supplier-name" style="font-size: 0.72rem; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Fornecedor Internacional*</label>
-                        <input type="text" id="transfer-supplier-name" class="form-control" required placeholder="Ex: Amy Machinery / Kunshan / Fornecedor China" style="padding: 8px; font-size: 0.82rem;">
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 10px;">
-                        <div class="form-group">
-                            <label for="transfer-invoice-num" style="font-size: 0.72rem; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Nº da Proforma Invoice (PI)*</label>
-                            <input type="text" id="transfer-invoice-num" class="form-control" required placeholder="Ex: PI-2026-884" style="padding: 8px; font-size: 0.82rem;">
-                        </div>
-                        <div class="form-group">
-                            <label for="transfer-fob-val" style="font-size: 0.72rem; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Valor FOB (USD)*</label>
-                            <input type="number" step="0.01" id="transfer-fob-val" class="form-control" required placeholder="Ex: 25000" style="padding: 8px; font-size: 0.82rem;">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="transfer-notes" style="font-size: 0.72rem; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Observações de Importação</label>
-                        <textarea id="transfer-notes" class="form-control" rows="2" placeholder="Instruções de pagamento 30%, prazo de entrega da fábrica, etc." style="padding: 8px; font-size: 0.78rem;"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeTransferToImportModal()" style="font-size: 0.78rem;">Cancelar</button>
-                    <button type="submit" class="btn" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; font-weight: bold; font-size: 0.82rem; padding: 8px 16px;">
-                        🚀 Transferir para Importação
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-</body>
+                </body>
                 </html>
             `);
             printWin.document.close();
+            setTimeout(function() {
+                try {
+                    printWin.print();
+                } catch(e) {}
+            }, 500);
         }
 
         function shareFilmSpecWhatsApp() {
@@ -13703,6 +13658,7 @@
         }
 
         // Load Database from Server APIs
+        window.loadProjects = loadProjectsDB;
         function loadProjectsDB() {
             if (state.productsCatalog.length === 0) {
                 loadProductsDB();
@@ -14485,6 +14441,9 @@
             } else if (tabId === 'settings') {
                 loadSettingsTab();
             } else if (tabId === 'supply-chain') {
+                if (!state.projects || state.projects.length === 0) {
+                    if (typeof loadProjectsDB === 'function') loadProjectsDB();
+                }
                 loadSupplyChainData();
             }
         }
@@ -17641,8 +17600,29 @@ function renderKanban() {
             const setupStatus = document.getElementById('modal-setup-files-status');
             if (setupStatus) setupStatus.innerText = 'Nenhum arquivo selecionado';
 
-            const project = state.projects.find(p => p.code === code);
-            if (!project) return;
+            // Garante que a lista de projetos esteja carregada mesmo se o usuário acessar diretamente a aba de Importação
+            if (!state.projects || state.projects.length === 0 || !state.projects.find(p => p.code === code)) {
+                try {
+                    const token = localStorage.getItem('tecfag_session_token');
+                    const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+                    const res = await fetch('/api/projects', { headers: authHeaders });
+                    if (res.ok) {
+                        const prjs = await res.json();
+                        if (Array.isArray(prjs)) {
+                            prjs.forEach(p => { p.fase = parseInt(p.fase) || 1; });
+                            state.projects = prjs;
+                        }
+                    }
+                } catch (e) {
+                    console.error('[OPEN MODAL] Erro ao sincronizar projetos do servidor:', e);
+                }
+            }
+
+            const project = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === code) : null;
+            if (!project) {
+                alert('⚠️ Não foi possível encontrar os dados do projeto ' + code + '. Verifique sua conexão.');
+                return;
+            }
 
             // Carregar estudo de caso persistido, se houver
             if (project.setup_specs && project.setup_specs.case_study_md) {
@@ -18443,7 +18423,7 @@ function renderKanban() {
                 });
             }
 
-            document.getElementById('modal-autoprint-trigger-msg').style.display = 'none';
+            const autoprintMsg = document.getElementById('modal-autoprint-trigger-msg'); if (autoprintMsg) autoprintMsg.style.display = 'none';
 
             // Lógica de Visibilidade Condicional e Auto-check de Pronta Entrega
             const isLocalStock = (project.equipment_origin === 'Pronta Entrega (Estoque Local)');
