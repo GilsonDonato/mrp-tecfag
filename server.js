@@ -603,6 +603,21 @@ function initializeDatabase() {
         db.run(`CREATE INDEX IF NOT EXISTS idx_stock_eadi_clearances_order ON stock_eadi_clearances(order_id)`);
         db.run(`CREATE INDEX IF NOT EXISTS idx_stock_eadi_clearance_items_sku ON stock_eadi_clearance_items(sku)`);
 
+        // Tabela de Comunicações & Copilot dos Projetos
+        db.run(`CREATE TABLE IF NOT EXISTS project_communications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_code TEXT NOT NULL,
+            type TEXT NOT NULL,
+            role TEXT,
+            sender TEXT,
+            recipient TEXT,
+            subject TEXT,
+            message TEXT NOT NULL,
+            metadata TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_prj_comm_code ON project_communications(project_code)`);
+
         // Migrações seguras de colunas para EADI
         db.run("ALTER TABLE stock_orders ADD COLUMN customs_regime TEXT DEFAULT 'DIRETO_SANTOS'", (err) => {});
         db.run("ALTER TABLE stock_orders ADD COLUMN dta_number TEXT", (err) => {});
@@ -9034,9 +9049,32 @@ app.post('/api/projects/:code/cancel-import', authenticateToken, restrictToSuppl
 // MÓDULO COPILOT & COMUNICAÇÕES DE PROJETOS
 // ==========================================
 
+async function ensureCommunicationsTable() {
+    try {
+        await dbRun(`
+            CREATE TABLE IF NOT EXISTS project_communications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_code TEXT NOT NULL,
+                type TEXT NOT NULL,
+                role TEXT,
+                sender TEXT,
+                recipient TEXT,
+                subject TEXT,
+                message TEXT NOT NULL,
+                metadata TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        await dbRun(`CREATE INDEX IF NOT EXISTS idx_prj_comm_code ON project_communications(project_code)`);
+    } catch(e) {
+        console.warn('[ENSURE COMM TABLE]', e.message);
+    }
+}
+
 // GET /api/projects/:code/communications - Lista histórico de chat e e-mails do projeto
 app.get('/api/projects/:code/communications', authenticateToken, async (req, res) => {
     try {
+        await ensureCommunicationsTable();
         const { code } = req.params;
         const rows = await dbAll(
             'SELECT * FROM project_communications WHERE project_code = ? ORDER BY id ASC',
@@ -9052,6 +9090,7 @@ app.get('/api/projects/:code/communications', authenticateToken, async (req, res
 // POST /api/projects/:code/copilot-chat - Interage com Gemini IA com hiper-contexto do projeto
 app.post('/api/projects/:code/copilot-chat', authenticateToken, async (req, res) => {
     try {
+        await ensureCommunicationsTable();
         const { code } = req.params;
         const { message } = req.body;
         if (!message || !message.trim()) {
@@ -9214,6 +9253,7 @@ CORPO:
 // POST /api/projects/:code/send-email - Envia e-mail oficial via SMTP com Reply-To no usuário
 app.post('/api/projects/:code/send-email', authenticateToken, async (req, res) => {
     try {
+        await ensureCommunicationsTable();
         const { code } = req.params;
         const { to, cc, subject, body } = req.body;
 
