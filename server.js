@@ -9030,6 +9030,258 @@ app.post('/api/projects/:code/cancel-import', authenticateToken, restrictToSuppl
     }
 });
 
+// ==========================================
+// MÓDULO COPILOT & COMUNICAÇÕES DE PROJETOS
+// ==========================================
+
+// GET /api/projects/:code/communications - Lista histórico de chat e e-mails do projeto
+app.get('/api/projects/:code/communications', authenticateToken, async (req, res) => {
+    try {
+        const { code } = req.params;
+        const rows = await dbAll(
+            'SELECT * FROM project_communications WHERE project_code = ? ORDER BY id ASC',
+            [code]
+        );
+        res.json(rows);
+    } catch (err) {
+        console.error('[PROJECT COMM ERROR]', err);
+        res.status(500).json({ error: 'Erro ao carregar histórico de comunicações.' });
+    }
+});
+
+// POST /api/projects/:code/copilot-chat - Interage com Gemini IA com hiper-contexto do projeto
+app.post('/api/projects/:code/copilot-chat', authenticateToken, async (req, res) => {
+    try {
+        const { code } = req.params;
+        const { message } = req.body;
+        if (!message || !message.trim()) {
+            return res.status(400).json({ error: 'Mensagem não informada.' });
+        }
+
+        const geminiKey = process.env.GEMINI_API_KEY;
+        if (!geminiKey) {
+            return res.status(500).json({ error: 'Chave GEMINI_API_KEY não configurada no servidor.' });
+        }
+
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) {
+            return res.status(404).json({ error: 'Projeto não encontrado.' });
+        }
+
+        const username = (req.user && (req.user.name || req.user.username)) ? (req.user.name || req.user.username) : 'Usuário';
+
+        // Salvar pergunta do usuário
+        await dbRun(
+            'INSERT INTO project_communications (project_code, type, role, sender, message) VALUES (?, ?, ?, ?, ?)',
+            [code, 'ai_chat', 'user', username, message.trim()]
+        );
+
+        // Histórico recente para a IA
+        const recentComm = await dbAll(
+            'SELECT type, role, sender, subject, message FROM project_communications WHERE project_code = ? ORDER BY id DESC LIMIT 12',
+            [code]
+        );
+        recentComm.reverse();
+
+        let specsParsed = {};
+        try { specsParsed = project.setup_specs ? JSON.parse(project.setup_specs) : {}; } catch (e) {}
+
+        let machinesList = [];
+        try { machinesList = project.machines ? JSON.parse(project.machines) : []; } catch (e) {}
+
+        const projectContext = `
+DADOS DO PROJETO TECFAG:
+- Código do Projeto: ${project.code}
+- Nome do Projeto: ${project.project_name || '-'}
+- Cliente: ${project.client || '-'} (Contato: ${project.contact || '-'}, E-mail: ${project.contact_email || '-'}, Tel: ${project.contact_phone || '-'})
+- SKU / Modelo Principal: ${project.sku || '-'}
+- Máquinas Vinculadas: ${machinesList.map(m => m.sku + ' (' + (m.serial || 'S/N') + ')').join(', ') || project.sku || '-'}
+- Fase Atual no Funil MRP: Fase ${project.fase}
+- Origem do Equipamento: ${project.equipment_origin || 'Importação'}
+- Responsáveis: Gerente: ${project.pm || '-'}, Técnico: ${project.tech || '-'}
+- Diagnóstico Técnico / Resumo: ${project.diagnostico || '-'}
+- Especificações Técnicas de Setup: ${JSON.stringify(specsParsed)}
+
+DADOS DE IMPORTAÇÃO & FORNECEDOR INTERNACIONAL (COMEX):
+- Fornecedor Internacional (Fabricante): ${project.import_supplier || 'A definir'}
+- Nº da Proforma Invoice: ${project.import_invoice_number || 'A emitir'}
+- Data da Invoice: ${project.import_invoice_date || '-'}
+- Moeda: ${project.import_currency || 'USD'}
+- Valor Total FOB: ${project.import_total_fob_value ? (project.import_currency || 'USD') + ' ' + project.import_total_fob_value : 'Não informado'}
+- Etapa de Importação: ${project.import_stage || 'PO_EMITIDA'}
+- Container: ${project.import_container_id || '-'}
+- Navio: ${project.import_vessel_name || '-'}
+- Observações de Importação: ${project.import_notes || '-'}
+`;
+
+        const systemInstruction = `Você é o Copilot de Engenharia, Compras Internacionais e Importação da Tecfag Máquinas.
+Você auxilia o diretor Gilson e a equipe da Tecfag a gerenciar projetos industriais, tirar dúvidas técnicas sobre máquinas (seladoras, envasadoras, datadores, enfardadeiras, termosseladoras, etc.) e negociar com fornecedores na China e clientes no Brasil.
+
+Você tem acesso irrestrito ao contexto COMPLETO deste projeto:
+${projectContext}
+
+DIRETRIZES DE RESPOSTA:
+1. Responda de forma ágil, clara, técnica e profissional.
+2. Quando o usuário pedir para redigir um e-mail (ou quando a resposta envolver contato com fornecedor ou cliente), forneça uma explicação breve e em seguida forneça o e-mail formatado EXATAMENTE assim para que o botão de 1 clique funcione:
+===EMAIL_SUGGESTION_START===
+PARA: [sugestão do e-mail do fornecedor ou cliente]
+ASSUNTO: [Assunto do e-mail incluindo [${project.code}]]
+CORPO:
+[Texto completo do e-mail. Se for para fornecedor estrangeiro/China, redija em INGLÊS formal e polido. Se for para cliente ou equipe nacional, em Português.]
+===EMAIL_SUGGESTION_END===
+3. Se não envolver e-mail, responda diretamente em português de forma concisa e útil.`;
+
+        const contents = [];
+        for (const comm of recentComm) {
+            if (comm.type === 'ai_chat') {
+                contents.push({
+                    role: comm.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: comm.message }]
+                });
+            } else if (comm.type === 'email_sent') {
+                contents.push({
+                    role: 'user',
+                    parts: [{ text: `[E-MAIL ENVIADO ANTERIORMENTE]\nAssunto: ${comm.subject || ''}\nPara: ${comm.recipient || ''}\nCorpo:\n${comm.message}` }]
+                });
+            }
+        }
+
+        if (contents.length === 0 || contents[contents.length - 1].parts[0].text !== message.trim()) {
+            contents.push({
+                role: 'user',
+                parts: [{ text: message.trim() }]
+            });
+        }
+
+        const requestBody = {
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            contents: contents,
+            generationConfig: { temperature: 0.4, maxOutputTokens: 2048 }
+        };
+
+        const primaryModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${geminiKey}`;
+
+        const geminiRes = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        const geminiData = await geminiRes.json();
+        let replyText = '';
+        if (geminiRes.ok && geminiData.candidates && geminiData.candidates[0] && geminiData.candidates[0].content) {
+            replyText = geminiData.candidates[0].content.parts.map(p => p.text).join('\n');
+        } else {
+            const errMsg = geminiData.error ? geminiData.error.message : 'Falha na resposta do Gemini.';
+            return res.status(500).json({ error: errMsg });
+        }
+
+        let suggestedEmail = null;
+        if (replyText.includes('===EMAIL_SUGGESTION_START===')) {
+            const emailBlock = replyText.substring(
+                replyText.indexOf('===EMAIL_SUGGESTION_START===') + '===EMAIL_SUGGESTION_START==='.length,
+                replyText.indexOf('===EMAIL_SUGGESTION_END===')
+            ).trim();
+
+            const toMatch = emailBlock.match(/PARA:\s*(.*)/i);
+            const subjectMatch = emailBlock.match(/ASSUNTO:\s*(.*)/i);
+            const bodyMatch = emailBlock.match(/CORPO:\s*([\s\S]*)/i);
+
+            suggestedEmail = {
+                to: toMatch ? toMatch[1].trim() : (project.import_supplier || project.contact_email || ''),
+                subject: subjectMatch ? subjectMatch[1].trim() : `Order Specs Inquiry - ${project.sku || 'Machine'} [${project.code}]`,
+                body: bodyMatch ? bodyMatch[1].trim() : emailBlock
+            };
+        }
+
+        await dbRun(
+            'INSERT INTO project_communications (project_code, type, role, sender, message, metadata) VALUES (?, ?, ?, ?, ?, ?)',
+            [code, 'ai_chat', 'model', 'Gemini Copilot', replyText, suggestedEmail ? JSON.stringify({ suggestedEmail }) : null]
+        );
+
+        res.json({
+            reply: replyText,
+            suggestedEmail
+        });
+
+    } catch (err) {
+        console.error('[COPILOT CHAT ERROR]', err);
+        res.status(500).json({ error: 'Erro no Copilot: ' + err.message });
+    }
+});
+
+// POST /api/projects/:code/send-email - Envia e-mail oficial via SMTP com Reply-To no usuário
+app.post('/api/projects/:code/send-email', authenticateToken, async (req, res) => {
+    try {
+        const { code } = req.params;
+        const { to, cc, subject, body } = req.body;
+
+        if (!to || !to.trim() || !subject || !subject.trim() || !body || !body.trim()) {
+            return res.status(400).json({ error: 'Destinatário (Para), Assunto e Mensagem são obrigatórios.' });
+        }
+
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) {
+            return res.status(404).json({ error: 'Projeto não encontrado.' });
+        }
+
+        const userSender = req.user ? (req.user.name || req.user.username) : 'Gilson Donato';
+        const userEmail = (req.user && req.user.email) ? req.user.email : 'gilson@tecfag.com.br';
+
+        let finalSubject = subject.trim();
+        if (!finalSubject.includes(code)) {
+            finalSubject = `${finalSubject} [${code}]`;
+        }
+
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT) || 587,
+            secure: process.env.SMTP_SECURE === 'true',
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            }
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL_FROM || `"Tecfag MRP" <${process.env.SMTP_USER}>`,
+            replyTo: `"${userSender}" <${userEmail}>`,
+            to: to.trim(),
+            cc: cc ? cc.trim() : undefined,
+            subject: finalSubject,
+            text: body.trim(),
+            html: `<div style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #222;">
+                ${body.trim().replace(/\n/g, '<br>')}
+                <br><br>
+                <hr style="border: 0; border-top: 1px solid #ddd; margin: 20px 0;">
+                <div style="font-size: 12px; color: #666;">
+                    <strong>Tecfag Máquinas & Equipamentos Industriais</strong><br>
+                    Projeto: <strong>${project.code}</strong> - ${project.client || ''}<br>
+                    Enviado por: ${userSender} (&lt;${userEmail}&gt;) | Responder direto para este e-mail.
+                </div>
+            </div>`
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        await dbRun(
+            'INSERT INTO project_communications (project_code, type, role, sender, recipient, subject, message) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [code, 'email_sent', 'user', userEmail, to.trim(), finalSubject, body.trim()]
+        );
+
+        res.json({
+            success: true,
+            message: `E-mail enviado com sucesso para ${to}!`,
+            subject: finalSubject
+        });
+
+    } catch (err) {
+        console.error('[SEND EMAIL ERROR]', err);
+        res.status(500).json({ error: 'Erro ao enviar e-mail: ' + err.message });
+    }
+});
+
 // POST /api/projects/:code/transfer-to-import - Transfere projeto para o pipeline de Importação & Estoque
 app.post('/api/projects/:code/transfer-to-import', authenticateToken, async (req, res) => {
     const { code } = req.params;

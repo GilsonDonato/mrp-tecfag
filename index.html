@@ -3862,6 +3862,9 @@
                     <button type="button" class="project-modal-tab-btn" id="modal-nav-btn-logistics" onclick="switchProjectModalTab('logistics')">
                         🚢 Importação & Comex
                     </button>
+                    <button type="button" class="project-modal-tab-btn" id="modal-nav-btn-copilot" onclick="switchProjectModalTab('copilot')">
+                        🤖 Copilot & E-mails
+                    </button>
                     <button type="button" class="project-modal-tab-btn" id="modal-nav-btn-workshop" onclick="switchProjectModalTab('workshop')">
                         🔧 Oficina, Setup & SAT
                     </button>
@@ -4643,6 +4646,128 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- ABA COPILOT & CENTRAL DE COMUNICAÇÕES -->
+                <div id="modal-pane-copilot" class="project-modal-tab-pane" style="display: none;">
+                    <!-- Banner de Boas-vindas do Copilot -->
+                    <div style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(30, 41, 59, 0.85) 100%); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 8px; padding: 14px 18px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h4 style="margin: 0; color: #c084fc; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                                <span>🤖</span> Gemini Copilot & Central Integrada de E-mails
+                            </h4>
+                            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 3px;">
+                                Converse com a IA sobre o escopo técnico, negociação e cotações deste projeto. Redija e envie e-mails oficiais em 1 clique.
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="loadProjectCopilotHub(activeProjectCode)" style="padding: 6px 14px; font-size: 0.75rem; font-weight: 700; border-color: rgba(168, 85, 247, 0.4); color: #c084fc; border-radius: 6px;">
+                            🔄 Atualizar Histórico
+                        </button>
+                    </div>
+
+                    <!-- Layout em Grid Duplo: Chat com IA (Esquerda) e Disparo de E-mails (Direita) -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px; margin-bottom: 20px;">
+                        
+                        <!-- Coluna 1: Chat Interativo com Gemini IA -->
+                        <div class="detail-card" style="display: flex; flex-direction: column; height: 600px; padding: 16px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px; margin-bottom: 10px;">
+                                <h4 style="margin: 0; color: #38bdf8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                                    <span>💬</span> Diálogo com o Gemini (Contextualizado)
+                                </h4>
+                                <span style="font-size: 0.68rem; color: #4ade80; background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); padding: 2px 8px; border-radius: 12px; font-weight: 600;">
+                                    ● Contexto Ativo
+                                </span>
+                            </div>
+
+                            <!-- Sugestões Rápidas de Prompt -->
+                            <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; flex-shrink: 0;" class="hide-scrollbar">
+                                <button type="button" class="btn btn-secondary" onclick="setCopilotPrompt('Perguntar ao fornecedor se o motor vem configurado em 220V trifásico 60Hz e qual o custo de peças de reposição (resistências, teflon e termopar).')" style="padding: 4px 8px; font-size: 0.68rem; white-space: nowrap; border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;">
+                                    💡 220V 60Hz & Sobressalentes
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="setCopilotPrompt('Redigir um e-mail formal em inglês cobrando o envio da Proforma Invoice atualizada e confirmando o prazo de entrega FOB.')" style="padding: 4px 8px; font-size: 0.68rem; white-space: nowrap; border-color: rgba(168, 85, 247, 0.3); color: #c084fc;">
+                                    💡 Cobrar Proforma em Inglês
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="setCopilotPrompt('Faça um resumo executivo do escopo técnico, fase atual e pendências deste projeto industrial.')" style="padding: 4px 8px; font-size: 0.68rem; white-space: nowrap; border-color: rgba(245, 158, 11, 0.3); color: #f59e0b;">
+                                    💡 Resumo Executivo
+                                </button>
+                            </div>
+
+                            <!-- Histórico do Chat -->
+                            <div id="copilot-chat-history" style="flex: 1; overflow-y: auto; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 10px;">
+                                <div style="text-align: center; color: #64748b; font-size: 0.78rem; padding: 20px;">
+                                    Inicie uma conversa com o Copilot. Ele já conhece todo o escopo, fornecedor e valores deste projeto!
+                                </div>
+                            </div>
+
+                            <!-- Input de Mensagem -->
+                            <form onsubmit="handleSendCopilotMessage(event)" style="display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;">
+                                <textarea id="copilot-chat-input" rows="2" class="form-control" placeholder="Pergunte ao Gemini ou peça para redigir um e-mail (Ctrl+Enter para enviar)..." onkeydown="if(event.ctrlKey && event.key === 'Enter') handleSendCopilotMessage(event)" style="padding: 8px 12px; font-size: 0.8rem; resize: none;"></textarea>
+                                <button type="submit" id="copilot-btn-send" class="btn" style="background: linear-gradient(135deg, #a855f7, #7c3aed); color: white; font-weight: bold; padding: 10px 16px; border-radius: 6px; height: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                    <span>🚀</span> Enviar
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Coluna 2: Central de Disparo de E-mails & Histórico -->
+                        <div class="detail-card" style="display: flex; flex-direction: column; height: 600px; padding: 16px;">
+                            <div style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                <h4 style="margin: 0; color: #f59e0b; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                                    <span>📧</span> Disparo de E-mail Corporativo
+                                </h4>
+                                <span style="font-size: 0.68rem; color: #cbd5e1; background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 4px;">
+                                    SMTP / Webmail
+                                </span>
+                            </div>
+
+                            <!-- Formulário de Disparo -->
+                            <form id="form-copilot-send-email" onsubmit="handleSendCopilotEmail(event)" style="display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label style="font-size: 0.70rem; font-weight: 700; color: #94a3b8;">Para (Destinatário)*</label>
+                                        <input type="text" id="copilot-mail-to" class="form-control" required placeholder="fornecedor@empresa.com ou cliente" style="padding: 6px 10px; font-size: 0.78rem;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label style="font-size: 0.70rem; font-weight: 700; color: #94a3b8;">Cc (Cópia)</label>
+                                        <input type="text" id="copilot-mail-cc" class="form-control" placeholder="compras@tecfag.com.br" style="padding: 6px 10px; font-size: 0.78rem;">
+                                    </div>
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.70rem; font-weight: 700; color: #94a3b8;">Assunto*</label>
+                                    <input type="text" id="copilot-mail-subject" class="form-control" required placeholder="Assunto da mensagem..." style="padding: 6px 10px; font-size: 0.78rem;">
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 0; flex: 1; display: flex; flex-direction: column;">
+                                    <label style="font-size: 0.70rem; font-weight: 700; color: #94a3b8; display: flex; justify-content: space-between;">
+                                        <span>Mensagem / Corpo do E-mail*</span>
+                                        <span id="copilot-mail-counter" style="color: #64748b; font-weight: normal;"></span>
+                                    </label>
+                                    <textarea id="copilot-mail-body" class="form-control" required placeholder="Digite a mensagem ou use a sugestão gerada pela IA na coluna ao lado..." style="padding: 8px 10px; font-size: 0.78rem; flex: 1; resize: none;"></textarea>
+                                </div>
+
+                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 4px;">
+                                    <div style="font-size: 0.68rem; color: #94a3b8; line-height: 1.2;">
+                                        ℹ️ Enviado com <strong>Reply-To</strong> em seu nome. A resposta vai direto pro seu Webmail.
+                                    </div>
+                                    <button type="submit" id="copilot-btn-send-mail" class="btn" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; font-weight: 800; padding: 8px 18px; font-size: 0.80rem; border-radius: 6px; white-space: nowrap;">
+                                        ✉️ Disparar E-mail
+                                    </button>
+                                </div>
+                            </form>
+
+                            <!-- Mini Seção de Histórico de E-mails Enviados -->
+                            <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px; margin-top: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <span style="font-size: 0.72rem; font-weight: 700; color: #cbd5e1;">📬 Histórico de E-mails Deste Projeto</span>
+                                    <span id="copilot-sent-count-badge" style="font-size: 0.65rem; color: #38bdf8;">0 enviados</span>
+                                </div>
+                                <div id="copilot-sent-emails-list" style="max-height: 90px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;" class="hide-scrollbar">
+                                    <div style="font-size: 0.70rem; color: #64748b; text-align: center;">Nenhum e-mail enviado ainda neste projeto.</div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -13678,6 +13803,266 @@
         }
 
         // Load Database from Server APIs
+        // ==========================================
+        // FUNÇÕES DO COPILOT & CENTRAL DE COMUNICAÇÕES
+        // ==========================================
+
+        function setCopilotPrompt(text) {
+            const input = document.getElementById('copilot-chat-input');
+            if (input) {
+                input.value = text;
+                input.focus();
+            }
+        }
+
+        async function loadProjectCopilotHub(code) {
+            if (!code) return;
+            const historyContainer = document.getElementById('copilot-chat-history');
+            const sentContainer = document.getElementById('copilot-sent-emails-list');
+            const sentBadge = document.getElementById('copilot-sent-count-badge');
+            const toInput = document.getElementById('copilot-mail-to');
+            const subjectInput = document.getElementById('copilot-mail-subject');
+
+            const project = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === code) : null;
+            if (project) {
+                if (toInput && !toInput.value) {
+                    toInput.value = project.contact_email || '';
+                }
+                if (subjectInput && !subjectInput.value) {
+                    subjectInput.value = `Order / Project Inquiry - ${project.sku || 'Machine'} [${project.code}]`;
+                }
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const res = await fetch(`/api/projects/${code}/communications`, { headers });
+                if (!res.ok) return;
+
+                const items = await res.json();
+                const chatItems = (items || []).filter(i => i.type === 'ai_chat');
+                const sentItems = (items || []).filter(i => i.type === 'email_sent');
+
+                // Render Chat
+                if (historyContainer) {
+                    if (chatItems.length === 0) {
+                        historyContainer.innerHTML = `
+                            <div style="text-align: center; color: #64748b; font-size: 0.78rem; padding: 25px;">
+                                🤖 <strong>Copilot pronto!</strong> Faça uma pergunta ou selecione uma das sugestões acima para interagir sobre o projeto <strong>${code}</strong>.
+                            </div>
+                        `;
+                    } else {
+                        historyContainer.innerHTML = '';
+                        chatItems.forEach(msg => {
+                            const isUser = msg.role === 'user';
+                            const bubble = document.createElement('div');
+                            bubble.style.cssText = `
+                                align-self: ${isUser ? 'flex-end' : 'flex-start'};
+                                max-width: 88%;
+                                background: ${isUser ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'rgba(30, 41, 59, 0.9)'};
+                                border: 1px solid ${isUser ? 'rgba(56, 189, 248, 0.4)' : 'rgba(168, 85, 247, 0.3)'};
+                                border-radius: 8px;
+                                padding: 10px 12px;
+                                font-size: 0.78rem;
+                                color: #f8fafc;
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                            `;
+
+                            let cleanMsg = msg.message;
+                            let suggestionBlock = '';
+
+                            if (msg.metadata) {
+                                try {
+                                    const meta = JSON.parse(msg.metadata);
+                                    if (meta.suggestedEmail) {
+                                        const se = meta.suggestedEmail;
+                                        cleanMsg = cleanMsg.replace(/===EMAIL_SUGGESTION_START===[\s\S]*?===EMAIL_SUGGESTION_END===/, '').trim();
+                                        suggestionBlock = `
+                                            <div style="margin-top: 10px; background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 6px; padding: 10px;">
+                                                <div style="font-size: 0.72rem; font-weight: 800; color: #c084fc; margin-bottom: 4px;">✉️ MINUTA DE E-MAIL SUGERIDA:</div>
+                                                <div style="font-size: 0.72rem; color: #cbd5e1; margin-bottom: 2px;"><strong>Para:</strong> ${se.to || '-'}</div>
+                                                <div style="font-size: 0.72rem; color: #cbd5e1; margin-bottom: 6px;"><strong>Assunto:</strong> ${se.subject || '-'}</div>
+                                                <button type="button" class="btn" onclick="applySuggestedEmail('${(se.to || '').replace(/'/g, "\\'")}', '${(se.subject || '').replace(/'/g, "\\'")}', decodeURIComponent('${encodeURIComponent(se.body || '')}'))" style="background: #a855f7; color: white; font-weight: bold; font-size: 0.72rem; padding: 4px 10px; border-radius: 4px; width: 100%;">
+                                                    📨 Usar Este E-mail no Formulário de Disparo ➔
+                                                </button>
+                                            </div>
+                                        `;
+                                    }
+                                } catch (e) {}
+                            }
+
+                            bubble.innerHTML = `
+                                <div style="display: flex; justify-content: space-between; font-size: 0.68rem; color: ${isUser ? '#bae6fd' : '#c084fc'}; font-weight: 700; margin-bottom: 4px;">
+                                    <span>${isUser ? '👤 ' + (msg.sender || 'Você') : '🤖 Gemini Copilot'}</span>
+                                    <span style="opacity: 0.8;">${new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                                <div style="white-space: pre-wrap; line-height: 1.4;">${cleanMsg}</div>
+                                ${suggestionBlock}
+                            `;
+                            historyContainer.appendChild(bubble);
+                        });
+                        historyContainer.scrollTop = historyContainer.scrollHeight;
+                    }
+                }
+
+                // Render Sent Emails
+                if (sentContainer) {
+                    if (sentItems.length === 0) {
+                        sentContainer.innerHTML = '<div style="font-size: 0.70rem; color: #64748b; text-align: center;">Nenhum e-mail enviado ainda neste projeto.</div>';
+                    } else {
+                        sentContainer.innerHTML = '';
+                        sentItems.slice().reverse().forEach(em => {
+                            const row = document.createElement('div');
+                            row.style.cssText = 'background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255,255,255,0.06); border-radius: 4px; padding: 6px 8px; font-size: 0.70rem; display: flex; justify-content: space-between; align-items: center; gap: 6px;';
+                            row.innerHTML = `
+                                <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">
+                                    <strong style="color: #f8fafc;">${em.recipient}</strong> - <span style="color: #94a3b8;">${em.subject}</span>
+                                </div>
+                                <span style="color: #64748b; font-size: 0.65rem; white-space: nowrap;">${new Date(em.created_at).toLocaleDateString('pt-BR')} ${new Date(em.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                            `;
+                            sentContainer.appendChild(row);
+                        });
+                    }
+                }
+
+                if (sentBadge) {
+                    sentBadge.innerText = `${sentItems.length} enviado${sentItems.length === 1 ? '' : 's'}`;
+                }
+
+            } catch (err) {
+                console.error('[LOAD COPILOT HUB ERROR]', err);
+            }
+        }
+
+        async function handleSendCopilotMessage(event) {
+            if (event) event.preventDefault();
+            const input = document.getElementById('copilot-chat-input');
+            const btn = document.getElementById('copilot-btn-send');
+            const historyContainer = document.getElementById('copilot-chat-history');
+
+            if (!input || !input.value.trim() || !activeProjectCode) return;
+            const message = input.value.trim();
+            input.value = '';
+
+            // Renderiza mensagem do usuário imediatamente
+            if (historyContainer) {
+                const userBubble = document.createElement('div');
+                userBubble.style.cssText = 'align-self: flex-end; max-width: 88%; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: #f8fafc;';
+                userBubble.innerHTML = `
+                    <div style="font-size: 0.68rem; color: #bae6fd; font-weight: 700; margin-bottom: 4px;">👤 Você</div>
+                    <div style="white-space: pre-wrap; line-height: 1.4;">${message}</div>
+                `;
+                historyContainer.appendChild(userBubble);
+
+                // Indicador de digitação
+                const typingBubble = document.createElement('div');
+                typingBubble.id = 'copilot-typing-indicator';
+                typingBubble.style.cssText = 'align-self: flex-start; max-width: 88%; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: #c084fc;';
+                typingBubble.innerHTML = '🤖 <em>Gemini está analisando o projeto e formulando a resposta...</em>';
+                historyContainer.appendChild(typingBubble);
+                historyContainer.scrollTop = historyContainer.scrollHeight;
+            }
+
+            try {
+                if (btn) { btn.disabled = true; btn.innerText = '⏳...'; }
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                const res = await fetch(`/api/projects/${activeProjectCode}/copilot-chat`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ message })
+                });
+
+                const typing = document.getElementById('copilot-typing-indicator');
+                if (typing) typing.remove();
+
+                if (res.ok) {
+                    const data = await res.json();
+                    loadProjectCopilotHub(activeProjectCode);
+                    if (data.suggestedEmail) {
+                        applySuggestedEmail(data.suggestedEmail.to, data.suggestedEmail.subject, data.suggestedEmail.body);
+                    }
+                } else {
+                    const errData = await res.json().catch(() => ({}));
+                    alert('Erro no Copilot: ' + (errData.error || 'Erro desconhecido'));
+                    loadProjectCopilotHub(activeProjectCode);
+                }
+            } catch (err) {
+                console.error(err);
+                const typing = document.getElementById('copilot-typing-indicator');
+                if (typing) typing.remove();
+                alert('Erro de conexão ao falar com o Copilot: ' + err.message);
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerText = '🚀 Enviar'; }
+            }
+        }
+
+        function applySuggestedEmail(to, subject, body) {
+            const toInput = document.getElementById('copilot-mail-to');
+            const subjectInput = document.getElementById('copilot-mail-subject');
+            const bodyInput = document.getElementById('copilot-mail-body');
+
+            if (toInput && to) toInput.value = to;
+            if (subjectInput && subject) subjectInput.value = subject;
+            if (bodyInput && body) {
+                bodyInput.value = body;
+                bodyInput.focus();
+                // Efeito visual sutil de destaque
+                bodyInput.style.borderColor = '#a855f7';
+                setTimeout(() => { bodyInput.style.borderColor = ''; }, 1500);
+            }
+        }
+
+        async function handleSendCopilotEmail(event) {
+            if (event) event.preventDefault();
+            const btn = document.getElementById('copilot-btn-send-mail');
+            const to = document.getElementById('copilot-mail-to')?.value;
+            const cc = document.getElementById('copilot-mail-cc')?.value;
+            const subject = document.getElementById('copilot-mail-subject')?.value;
+            const body = document.getElementById('copilot-mail-body')?.value;
+
+            if (!to || !subject || !body || !activeProjectCode) {
+                alert('Preencha os campos obrigatórios (Para, Assunto e Mensagem).');
+                return;
+            }
+
+            if (!confirm(`Deseja disparar este e-mail para "${to}" via servidor corporativo?\n\nAssunto: ${subject}`)) {
+                return;
+            }
+
+            try {
+                if (btn) { btn.disabled = true; btn.innerText = 'Enviando...'; }
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                const res = await fetch(`/api/projects/${activeProjectCode}/send-email`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ to, cc, subject, body })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    alert(`✅ ${data.message || 'E-mail enviado com sucesso!'}`);
+                    document.getElementById('copilot-mail-body').value = '';
+                    loadProjectCopilotHub(activeProjectCode);
+                } else {
+                    const data = await res.json().catch(() => ({}));
+                    alert('Erro ao enviar e-mail: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao disparar e-mail: ' + err.message);
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerText = '✉️ Disparar E-mail'; }
+            }
+        }
+
         window.loadProjects = loadProjectsDB;
         function loadProjectsDB() {
             if (state.productsCatalog.length === 0) {
@@ -14488,7 +14873,7 @@
         }
 
         function switchProjectModalTab(tabKey) {
-            const tabs = ['overview', 'engineering', 'commercial', 'logistics', 'workshop', 'audit'];
+            const tabs = ['overview', 'engineering', 'commercial', 'logistics', 'workshop', 'audit', 'copilot'];
             tabs.forEach(t => {
                 const pane = document.getElementById('modal-pane-' + t);
                 const btn = document.getElementById('modal-nav-btn-' + t);
