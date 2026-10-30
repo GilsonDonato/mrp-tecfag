@@ -4661,9 +4661,14 @@
                                 Converse com a IA sobre o escopo técnico, negociação e cotações deste projeto. Redija e envie e-mails oficiais em 1 clique.
                             </div>
                         </div>
-                        <button type="button" class="btn btn-secondary" onclick="loadProjectCopilotHub(activeProjectCode)" style="padding: 6px 14px; font-size: 0.75rem; font-weight: 700; border-color: rgba(168, 85, 247, 0.4); color: #c084fc; border-radius: 6px;">
-                            🔄 Atualizar Histórico
-                        </button>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button type="button" class="btn" onclick="openRegisterInboundEmailModal()" style="padding: 6px 12px; font-size: 0.75rem; font-weight: 700; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; border-radius: 6px;" title="Registrar resposta recebida do fornecedor ou cliente">
+                                📥 Registrar Resposta Recebida
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="loadProjectCopilotHub(activeProjectCode)" style="padding: 6px 14px; font-size: 0.75rem; font-weight: 700; border-color: rgba(168, 85, 247, 0.4); color: #c084fc; border-radius: 6px;">
+                                🔄 Atualizar Histórico
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Layout em Grid Duplo: Chat com IA (Esquerda) e Disparo de E-mails (Direita) -->
@@ -13807,6 +13812,69 @@
         // FUNÇÕES DO COPILOT & CENTRAL DE COMUNICAÇÕES
         // ==========================================
 
+        
+        function openRegisterInboundEmailModal() {
+            const modal = document.getElementById('modal-inbound-email');
+            const senderInput = document.getElementById('inbound-sender');
+            const subjectInput = document.getElementById('inbound-subject');
+            const bodyInput = document.getElementById('inbound-body');
+
+            if (bodyInput) bodyInput.value = '';
+            if (activeProjectCode) {
+                const project = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === activeProjectCode) : null;
+                if (senderInput) senderInput.value = project ? (project.import_supplier || project.contact || '') : '';
+                if (subjectInput) subjectInput.value = `Re: Project Inquiry [${activeProjectCode}]`;
+            }
+            if (modal) {
+                modal.style.display = 'flex';
+                modal.classList.add('active');
+            }
+        }
+
+        function closeRegisterInboundEmailModal() {
+            const modal = document.getElementById('modal-inbound-email');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('active');
+            }
+        }
+
+        async function handleConfirmInboundEmail(event) {
+            if (event) event.preventDefault();
+            const btn = document.getElementById('btn-submit-inbound');
+            const sender = document.getElementById('inbound-sender')?.value;
+            const subject = document.getElementById('inbound-subject')?.value;
+            const message = document.getElementById('inbound-body')?.value;
+
+            if (!message || !message.trim() || !activeProjectCode) return;
+
+            try {
+                if (btn) { btn.disabled = true; btn.innerText = 'Salvando e analisando com IA...'; }
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                const res = await fetch(`/api/projects/${activeProjectCode}/inbound-email`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ sender, subject, message })
+                });
+
+                if (res.ok) {
+                    closeRegisterInboundEmailModal();
+                    loadProjectCopilotHub(activeProjectCode);
+                } else {
+                    const errData = await res.json().catch(() => ({}));
+                    alert('Erro ao registrar resposta: ' + (errData.error || 'Erro desconhecido.'));
+                }
+            } catch(e) {
+                alert('Erro de conexão ao salvar resposta: ' + e.message);
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerText = '📥 Salvar & Analisar com IA'; }
+            }
+        }
+
         function setCopilotPrompt(text) {
             const input = document.getElementById('copilot-chat-input');
             if (input) {
@@ -13841,7 +13909,7 @@
 
                 const items = await res.json();
                 const chatItems = (items || []).filter(i => i.type === 'ai_chat');
-                const sentItems = (items || []).filter(i => i.type === 'email_sent');
+                const sentItems = (items || []).filter(i => i.type === 'email_sent' || i.type === 'email_received');
 
                 // Render Chat
                 if (historyContainer) {
@@ -13854,13 +13922,20 @@
                     } else {
                         historyContainer.innerHTML = '';
                         chatItems.forEach(msg => {
-                            const isUser = msg.role === 'user';
+                            const isReceived = msg.type === 'email_received';
+                            const isUser = msg.role === 'user' && !isReceived;
                             const bubble = document.createElement('div');
+                            let bubbleBg = isUser ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'rgba(30, 41, 59, 0.9)';
+                            let bubbleBorder = isUser ? 'rgba(56, 189, 248, 0.4)' : 'rgba(168, 85, 247, 0.3)';
+                            if (isReceived) {
+                                bubbleBg = 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.15))';
+                                bubbleBorder = 'rgba(52, 211, 153, 0.4)';
+                            }
                             bubble.style.cssText = `
                                 align-self: ${isUser ? 'flex-end' : 'flex-start'};
                                 max-width: 88%;
-                                background: ${isUser ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'rgba(30, 41, 59, 0.9)'};
-                                border: 1px solid ${isUser ? 'rgba(56, 189, 248, 0.4)' : 'rgba(168, 85, 247, 0.3)'};
+                                background: ${bubbleBg};
+                                border: 1px solid ${bubbleBorder};
                                 border-radius: 8px;
                                 padding: 10px 12px;
                                 font-size: 0.78rem;
@@ -13893,7 +13968,7 @@
 
                             bubble.innerHTML = `
                                 <div style="display: flex; justify-content: space-between; font-size: 0.68rem; color: ${isUser ? '#bae6fd' : '#c084fc'}; font-weight: 700; margin-bottom: 4px;">
-                                    <span>${isUser ? '👤 ' + (msg.sender || 'Você') : '🤖 Gemini Copilot'}</span>
+                                    <span>${isReceived ? '📥 Resposta Recebida: ' + (msg.sender || 'Fornecedor') : (isUser ? '👤 ' + (msg.sender || 'Você') : '🤖 Gemini Copilot')}</span>
                                     <span style="opacity: 0.8;">${new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
                                 <div style="white-space: pre-wrap; line-height: 1.4;">${cleanMsg}</div>
@@ -13916,7 +13991,7 @@
                             row.style.cssText = 'background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255,255,255,0.06); border-radius: 4px; padding: 6px 8px; font-size: 0.70rem; display: flex; justify-content: space-between; align-items: center; gap: 6px;';
                             row.innerHTML = `
                                 <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">
-                                    <strong style="color: #f8fafc;">${em.recipient}</strong> - <span style="color: #94a3b8;">${em.subject}</span>
+                                    <strong style="color: #f8fafc;">${em.type === 'email_received' ? '📥 De: ' + (em.sender || 'Fornecedor') : '📤 Para: ' + em.recipient}</strong> - <span style="color: #94a3b8;">${em.subject}</span>
                                 </div>
                                 <span style="color: #64748b; font-size: 0.65rem; white-space: nowrap;">${new Date(em.created_at).toLocaleDateString('pt-BR')} ${new Date(em.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                             `;
@@ -14887,7 +14962,11 @@
                 }
             });
 
-            if (tabKey === 'overview') {
+            if (tabKey === 'copilot') {
+                if (typeof loadProjectCopilotHub === 'function' && activeProjectCode) {
+                    loadProjectCopilotHub(activeProjectCode);
+                }
+            } else if (tabKey === 'overview') {
                 loadModalComments();
             } else if (tabKey === 'engineering') {
                 loadProjectCopilotValidation();
@@ -18990,7 +19069,9 @@ function renderKanban() {
 
             // 3. Força o carregamento isolado das mensagens exclusivamente deste card ativo
             loadModalComments();
-
+            if (typeof loadProjectCopilotHub === 'function') {
+                loadProjectCopilotHub(code);
+            }
             document.getElementById('project-detail-modal').classList.add('active');
         }
 

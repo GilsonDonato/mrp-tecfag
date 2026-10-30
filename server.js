@@ -9275,6 +9275,117 @@ CORPO:
 });
 
 // POST /api/projects/:code/send-email - Envia e-mail oficial via SMTP com Reply-To no usuário
+// POST /api/projects/:code/inbound-email - Registra resposta de e-mail recebida e aciona análise imediata da IA
+app.post('/api/projects/:code/inbound-email', authenticateToken, async (req, res) => {
+    try {
+        await ensureCommunicationsTable();
+        const { code } = req.params;
+        const { sender, subject, message } = req.body;
+
+        if (!message || !message.trim()) {
+            return res.status(400).json({ error: 'Conteúdo da resposta é obrigatório.' });
+        }
+
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) return res.status(404).json({ error: 'Projeto não encontrado.' });
+
+        const fromSender = sender && sender.trim() ? sender.trim() : (project.import_supplier || project.contact_email || 'Fornecedor / Cliente');
+        const emailSubject = subject && subject.trim() ? subject.trim() : `Re: Order Inquiry [${code}]`;
+
+        // 1. Salva a resposta do fornecedor/cliente no histórico
+        await dbRun(
+            'INSERT INTO project_communications (project_code, type, role, sender, subject, message) VALUES (?, ?, ?, ?, ?, ?)',
+            [code, 'email_received', 'user', fromSender, emailSubject, message.trim()]
+        );
+
+        // 2. Aciona o Gemini para resumir a resposta e sugerir ações de imediato
+        let aiAnalysis = '';
+        const geminiKey = process.env.GEMINI_API_KEY;
+        if (geminiKey) {
+            try {
+                const systemPrompt = `Você é o Copilot de Comércio Exterior e Engenharia da Tecfag Máquinas.
+O usuário acabou de colar uma resposta recebida por e-mail sobre o projeto ${code} (Cliente: ${project.client}, Máquina/SKU: ${project.sku}).
+
+REMETENTE DA RESPOSTA: ${fromSender}
+ASSUNTO: ${emailSubject}
+TEXTO DA RESPOSTA:
+"""
+${message.trim()}
+"""
+
+Sua missão:
+1. Faça um resumo claro e objetivo em 2 a 3 tópicos do que o fornecedor/cliente respondeu (preços FOB, prazos de envio/produção, voltagem 220V, peças sobressalentes).
+2. Aponte se há divergências, pendências ou ações que a Tecfag precisa tomar.
+3. Se couber resposta da Tecfag, forneça a minuta em inglês (se for fornecedor estrangeiro) formatada com ===EMAIL_SUGGESTION_START===.`;
+
+                const requestBody = {
+                    contents: [{ role: 'user', parts: [{ text: systemPrompt }] }],
+                    generationConfig: { temperature: 0.3, maxOutputTokens: 1500 }
+                };
+
+                const candidateModels = [
+                    process.env.GEMINI_MODEL,
+                    'gemini-flash-latest',
+                    'gemini-2.0-flash',
+                    'gemini-1.5-flash-latest'
+                ].filter(Boolean);
+
+                for (const mName of candidateModels) {
+                    try {
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${mName}:generateContent?key=${geminiKey}`;
+                        const gRes = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(requestBody)
+                        });
+                        const gData = await gRes.json();
+                        if (gRes.ok && gData.candidates && gData.candidates[0] && gData.candidates[0].content) {
+                            aiAnalysis = gData.candidates[0].content.parts.map(p => p.text).join('\n');
+                            if (aiAnalysis) break;
+                        }
+                    } catch(e) {}
+                }
+
+                if (aiAnalysis) {
+                    let suggestedEmail = null;
+                    if (aiAnalysis.includes('===EMAIL_SUGGESTION_START===')) {
+                        const emailBlock = aiAnalysis.substring(
+                            aiAnalysis.indexOf('===EMAIL_SUGGESTION_START===') + '===EMAIL_SUGGESTION_START==='.length,
+                            aiAnalysis.indexOf('===EMAIL_SUGGESTION_END===')
+                        ).trim();
+
+                        const toMatch = emailBlock.match(/PARA:\s*(.*)/i);
+                        const subjectMatch = emailBlock.match(/ASSUNTO:\s*(.*)/i);
+                        const bodyMatch = emailBlock.match(/CORPO:\s*([\s\S]*)/i);
+
+                        suggestedEmail = {
+                            to: toMatch ? toMatch[1].trim() : fromSender,
+                            subject: subjectMatch ? subjectMatch[1].trim() : `Re: ${emailSubject}`,
+                            body: bodyMatch ? bodyMatch[1].trim() : emailBlock
+                        };
+                    }
+
+                    await dbRun(
+                        'INSERT INTO project_communications (project_code, type, role, sender, message, metadata) VALUES (?, ?, ?, ?, ?, ?)',
+                        [code, 'ai_chat', 'model', 'Gemini Copilot', `📥 **ANÁLISE AUTOMÁTICA DA RESPOSTA RECEBIDA:**\n\n${aiAnalysis}`, suggestedEmail ? JSON.stringify({ suggestedEmail }) : null]
+                    );
+                }
+            } catch(aiErr) {
+                console.warn('[INBOUND AI ANALYSIS ERROR]', aiErr);
+            }
+        }
+
+        res.json({
+            success: true,
+            message: 'Resposta registrada com sucesso e analisada pela IA!',
+            aiAnalysis
+        });
+    } catch (err) {
+        console.error('[INBOUND EMAIL ERROR]', err);
+        res.status(500).json({ error: 'Erro ao registrar resposta: ' + err.message });
+    }
+});
+
 app.post('/api/projects/:code/send-email', authenticateToken, async (req, res) => {
     try {
         await ensureCommunicationsTable();
