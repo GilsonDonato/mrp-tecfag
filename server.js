@@ -9198,22 +9198,46 @@ CORPO:
             generationConfig: { temperature: 0.4, maxOutputTokens: 2048 }
         };
 
-        const primaryModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${geminiKey}`;
+        const candidateModels = [
+            process.env.GEMINI_MODEL,
+            'gemini-flash-latest',
+            'gemini-2.5-flash',
+            'gemini-2.0-flash',
+            'gemini-1.5-flash-latest',
+            'gemini-pro'
+        ].filter(Boolean);
 
-        const geminiRes = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-        });
-
-        const geminiData = await geminiRes.json();
         let replyText = '';
-        if (geminiRes.ok && geminiData.candidates && geminiData.candidates[0] && geminiData.candidates[0].content) {
-            replyText = geminiData.candidates[0].content.parts.map(p => p.text).join('\n');
-        } else {
-            const errMsg = geminiData.error ? geminiData.error.message : 'Falha na resposta do Gemini.';
-            return res.status(500).json({ error: errMsg });
+        let lastError = null;
+
+        for (const modelName of candidateModels) {
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`;
+                const geminiRes = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const geminiData = await geminiRes.json();
+                if (geminiRes.ok && geminiData.candidates && geminiData.candidates[0] && geminiData.candidates[0].content) {
+                    replyText = geminiData.candidates[0].content.parts.map(p => p.text).join('\n');
+                    if (replyText) {
+                        console.log(`[COPILOT] Resposta gerada com sucesso via modelo: ${modelName}`);
+                        break;
+                    }
+                } else {
+                    lastError = geminiData.error ? geminiData.error.message : `HTTP ${geminiRes.status}`;
+                    console.warn(`[COPILOT MODEL ${modelName} FAILED]`, lastError);
+                }
+            } catch (err) {
+                lastError = err.message;
+                console.warn(`[COPILOT MODEL ${modelName} EXCEPTION]`, err.message);
+            }
+        }
+
+        if (!replyText) {
+            return res.status(500).json({ error: 'Erro no Copilot: ' + (lastError || 'Nenhum modelo do Gemini respondeu.') });
         }
 
         let suggestedEmail = null;
