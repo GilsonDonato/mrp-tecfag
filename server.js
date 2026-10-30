@@ -177,6 +177,29 @@ function initializeDatabase() {
         db.run("ALTER TABLE projects ADD COLUMN waiting_vendor_reason TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN paused_sla_seconds INTEGER DEFAULT 0", (err) => {});
 
+        // Colunas de Importação & Comex no Card Único de Projetos
+        db.run("ALTER TABLE projects ADD COLUMN import_supplier TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_invoice_number TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_invoice_date TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_currency TEXT DEFAULT 'USD'", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_total_fob_value REAL DEFAULT 0.0", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_stage TEXT DEFAULT 'PO_EMITIDA'", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_fabrication_start_date TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_fabrication_end_date TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_container_id TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_vessel_name TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_bl_number TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_bl_date TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_etd_date TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_eta_port_date TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_eta_warehouse_date TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_actual_arrival_date TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_customs_regime TEXT DEFAULT 'IMPORTACAO_DIRETA'", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_dta_number TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_eadi_entry_date TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_eadi_da_number TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_notes TEXT", () => {});
+
         // Tabela de Comentários / Discussão (Timeline do Card)
         db.run(`CREATE TABLE IF NOT EXISTS comments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -7233,7 +7256,12 @@ app.put('/api/projects/:code', async (req, res) => {
         crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date,
         setup_specs, pm, diagnostico, project_name,
         waiting_vendor, waiting_vendor_since, waiting_vendor_reason, paused_sla_seconds,
-        spare_parts_recommendations
+        spare_parts_recommendations,
+        import_supplier, import_invoice_number, import_invoice_date, import_currency, import_total_fob_value,
+        import_stage, import_fabrication_start_date, import_fabrication_end_date, import_container_id,
+        import_vessel_name, import_bl_number, import_bl_date, import_etd_date, import_eta_port_date,
+        import_eta_warehouse_date, import_actual_arrival_date, import_customs_regime, import_dta_number,
+        import_eadi_entry_date, import_eadi_da_number, import_notes
     } = req.body;
     const { code } = req.params;
 
@@ -7429,7 +7457,28 @@ app.put('/api/projects/:code', async (req, res) => {
             setup_specs = ?,
             diagnostico = ?,
             validation_status = ?,
-            project_name = ?`;
+            project_name = ?,
+            import_supplier = ?,
+            import_invoice_number = ?,
+            import_invoice_date = ?,
+            import_currency = ?,
+            import_total_fob_value = ?,
+            import_stage = ?,
+            import_fabrication_start_date = ?,
+            import_fabrication_end_date = ?,
+            import_container_id = ?,
+            import_vessel_name = ?,
+            import_bl_number = ?,
+            import_bl_date = ?,
+            import_etd_date = ?,
+            import_eta_port_date = ?,
+            import_eta_warehouse_date = ?,
+            import_actual_arrival_date = ?,
+            import_customs_regime = ?,
+            import_dta_number = ?,
+            import_eadi_entry_date = ?,
+            import_eadi_da_number = ?,
+            import_notes = ?`;
             
         const params = [
             serial !== undefined ? serial : oldProject.serial,
@@ -7453,7 +7502,28 @@ app.put('/api/projects/:code', async (req, res) => {
             setup_specs ? JSON.stringify(setup_specs) : oldProject.setup_specs,
             diagnostico !== undefined ? diagnostico : oldProject.diagnostico,
             validationStatus,
-            project_name !== undefined ? project_name : oldProject.project_name
+            project_name !== undefined ? project_name : oldProject.project_name,
+            import_supplier !== undefined ? import_supplier : oldProject.import_supplier,
+            import_invoice_number !== undefined ? import_invoice_number : oldProject.import_invoice_number,
+            import_invoice_date !== undefined ? import_invoice_date : oldProject.import_invoice_date,
+            import_currency !== undefined ? import_currency : (oldProject.import_currency || 'USD'),
+            import_total_fob_value !== undefined ? parseFloat(import_total_fob_value) : oldProject.import_total_fob_value,
+            import_stage !== undefined ? import_stage : oldProject.import_stage,
+            import_fabrication_start_date !== undefined ? import_fabrication_start_date : oldProject.import_fabrication_start_date,
+            import_fabrication_end_date !== undefined ? import_fabrication_end_date : oldProject.import_fabrication_end_date,
+            import_container_id !== undefined ? import_container_id : oldProject.import_container_id,
+            import_vessel_name !== undefined ? import_vessel_name : oldProject.import_vessel_name,
+            import_bl_number !== undefined ? import_bl_number : oldProject.import_bl_number,
+            import_bl_date !== undefined ? import_bl_date : oldProject.import_bl_date,
+            import_etd_date !== undefined ? import_etd_date : oldProject.import_etd_date,
+            import_eta_port_date !== undefined ? import_eta_port_date : oldProject.import_eta_port_date,
+            import_eta_warehouse_date !== undefined ? import_eta_warehouse_date : oldProject.import_eta_warehouse_date,
+            import_actual_arrival_date !== undefined ? import_actual_arrival_date : oldProject.import_actual_arrival_date,
+            import_customs_regime !== undefined ? import_customs_regime : (oldProject.import_customs_regime || 'IMPORTACAO_DIRETA'),
+            import_dta_number !== undefined ? import_dta_number : oldProject.import_dta_number,
+            import_eadi_entry_date !== undefined ? import_eadi_entry_date : oldProject.import_eadi_entry_date,
+            import_eadi_da_number !== undefined ? import_eadi_da_number : oldProject.import_eadi_da_number,
+            import_notes !== undefined ? import_notes : oldProject.import_notes
         ];
 
         // Se o técnico foi enviado para atualização
@@ -8847,6 +8917,119 @@ app.delete('/api/supply-chain/suppliers/:id', authenticateToken, restrictToSuppl
 });
 
 
+// POST /api/projects/:code/advance-import-stage - Avança etapa de importação do Card Único
+app.post('/api/projects/:code/advance-import-stage', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const { code } = req.params;
+    const user = req.user ? req.user.username : 'Sistema';
+    const { target_stage } = req.body || {};
+    const stages = ['PO_EMITIDA', 'EM_FABRICACAO', 'PACKING_LIST_EMBARQUE', 'NO_NAVIO', 'NO_PORTO_DESEMBARACO', 'ENTREPOSTADO_EADI', 'DOCA_GALPAO'];
+    const stageLabels = {
+        'PO_EMITIDA': '1. Proforma',
+        'EM_FABRICACAO': '2. Em Fabricação no Exterior',
+        'PACKING_LIST_EMBARQUE': '3. Packing List & Carga Pronta',
+        'NO_NAVIO': '4. Em Trânsito Marítimo',
+        'NO_PORTO_DESEMBARACO': '5. No Porto / Desembaraço',
+        'ENTREPOSTADO_EADI': '6. Porto Seco (EADI Bauru)',
+        'DOCA_GALPAO': '7. Entregue na Doca / Estoque Tecfag'
+    };
+
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) return res.status(404).json({ error: 'Projeto não encontrado.' });
+
+        const currentStage = project.import_stage || (project.fase === 4 ? 'EM_FABRICACAO' : (project.fase === 5 ? 'ENTREPOSTADO_EADI' : 'PO_EMITIDA'));
+        let nextStage;
+        if (target_stage && stages.includes(target_stage)) {
+            nextStage = target_stage;
+        } else {
+            const idx = stages.indexOf(currentStage);
+            if (idx === -1 || idx >= stages.length - 1) {
+                return res.status(400).json({ error: 'A ordem já está na etapa final.' });
+            }
+            if (currentStage === 'NO_PORTO_DESEMBARACO') {
+                nextStage = (project.import_customs_regime === 'EADI_BAURU') ? 'ENTREPOSTADO_EADI' : 'DOCA_GALPAO';
+            } else {
+                nextStage = stages[idx + 1];
+            }
+        }
+
+        const now = new Date().toISOString();
+        let actualArrival = project.import_actual_arrival_date;
+        let newFase = project.fase;
+
+        if (nextStage === 'DOCA_GALPAO') {
+            actualArrival = now.split('T')[0];
+            newFase = 6; // Retorna à Oficina, Setup & SAT no Quadro de Projetos!
+        } else if (nextStage === 'EM_FABRICACAO') {
+            newFase = 4;
+        } else if (nextStage === 'NO_NAVIO' || nextStage === 'NO_PORTO_DESEMBARACO' || nextStage === 'ENTREPOSTADO_EADI') {
+            newFase = 5;
+        }
+
+        await dbRun(`
+            UPDATE projects SET
+                import_stage = ?,
+                import_actual_arrival_date = ?,
+                fase = ?,
+                faseEntryDate = ?,
+                lastUpdate = ?
+            WHERE code = ?
+        `, [nextStage, actualArrival, newFase, now, now, code]);
+
+        // Sincronizar ordem em stock_orders se existir
+        await dbRun(`
+            UPDATE stock_orders SET
+                stage = ?,
+                actual_arrival_date = ?,
+                updated_at = ?
+            WHERE project_code = ?
+        `, [nextStage, actualArrival, now, code]);
+
+        const logMsg = nextStage === 'DOCA_GALPAO'
+            ? `🚢 Carga entregue na Doca Tecfag! O projeto ${code} retornou automaticamente para a Oficina, Setup & SAT (Fase 6).`
+            : `🚢 Etapa de Importação avançada para: ${stageLabels[nextStage] || nextStage}.`;
+
+        await recordAuditLog(code, user, logMsg);
+
+        res.json({ success: true, current_stage: nextStage, fase: newFase, message: logMsg });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao avançar etapa de importação: ' + err.message });
+    }
+});
+
+// POST /api/projects/:code/cancel-import - Cancela/desvincula processo de importação e retorna para Pedido Fechado
+app.post('/api/projects/:code/cancel-import', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const { code } = req.params;
+    const user = req.user ? req.user.username : 'Sistema';
+
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) return res.status(404).json({ error: 'Projeto não encontrado.' });
+
+        const now = new Date().toISOString();
+        let chk = {};
+        try { chk = project.checklist ? JSON.parse(project.checklist) : {}; } catch(e){}
+        chk.import_order_deleted = true;
+
+        await dbRun(`
+            UPDATE projects SET
+                fase = 2,
+                import_stage = NULL,
+                checklist = ?,
+                lastUpdate = ?
+            WHERE code = ?
+        `, [JSON.stringify(chk), now, code]);
+
+        await dbRun('DELETE FROM stock_orders WHERE project_code = ?', [code]);
+
+        await recordAuditLog(code, user, `Processo de importação desvinculado por ${user}. Projeto retornado para Pedido Fechado (Fase 2).`);
+
+        res.json({ success: true, message: 'Importação desvinculada. Projeto retornado para Pedido Fechado.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao cancelar importação: ' + err.message });
+    }
+});
+
 // POST /api/projects/:code/transfer-to-import - Transfere projeto para o pipeline de Importação & Estoque
 app.post('/api/projects/:code/transfer-to-import', authenticateToken, async (req, res) => {
     const { code } = req.params;
@@ -8960,6 +9143,72 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
                 o.days_in_eadi = Math.max(0, Math.floor((now - entryDate) / (1000 * 60 * 60 * 24)));
             } else {
                 o.days_in_eadi = 0;
+            }
+        }
+
+        // Carregar projetos sob encomenda em fase de importação internacional (fases 3, 4, 5)
+        const importProjects = await dbAll(`
+            SELECT * FROM projects 
+            WHERE (fase IN (3, 4, 5) OR (import_stage IS NOT NULL AND import_stage != 'DOCA_GALPAO' AND fase < 6))
+              AND (motivoPerda IS NULL)
+        `);
+
+        for (const p of importProjects) {
+            const existingOrder = orders.find(o => o.project_code === p.code || o.po_number === 'PO-' + p.code.replace('PRJTEC000000', 'PRJ'));
+            if (existingOrder) {
+                existingOrder.is_project = true;
+                existingOrder.client_name = p.client;
+                existingOrder.project_name = p.project_name;
+                existingOrder.project_sku = p.sku;
+            } else {
+                const stage = p.import_stage || (p.fase === 4 ? 'EM_FABRICACAO' : (p.fase === 5 ? 'ENTREPOSTADO_EADI' : 'PO_EMITIDA'));
+                let daysInEadi = 0;
+                if (p.import_eadi_entry_date) {
+                    daysInEadi = Math.max(0, Math.floor((now - new Date(p.import_eadi_entry_date + 'T00:00:00')) / (1000 * 60 * 60 * 24)));
+                }
+                const fobVal = p.import_total_fob_value || (p.crm_value ? (p.crm_value / 5.5) : 0);
+                orders.unshift({
+                    id: 'PRJ-' + p.code,
+                    is_project: true,
+                    project_code: p.code,
+                    client_name: p.client,
+                    project_name: p.project_name,
+                    project_sku: p.sku,
+                    po_number: 'PO-' + p.code.replace('PRJTEC000000', 'PRJ'),
+                    supplier_name: p.import_supplier || 'Fornecedor Internacional',
+                    invoice_number: p.import_invoice_number || ('PI-' + p.code.replace('PRJTEC000000', 'PRJ')),
+                    invoice_date: p.import_invoice_date,
+                    currency: p.import_currency || 'USD',
+                    total_fob_value: fobVal,
+                    stage: stage,
+                    container_id: p.import_container_id,
+                    vessel_name: p.import_vessel_name,
+                    bl_number: p.import_bl_number,
+                    bl_date: p.import_bl_date,
+                    etd_date: p.import_etd_date,
+                    eta_port_date: p.import_eta_port_date,
+                    eta_warehouse_date: p.import_eta_warehouse_date,
+                    actual_arrival_date: p.import_actual_arrival_date,
+                    customs_regime: p.import_customs_regime || 'IMPORTACAO_DIRETA',
+                    dta_number: p.import_dta_number,
+                    eadi_entry_date: p.import_eadi_entry_date,
+                    eadi_da_number: p.import_eadi_da_number,
+                    notes: p.import_notes || ('Projeto: ' + (p.project_name || p.sku || 'Máquina')),
+                    items: [{
+                        sku: p.sku || p.code,
+                        description: (p.project_name || p.sku || 'Máquina Sob Encomenda') + ' (' + p.client + ')',
+                        qty_ordered: 1,
+                        qty_shipped: (p.fase >= 4 ? 1 : 0),
+                        unit_price_fob: fobVal,
+                        total_price_fob: fobVal
+                    }],
+                    payments: [],
+                    total_machines: 1,
+                    eadi_admitted: 1,
+                    eadi_cleared: 0,
+                    eadi_balance: 1,
+                    days_in_eadi: daysInEadi
+                });
             }
         }
 

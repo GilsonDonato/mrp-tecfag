@@ -3860,7 +3860,7 @@
                         💼 Comercial & Financeiro
                     </button>
                     <button type="button" class="project-modal-tab-btn" id="modal-nav-btn-logistics" onclick="switchProjectModalTab('logistics')">
-                        📦 Logística & Almoxarifado
+                        🚢 Importação & Comex
                     </button>
                     <button type="button" class="project-modal-tab-btn" id="modal-nav-btn-workshop" onclick="switchProjectModalTab('workshop')">
                         🔧 Oficina, Setup & SAT
@@ -4389,75 +4389,152 @@
 
                 <!-- ABA 4: LOGÍSTICA & ALMOXARIFADO -->
                 <div id="modal-pane-logistics" class="project-modal-tab-pane" style="display: none;">
-                    <div class="project-modal-grid-2col">
-                        <!-- Coluna Esquerda: Fases 4 e 5 -->
-                        <div style="display: flex; flex-direction: column; gap: 16px;">
-                            <div class="detail-card">
-                                <h4 style="margin-bottom: 15px; color: var(--color-fase4);">Fase 4: Fabricação Internacional & Embarque (Resp: Supply Chain - SLA 50 dias)</h4>
-                                <div class="checklist-group" style="--group-color: var(--color-fase4); border-bottom: none; padding-bottom: 0;">
-                                    <div class="checklist-items">
-                                        <div class="checklist-item" id="chk-producao" onclick="toggleCheckItem('producao')">
-                                            <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                            <span class="checklist-label">11. Monitoramento de Fabricação (Janela 40-50 dias) <strong style="color: #f59e0b;">[COMPRAS]</strong></span>
-                                            <div class="step-attach-area" id="attach-step-producao" onclick="event.stopPropagation()"></div>
-                                        </div>
-                                        <div class="checklist-item" id="chk-embarque" onclick="toggleCheckItem('embarque')">
-                                            <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                            <span class="checklist-label">12. Liberação de Embarque e Rastreio Logístico <strong style="color: #f59e0b;">[COMPRAS]</strong></span>
-                                            <div class="step-attach-area" id="attach-step-embarque" onclick="event.stopPropagation()"></div>
-                                        </div>
-                                        <div class="checklist-item" id="chk-pagamento" onclick="toggleCheckItem('pagamento')">
-                                            <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                            <span class="checklist-label">13. Pagamento de Saldo (70%) & Liberação BL <strong style="color: #f59e0b;">[COMPRAS]</strong></span>
-                                            <div class="step-attach-area" id="attach-step-pagamento" onclick="event.stopPropagation()"></div>
-                                        </div>
-                                        <div class="checklist-item" id="chk-fedex" onclick="toggleCheckItem('fedex')">
-                                            <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                            <span class="checklist-label">14. Recebimento de Documentos Originais via FedEx <strong style="color: #f59e0b;">[COMPRAS]</strong></span>
-                                            <div class="step-attach-area" id="attach-step-fedex" onclick="event.stopPropagation()"></div>
-                                        </div>
-                                    </div>
+                    <!-- Banner de Pipeline de Importação Internacional -->
+                    <div style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(30, 41, 59, 0.8) 100%); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 14px 18px; margin-bottom: 18px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                            <div>
+                                <span style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Etapa de Importação Internacional:</span>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+                                    <span style="font-size: 1.1rem;">🚢</span>
+                                    <span style="font-size: 1.1rem; font-weight: 800; color: #38bdf8;" id="modal-import-stage-badge">1. PROFORMA</span>
                                 </div>
                             </div>
-
-                            <div class="detail-card">
-                                <h4 style="margin-bottom: 15px; color: var(--color-fase5);">Fase 5: Trânsito Marítimo & EADI Bauru (Resp: Comex/EADI - SLA 40 dias)</h4>
-                                <div class="checklist-group" style="--group-color: var(--color-fase5); border-bottom: none; padding-bottom: 0;">
-                                    <div class="checklist-items">
-                                        <div class="checklist-item" id="chk-transporte_maritimo" onclick="toggleCheckItem('transporte_maritimo')">
-                                            <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                            <span class="checklist-label">15. Acompanhamento de Transit Time Marítimo <strong style="color: #06b6d4;">[ESTOQUE]</strong></span>
-                                            <div class="step-attach-area" id="attach-step-transporte_maritimo" onclick="event.stopPropagation()"></div>
-                                        </div>
-                                        <div class="checklist-item" id="chk-desembaraco" onclick="toggleCheckItem('desembaraco')">
-                                            <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                            <span class="checklist-label">16. Desembaraço Aduaneiro (DI Registrada) <strong style="color: #06b6d4;">[ESTOQUE]</strong></span>
-                                            <div class="step-attach-area" id="attach-step-desembaraco" onclick="event.stopPropagation()"></div>
-                                        </div>
-                                        <div class="checklist-item" id="chk-chegada_tecfag" onclick="toggleCheckItem('chegada_tecfag')">
-                                            <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                            <span class="checklist-label">17. Chegada Física ao Almoxarifado Tecfag <strong style="color: #06b6d4;">[ESTOQUE]</strong></span>
-                                            <div class="step-attach-area" id="attach-step-chegada_tecfag" onclick="event.stopPropagation()"></div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button type="button" class="btn" onclick="advanceProjectImportModalStage()" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; font-weight: 800; padding: 8px 16px; font-size: 0.78rem; border: 1px solid #38bdf8; border-radius: 6px; box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);">
+                                    ➡️ Avançar Próxima Etapa
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="switchTab('supply-chain'); closeProjectModal();" style="border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700; padding: 8px 14px; font-size: 0.78rem; border-radius: 6px;">
+                                    Ver no Quadro de Importação ➔
+                                </button>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Coluna Direita: Vínculos de Rastreabilidade e Almoxarifado -->
+                    <!-- Formulário Unificado de Importação & Comex -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 18px;">
+                        <!-- Coluna 1: Fabricante, Invoice, Valores e Carga -->
                         <div class="detail-card">
-                            <h4 style="margin-bottom: 15px; color: var(--primary); font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                                📦 Vínculos de Rastreabilidade (Almoxarifado)
+                            <h4 style="margin-bottom: 14px; color: #38bdf8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                                <span>🏭</span> Fabricante, Fatura & Valores
                             </h4>
-                            <p style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.3;">
-                                Equipamentos e números de série reservados ou importados para este projeto.
-                            </p>
-                            <div id="modal-machines-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
                             
-                            <div id="modal-autoprint-trigger-msg" style="display: none; background-color: var(--color-reservado-bg); border: 1px solid var(--color-reservado); border-radius: 6px; padding: 10px; font-size: 0.76rem; color: #fecaca; margin-top: 15px;">
-                                🖨️ <strong>ETIQUETAGEM AUTOMÁTICA ENGATILHADA:</strong> O sistema irá disparar a impressão das novas etiquetas de caixa automaticamente ao salvar.
+                            <div class="form-group" style="margin-bottom: 12px;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: #f59e0b;">Fornecedor Internacional (Fabricante) *</label>
+                                <input type="text" id="modal-import-supplier" class="form-control" placeholder="Ex: Amy Machinery, Brother, etc." style="padding: 8px; font-size: 0.82rem;">
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Nº Proforma / Invoice</label>
+                                    <input type="text" id="modal-import-invoice-number" class="form-control" placeholder="Ex: PI-2026-08" style="padding: 8px; font-size: 0.82rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Data da Invoice</label>
+                                    <input type="date" id="modal-import-invoice-date" class="form-control" style="padding: 8px; font-size: 0.82rem;">
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 80px 1fr; gap: 10px; margin-bottom: 12px;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Moeda</label>
+                                    <select id="modal-import-currency" class="form-control" style="padding: 8px; font-size: 0.82rem; font-weight: bold;">
+                                        <option value="USD">USD ($)</option>
+                                        <option value="EUR">EUR (€)</option>
+                                        <option value="CNY">CNY (¥)</option>
+                                        <option value="BRL">BRL (R$)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.72rem; font-weight: 700; color: #4ade80;">Valor Total FOB</label>
+                                    <input type="number" step="0.01" id="modal-import-total-fob" class="form-control" placeholder="0.00" style="padding: 8px; font-size: 0.82rem; font-weight: bold; color: #4ade80;">
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Container ID</label>
+                                    <input type="text" id="modal-import-container-id" class="form-control" placeholder="Ex: MSDU9283741" style="padding: 8px; font-size: 0.82rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Navio / Viagem</label>
+                                    <input type="text" id="modal-import-vessel-name" class="form-control" placeholder="Ex: MSC ALESIA" style="padding: 8px; font-size: 0.82rem;">
+                                </div>
                             </div>
                         </div>
+
+                        <!-- Coluna 2: Embarque, Prazos & Regime Aduaneiro -->
+                        <div class="detail-card">
+                            <h4 style="margin-bottom: 14px; color: #38bdf8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                                <span>🚢</span> Logística, B/L & Desembaraço
+                            </h4>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Número B/L</label>
+                                    <input type="text" id="modal-import-bl-number" class="form-control" placeholder="Ex: MEDUST123456" style="padding: 8px; font-size: 0.82rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.72rem; font-weight: 700; color: #f59e0b;">Data Emissão B/L</label>
+                                    <input type="date" id="modal-import-bl-date" class="form-control" style="padding: 8px; font-size: 0.82rem;">
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">ETD (Embarque)</label>
+                                    <input type="date" id="modal-import-etd-date" class="form-control" style="padding: 8px; font-size: 0.82rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">ETA Santos (Porto)</label>
+                                    <input type="date" id="modal-import-eta-port-date" class="form-control" style="padding: 8px; font-size: 0.82rem;">
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.72rem; font-weight: 700; color: #38bdf8;">ETA Doca Tecfag</label>
+                                    <input type="date" id="modal-import-eta-warehouse-date" class="form-control" style="padding: 8px; font-size: 0.82rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Regime Aduaneiro</label>
+                                    <select id="modal-import-customs-regime" class="form-control" style="padding: 8px; font-size: 0.82rem;">
+                                        <option value="IMPORTACAO_DIRETA">Importação Direta (Santos)</option>
+                                        <option value="EADI_BAURU">Porto Seco (EADI Bauru)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Nº DTA / D.A.</label>
+                                    <input type="text" id="modal-import-dta-number" class="form-control" placeholder="DTA / D.A." style="padding: 8px; font-size: 0.82rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Data Entrada EADI</label>
+                                    <input type="date" id="modal-import-eadi-entry-date" class="form-control" style="padding: 8px; font-size: 0.82rem;">
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Observações de Importação</label>
+                                <textarea id="modal-import-notes" class="form-control" rows="2" placeholder="Notas sobre despachante, câmbio, prazos..." style="padding: 8px; font-size: 0.80rem;"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botão de Salvar Alterações de Importação -->
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 20px;">
+                        <button type="button" class="btn" onclick="saveProjectImportData()" style="background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 800; padding: 10px 22px; font-size: 0.82rem; border-radius: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">
+                            💾 Salvar Dados de Importação
+                        </button>
+                    </div>
+
+                    <!-- Coluna de Rastreabilidade e Máquinas Vinculadas -->
+                    <div class="detail-card">
+                        <h4 style="margin-bottom: 15px; color: var(--primary); font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                            📦 Vínculos de Rastreabilidade & SKUs do Projeto
+                        </h4>
+                        <div id="modal-machines-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
                     </div>
                 </div>
 
@@ -17555,7 +17632,7 @@ function renderKanban() {
         }
 
         // Active project details in modal
-        async function openProjectModal(code) {
+        async function openProjectModal(code, initialTab = 'overview') {
             setupSelectedFiles = [];
             const setupInput = document.getElementById('modal-setup-files-input');
             if (setupInput) setupInput.value = '';
@@ -18481,8 +18558,39 @@ function renderKanban() {
             const respInput = document.getElementById('modal-vendor-response-input');
             if (respInput) respInput.value = '';
 
-            // 2. Garante abertura na aba padrão Visão Geral & Chat
-            switchProjectModalTab('overview');
+            // Popular campos da Aba de Importação & Comex (Card Único de Projetos)
+            const stageLabelsMap = {
+                'PO_EMITIDA': '1. PROFORMA',
+                'EM_FABRICACAO': '2. EM FABRICAÇÃO',
+                'PACKING_LIST_EMBARQUE': '3. PACKING LIST & EMBARQUE',
+                'NO_NAVIO': '4. NO NAVIO (TRÂNSITO)',
+                'NO_PORTO_DESEMBARACO': '5. PORTO & DESEMBARAÇO',
+                'ENTREPOSTADO_EADI': '6. PORTO SECO (EADI BAURU)',
+                'DOCA_GALPAO': '7. DOCA TECFAG / LIBERADO'
+            };
+            const currentImportStage = project.import_stage || (project.fase === 4 ? 'EM_FABRICACAO' : (project.fase === 5 ? 'ENTREPOSTADO_EADI' : 'PO_EMITIDA'));
+            const stageBadgeEl = document.getElementById('modal-import-stage-badge');
+            if (stageBadgeEl) stageBadgeEl.innerText = stageLabelsMap[currentImportStage] || currentImportStage;
+
+            if (document.getElementById('modal-import-supplier')) document.getElementById('modal-import-supplier').value = project.import_supplier || '';
+            if (document.getElementById('modal-import-invoice-number')) document.getElementById('modal-import-invoice-number').value = project.import_invoice_number || '';
+            if (document.getElementById('modal-import-invoice-date')) document.getElementById('modal-import-invoice-date').value = project.import_invoice_date || '';
+            if (document.getElementById('modal-import-currency')) document.getElementById('modal-import-currency').value = project.import_currency || 'USD';
+            if (document.getElementById('modal-import-total-fob')) document.getElementById('modal-import-total-fob').value = project.import_total_fob_value || '';
+            if (document.getElementById('modal-import-container-id')) document.getElementById('modal-import-container-id').value = project.import_container_id || '';
+            if (document.getElementById('modal-import-vessel-name')) document.getElementById('modal-import-vessel-name').value = project.import_vessel_name || '';
+            if (document.getElementById('modal-import-bl-number')) document.getElementById('modal-import-bl-number').value = project.import_bl_number || '';
+            if (document.getElementById('modal-import-bl-date')) document.getElementById('modal-import-bl-date').value = project.import_bl_date || '';
+            if (document.getElementById('modal-import-etd-date')) document.getElementById('modal-import-etd-date').value = project.import_etd_date || '';
+            if (document.getElementById('modal-import-eta-port-date')) document.getElementById('modal-import-eta-port-date').value = project.import_eta_port_date || '';
+            if (document.getElementById('modal-import-eta-warehouse-date')) document.getElementById('modal-import-eta-warehouse-date').value = project.import_eta_warehouse_date || '';
+            if (document.getElementById('modal-import-customs-regime')) document.getElementById('modal-import-customs-regime').value = project.import_customs_regime || 'IMPORTACAO_DIRETA';
+            if (document.getElementById('modal-import-dta-number')) document.getElementById('modal-import-dta-number').value = project.import_dta_number || '';
+            if (document.getElementById('modal-import-eadi-entry-date')) document.getElementById('modal-import-eadi-entry-date').value = project.import_eadi_entry_date || '';
+            if (document.getElementById('modal-import-notes')) document.getElementById('modal-import-notes').value = project.import_notes || '';
+
+            // 2. Garante abertura na aba selecionada (overview por padrão, ou logistics se veio da importação)
+            switchProjectModalTab(initialTab || 'overview');
 
             // 3. Força o carregamento isolado das mensagens exclusivamente deste card ativo
             loadModalComments();
@@ -20258,6 +20366,121 @@ function renderKanban() {
             } catch (err) {
                 console.error('Erro na transferência:', err);
                 alert('Erro ao conectar com o servidor: ' + err.message);
+            }
+        }
+
+        // Salva os dados de importação do Card Único diretamente no projeto
+        async function saveProjectImportData() {
+            if (!activeProjectCode) return;
+            const project = state.projects.find(p => p.code === activeProjectCode);
+            if (!project) return;
+
+            const payload = {
+                import_supplier: document.getElementById('modal-import-supplier')?.value || '',
+                import_invoice_number: document.getElementById('modal-import-invoice-number')?.value || '',
+                import_invoice_date: document.getElementById('modal-import-invoice-date')?.value || null,
+                import_currency: document.getElementById('modal-import-currency')?.value || 'USD',
+                import_total_fob_value: parseFloat(document.getElementById('modal-import-total-fob')?.value) || 0,
+                import_container_id: document.getElementById('modal-import-container-id')?.value || '',
+                import_vessel_name: document.getElementById('modal-import-vessel-name')?.value || '',
+                import_bl_number: document.getElementById('modal-import-bl-number')?.value || '',
+                import_bl_date: document.getElementById('modal-import-bl-date')?.value || null,
+                import_etd_date: document.getElementById('modal-import-etd-date')?.value || null,
+                import_eta_port_date: document.getElementById('modal-import-eta-port-date')?.value || null,
+                import_eta_warehouse_date: document.getElementById('modal-import-eta-warehouse-date')?.value || null,
+                import_customs_regime: document.getElementById('modal-import-customs-regime')?.value || 'IMPORTACAO_DIRETA',
+                import_dta_number: document.getElementById('modal-import-dta-number')?.value || '',
+                import_eadi_entry_date: document.getElementById('modal-import-eadi-entry-date')?.value || null,
+                import_notes: document.getElementById('modal-import-notes')?.value || '',
+                lastUpdate: new Date().toISOString()
+            };
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                const res = await fetch('/api/projects/' + activeProjectCode, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    alert('✅ Dados de importação salvos com sucesso no card do projeto!');
+                    if (typeof loadProjects === 'function') await loadProjects();
+                    if (typeof loadSupplyChainData === 'function') await loadSupplyChainData();
+                } else {
+                    const data = await res.json();
+                    alert('Erro ao salvar dados de importação: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao salvar importação: ' + err.message);
+            }
+        }
+
+        // Avança etapa de importação a partir do modal
+        async function advanceProjectImportModalStage() {
+            if (!activeProjectCode) return;
+            await quickAdvanceProjectImportStage(activeProjectCode);
+        }
+
+        // Avança etapa de importação de um projeto
+        async function quickAdvanceProjectImportStage(code) {
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                const res = await fetch('/api/projects/' + code + '/advance-import-stage', {
+                    method: 'POST',
+                    headers
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.message || 'Etapa avançada com sucesso!');
+                    if (typeof loadProjects === 'function') await loadProjects();
+                    if (typeof loadSupplyChainData === 'function') await loadSupplyChainData();
+                    if (activeProjectCode === code) {
+                        openProjectModal(code, 'logistics');
+                    }
+                } else {
+                    alert('Erro ao avançar etapa: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao avançar etapa de importação.');
+            }
+        }
+
+        // Cancela ou desvincula projeto do pipeline de importação
+        async function quickCancelProjectImport(code, poNumber) {
+            if (!confirm('Deseja retirar o projeto ' + code + ' (' + poNumber + ') do pipeline de importação?\n\nO card continuará existindo no MRP e retornará para Pedido Fechado (Fase 2).')) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+
+                const res = await fetch('/api/projects/' + code + '/cancel-import', {
+                    method: 'POST',
+                    headers
+                });
+
+                if (res.ok) {
+                    alert('✅ Projeto desvinculado da importação e retornado para Pedido Fechado com sucesso!');
+                    if (typeof loadProjects === 'function') await loadProjects();
+                    if (typeof loadSupplyChainData === 'function') await loadSupplyChainData();
+                } else {
+                    const data = await res.json();
+                    alert('Erro ao desvincular importação: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao desvincular importação.');
             }
         }
 
@@ -23979,6 +24202,9 @@ function renderKanban() {
                 `;
                 card.onmouseenter = () => { card.style.borderColor = 'rgba(56, 189, 248, 0.4)'; card.style.transform = 'translateY(-2px)'; };
                 card.onmouseleave = () => { card.style.borderColor = 'rgba(255, 255, 255, 0.08)'; card.style.transform = 'none'; };
+                const isProject = !!order.project_code || !!order.is_project;
+                const prjCode = order.project_code || (typeof order.id === 'string' && order.id.startsWith('PRJ-') ? order.id.replace('PRJ-', '') : null);
+                card.onclick = () => { if (isProject && prjCode) { openProjectModal(prjCode, 'logistics'); } else { openSupplyDetailsModal(order.id); } };
 
                 // Header do Card
                 const isRollover = order.is_rollover_order === 1;
@@ -24082,27 +24308,36 @@ function renderKanban() {
 
                     <!-- Barra de Navegação e Gestão da Ordem -->
                     <div style="display: flex; gap: 5px; align-items: center; margin-top: 5px; width: 100%; box-sizing: border-box;">
-                        <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openSupplyDetailsModal(${order.id})" style="flex: 1; min-width: 0; padding: 5px 6px; font-size: 0.72rem; font-weight: 600; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                            🔍 Detalhes
-                        </button>
-                        ${stage === 'PO_EMITIDA' || stage === 'EM_FABRICACAO' ? `
-                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openReconcileModal(${order.id})" style="padding: 5px 8px; font-size: 0.70rem; font-weight: 700; border-color: rgba(236, 72, 153, 0.4); color: #ec4899; border-radius: 5px; white-space: nowrap; flex-shrink: 0;" title="Conferir Carga / Packing List">
-                                📦 Carga
+                        ${isProject && prjCode ? `
+                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openProjectModal('${prjCode}', 'logistics')" style="flex: 1; min-width: 0; padding: 5px 6px; font-size: 0.72rem; font-weight: 800; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" title="Abrir Ficha Técnica e Controle de Importação">
+                                📐 Detalhes & Projeto
                             </button>
-                        ` : ''}
-                        ${order.project_code ? `
-                            <button type="button" class="btn" onclick="event.stopPropagation(); switchTab('dash'); setTimeout(() => openProjectModal('${order.project_code}'), 100);" style="padding: 5px 7px; font-size: 0.70rem; font-weight: 800; background: linear-gradient(135deg, #9333ea, #7e22ce); color: white; border: 1px solid #c084fc; border-radius: 5px; white-space: nowrap; flex-shrink: 0;" title="Abrir Ficha Técnica e Estudo de Caso do Projeto">
-                                📐 ${order.project_code.replace('PRJTEC000000', 'PRJ')}
+                            <button type="button" class="btn" onclick="event.stopPropagation(); quickCancelProjectImport('${prjCode}', '${order.po_number}')" style="padding: 5px 7px; font-size: 0.72rem; font-weight: bold; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 5px; flex-shrink: 0;" title="Cancelar Importação e retornar para Pedido Fechado">
+                                🗑️
                             </button>
-                        ` : ''}
-                        <button type="button" class="btn" onclick="event.stopPropagation(); quickDeleteSupplyOrder(${order.id}, '${order.po_number}')" style="padding: 5px 7px; font-size: 0.72rem; font-weight: bold; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 5px; flex-shrink: 0;" title="Excluir Ordem / Cancelar Card">
-                            🗑️
-                        </button>
-                        ${stage !== 'DOCA_GALPAO' ? `
-                            <button type="button" class="btn" onclick="event.stopPropagation(); quickAdvanceOrderStage(${order.id})" style="padding: 5px 9px; font-size: 0.72rem; font-weight: bold; background: #0ea5e9; border: 1px solid #38bdf8; color: white; border-radius: 5px; flex-shrink: 0; box-shadow: 0 1px 4px rgba(14, 165, 233, 0.3);" title="Avançar Etapa">
-                                ➡️
+                            ${stage !== 'DOCA_GALPAO' ? `
+                                <button type="button" class="btn" onclick="event.stopPropagation(); quickAdvanceProjectImportStage('${prjCode}')" style="padding: 5px 9px; font-size: 0.72rem; font-weight: bold; background: #0ea5e9; border: 1px solid #38bdf8; color: white; border-radius: 5px; flex-shrink: 0; box-shadow: 0 1px 4px rgba(14, 165, 233, 0.3);" title="Avançar Etapa">
+                                    ➡️
+                                </button>
+                            ` : ''}
+                        ` : `
+                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openSupplyDetailsModal(${order.id})" style="flex: 1; min-width: 0; padding: 5px 6px; font-size: 0.72rem; font-weight: 600; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                🔍 Detalhes
                             </button>
-                        ` : ''}
+                            ${stage === 'PO_EMITIDA' || stage === 'EM_FABRICACAO' ? `
+                                <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openReconcileModal(${order.id})" style="padding: 5px 8px; font-size: 0.70rem; font-weight: 700; border-color: rgba(236, 72, 153, 0.4); color: #ec4899; border-radius: 5px; white-space: nowrap; flex-shrink: 0;" title="Conferir Carga / Packing List">
+                                    📦 Carga
+                                </button>
+                            ` : ''}
+                            <button type="button" class="btn" onclick="event.stopPropagation(); quickDeleteSupplyOrder(${order.id}, '${order.po_number}')" style="padding: 5px 7px; font-size: 0.72rem; font-weight: bold; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 5px; flex-shrink: 0;" title="Excluir Ordem / Cancelar Card">
+                                🗑️
+                            </button>
+                            ${stage !== 'DOCA_GALPAO' ? `
+                                <button type="button" class="btn" onclick="event.stopPropagation(); quickAdvanceOrderStage(${order.id})" style="padding: 5px 9px; font-size: 0.72rem; font-weight: bold; background: #0ea5e9; border: 1px solid #38bdf8; color: white; border-radius: 5px; flex-shrink: 0; box-shadow: 0 1px 4px rgba(14, 165, 233, 0.3);" title="Avançar Etapa">
+                                    ➡️
+                                </button>
+                            ` : ''}
+                        `}
                     </div>
                 `;
 
