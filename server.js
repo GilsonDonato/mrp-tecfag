@@ -1323,7 +1323,7 @@ async function autoFixInvoiceHL26CP009098() {
 function restrictToSupplyChain(req, res, next) {
     const role = req.user ? req.user.role : null;
     const username = req.user ? req.user.username.toLowerCase() : '';
-    if (role === 'ALL' || role === 'GERENTE' || role === 'COMPRAS' || role === 'DIRETOR' || username === 'gilson' || username === 'gilson@tecfag.com.br' || username === 'adm@tecfag.com.br' || username === 'jhenifer') {
+    if (role === 'ALL' || role === 'GERENTE' || role === 'COMPRAS' || role === 'DIRETOR' || role === 'ENGENHARIA' || role === 'VENDAS' || role === 'TECNICO' || username === 'gilson' || username === 'gilson@tecfag.com.br' || username === 'adm@tecfag.com.br' || username === 'jhenifer') {
         return next();
     }
     return res.status(403).json({ error: 'Acesso negado: Módulo exclusivo para Gilson, Diretoria, Gerência e Compras/Importação.' });

@@ -4410,6 +4410,26 @@
                         </div>
                     </div>
 
+                    <!-- Dropzone de Seleção e Extração da Fatura / Proforma Invoice via IA -->
+                    <div id="modal-project-invoice-dropzone" ondragover="event.preventDefault(); this.style.borderColor='#38bdf8'; this.style.background='rgba(56, 189, 248, 0.1)';" ondragleave="this.style.borderColor='rgba(56, 189, 248, 0.4)'; this.style.background='rgba(15, 23, 42, 0.6)';" ondrop="event.preventDefault(); this.style.borderColor='rgba(56, 189, 248, 0.4)'; this.style.background='rgba(15, 23, 42, 0.6)'; if(event.dataTransfer.files && event.dataTransfer.files[0]) { const inp = document.getElementById('modal-project-invoice-file'); inp.files = event.dataTransfer.files; handleProjectInvoiceFileSelected(inp); }" style="border: 2px dashed rgba(56, 189, 248, 0.4); background: rgba(15, 23, 42, 0.6); border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 20px; transition: border-color 0.2s, background 0.2s;">
+                        <div style="font-size: 1.8rem; margin-bottom: 6px;">📄</div>
+                        <div style="font-weight: 700; color: #38bdf8; font-size: 0.9rem;">Arraste a Proforma Invoice (PDF ou Imagem) do Fornecedor</div>
+                        <div style="font-size: 0.75rem; color: #94a3b8; margin: 4px 0 12px 0;">O Gemini IA lerá automaticamente Fornecedor, Modelos de Máquinas, Quantidades e Preços FOB.</div>
+                        
+                        <div style="display: flex; justify-content: center; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <input type="file" id="modal-project-invoice-file" accept=".pdf,image/*" style="display: none;" onchange="handleProjectInvoiceFileSelected(this)">
+                            <button type="button" class="btn" onclick="document.getElementById('modal-project-invoice-file').click()" style="background: #0ea5e9; color: white; padding: 8px 16px; font-weight: bold; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                📁 Selecionar Arquivo da Fatura
+                            </button>
+                            <span id="modal-project-selected-file-label" style="font-size: 0.78rem; color: #cbd5e1;">Nenhum arquivo selecionado</span>
+                            <button type="button" id="modal-project-btn-extract-ai" class="btn" onclick="extractProjectInvoiceWithAI()" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; font-weight: bold; padding: 8px 16px; border-radius: 6px; display: none; cursor: pointer;">
+                                ⚡ Analisar com IA
+                            </button>
+                        </div>
+                        <div id="modal-project-ocr-status" style="display: none; margin-top: 10px; font-size: 0.78rem; font-weight: 600;"></div>
+                        <div id="modal-project-attached-invoice-info" style="margin-top: 12px; font-size: 0.78rem; color: #94a3b8; display: none;"></div>
+                    </div>
+
                     <!-- Formulário Unificado de Importação & Comex -->
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 18px;">
                         <!-- Coluna 1: Fabricante, Invoice, Valores e Carga -->
@@ -17666,6 +17686,17 @@ function renderKanban() {
                 }
             }, 10000);
 
+            // Resetar dropzone de fatura do projeto
+            const invoiceFileInput = document.getElementById('modal-project-invoice-file');
+            if (invoiceFileInput) invoiceFileInput.value = '';
+            const invoiceFileLabel = document.getElementById('modal-project-selected-file-label');
+            if (invoiceFileLabel) invoiceFileLabel.innerText = 'Nenhum arquivo selecionado';
+            const invoiceBtnAi = document.getElementById('modal-project-btn-extract-ai');
+            if (invoiceBtnAi) invoiceBtnAi.style.display = 'none';
+            const invoiceOcrStatus = document.getElementById('modal-project-ocr-status');
+            if (invoiceOcrStatus) { invoiceOcrStatus.style.display = 'none'; invoiceOcrStatus.innerText = ''; }
+            if (typeof checkProjectAttachedInvoice === 'function') checkProjectAttachedInvoice(code);
+
             document.getElementById('modal-project-title').innerText = `${project.code} - ${project.client}${project.project_name ? ' | ' + project.project_name : ''}`;
             
             let creator = '-';
@@ -20350,6 +20381,165 @@ function renderKanban() {
         }
 
         // Salva os dados de importação do Card Único diretamente no projeto
+        // Handlers para Seleção e Extração da Fatura de Projetos (Proforma / Invoice)
+        function handleProjectInvoiceFileSelected(input) {
+            const fileLabel = document.getElementById('modal-project-selected-file-label');
+            const btnAi = document.getElementById('modal-project-btn-extract-ai');
+            const status = document.getElementById('modal-project-ocr-status');
+            if (status) status.style.display = 'none';
+
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                if (fileLabel) fileLabel.innerText = `📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                if (btnAi) btnAi.style.display = 'inline-flex';
+            } else {
+                if (fileLabel) fileLabel.innerText = 'Nenhum arquivo selecionado';
+                if (btnAi) btnAi.style.display = 'none';
+            }
+        }
+
+        async function extractProjectInvoiceWithAI() {
+            const fileInput = document.getElementById('modal-project-invoice-file');
+            if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                alert('Selecione um arquivo de fatura primeiro.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const btnAi = document.getElementById('modal-project-btn-extract-ai');
+            const status = document.getElementById('modal-project-ocr-status');
+
+            try {
+                if (btnAi) {
+                    btnAi.disabled = true;
+                    btnAi.innerText = '⏳ Analisando com Gemini IA...';
+                }
+                if (status) {
+                    status.style.display = 'block';
+                    status.style.color = '#38bdf8';
+                    status.innerText = '🤖 Lendo e estruturando dados da Proforma Invoice via Gemini IA...';
+                }
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch('/api/supply-chain/extract-invoice', {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const ext = data.extracted || {};
+
+                    // Auto-preencher campos da aba de importação
+                    if (ext.supplier_name) {
+                        const suppInput = document.getElementById('modal-import-supplier');
+                        if (suppInput) suppInput.value = ext.supplier_name;
+                    }
+
+                    if (ext.invoice_number) {
+                        const invInput = document.getElementById('modal-import-invoice-number');
+                        if (invInput) invInput.value = ext.invoice_number;
+                    }
+
+                    if (ext.invoice_date) {
+                        const dateInput = document.getElementById('modal-import-invoice-date');
+                        if (dateInput) dateInput.value = ext.invoice_date;
+                    }
+
+                    if (ext.currency) {
+                        const currSelect = document.getElementById('modal-import-currency');
+                        if (currSelect) currSelect.value = ext.currency;
+                    }
+
+                    if (ext.total_fob_value) {
+                        const fobInput = document.getElementById('modal-import-total-fob');
+                        if (fobInput) fobInput.value = ext.total_fob_value;
+                    }
+
+                    if (status) {
+                        status.style.color = '#10b981';
+                        status.innerText = `✅ Fatura lida com sucesso! Fornecedor: "${ext.supplier_name || 'Detectado'}", Invoice: "${ext.invoice_number || 'Detectado'}", Total FOB: ${ext.currency || 'USD'} ${Number(ext.total_fob_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                    }
+
+                    // Também salvar o anexo oficialmente para o projeto na fase 'proforma'
+                    if (activeProjectCode) {
+                        try {
+                            const attachFormData = new FormData();
+                            attachFormData.append('projectCode', activeProjectCode);
+                            attachFormData.append('phase', 'proforma');
+                            attachFormData.append('file', file);
+
+                            const attachRes = await fetch('/api/attachments', {
+                                method: 'POST',
+                                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                                body: attachFormData
+                            });
+                            if (attachRes.ok) {
+                                checkProjectAttachedInvoice(activeProjectCode);
+                                if (typeof renderAttachments === 'function') renderAttachments();
+                            }
+                        } catch (attachErr) {
+                            console.warn('[ATTACH ERROR]', attachErr);
+                        }
+                    }
+
+                } else {
+                    const errData = await res.json().catch(() => ({}));
+                    if (status) {
+                        status.style.color = '#ef4444';
+                        status.innerText = '❌ Falha ao analisar fatura: ' + (errData.error || 'Erro desconhecido');
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                if (status) {
+                    status.style.color = '#ef4444';
+                    status.innerText = '❌ Erro de conexão com o Gemini IA: ' + err.message;
+                }
+            } finally {
+                if (btnAi) {
+                    btnAi.disabled = false;
+                    btnAi.innerText = '⚡ Analisar com IA';
+                }
+            }
+        }
+
+        async function checkProjectAttachedInvoice(code) {
+            const infoEl = document.getElementById('modal-project-attached-invoice-info');
+            if (!infoEl) return;
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const res = await fetch(`/api/attachments/${code}`, { headers });
+                if (res.ok) {
+                    const attachments = await res.json();
+                    const proformaAttach = (attachments || []).find(a => a.phase === 'proforma' || (a.fileName && a.fileName.toLowerCase().includes('proforma')) || (a.fileName && a.fileName.toLowerCase().includes('invoice')));
+                    if (proformaAttach) {
+                        infoEl.style.display = 'block';
+                        const fileUrl = proformaAttach.fileData ? (proformaAttach.fileData.startsWith('http') || proformaAttach.fileData.startsWith('/') ? proformaAttach.fileData : '/' + proformaAttach.fileData) : '#';
+                        infoEl.innerHTML = `
+                            <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span>📎 Fatura Anexada Atual:</span>
+                                <strong style="color: #38bdf8;">${proformaAttach.fileName}</strong>
+                                <a href="${fileUrl}" target="_blank" download="${proformaAttach.fileName}" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.72rem;">⬇️ Baixar / Ver Fatura</a>
+                            </div>
+                        `;
+                        return;
+                    }
+                }
+                infoEl.style.display = 'none';
+                infoEl.innerHTML = '';
+            } catch (e) {
+                if (infoEl) infoEl.style.display = 'none';
+            }
+        }
+
         async function saveProjectImportData() {
             if (!activeProjectCode) return;
             const project = state.projects.find(p => p.code === activeProjectCode);
