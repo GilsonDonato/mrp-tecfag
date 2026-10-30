@@ -1316,6 +1316,37 @@
             box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5);
         }
 
+        /* MODAL DE PROJETOS MAXIMIZADO - OCUPA TODA A TELA DO MRP COM ALTA LEGIBILIDADE */
+        #project-detail-modal .modal {
+            width: 96vw !important;
+            max-width: 1820px !important;
+            height: 94vh !important;
+            max-height: 94vh !important;
+            padding: 20px 28px !important;
+            box-sizing: border-box !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+            border-radius: 14px !important;
+            border: 1px solid rgba(56, 189, 248, 0.4) !important;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85) !important;
+        }
+
+        #project-detail-modal .modal.modal-fullscreen {
+            width: 100vw !important;
+            max-width: 100vw !important;
+            height: 100vh !important;
+            max-height: 100vh !important;
+            border-radius: 0 !important;
+            padding: 16px 22px !important;
+        }
+
+        #project-detail-modal .modal-body {
+            flex: 1 !important;
+            overflow-y: auto !important;
+            padding-right: 6px !important;
+        }
+
         .flex-between { display: flex; justify-content: space-between; align-items: center; }
 
         @media print {
@@ -3807,6 +3838,9 @@
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984a9.96 9.96 0 0 0 1.335 4.963L2 22l5.233-1.371a9.94 9.94 0 0 0 4.779 1.22h.005c5.505 0 9.989-4.478 9.99-9.985A9.98 9.98 0 0 0 12.012 2zm4.957 14.22c-.274.774-1.353 1.4-1.854 1.48-.443.076-.99.143-3.136-.713-2.738-1.09-4.489-3.864-4.626-4.046-.137-.18-.992-1.314-.992-2.505 0-1.192.624-1.78.847-2.022.223-.243.486-.304.65-.304.162 0 .324.002.463.008.148.007.348-.056.545.42.203.49.696 1.696.757 1.821.06.126.1.272.015.44-.086.17-.13.275-.258.423-.127.148-.266.33-.38.455-.128.14-.262.29-.112.548.15.258.665 1.095 1.425 1.77.98.87 1.802 1.14 2.06 1.268.257.127.407.106.557-.068.15-.174.646-.75.82-.998.174-.249.349-.208.588-.12.24.088 1.516.715 1.779.847.262.13.437.195.5.304.064.108.064.63-.21 1.404z"/></svg>
                         <span>Notificar Vendedor</span>
                     </button>
+                    <button type="button" class="btn-icon" id="btn-toggle-modal-fullscreen" onclick="toggleModalFullscreen()" title="Alternar Tela Cheia / Normal" style="padding: 6px 10px; display: inline-flex; align-items: center; justify-content: center; font-size: 1rem; color: #94a3b8; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; cursor: pointer; margin-right: 4px;">
+                        ⛶
+                    </button>
                     <button class="btn-icon" onclick="closeProjectModal()">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
@@ -4672,10 +4706,10 @@
                     </div>
 
                     <!-- Layout em Grid Duplo: Chat com IA (Esquerda) e Disparo de E-mails (Direita) -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px; margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: 1.35fr 1fr; gap: 20px; height: calc(94vh - 210px); min-height: 640px; margin-bottom: 10px;">
                         
                         <!-- Coluna 1: Chat Interativo com Gemini IA -->
-                        <div class="detail-card" style="display: flex; flex-direction: column; height: 600px; padding: 16px;">
+                        <div class="detail-card" style="display: flex; flex-direction: column; height: 100%; padding: 20px; box-sizing: border-box;">
                             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px; margin-bottom: 10px;">
                                 <h4 style="margin: 0; color: #38bdf8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
                                     <span>💬</span> Diálogo com o Gemini (Contextualizado)
@@ -4687,13 +4721,13 @@
 
                             <!-- Sugestões Rápidas de Prompt -->
                             <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; flex-shrink: 0;" class="hide-scrollbar">
-                                <button type="button" class="btn btn-secondary" onclick="setCopilotPrompt('Perguntar ao fornecedor se o motor vem configurado em 220V trifásico 60Hz e qual o custo de peças de reposição (resistências, teflon e termopar).')" style="padding: 4px 8px; font-size: 0.68rem; white-space: nowrap; border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;">
+                                <button type="button" class="btn btn-secondary" onclick="setCopilotPrompt('Perguntar ao fornecedor se o motor vem configurado em 220V trifásico 60Hz e qual o custo de peças de reposição (resistências, teflon e termopar).')" style="padding: 6px 12px; font-size: 0.78rem; white-space: nowrap; border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;">
                                     💡 220V 60Hz & Sobressalentes
                                 </button>
-                                <button type="button" class="btn btn-secondary" onclick="setCopilotPrompt('Redigir um e-mail formal em inglês cobrando o envio da Proforma Invoice atualizada e confirmando o prazo de entrega FOB.')" style="padding: 4px 8px; font-size: 0.68rem; white-space: nowrap; border-color: rgba(168, 85, 247, 0.3); color: #c084fc;">
+                                <button type="button" class="btn btn-secondary" onclick="setCopilotPrompt('Redigir um e-mail formal em inglês cobrando o envio da Proforma Invoice atualizada e confirmando o prazo de entrega FOB.')" style="padding: 6px 12px; font-size: 0.78rem; white-space: nowrap; border-color: rgba(168, 85, 247, 0.3); color: #c084fc;">
                                     💡 Cobrar Proforma em Inglês
                                 </button>
-                                <button type="button" class="btn btn-secondary" onclick="setCopilotPrompt('Faça um resumo executivo do escopo técnico, fase atual e pendências deste projeto industrial.')" style="padding: 4px 8px; font-size: 0.68rem; white-space: nowrap; border-color: rgba(245, 158, 11, 0.3); color: #f59e0b;">
+                                <button type="button" class="btn btn-secondary" onclick="setCopilotPrompt('Faça um resumo executivo do escopo técnico, fase atual e pendências deste projeto industrial.')" style="padding: 6px 12px; font-size: 0.78rem; white-space: nowrap; border-color: rgba(245, 158, 11, 0.3); color: #f59e0b;">
                                     💡 Resumo Executivo
                                 </button>
                             </div>
@@ -4707,7 +4741,7 @@
 
                             <!-- Input de Mensagem -->
                             <form onsubmit="handleSendCopilotMessage(event)" style="display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;">
-                                <textarea id="copilot-chat-input" rows="2" class="form-control" placeholder="Pergunte ao Gemini ou peça para redigir um e-mail (Ctrl+Enter para enviar)..." onkeydown="if(event.ctrlKey && event.key === 'Enter') handleSendCopilotMessage(event)" style="padding: 8px 12px; font-size: 0.8rem; resize: none;"></textarea>
+                                <textarea id="copilot-chat-input" rows="3" class="form-control" placeholder="Pergunte ao Gemini ou peça para redigir um e-mail (Ctrl+Enter para enviar)..." onkeydown="if(event.ctrlKey && event.key === 'Enter') handleSendCopilotMessage(event)" style="padding: 12px 14px; font-size: 0.92rem; line-height: 1.5; resize: none;"></textarea>
                                 <button type="submit" id="copilot-btn-send" class="btn" style="background: linear-gradient(135deg, #a855f7, #7c3aed); color: white; font-weight: bold; padding: 10px 16px; border-radius: 6px; height: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;">
                                     <span>🚀</span> Enviar
                                 </button>
@@ -4715,7 +4749,7 @@
                         </div>
 
                         <!-- Coluna 2: Central de Disparo de E-mails & Histórico -->
-                        <div class="detail-card" style="display: flex; flex-direction: column; height: 600px; padding: 16px;">
+                        <div class="detail-card" style="display: flex; flex-direction: column; height: 100%; padding: 20px; box-sizing: border-box;">
                             <div style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
                                 <h4 style="margin: 0; color: #f59e0b; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
                                     <span>📧</span> Disparo de E-mail Corporativo
@@ -4748,7 +4782,7 @@
                                         <span>Mensagem / Corpo do E-mail*</span>
                                         <span id="copilot-mail-counter" style="color: #64748b; font-weight: normal;"></span>
                                     </label>
-                                    <textarea id="copilot-mail-body" class="form-control" required placeholder="Digite a mensagem ou use a sugestão gerada pela IA na coluna ao lado..." style="padding: 8px 10px; font-size: 0.78rem; flex: 1; resize: none;"></textarea>
+                                    <textarea id="copilot-mail-body" class="form-control" required placeholder="Digite a mensagem ou use a sugestão gerada pela IA na coluna ao lado..." style="padding: 12px 14px; font-size: 0.90rem; line-height: 1.6; font-family: 'Inter', system-ui, sans-serif; flex: 1; resize: none;"></textarea>
                                 </div>
 
                                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 4px;">
@@ -13849,6 +13883,47 @@
         // FUNÇÕES DO COPILOT & CENTRAL DE COMUNICAÇÕES
         // ==========================================
 
+        function toggleModalFullscreen() {
+            const modal = document.querySelector('#project-detail-modal .modal');
+            const btn = document.getElementById('btn-toggle-modal-fullscreen');
+            if (modal) {
+                modal.classList.toggle('modal-fullscreen');
+                if (btn) {
+                    btn.innerHTML = modal.classList.contains('modal-fullscreen') ? '🗗' : '⛶';
+                }
+            }
+        }
+
+        function formatCopilotMarkdown(text) {
+            if (!text) return '';
+            // Preserva quebras de linha e trata tags html básicas
+            let safe = text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            // Títulos Markdown ###
+            safe = safe.replace(/###\s+(.*)/g, '<h5 style="color: #38bdf8; font-size: 1.05rem; margin: 12px 0 6px 0; font-weight: 800;">$1</h5>');
+            safe = safe.replace(/##\s+(.*)/g, '<h4 style="color: #c084fc; font-size: 1.15rem; margin: 14px 0 8px 0; font-weight: 800;">$1</h4>');
+
+            // Negrito **texto**
+            safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #38bdf8; font-weight: 700;">$1</strong>');
+
+            // Itálico *texto*
+            safe = safe.replace(/\*(.*?)\*/g, '<em style="color: #cbd5e1;">$1</em>');
+
+            // Marcadores de lista (- ou *)
+            safe = safe.replace(/^[\*\-]\s+(.*)$/gm, '<li style="margin-left: 18px; margin-bottom: 4px;">$1</li>');
+
+            // Listas numeradas (1. , 2. )
+            safe = safe.replace(/^(\d+)\.\s+(.*)$/gm, '<li style="margin-left: 18px; margin-bottom: 4px;"><strong>$1.</strong> $2</li>');
+
+            // Parágrafos e quebras
+            safe = safe.replace(/\n/g, '<br>');
+
+            return safe;
+        }
+
         
         function openRegisterInboundEmailModal() {
             const modal = document.getElementById('modal-inbound-email');
@@ -13972,14 +14047,15 @@
                             }
                             bubble.style.cssText = `
                                 align-self: ${isUser ? 'flex-end' : 'flex-start'};
-                                max-width: 88%;
+                                max-width: 90%;
                                 background: ${bubbleBg};
                                 border: 1px solid ${bubbleBorder};
-                                border-radius: 8px;
-                                padding: 10px 12px;
-                                font-size: 0.78rem;
+                                border-radius: 10px;
+                                padding: 14px 18px;
+                                font-size: 0.94rem;
+                                line-height: 1.65;
                                 color: #f8fafc;
-                                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                                box-shadow: 0 4px 14px rgba(0,0,0,0.25);
                             `;
 
                             let cleanMsg = msg.message;
@@ -14010,7 +14086,7 @@
                                     <span>${isReceived ? '📥 Resposta Recebida: ' + (msg.sender || 'Fornecedor') : (isUser ? '👤 ' + (msg.sender || 'Você') : '🤖 Gemini Copilot')}</span>
                                     <span style="opacity: 0.8;">${new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
-                                <div style="white-space: pre-wrap; line-height: 1.4;">${cleanMsg}</div>
+                                <div style="line-height: 1.65; font-size: 0.94rem;">${formatCopilotMarkdown(cleanMsg)}</div>
                                 ${suggestionBlock}
                             `;
                             historyContainer.appendChild(bubble);
