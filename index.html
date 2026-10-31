@@ -3942,7 +3942,7 @@
                                 <!-- BARRA DE NAVEGAÇÃO DE ABAS POR PERFIL / FUNÇÃO -->
                 <div class="project-modal-nav-tabs">
                     <button type="button" class="project-modal-tab-btn active" id="modal-nav-btn-overview" onclick="switchProjectModalTab('overview')">
-                        📊 Visão Geral & Chat
+                        📊 Visão Geral & Diário de Bordo
                     </button>
                     <button type="button" class="project-modal-tab-btn" id="modal-nav-btn-engineering" onclick="switchProjectModalTab('engineering')">
                         ⚙️ Engenharia & Escopo
@@ -4055,55 +4055,32 @@
                             </div>
                         </div>
 
-                        <!-- Coluna Direita: Mural de Discussão e Chat Interno -->
+                        <!-- Coluna Direita: Diário de Bordo & Ocorrências Técnicas -->
                         <div class="detail-card" style="display: flex; flex-direction: column; height: 100%;">
-                            <h4 style="margin-bottom: 6px; color: #38bdf8; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
-                                <span>📋</span> Prontuário Técnico & Linha do Tempo (Engenharia ⇄ Comex)
-                            </h4>
-                            <p style="font-size: 0.74rem; color: var(--text-secondary); line-height: 1.3; margin-bottom: 12px;">
-                                Registro de decisões técnicas, alinhamento com fabricante, validação de layout e pendências de importação.
-                            </p>
-
-                            <!-- Banner & Formulário Dedicado de Resposta do Vendedor à Engenharia -->
-                            <div id="modal-chat-waiting-vendor-banner" style="display: none; background: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.08) 100%); border: 1.5px solid #f59e0b; border-radius: 8px; padding: 14px; margin-bottom: 14px; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.12);">
-                                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px;">
-                                    <div style="display: flex; align-items: flex-start; gap: 8px; flex: 1;">
-                                        <span style="font-size: 1.3rem; line-height: 1;">❓</span>
-                                        <div style="flex: 1;">
-                                            <div style="color: #fbbf24; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
-                                                Solicitação Pendente da Engenharia ao Vendedor
-                                            </div>
-                                            <div id="modal-chat-waiting-vendor-text" style="color: #ffffff; font-size: 0.82rem; font-weight: 600; margin-top: 5px; background: rgba(0,0,0,0.35); padding: 8px 12px; border-radius: 5px; border-left: 3px solid #f59e0b; word-break: break-word;">
-                                                <!-- Texto da dúvida preenchido via JS -->
-                                            </div>
-                                            <div id="modal-chat-waiting-vendor-meta" style="font-size: 0.7rem; color: #fde68a; margin-top: 5px; font-style: italic;">
-                                                <!-- Metadados de tempo preenchidos via JS -->
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button type="button" class="btn btn-secondary" onclick="toggleWaitingVendorStatus(false)" style="font-size: 0.68rem; padding: 3px 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(245, 158, 11, 0.35); color: #cbd5e1; cursor: pointer; white-space: nowrap;" title="Retoma o SLA sem registrar resposta escrita">
-                                        Liberar sem responder
-                                    </button>
-                                </div>
-
-                                <!-- Campo de Resposta Direta do Vendedor -->
-                                <div style="margin-top: 10px; border-top: 1px dashed rgba(245, 158, 11, 0.3); padding-top: 10px;">
-                                    <label for="modal-vendor-response-input" style="display: block; font-size: 0.74rem; font-weight: 700; color: #fbbf24; text-transform: uppercase; margin-bottom: 6px;">
-                                        ✍️ Digite sua Resposta para a Engenharia:
-                                    </label>
-                                    <textarea id="modal-vendor-response-input" class="form-control" style="height: 65px; resize: none; background: rgba(0,0,0,0.35); border: 1px solid #f59e0b; color: #ffffff; font-size: 0.8rem; padding: 8px;" placeholder="Ex: O cliente confirmou que o prazo solicitado é de 45 dias e enviará as amostras na próxima segunda-feira..."></textarea>
-                                    
-                                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 8px;">
-                                        <button type="button" id="btn-submit-vendor-response" class="btn" onclick="submitVendorDirectResponse()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; font-size: 0.76rem; font-weight: 800; padding: 7px 16px; border: none; border-radius: 5px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">
-                                            <span>✅</span> Enviar Resposta e Retomar SLA da Engenharia
-                                        </button>
+                            <!-- Callout Banner direcionando comunicações externas para o Copilot -->
+                            <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="font-size: 1.3rem;">🤖</span>
+                                    <div style="font-size: 0.76rem; color: #94a3b8; line-height: 1.35;">
+                                        <strong style="color: #38bdf8;">Comunicação com Vendedor, Fábrica ou Frete?</strong><br>
+                                        Use a aba <strong>Copilot & E-mails</strong> para redigir RFQs formais e e-mails com histórico e anexos consolidados.
                                     </div>
                                 </div>
+                                <button type="button" class="btn" onclick="switchProjectModalTab('copilot')" style="background: rgba(14, 165, 233, 0.18); border: 1px solid #0ea5e9; color: #38bdf8; font-size: 0.74rem; font-weight: 700; padding: 6px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; transition: all 0.2s ease;">
+                                    Abrir Copilot ➔
+                                </button>
                             </div>
 
-                            <!-- Caixa de Envio de Mensagem -->
+                            <h4 style="margin-bottom: 4px; color: #38bdf8; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+                                <span>📝</span> Diário de Bordo & Ocorrências Técnicas
+                            </h4>
+                            <p style="font-size: 0.74rem; color: var(--text-secondary); line-height: 1.35; margin-bottom: 12px;">
+                                Registro interno da Engenharia e Comex: anotações de projeto, decisões de fabricação, validação de layout, fotos/vídeos de testes e laudos.
+                            </p>
+
+                            <!-- Caixa de Registro de Ocorrência / Nota -->
                             <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
-                                <textarea id="modal-chat-input" class="form-control" style="height: 75px; resize: none; background: rgba(0,0,0,0.25); border-color: var(--border-color); color: var(--text-primary); font-size: 0.8rem;" placeholder="Registre uma nota técnica, alinhamento com fabricante, validação de layout ou pendência..."></textarea>
+                                <textarea id="modal-chat-input" class="form-control" style="height: 75px; resize: none; background: rgba(0,0,0,0.25); border-color: var(--border-color); color: var(--text-primary); font-size: 0.8rem;" placeholder="Registre uma anotação técnica, decisão de engenharia, inspeção ou ocorrência..."></textarea>
                                 
                                 <div id="modal-chat-attachment-preview" style="display: none; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.72rem; color: var(--text-secondary);">
                                     <span style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
@@ -4114,25 +4091,20 @@
 
                                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
                                     <input type="file" id="modal-chat-file-input" onchange="handleModalChatFileChange()" style="display: none;">
-                                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-chat-file-input').click()" style="padding: 6px 10px; font-size: 0.74rem; display: flex; align-items: center; gap: 4px;" title="Anexar arquivo técnico (Fotos, PDFs, Vídeos ou CAD até 50MB)">
-                                        📎 Anexar
+                                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-chat-file-input').click()" style="padding: 6px 12px; font-size: 0.75rem; display: flex; align-items: center; gap: 5px;" title="Anexar arquivo técnico (Fotos, PDFs, Vídeos, Laudos ou CAD até 50MB)">
+                                        📎 Anexar Arquivo / Foto
                                     </button>
                                     
-                                    <div style="display: flex; gap: 8px;">
-                                        <button id="btn-submit-vendor-query" class="btn" style="background: #f59e0b; border-color: #f59e0b; color: #000; font-size: 0.85rem; font-weight: 800; cursor: pointer; padding: 8px 16px; display: flex; align-items: center; gap: 6px; border-radius: 6px;" onclick="addModalChatMessage(true)" title="Registra uma pendência técnica da Engenharia ou Importação (ex: aguardando amostra de produto ou retorno do fabricante na China)">
-                                            ⚠️ Apontar Pendência Técnica
-                                        </button>
-                                        <button id="btn-submit-chat-message" class="btn" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); border: none; color: #fff; font-size: 0.85rem; font-weight: 800; cursor: pointer; padding: 8px 18px; border-radius: 6px; display: flex; align-items: center; gap: 6px;" onclick="addModalChatMessage(false)">
-                                            💬 Registrar Nota Técnica
-                                        </button>
-                                    </div>
+                                    <button id="btn-submit-chat-message" class="btn" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); border: none; color: #fff; font-size: 0.82rem; font-weight: 700; cursor: pointer; padding: 7px 18px; border-radius: 6px; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(14, 165, 233, 0.25);" onclick="addModalChatMessage(false)">
+                                        💾 Registrar no Diário de Bordo
+                                    </button>
                                 </div>
                             </div>
 
                             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; margin-bottom: 8px;">
-                                <h5 style="color: var(--primary); font-size: 0.76rem; text-transform: uppercase; margin: 0;">Histórico de Mensagens</h5>
+                                <h5 style="color: var(--primary); font-size: 0.76rem; text-transform: uppercase; margin: 0;">Histórico do Diário de Bordo</h5>
                                 <button type="button" class="btn btn-secondary" onclick="clearAllModalComments()" style="padding: 2px 8px; font-size: 0.68rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.3); cursor: pointer;" title="Limpar todo o histórico de mensagens deste projeto">
-                                    🗑️ Limpar Histórico
+                                    🗑️ Limpar
                                 </button>
                             </div>
                             <div id="modal-chat-messages-container" style="flex: 1; min-height: 200px; max-height: 380px; overflow-y: auto; background: rgba(0,0,0,0.15); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
@@ -21151,11 +21123,11 @@ function renderKanban() {
                 return;
             }
             
-            const activeBtn = isVendorQuery ? queryBtn : submitBtn;
-            const oldText = activeBtn ? activeBtn.innerText : 'Enviando...';
+            const activeBtn = (isVendorQuery && queryBtn) ? queryBtn : submitBtn;
+            const oldText = activeBtn ? activeBtn.innerText : 'Salvando...';
             if (activeBtn) {
                 activeBtn.disabled = true;
-                activeBtn.innerText = 'Enviando...';
+                activeBtn.innerText = 'Salvando no Diário...';
             }
             
             try {
@@ -21210,6 +21182,8 @@ function renderKanban() {
                         showIhmToast('🟢 Resposta enviada! O bloqueio foi encerrado e o SLA da Engenharia foi retomado.', 'success');
                     } else if (isVendorQuery && currentRole === 'VENDAS') {
                         showIhmToast('💬 Dúvida enviada à Engenharia de Aplicação!', 'info');
+                    } else {
+                        showIhmToast('💾 Registro adicionado ao Diário de Bordo!', 'success');
                     }
                     
                     renderKanban();
@@ -21292,37 +21266,9 @@ function renderKanban() {
             const queryBtn = document.getElementById('btn-submit-vendor-query');
             const submitBtn = document.getElementById('btn-submit-chat-message');
             const chatInput = document.getElementById('modal-chat-input');
-            if (!queryBtn || !submitBtn) return;
-
-            const isWaiting = project && (project.waiting_vendor === 1 || project.waiting_vendor === true);
-            const isVendas = currentRole === 'VENDAS';
-
-            if (isWaiting) {
-                // Quando aguarda resposta do vendedor: esconde o botão duplicado de perguntar
-                queryBtn.style.display = 'none';
-                submitBtn.innerText = 'Enviar Comentário Interno';
-                if (chatInput) chatInput.placeholder = 'Digite um comentário interno adicional...';
-            } else if (isVendas) {
-                // Vendedor falando com a Engenharia
-                queryBtn.style.display = 'inline-flex';
-                queryBtn.style.background = '#0ea5e9';
-                queryBtn.style.borderColor = '#0ea5e9';
-                queryBtn.style.color = '#fff';
-                queryBtn.innerText = '❓ Dúvida para Engenharia';
-                queryBtn.title = 'Envia uma dúvida da área comercial diretamente para a equipe de Engenharia';
-                submitBtn.innerText = 'Enviar';
-                if (chatInput) chatInput.placeholder = 'Digite uma mensagem, dúvida técnica ou alinhamento comercial...';
-            } else {
-                // Engenharia / Gerência solicitando ao vendedor
-                queryBtn.style.display = 'inline-flex';
-                queryBtn.style.background = '#f59e0b';
-                queryBtn.style.borderColor = '#f59e0b';
-                queryBtn.style.color = '#000';
-                queryBtn.innerText = '❓ Solicitar ao Vendedor';
-                queryBtn.title = 'Envia a dúvida ao Vendedor, marca o projeto como Aguardando Vendedor e congela o cronômetro da Engenharia';
-                submitBtn.innerText = 'Enviar';
-                if (chatInput) chatInput.placeholder = 'Digite uma mensagem, dúvida técnica ou alinhamento comercial...';
-            }
+            if (queryBtn) queryBtn.style.display = 'none';
+            if (submitBtn) submitBtn.innerText = '💾 Registrar no Diário de Bordo';
+            if (chatInput) chatInput.placeholder = 'Registre uma anotação técnica, decisão de engenharia, inspeção ou ocorrência...';
         }
 
         // Alterna manualmente o status de Aguardando Vendedor
