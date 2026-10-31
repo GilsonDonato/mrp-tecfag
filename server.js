@@ -7415,7 +7415,7 @@ app.post('/api/projects', async (req, res) => {
 // PUT /api/projects/:code - Atualiza dados do projeto
 app.put('/api/projects/:code', async (req, res) => {
     const { 
-        serial, route, fase, checklist, prazos, lastUpdate, motivoPerda, tech, machines, equipment_origin, handover_signed,
+        sku, serial, route, fase, checklist, prazos, lastUpdate, motivoPerda, tech, machines, equipment_origin, handover_signed,
         crm_value, crm_source, crm_lost_reason, crm_task_title, crm_task_date, crm_last_comment_user, crm_last_interaction_date,
         setup_specs, pm, diagnostico, project_name,
         waiting_vendor, waiting_vendor_since, waiting_vendor_reason, paused_sla_seconds,
@@ -7691,6 +7691,15 @@ app.put('/api/projects/:code', async (req, res) => {
             import_notes !== undefined ? import_notes : oldProject.import_notes,
             import_items !== undefined ? (typeof import_items === 'string' ? import_items : JSON.stringify(import_items)) : oldProject.import_items
         ];
+
+        // Se o SKU definitivo foi enviado para atualização
+        if (sku !== undefined) {
+            sql += `, sku = ?`;
+            params.push(sku);
+            if (sku !== oldProject.sku) {
+                await recordAuditLog(code, auditUser, `Alterou o SKU definitivo de "${oldProject.sku || '-'}" para "${sku}"`);
+            }
+        }
 
         // Se o técnico foi enviado para atualização
         if (tech !== undefined) {

@@ -3995,6 +3995,14 @@
                                         <td style="padding: 6px 0;" id="modal-desc-pm">-</td>
                                     </tr>
                                     <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">Técnico Responsável:</td>
+                                        <td style="padding: 6px 0;" id="modal-desc-tech">-</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">SKU Oficial (ERP):</td>
+                                        <td style="padding: 6px 0;" id="modal-desc-sku">-</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                                         <td style="padding: 6px 0; font-weight: bold; color: var(--text-secondary);">CNPJ:</td>
                                         <td style="padding: 6px 0;" id="modal-desc-cnpj">-</td>
                                     </tr>
@@ -18214,6 +18222,169 @@ function renderKanban() {
             }
         }
 
+        // Renderiza o seletor editável de Técnico Responsável no modal de detalhes
+        function renderTechSelector(currentTech) {
+            const container = document.getElementById('modal-desc-tech');
+            if (!container) return;
+
+            const isAuthorized = (currentRole === 'ALL' || currentRole === 'GERENTE' || currentRole === 'ENGENHARIA' || currentRole === 'DIRETOR');
+            const safeTech = currentTech || 'Técnico Não Alocado';
+
+            if (!isAuthorized) {
+                container.innerHTML = `<span style="font-weight: bold; color: #38bdf8;">${safeTech}</span>`;
+                return;
+            }
+
+            const techList = [
+                'Técnico Não Alocado',
+                'Fernando',
+                'Giovani',
+                'Jonathas',
+                'Helison',
+                'Tiago',
+                'Rodrigo',
+                'Eng. Roberto Albuquerque',
+                'Eng. Patrícia Santos'
+            ];
+
+            if (!techList.includes(safeTech) && safeTech) {
+                techList.push(safeTech);
+            }
+
+            let selectHtml = `<select id="tag-edit-tech-select" class="form-control" style="background: rgba(14, 165, 233, 0.08); color: #cbd5e1; border: 1px solid rgba(14, 165, 233, 0.3); font-size: 0.78rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; width: auto; display: inline-block; cursor: pointer;">`;
+            techList.forEach(tName => {
+                const selected = tName === safeTech ? 'selected' : '';
+                selectHtml += `<option value="${tName}" ${selected}>${tName}</option>`;
+            });
+            selectHtml += `</select>`;
+
+            container.innerHTML = selectHtml;
+
+            const selectEl = document.getElementById('tag-edit-tech-select');
+            if (selectEl) {
+                selectEl.addEventListener('change', async (e) => {
+                    const newTech = e.target.value;
+                    const token = localStorage.getItem('tecfag_session_token');
+                    try {
+                        const response = await fetch(`/api/projects/${activeProjectCode}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ tech: newTech })
+                        });
+                        if (response.ok) {
+                            const prj = state.projects.find(p => p.code === activeProjectCode);
+                            if (prj) prj.tech = newTech;
+                            const subEl = document.getElementById('modal-project-subtitle');
+                            if (subEl) {
+                                const parts = subEl.innerText.split('|');
+                                if (parts.length >= 3) {
+                                    subEl.innerText = `${parts[0].trim()} | ${parts[1].trim()} | Técnico: ${newTech}`;
+                                }
+                            }
+                            if (typeof renderProjectsTable === 'function') renderProjectsTable();
+                            if (typeof renderKanban === 'function') renderKanban();
+                        } else {
+                            const errData = await response.json();
+                            alert('Erro ao alocar técnico: ' + (errData.error || 'Erro desconhecido'));
+                            renderTechSelector(currentTech);
+                        }
+                    } catch (err) {
+                        console.error('Erro na alocação de técnico:', err);
+                        alert('Erro ao conectar com o servidor.');
+                        renderTechSelector(currentTech);
+                    }
+                });
+            }
+        }
+
+        // Renderiza o editor do código SKU Oficial / ERP no modal de detalhes
+        function renderSkuSelector(project) {
+            const container = document.getElementById('modal-desc-sku');
+            if (!container) return;
+
+            const isAuthorized = (currentRole === 'ALL' || currentRole === 'GERENTE' || currentRole === 'ENGENHARIA' || currentRole === 'DIRETOR' || currentRole === 'COMPRAS');
+            const currentSku = project.sku || 'A DEFINIR PELA ENGENHARIA';
+
+            if (!isAuthorized) {
+                container.innerHTML = `<span style="font-family: monospace; font-weight: 800; color: #fb7185;">${currentSku}</span>`;
+                return;
+            }
+
+            container.innerHTML = `
+                <div style="display: inline-flex; align-items: center; gap: 6px;">
+                    <input type="text" id="modal-input-sku-field" list="products-sku-list" value="${currentSku}" class="form-control" style="width: 200px; font-size: 0.78rem; font-family: monospace; font-weight: 800; color: #fb7185; padding: 2px 6px; border: 1px solid rgba(251, 113, 133, 0.4); background: rgba(251, 113, 133, 0.05); border-radius: 4px;" placeholder="Digite ou selecione o SKU...">
+                    <button type="button" id="btn-save-modal-sku" class="btn" onclick="saveProjectModalSku()" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 3px 8px; font-size: 0.72rem; font-weight: bold; border-radius: 4px; cursor: pointer; border: none;" title="Salvar código SKU no ERP">
+                        💾 Salvar
+                    </button>
+                </div>
+            `;
+        }
+
+        async function saveProjectModalSku() {
+            if (!activeProjectCode) return;
+            const inputEl = document.getElementById('modal-input-sku-field');
+            const btn = document.getElementById('btn-save-modal-sku');
+            if (!inputEl) return;
+            const newSku = inputEl.value.trim().toUpperCase();
+            if (!newSku) {
+                alert('Informe um código SKU válido!');
+                return;
+            }
+
+            const token = localStorage.getItem('tecfag_session_token');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = 'Salvando...';
+            }
+
+            try {
+                const prj = state.projects.find(p => p.code === activeProjectCode);
+                let updatedMachines = prj && prj.machines ? [...prj.machines] : [];
+                if (updatedMachines.length > 0) {
+                    updatedMachines[0].sku = newSku;
+                } else {
+                    updatedMachines = [{ sku: newSku, serial: prj?.serial || '-', route: prj?.route || '-' }];
+                }
+
+                const res = await fetch(`/api/projects/${activeProjectCode}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        sku: newSku,
+                        machines: updatedMachines
+                    })
+                });
+
+                if (res.ok) {
+                    if (prj) {
+                        prj.sku = newSku;
+                        prj.machines = updatedMachines;
+                    }
+                    alert(`✅ Código SKU "${newSku}" salvo com sucesso no projeto!`);
+                    if (typeof openProjectModal === 'function') openProjectModal(activeProjectCode);
+                    if (typeof renderProjectsTable === 'function') renderProjectsTable();
+                    if (typeof renderKanban === 'function') renderKanban();
+                } else {
+                    const data = await res.json();
+                    alert('Erro ao salvar SKU: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao salvar SKU: ' + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = '💾 Salvar';
+                }
+            }
+        }
+
         // Renderiza o seletor editável de Vendedor (Criador) no modal de detalhes
         function renderSellerSelector(project) {
             const container = document.getElementById('modal-desc-creator');
@@ -18601,6 +18772,8 @@ function renderKanban() {
             
             renderSellerSelector(project);
             renderPmSelector(project.pm);
+            if (typeof renderTechSelector === 'function') renderTechSelector(project.tech);
+            if (typeof renderSkuSelector === 'function') renderSkuSelector(project);
             document.getElementById('modal-desc-cnpj').innerText = maskedCnpj;
             document.getElementById('modal-desc-contact-name').innerText = project.contact || '-';
             document.getElementById('modal-desc-contact-phone').innerText = project.contact_phone || '-';
