@@ -9591,23 +9591,69 @@ app.post('/api/projects/:code/send-email', authenticateToken, async (req, res) =
             }
         });
 
+        const signaturePath = path.join(__dirname, 'media', 'email_signature_tecfag.png');
+        const hasSignatureImg = fs.existsSync(signaturePath);
+
+        const mailAttachments = [];
+        if (hasSignatureImg) {
+            mailAttachments.push({
+                filename: 'assinatura_tecfag.png',
+                path: signaturePath,
+                cid: 'tecfag_signature_banner'
+            });
+        }
+
         const mailOptions = {
             from: process.env.EMAIL_FROM || `"Tecfag MRP" <${process.env.SMTP_USER}>`,
             replyTo: `"${userSender}" <${userEmail}>`,
             to: to.trim(),
             cc: cc ? cc.trim() : undefined,
             subject: finalSubject,
-            text: body.trim(),
-            html: `<div style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #222;">
-                ${body.trim().replace(/\n/g, '<br>')}
-                <br><br>
-                <hr style="border: 0; border-top: 1px solid #ddd; margin: 20px 0;">
-                <div style="font-size: 12px; color: #666;">
-                    <strong>Tecfag Máquinas & Equipamentos Industriais</strong><br>
-                    Projeto: <strong>${project.code}</strong> - ${project.client || ''}<br>
-                    Enviado por: ${userSender} (&lt;${userEmail}&gt;) | Responder direto para este e-mail.
+            text: body.trim() + `\n\n` +
+                `--------------------------------------------------\n` +
+                `GILSON DONATO - CEO\n` +
+                `E-mail: gilson@tecfag.com.br | Telefone: +55 (14) 3161-5000\n` +
+                `WeChat: gilsondonato\n\n` +
+                `FERNANDO - ENGENHARIA & PROJETOS\n` +
+                `E-mail: projetos@grupo.tecfag.com.br | Telefone: +55 (14) 3161-5000\n` +
+                `WeChat: wxid_lahb69yx86hv22\n\n` +
+                `Grupo Tecfag | www.tecfag.com.br\n` +
+                `Projeto: ${project.code} - ${project.client || ''}`,
+            html: `<div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #1e293b; background-color: #ffffff; padding: 10px 0;">
+                <div style="font-size: 14px; color: #1e293b; margin-bottom: 24px; white-space: pre-wrap; line-height: 1.6;">${body.trim()}</div>
+                
+                <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                    ${hasSignatureImg ? `
+                        <div style="margin-bottom: 12px;">
+                            <img src="cid:tecfag_signature_banner" alt="Grupo Tecfag - Gilson Donato & Fernando" style="max-width: 650px; width: 100%; height: auto; display: block; border: 0;" />
+                        </div>
+                    ` : `
+                        <table style="font-family: Arial, sans-serif; font-size: 13px; color: #333; line-height: 1.4;">
+                            <tr>
+                                <td style="padding-bottom: 10px;">
+                                    <strong style="color: #b91c1c; font-size: 14px;">GILSON DONATO</strong><br>
+                                    <span style="font-weight: bold; color: #000;">CEO</span><br>
+                                    ✉ E-mail: <a href="mailto:gilson@tecfag.com.br" style="color: #0284c7; text-decoration: none;">gilson@tecfag.com.br</a> | 📞 Telefone: +55 (14) 3161-5000<br>
+                                    💬 WeChat: gilsondonato
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding-top: 5px; border-top: 1px dashed #cbd5e1;">
+                                    <strong style="color: #b91c1c; font-size: 14px;">FERNANDO</strong><br>
+                                    <span style="font-weight: bold; color: #000;">ENGENHARIA & PROJETOS</span><br>
+                                    ✉ E-mail: <a href="mailto:projetos@grupo.tecfag.com.br" style="color: #0284c7; text-decoration: none;">projetos@grupo.tecfag.com.br</a> | 📞 Telefone: +55 (14) 3161-5000<br>
+                                    💬 WeChat: wxid_lahb69yx86hv22
+                                </td>
+                            </tr>
+                        </table>
+                    `}
+                    <div style="font-size: 11px; color: #64748b; margin-top: 10px; line-height: 1.4; border-top: 1px solid #f1f5f9; padding-top: 6px;">
+                        <strong>Tecfag Máquinas & Equipamentos Industriais</strong><br>
+                        Ref: Projeto <strong>${project.code}</strong> (${project.client || 'Cliente'}) | Enviado por ${userSender} (&lt;${userEmail}&gt;)
+                    </div>
                 </div>
-            </div>`
+            </div>`,
+            attachments: mailAttachments
         };
 
         await transporter.sendMail(mailOptions);
