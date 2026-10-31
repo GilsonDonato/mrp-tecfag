@@ -1344,7 +1344,77 @@
         #project-detail-modal .modal-body {
             flex: 1 !important;
             overflow-y: auto !important;
-            padding-right: 6px !important;
+            padding-right: 8px !important;
+            font-size: 0.96rem !important;
+        }
+
+        /* TIPOGRAFIA AMPLIADA E NÍTIDA NO CARD DO PROJETO PARA ENGENHARIA & COMEX */
+        #project-detail-modal .modal {
+            font-size: 0.98rem !important;
+        }
+        #project-detail-modal h3, #project-detail-modal #modal-project-title {
+            font-size: 1.35rem !important;
+            font-weight: 800 !important;
+            letter-spacing: -0.3px !important;
+        }
+        #project-detail-modal #modal-project-subtitle {
+            font-size: 0.95rem !important;
+            color: #94a3b8 !important;
+        }
+        #project-detail-modal .project-modal-nav-tabs button,
+        #project-detail-modal .project-modal-tab-btn {
+            font-size: 0.95rem !important;
+            padding: 10px 18px !important;
+            font-weight: 700 !important;
+        }
+        #project-detail-modal .detail-card {
+            font-size: 0.95rem !important;
+        }
+        #project-detail-modal .detail-card h4 {
+            font-size: 1.05rem !important;
+            font-weight: 800 !important;
+            margin-bottom: 12px !important;
+        }
+        #project-detail-modal .detail-card table,
+        #project-detail-modal .table,
+        #project-detail-modal table {
+            font-size: 0.94rem !important;
+        }
+        #project-detail-modal .detail-card table td,
+        #project-detail-modal .detail-card table th,
+        #project-detail-modal .table td,
+        #project-detail-modal .table th {
+            padding: 8px 6px !important;
+        }
+        #project-detail-modal label,
+        #project-detail-modal .form-group label {
+            font-size: 0.88rem !important;
+            font-weight: 700 !important;
+        }
+        #project-detail-modal .form-control,
+        #project-detail-modal input,
+        #project-detail-modal select,
+        #project-detail-modal textarea {
+            font-size: 0.94rem !important;
+            line-height: 1.5 !important;
+        }
+        #project-detail-modal #modal-desc-diagnostico {
+            font-size: 0.95rem !important;
+            line-height: 1.65 !important;
+        }
+        #project-detail-modal #modal-desc-diagnostico table {
+            font-size: 0.92rem !important;
+        }
+        #project-detail-modal #modal-chat-messages-container {
+            font-size: 0.95rem !important;
+        }
+        #project-detail-modal #modal-chat-messages-container > div {
+            font-size: 0.95rem !important;
+            padding: 12px 14px !important;
+            line-height: 1.5 !important;
+        }
+        #project-detail-modal #modal-chat-input {
+            font-size: 0.95rem !important;
         }
 
         .flex-between { display: flex; justify-content: space-between; align-items: center; }
@@ -3834,9 +3904,8 @@
                     <button class="btn" id="btn-prorrogar-prazo" onclick="handleProrrogarPrazo()" style="background-color: #d97706; border-color: #d97706; color: #ffffff; padding: 6px 12px; font-size: 0.72rem; font-weight: bold; display: none; align-items: center; gap: 6px; border-radius: 6px;" title="Prorrogar o prazo de inatividade por +7 dias">
                         ⏱️ <span>Prorrogar Prazo</span>
                     </button>
-                    <button class="btn" id="btn-whatsapp-notify" onclick="sendWhatsappNotification()" style="background-color: #16a34a; border-color: #16a34a; color: #ffffff; padding: 6px 12px; font-size: 0.72rem; font-weight: bold; display: flex; align-items: center; gap: 6px; border-radius: 6px;" title="Notificar Vendedor via WhatsApp Web">
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984a9.96 9.96 0 0 0 1.335 4.963L2 22l5.233-1.371a9.94 9.94 0 0 0 4.779 1.22h.005c5.505 0 9.989-4.478 9.99-9.985A9.98 9.98 0 0 0 12.012 2zm4.957 14.22c-.274.774-1.353 1.4-1.854 1.48-.443.076-.99.143-3.136-.713-2.738-1.09-4.489-3.864-4.626-4.046-.137-.18-.992-1.314-.992-2.505 0-1.192.624-1.78.847-2.022.223-.243.486-.304.65-.304.162 0 .324.002.463.008.148.007.348-.056.545.42.203.49.696 1.696.757 1.821.06.126.1.272.015.44-.086.17-.13.275-.258.423-.127.148-.266.33-.38.455-.128.14-.262.29-.112.548.15.258.665 1.095 1.425 1.77.98.87 1.802 1.14 2.06 1.268.257.127.407.106.557-.068.15-.174.646-.75.82-.998.174-.249.349-.208.588-.12.24.088 1.516.715 1.779.847.262.13.437.195.5.304.064.108.064.63-.21 1.404z"/></svg>
-                        <span>Notificar Vendedor</span>
+                    <button type="button" class="btn btn-secondary" onclick="copyProjectCardLink()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1; padding: 7px 14px; font-size: 0.82rem; font-weight: 700; border-radius: 6px; display: flex; align-items: center; gap: 6px; cursor: pointer;" title="Copiar link direto do projeto para a equipe">
+                        🔗 <span>Copiar Link do Card</span>
                     </button>
                     <button type="button" class="btn-icon" id="btn-toggle-modal-fullscreen" onclick="toggleModalFullscreen()" title="Alternar Tela Cheia / Normal" style="padding: 6px 10px; display: inline-flex; align-items: center; justify-content: center; font-size: 1rem; color: #94a3b8; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; cursor: pointer; margin-right: 4px;">
                         ⛶
@@ -3854,7 +3923,7 @@
                         <div style="display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 0.85rem;">
                             <span style="font-size: 1.3rem;">⏸️</span>
                             <div>
-                                <div style="color: #f59e0b; font-size: 0.88rem; font-weight: 800;">PROJETO COM SLA PAUSADO: AGUARDANDO ESCLARECIMENTO DO VENDEDOR</div>
+                                <div style="color: #f59e0b; font-size: 0.88rem; font-weight: 800;">PROJETO COM PENDÊNCIA TÉCNICA OU AGUARDANDO FABRICANTE / AMOSTRA</div>
                                 <div style="font-size: 0.74rem; font-weight: normal; color: #fde68a; margin-top: 2px;" id="modal-waiting-vendor-top-subtitle">
                                     O cronômetro da Engenharia está congelado. O tempo de resposta está sendo contabilizado para o comercial.
                                 </div>
@@ -3992,11 +4061,11 @@
 
                         <!-- Coluna Direita: Mural de Discussão e Chat Interno -->
                         <div class="detail-card" style="display: flex; flex-direction: column; height: 100%;">
-                            <h4 style="margin-bottom: 8px; color: var(--success); font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
-                                💬 Linha do Tempo e Discussão Interna
+                            <h4 style="margin-bottom: 6px; color: #38bdf8; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+                                <span>📋</span> Prontuário Técnico & Linha do Tempo (Engenharia ⇄ Comex)
                             </h4>
                             <p style="font-size: 0.74rem; color: var(--text-secondary); line-height: 1.3; margin-bottom: 12px;">
-                                Mural integrado de comunicação entre Vendedor, Engenharia e Produção.
+                                Registro de decisões técnicas, alinhamento com fabricante, validação de layout e pendências de importação.
                             </p>
 
                             <!-- Banner & Formulário Dedicado de Resposta do Vendedor à Engenharia -->
@@ -4038,7 +4107,7 @@
 
                             <!-- Caixa de Envio de Mensagem -->
                             <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
-                                <textarea id="modal-chat-input" class="form-control" style="height: 75px; resize: none; background: rgba(0,0,0,0.25); border-color: var(--border-color); color: var(--text-primary); font-size: 0.8rem;" placeholder="Digite uma mensagem, dúvida técnica ou alinhamento comercial..."></textarea>
+                                <textarea id="modal-chat-input" class="form-control" style="height: 75px; resize: none; background: rgba(0,0,0,0.25); border-color: var(--border-color); color: var(--text-primary); font-size: 0.8rem;" placeholder="Registre uma nota técnica, alinhamento com fabricante, validação de layout ou pendência..."></textarea>
                                 
                                 <div id="modal-chat-attachment-preview" style="display: none; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.72rem; color: var(--text-secondary);">
                                     <span style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
@@ -4054,11 +4123,11 @@
                                     </button>
                                     
                                     <div style="display: flex; gap: 8px;">
-                                        <button id="btn-submit-vendor-query" class="btn" style="background: #f59e0b; border-color: #f59e0b; color: #000; font-size: 0.74rem; font-weight: 800; cursor: pointer; padding: 6px 12px; display: flex; align-items: center; gap: 4px;" onclick="addModalChatMessage(true)" title="Envia a dúvida ao Vendedor, marca o projeto como Aguardando Vendedor e congela o cronômetro da Engenharia">
-                                            ❓ Solicitar ao Vendedor
+                                        <button id="btn-submit-vendor-query" class="btn" style="background: #f59e0b; border-color: #f59e0b; color: #000; font-size: 0.85rem; font-weight: 800; cursor: pointer; padding: 8px 16px; display: flex; align-items: center; gap: 6px; border-radius: 6px;" onclick="addModalChatMessage(true)" title="Registra uma pendência técnica da Engenharia ou Importação (ex: aguardando amostra de produto ou retorno do fabricante na China)">
+                                            ⚠️ Apontar Pendência Técnica
                                         </button>
-                                        <button id="btn-submit-chat-message" class="btn" style="background: var(--success); border-color: var(--success); color: #fff; font-size: 0.74rem; font-weight: bold; cursor: pointer; padding: 6px 14px;" onclick="addModalChatMessage(false)">
-                                            Enviar
+                                        <button id="btn-submit-chat-message" class="btn" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); border: none; color: #fff; font-size: 0.85rem; font-weight: 800; cursor: pointer; padding: 8px 18px; border-radius: 6px; display: flex; align-items: center; gap: 6px;" onclick="addModalChatMessage(false)">
+                                            💬 Registrar Nota Técnica
                                         </button>
                                     </div>
                                 </div>
@@ -20348,6 +20417,21 @@ function renderKanban() {
                 container.innerHTML = `<div style="color:#ef4444; font-size:0.8rem; text-align:center;">Erro ao carregar histórico: ${err.message}</div>`;
             }
 
+        
+        function copyProjectCardLink() {
+            if (!activeProjectCode) return;
+            const url = window.location.origin + window.location.pathname + '?project=' + encodeURIComponent(activeProjectCode);
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('📋 Link direto do projeto ' + activeProjectCode + ' copiado com sucesso! Pode colar no Teams, WhatsApp ou E-mail da equipe.');
+                }).catch(() => {
+                    prompt('Copie o link do projeto:', url);
+                });
+            } else {
+                prompt('Copie o link do projeto:', url);
+            }
+        }
+
         async function deleteModalComment(id) {
             if (!confirm('Deseja realmente excluir esta mensagem do histórico?')) return;
             try {
@@ -20445,15 +20529,8 @@ function renderKanban() {
                 const formData = new FormData();
                 
                 if (isVendorQuery) {
-                    if (currentRole === 'VENDAS') {
-                        // Vendedor enviando dúvida comercial para a Engenharia (não pausa SLA)
-                        formData.append('message', `💬 [DÚVIDA DO VENDEDOR PARA A ENGENHARIA]: ${message}`);
-                        formData.append('is_vendor_query', 'false');
-                    } else {
-                        // Engenharia solicitando esclarecimento ao Vendedor (pausa SLA)
-                        formData.append('message', message);
-                        formData.append('is_vendor_query', 'true');
-                    }
+                    formData.append('message', `⚠️ [PENDÊNCIA TÉCNICA / AGUARDANDO DEFINIÇÃO]: ${message}`);
+                    formData.append('is_vendor_query', 'true');
                 } else {
                     formData.append('message', message);
                 }
