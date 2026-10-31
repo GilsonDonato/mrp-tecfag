@@ -18906,8 +18906,32 @@ function renderKanban() {
             const setupStatus = document.getElementById('modal-setup-files-status');
             if (setupStatus) setupStatus.innerText = 'Nenhum arquivo selecionado';
 
-            // Garante que a lista de projetos esteja carregada mesmo se o usuário acessar diretamente a aba de Importação
-            if (!state.projects || state.projects.length === 0 || !state.projects.find(p => p.code === code)) {
+            // 1. Tenta obter da memória local
+            let project = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === code) : null;
+
+            // 2. Se não estiver em memória, tenta buscar diretamente o projeto no endpoint individual
+            if (!project) {
+                try {
+                    const token = localStorage.getItem('tecfag_session_token');
+                    const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+                    const resSingle = await fetch(`/api/projects/${code}`, { headers: authHeaders });
+                    if (resSingle.ok) {
+                        project = await resSingle.json();
+                        if (project && project.code) {
+                            project.fase = parseInt(project.fase) || 1;
+                            if (!Array.isArray(state.projects)) state.projects = [];
+                            const existIdx = state.projects.findIndex(p => p.code === code);
+                            if (existIdx >= 0) state.projects[existIdx] = project;
+                            else state.projects.push(project);
+                        }
+                    }
+                } catch (err) {
+                    console.warn('[OPEN MODAL] Erro ao buscar projeto individual:', err);
+                }
+            }
+
+            // 3. Fallback: Sincroniza lista completa caso ainda não tenha encontrado
+            if (!project) {
                 try {
                     const token = localStorage.getItem('tecfag_session_token');
                     const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
@@ -18917,6 +18941,7 @@ function renderKanban() {
                         if (Array.isArray(prjs)) {
                             prjs.forEach(p => { p.fase = parseInt(p.fase) || 1; });
                             state.projects = prjs;
+                            project = state.projects.find(p => p.code === code);
                         }
                     }
                 } catch (e) {
@@ -18924,9 +18949,21 @@ function renderKanban() {
                 }
             }
 
-            const project = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === code) : null;
+            // 4. Se não encontrar a ficha do projeto (pode ser card órfão de importação)
             if (!project) {
-                alert('⚠️ Não foi possível encontrar os dados do projeto ' + code + '. Verifique sua conexão.');
+                const orphanOrder = (supplyChainState && Array.isArray(supplyChainState.orders)) 
+                    ? supplyChainState.orders.find(o => o.project_code === code || o.id === 'PRJ-' + code) 
+                    : null;
+
+                if (orphanOrder && typeof openSupplyDetailsModal === 'function') {
+                    const openOrder = confirm(`⚠️ A ficha do projeto ${code} não foi encontrada no MRP (pode ter sido excluído).\n\nDeseja abrir os detalhes de Importação deste container (${orphanOrder.po_number || 'Ordem'})?\n\n[OK] = Abrir Detalhes de Importação\n[Cancelar] = Fechar aviso`);
+                    if (openOrder) {
+                        openSupplyDetailsModal(orphanOrder.id);
+                        return;
+                    }
+                } else {
+                    alert('⚠️ Não foi possível encontrar os dados do projeto ' + code + '. Verifique se o projeto não foi excluído.');
+                }
                 return;
             }
 
@@ -22526,31 +22563,90 @@ function renderKanban() {
         }
 
         // Cancela ou desvincula projeto do pipeline de importação
-        async function quickCancelProjectImport(code, poNumber) {
-            if (!confirm('Deseja retirar o projeto ' + code + ' (' + poNumber + ') do pipeline de importação?\n\nO card continuará existindo no MRP e retornará para Pedido Fechado (Fase 2).')) {
-                return;
+        async function quickCancelProjectImport(code, poNumber, orderId) {
+            const userStr = localStorage.getItem('tecfag_user');
+            const currentUser = userStr ? JSON.parse(userStr) : null;
+            const canDeleteFull = currentRole === 'ALL' || currentRole === 'GERENTE' || (currentUser && (currentUser.username === 'admin' || currentUser.role === 'ALL'));
+
+            let msg = `Gerenciamento do Card ${code ? code : ''} (${poNumber || 'Importação'}):\n\n`;
+            msg += `• Clique em [OK] para DESVINCULAR da importação (retornando o projeto para Pedido Fechado - Fase 2).\n`;
+            if (canDeleteFull) {
+                msg += `• Para EXCLUIR DEFINITIVAMENTE da base, clique em [Cancelar] e confirme a exclusão total.`;
             }
 
+            const confirmReturn = confirm(msg);
+            const token = localStorage.getItem('tecfag_session_token');
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            };
+
+            if (confirmReturn) {
+                try {
+                    const res = await fetch('/api/projects/' + code + '/cancel-import', {
+                        method: 'POST',
+                        headers
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        alert('✅ ' + (data.message || 'Projeto retornado para Pedido Fechado (Fase 2)!'));
+                        if (typeof loadProjects === 'function') await loadProjects();
+                        if (typeof loadProjectsDB === 'function') loadProjectsDB();
+                        if (typeof loadSupplyChainData === 'function') await loadSupplyChainData();
+                    } else if (res.status === 404) {
+                        if (confirm(`O projeto ${code} não existe mais no cadastro do MRP (card órfão).\nDeseja remover este container da esteira agora?`)) {
+                            await deleteProjectCompletely(code, orderId);
+                        }
+                    } else {
+                        alert('Erro ao desvincular: ' + (data.error || 'Erro desconhecido.'));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Erro de conexão ao desvincular importação.');
+                }
+            } else if (canDeleteFull) {
+                if (confirm(`⚠️ EXCLUSÃO PERMANENTE:\nDeseja DELETAR DEFINITIVAMENTE o projeto ${code || ''} e o container ${poNumber || ''} do sistema?\n\nEsta operação é irreversível.`)) {
+                    await deleteProjectCompletely(code, orderId);
+                }
+            }
+        }
+
+        async function deleteProjectCompletely(code, orderId) {
             try {
                 const token = localStorage.getItem('tecfag_session_token');
-                const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+                const headers = {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                };
 
-                const res = await fetch('/api/projects/' + code + '/cancel-import', {
-                    method: 'POST',
-                    headers
-                });
-
-                if (res.ok) {
-                    alert('✅ Projeto desvinculado da importação e retornado para Pedido Fechado com sucesso!');
-                    if (typeof loadProjects === 'function') await loadProjects();
-                    if (typeof loadSupplyChainData === 'function') await loadSupplyChainData();
-                } else {
-                    const data = await res.json();
-                    alert('Erro ao desvincular importação: ' + (data.error || 'Erro desconhecido.'));
+                // 1. Deletar projeto da tabela projects (se houver código)
+                if (code) {
+                    await fetch(`/api/projects/${code}`, {
+                        method: 'DELETE',
+                        headers
+                    });
                 }
+
+                // 2. Deletar da tabela stock_orders (por ID numérico ou cancel-import)
+                if (orderId && typeof orderId === 'number') {
+                    await fetch(`/api/supply-chain/orders/${orderId}`, {
+                        method: 'DELETE',
+                        headers
+                    });
+                } else if (code) {
+                    await fetch(`/api/projects/${code}/cancel-import`, {
+                        method: 'POST',
+                        headers
+                    });
+                }
+
+                alert(`✅ Card ${code || ''} excluído com sucesso!`);
+                if (typeof loadProjects === 'function') await loadProjects();
+                if (typeof loadProjectsDB === 'function') loadProjectsDB();
+                if (typeof loadSupplyChainData === 'function') await loadSupplyChainData();
             } catch (err) {
                 console.error(err);
-                alert('Erro de conexão ao desvincular importação.');
+                alert('Erro ao excluir: ' + (err.message || 'Erro desconhecido'));
             }
         }
 
@@ -26382,7 +26478,7 @@ function renderKanban() {
                             <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openProjectModal('${prjCode}', 'logistics')" style="flex: 1; min-width: 0; padding: 5px 6px; font-size: 0.72rem; font-weight: 800; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" title="Abrir Ficha Técnica e Controle de Importação">
                                 📐 Detalhes & Projeto
                             </button>
-                            <button type="button" class="btn" onclick="event.stopPropagation(); quickCancelProjectImport('${prjCode}', '${order.po_number}')" style="padding: 5px 7px; font-size: 0.72rem; font-weight: bold; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 5px; flex-shrink: 0;" title="Cancelar Importação e retornar para Pedido Fechado">
+                            <button type="button" class="btn" onclick="event.stopPropagation(); quickCancelProjectImport('${prjCode}', '${order.po_number}', ${typeof order.id === 'number' ? order.id : `'${order.id}'`})" style="padding: 5px 7px; font-size: 0.72rem; font-weight: bold; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 5px; flex-shrink: 0;" title="Gerenciar / Excluir / Cancelar Importação">
                                 🗑️
                             </button>
                             ${stage !== 'DOCA_GALPAO' ? `

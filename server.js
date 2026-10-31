@@ -38,6 +38,16 @@ function initSkuNcmMap() {
 }
 initSkuNcmMap();
 
+function safeJsonParse(str, fallback = {}) {
+    if (!str) return fallback;
+    if (typeof str === 'object') return str;
+    try {
+        return JSON.parse(str);
+    } catch (e) {
+        return fallback;
+    }
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -2487,10 +2497,10 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
                 import_total_fob_value: fobVal,
                 import_currency: curr,
                 import_items: importItemsParsed,
-                checklist: p.checklist ? JSON.parse(p.checklist) : {},
-                prazos: p.prazos ? JSON.parse(p.prazos) : {},
-                setup_specs: p.setup_specs ? JSON.parse(p.setup_specs) : {},
-                spare_parts_recommendations: p.spare_parts_recommendations ? JSON.parse(p.spare_parts_recommendations) : [],
+                checklist: safeJsonParse(p.checklist, {}),
+                prazos: safeJsonParse(p.prazos, {}),
+                setup_specs: safeJsonParse(p.setup_specs, {}),
+                spare_parts_recommendations: safeJsonParse(p.spare_parts_recommendations, []),
                 machines: machinesParsed
             };
         });
@@ -2561,10 +2571,10 @@ app.get('/api/projects/:code', async (req, res) => {
         if (!machinesParsed || !Array.isArray(machinesParsed) || machinesParsed.length === 0) {
             machinesParsed = [{ sku: project.sku, serial: project.serial, route: project.route }];
         }
-        project.checklist = project.checklist ? JSON.parse(project.checklist) : {};
-        project.prazos = project.prazos ? JSON.parse(project.prazos) : {};
-        project.setup_specs = project.setup_specs ? JSON.parse(project.setup_specs) : {};
-        project.spare_parts_recommendations = project.spare_parts_recommendations ? JSON.parse(project.spare_parts_recommendations) : [];
+        project.checklist = safeJsonParse(project.checklist, {});
+        project.prazos = safeJsonParse(project.prazos, {});
+        project.setup_specs = safeJsonParse(project.setup_specs, {});
+        project.spare_parts_recommendations = safeJsonParse(project.spare_parts_recommendations, []);
         project.machines = machinesParsed;
 
         let importItemsParsed = [];
@@ -8695,7 +8705,9 @@ app.delete('/api/projects/:code', async (req, res) => {
             }
         });
 
-        // Deletar do banco (CASCATA remove registros de todas as tabelas filhas)
+        // Deletar do banco (CASCATA remove registros de todas as tabelas filhas e ordens de importação)
+        await dbRun('DELETE FROM stock_order_items WHERE order_id IN (SELECT id FROM stock_orders WHERE project_code = ?)', [code]);
+        await dbRun('DELETE FROM stock_orders WHERE project_code = ?', [code]);
         await dbRun('DELETE FROM projects WHERE code = ?', [code]);
         await dbRun('DELETE FROM attachments WHERE projectCode = ?', [code]);
         await dbRun('DELETE FROM comments WHERE projectCode = ?', [code]);
@@ -9217,11 +9229,15 @@ app.post('/api/projects/:code/cancel-import', authenticateToken, restrictToSuppl
 
     try {
         const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
-        if (!project) return res.status(404).json({ error: 'Projeto não encontrado.' });
+        if (!project) {
+            // Se o projeto não existe mais em projects, limpa qualquer ordem órfã vinculada a este código
+            await dbRun('DELETE FROM stock_order_items WHERE order_id IN (SELECT id FROM stock_orders WHERE project_code = ?)', [code]);
+            await dbRun('DELETE FROM stock_orders WHERE project_code = ?', [code]);
+            return res.json({ success: true, message: 'Card de importação órfão desvinculado e removido com sucesso.' });
+        }
 
         const now = new Date().toISOString();
-        let chk = {};
-        try { chk = project.checklist ? JSON.parse(project.checklist) : {}; } catch(e){}
+        let chk = safeJsonParse(project.checklist, {});
         chk.import_order_deleted = true;
 
         await dbRun(`
@@ -9233,6 +9249,7 @@ app.post('/api/projects/:code/cancel-import', authenticateToken, restrictToSuppl
             WHERE code = ?
         `, [JSON.stringify(chk), now, code]);
 
+        await dbRun('DELETE FROM stock_order_items WHERE order_id IN (SELECT id FROM stock_orders WHERE project_code = ?)', [code]);
         await dbRun('DELETE FROM stock_orders WHERE project_code = ?', [code]);
 
         await recordAuditLog(code, user, `Processo de importação desvinculado por ${user}. Projeto retornado para Pedido Fechado (Fase 2).`);
@@ -11461,6 +11478,14 @@ app.delete('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyCh
     const user = req.user ? req.user.username : 'Sistema';
 
     try {
+        if (typeof orderId === 'string' && orderId.startsWith('PRJ-')) {
+            const pCode = orderId.replace('PRJ-', '');
+            await dbRun('UPDATE projects SET import_stage = NULL, fase = 2 WHERE code = ?', [pCode]);
+            await dbRun('DELETE FROM stock_order_items WHERE order_id IN (SELECT id FROM stock_orders WHERE project_code = ?)', [pCode]);
+            await dbRun('DELETE FROM stock_orders WHERE project_code = ?', [pCode]);
+            return res.json({ success: true, message: 'Card de importação desvinculado com sucesso.' });
+        }
+
         const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
         if (!order) {
             return res.status(404).json({ error: 'Ordem não encontrada.' });
