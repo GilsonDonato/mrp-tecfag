@@ -9564,11 +9564,14 @@ Sua missão:
     }
 });
 
-app.post('/api/projects/:code/send-email', authenticateToken, async (req, res) => {
+app.post('/api/projects/:code/send-email', authenticateToken, upload.fields([
+    { name: 'packing_list_file', maxCount: 1 },
+    { name: 'extra_files', maxCount: 5 }
+]), async (req, res) => {
     try {
         await ensureCommunicationsTable();
         const { code } = req.params;
-        const { to, cc, subject, body } = req.body;
+        const { to, cc, subject, body, attach_invoice, attach_packing_list } = req.body;
 
         if (!to || !to.trim() || !subject || !subject.trim() || !body || !body.trim()) {
             return res.status(400).json({ error: 'Destinatário (Para), Assunto e Mensagem são obrigatórios.' });
@@ -9611,6 +9614,72 @@ app.post('/api/projects/:code/send-email', authenticateToken, async (req, res) =
                 cid: 'tecfag_signature_banner'
             });
         }
+
+        // Anexar Invoice vinculada ao projeto se solicitado
+        if (attach_invoice === 'true' || attach_invoice === true) {
+            try {
+                const invAttach = await dbGet('SELECT * FROM attachments WHERE projectCode = ? AND (phase = "proforma" OR fileName LIKE "%invoice%" OR fileName LIKE "%proforma%" OR fileName LIKE "%.pdf") ORDER BY id DESC LIMIT 1', [code]);
+                if (invAttach && invAttach.filePath) {
+                    const fullInvPath = path.isAbsolute(invAttach.filePath) ? invAttach.filePath : path.join(__dirname, invAttach.filePath);
+                    if (fs.existsSync(fullInvPath)) {
+                        mailAttachments.push({
+                            filename: invAttach.fileName || `Invoice_${code}.pdf`,
+                            path: fullInvPath
+                        });
+                    }
+                }
+            } catch (invErr) {
+                console.warn('[ATTACH INVOICE EMAIL ERR]', invErr.message);
+            }
+        }
+
+        // Anexar Packing List novo (se enviado no formulário) e salvar no projeto
+        if (req.files && req.files['packing_list_file'] && req.files['packing_list_file'][0]) {
+            const plFile = req.files['packing_list_file'][0];
+            mailAttachments.push({
+                filename: plFile.originalname,
+                path: plFile.path
+            });
+            try {
+                const relPath = 'uploads/' + plFile.filename;
+                await dbRun(`INSERT INTO attachments (
+                    projectCode, phase, fileName, fileType, filePath, dateAdded
+                ) VALUES (?, 'packing_list', ?, ?, ?, ?)`, [
+                    code, plFile.originalname, plFile.mimetype, relPath, new Date().toISOString()
+                ]);
+                await recordAuditLog(code, userSender, `Anexou Packing List oficial ("${plFile.originalname}") via e-mail de cotação de frete.`);
+            } catch (dbErr) {
+                console.warn('[ATTACH PACKING LIST ERR]', dbErr.message);
+            }
+        } else if (attach_packing_list === 'true' || attach_packing_list === true) {
+            // Se já existia um packing list previamente salvo no projeto
+            try {
+                const plAttach = await dbGet('SELECT * FROM attachments WHERE projectCode = ? AND phase = "packing_list" ORDER BY id DESC LIMIT 1', [code]);
+                if (plAttach && plAttach.filePath) {
+                    const fullPlPath = path.isAbsolute(plAttach.filePath) ? plAttach.filePath : path.join(__dirname, plAttach.filePath);
+                    if (fs.existsSync(fullPlPath)) {
+                        mailAttachments.push({
+                            filename: plAttach.fileName || `Packing_List_${code}.pdf`,
+                            path: fullPlPath
+                        });
+                    }
+                }
+            } catch (plErr) {
+                console.warn('[ATTACH PREV PL ERR]', plErr.message);
+            }
+        }
+
+        // Outros arquivos extras se houverem
+        if (req.files && req.files['extra_files']) {
+            req.files['extra_files'].forEach(f => {
+                mailAttachments.push({
+                    filename: f.originalname,
+                    path: f.path
+                });
+            });
+        }
+
+        const attachedFilesNames = mailAttachments.filter(a => !a.cid).map(a => a.filename).join(', ');
 
         const mailOptions = {
             from: process.env.EMAIL_FROM || `"Tecfag MRP" <${process.env.SMTP_USER}>`,
@@ -9667,15 +9736,20 @@ app.post('/api/projects/:code/send-email', authenticateToken, async (req, res) =
 
         await transporter.sendMail(mailOptions);
 
+        const savedMessage = attachedFilesNames 
+            ? `${body.trim()}\n\n[📎 Documentos Anexados: ${attachedFilesNames}]` 
+            : body.trim();
+
         await dbRun(
             'INSERT INTO project_communications (project_code, type, role, sender, recipient, subject, message) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [code, 'email_sent', 'user', userEmail, to.trim(), finalSubject, body.trim()]
+            [code, 'email_sent', 'user', userEmail, to.trim(), finalSubject, savedMessage]
         );
 
         res.json({
             success: true,
-            message: `E-mail enviado com sucesso para ${to}!`,
-            subject: finalSubject
+            message: `E-mail enviado com sucesso para ${to}!${attachedFilesNames ? ` (Anexos: ${attachedFilesNames})` : ''}`,
+            subject: finalSubject,
+            attachments: attachedFilesNames
         });
 
     } catch (err) {

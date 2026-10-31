@@ -4883,6 +4883,13 @@
                                 </span>
                             </div>
 
+                            <!-- Barra de Modelos Rápidos de Comex -->
+                            <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+                                <button type="button" class="btn" onclick="populateFreightRfqEmail()" style="background: linear-gradient(135deg, #ec4899, #be185d); color: white; padding: 6px 12px; font-size: 0.74rem; font-weight: 800; border-radius: 5px; display: inline-flex; align-items: center; gap: 6px; border: none; cursor: pointer; box-shadow: 0 2px 6px rgba(236, 72, 153, 0.35);" title="Preencher destinatários da Logsy e Aduana Global e gerar e-mail de cotação de frete marítimo">
+                                    🚢 Cotação de Frete (Logsy & Aduana Global)
+                                </button>
+                            </div>
+
                             <!-- Formulário de Disparo -->
                             <form id="form-copilot-send-email" onsubmit="handleSendCopilotEmail(event)" style="display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0;">
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
@@ -4907,6 +4914,32 @@
                                         <span id="copilot-mail-counter" style="color: #64748b; font-weight: normal;"></span>
                                     </label>
                                     <textarea id="copilot-mail-body" class="form-control" required placeholder="Digite a mensagem ou use a sugestão gerada pela IA na coluna ao lado..." style="padding: 12px 14px; font-size: 0.90rem; line-height: 1.6; font-family: 'Inter', system-ui, sans-serif; flex: 1; resize: none;"></textarea>
+                                </div>
+
+                                <!-- Controles de Anexos de Comex (Invoice e Packing List) -->
+                                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="font-size: 0.72rem; font-weight: 800; color: #38bdf8; display: flex; align-items: center; justify-content: space-between;">
+                                        <span>📎 Anexos de Comex & Cotação</span>
+                                        <span style="font-size: 0.65rem; color: #94a3b8; font-weight: normal;">Disparados junto com este e-mail</span>
+                                    </div>
+                                    
+                                    <!-- Anexar Invoice do Projeto -->
+                                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #cbd5e1;">
+                                        <input type="checkbox" id="copilot-mail-attach-invoice" checked style="cursor: pointer; width: 15px; height: 15px; accent-color: #0ea5e9;">
+                                        <label for="copilot-mail-attach-invoice" style="cursor: pointer; margin-bottom: 0; display: inline-flex; align-items: center; gap: 5px;">
+                                            <span>📄 Anexar Invoice da Fase 3:</span>
+                                            <strong id="copilot-mail-invoice-filename" style="color: #38bdf8;">(Verificando fatura...)</strong>
+                                        </label>
+                                    </div>
+
+                                    <!-- Anexar Packing List -->
+                                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #cbd5e1; flex-wrap: wrap;">
+                                        <input type="file" id="copilot-mail-packing-list-file" accept=".pdf,image/*" style="display: none;" onchange="handleCopilotPackingListSelected(this)">
+                                        <button type="button" class="btn" onclick="document.getElementById('copilot-mail-packing-list-file').click()" style="background: rgba(236, 72, 153, 0.2); border: 1px solid #ec4899; color: #f472b6; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+                                            📦 Anexar Packing List (PDF do Chinês)
+                                        </button>
+                                        <span id="copilot-mail-packing-list-label" style="font-size: 0.72rem; color: #94a3b8; font-style: italic;">Nenhum Packing List selecionado</span>
+                                    </div>
                                 </div>
 
                                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 4px;">
@@ -14145,6 +14178,25 @@
                 const res = await fetch(`/api/projects/${code}/communications`, { headers });
                 if (!res.ok) return;
 
+                // Atualizar o nome da fatura anexada no controle de anexos de e-mail
+                try {
+                    const attachRes = await fetch(`/api/attachments/${code}`, { headers });
+                    if (attachRes.ok) {
+                        const allAttachs = await attachRes.json();
+                        const invAttach = (allAttachs || []).find(a => a.phase === 'proforma' || (a.fileName && a.fileName.toLowerCase().includes('proforma')) || (a.fileName && a.fileName.toLowerCase().includes('invoice')));
+                        const invLabel = document.getElementById('copilot-mail-invoice-filename');
+                        if (invLabel) {
+                            if (invAttach) {
+                                invLabel.innerText = invAttach.fileName;
+                                invLabel.style.color = '#38bdf8';
+                            } else {
+                                invLabel.innerText = '(Nenhuma fatura anexada)';
+                                invLabel.style.color = '#94a3b8';
+                            }
+                        }
+                    }
+                } catch(e) {}
+
                 const items = await res.json();
                 const chatItems = (items || []).filter(i => i.type === 'ai_chat');
                 const sentItems = (items || []).filter(i => i.type === 'email_sent' || i.type === 'email_received');
@@ -14330,13 +14382,93 @@
             }
         }
 
+        function handleCopilotPackingListSelected(input) {
+            const label = document.getElementById('copilot-mail-packing-list-label');
+            if (input.files && input.files[0]) {
+                const f = input.files[0];
+                if (label) {
+                    label.style.color = '#38bdf8';
+                    label.style.fontWeight = 'bold';
+                    label.innerText = `📄 ${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
+                }
+            } else {
+                if (label) {
+                    label.style.color = '#94a3b8';
+                    label.style.fontWeight = 'normal';
+                    label.innerText = 'Nenhum Packing List selecionado';
+                }
+            }
+        }
+
+        // Preenche automaticamente o e-mail de Cotação de Frete com os Forwarders homologados
+        function populateFreightRfqEmail() {
+            if (!activeProjectCode) return;
+            const project = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === activeProjectCode) : null;
+            if (!project) return;
+
+            const toInput = document.getElementById('copilot-mail-to');
+            const ccInput = document.getElementById('copilot-mail-cc');
+            const subjectInput = document.getElementById('copilot-mail-subject');
+            const bodyInput = document.getElementById('copilot-mail-body');
+            const attachInvCheck = document.getElementById('copilot-mail-attach-invoice');
+
+            // Destinatários Oficiais: Logsy & Aduana Global
+            const forwardersTo = 'clara@logsy.com.br, giacomo@logsy.com.br, quotation@logsy.com.br, flavio@aduanaglobal.com.br, gmeneghelli@aduanaglobal.com.br';
+            const defaultCc = 'admin@tecfag.com.br, compras@tecfag.com.br';
+
+            if (toInput) toInput.value = forwardersTo;
+            if (ccInput) ccInput.value = defaultCc;
+
+            const supplierName = project.import_supplier || project.supplier || 'Fornecedor Internacional';
+            const invoiceNum = project.import_invoice_number || ('PI-' + project.code);
+            const fobTotal = (parseFloat(project.import_total_fob_value) > 0)
+                ? (project.import_currency || 'USD') + ' ' + parseFloat(project.import_total_fob_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+                : 'A confirmar na Invoice';
+
+            if (subjectInput) {
+                subjectInput.value = `RFQ - Cotação de Frete Marítimo Internacional - Projeto ${project.code} - ${project.client || 'Tecfag'}`;
+            }
+
+            if (bodyInput) {
+                bodyInput.value = 
+`Prezados (Logsy / Aduana Global),
+
+Solicitamos cotação formal de frete marítimo internacional e despesas portuárias para o seguinte embarque:
+
+• Projeto Tecfag: ${project.code} - ${project.client || ''}
+• Equipamento / Carga: ${project.project_name || project.sku || 'Linha / Máquinas Industriais'}
+• Fornecedor Internacional: ${supplierName}
+• Fatura / Invoice Nº: ${invoiceNum}
+• Valor FOB da Carga: ${fobTotal}
+• Porto de Embarque (POL): Ningbo / Shanghai (conforme Packing List)
+• Porto de Destino (POD): Santos / Navegantes / Itapoá (com trânsito DTA para EADI Bauru)
+• Modalidade: LCL (Carga Solta) ou FCL (conforme cubagem / CBM)
+
+Seguem em anexo a Commercial/Proforma Invoice e o Packing List para análise de cubagem (CBM), peso bruto (GW) e medidas exatas das caixas de madeira.
+
+Favor informar:
+1. Valor do frete marítimo internacional (USD)
+2. Taxas locais de origem e destino (THC, ISPS, B/L fee, etc.)
+3. Transit time estimado e frequência de saídas
+4. Validade da tarifa
+
+Ficamos no aguardo de suas propostas.
+
+Atenciosamente,`;
+            }
+
+            if (attachInvCheck) attachInvCheck.checked = true;
+
+            alert('🚢 E-mail de cotação preenchido com todos os contatos da Logsy e Aduana Global!\n\nSe já tiver o arquivo do Packing List enviado pelo fornecedor, clique no botão "Anexar Packing List" abaixo e em seguida clique em "Disparar E-mail".');
+        }
+
         async function handleSendCopilotEmail(event) {
             if (event) event.preventDefault();
             const btn = document.getElementById('copilot-btn-send-mail');
-            const to = document.getElementById('copilot-mail-to')?.value;
-            const cc = document.getElementById('copilot-mail-cc')?.value;
-            const subject = document.getElementById('copilot-mail-subject')?.value;
-            const body = document.getElementById('copilot-mail-body')?.value;
+            const to = document.getElementById('copilot-mail-to')?.value?.trim();
+            const cc = document.getElementById('copilot-mail-cc')?.value?.trim();
+            const subject = document.getElementById('copilot-mail-subject')?.value?.trim();
+            const body = document.getElementById('copilot-mail-body')?.value?.trim();
 
             if (!to || !subject || !body || !activeProjectCode) {
                 alert('Preencha os campos obrigatórios (Para, Assunto e Mensagem).');
@@ -14351,19 +14483,39 @@
                 if (btn) { btn.disabled = true; btn.innerText = 'Enviando...'; }
 
                 const token = localStorage.getItem('tecfag_session_token');
-                const headers = { 'Content-Type': 'application/json' };
-                if (token) headers['Authorization'] = `Bearer ${token}`;
+                const formData = new FormData();
+                formData.append('to', to);
+                if (cc) formData.append('cc', cc);
+                formData.append('subject', subject);
+                formData.append('body', body);
+
+                const attachInvCheck = document.getElementById('copilot-mail-attach-invoice');
+                if (attachInvCheck && attachInvCheck.checked) {
+                    formData.append('attach_invoice', 'true');
+                }
+
+                const plFileInput = document.getElementById('copilot-mail-packing-list-file');
+                if (plFileInput && plFileInput.files && plFileInput.files[0]) {
+                    formData.append('packing_list_file', plFileInput.files[0]);
+                }
 
                 const res = await fetch(`/api/projects/${activeProjectCode}/send-email`, {
                     method: 'POST',
-                    headers,
-                    body: JSON.stringify({ to, cc, subject, body })
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                    body: formData
                 });
 
                 if (res.ok) {
                     const data = await res.json();
                     alert(`✅ ${data.message || 'E-mail enviado com sucesso!'}`);
                     document.getElementById('copilot-mail-body').value = '';
+                    if (plFileInput) plFileInput.value = '';
+                    const plLabel = document.getElementById('copilot-mail-packing-list-label');
+                    if (plLabel) {
+                        plLabel.style.color = '#94a3b8';
+                        plLabel.style.fontWeight = 'normal';
+                        plLabel.innerText = 'Nenhum Packing List selecionado';
+                    }
                     loadProjectCopilotHub(activeProjectCode);
                 } else {
                     const data = await res.json().catch(() => ({}));
