@@ -2458,6 +2458,12 @@
                         <option value="pending">💬 Dúvidas Pendentes</option>
                     </select>
                 </div>
+
+                <div style="margin-left: auto;">
+                    <button type="button" class="btn btn-secondary" onclick="switchTab('list')" style="font-size: 0.78rem; font-weight: 700; padding: 7px 14px; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; display: flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+                        📋 Ver Banco de Projetos & Pós-Venda ➔
+                    </button>
+                </div>
             </div>
 
             <!-- Banner de Alerta de Higiene / Cards Atrasados -->
@@ -2512,8 +2518,13 @@
         <div id="tab-list" class="tab-content">
             <div class="project-table-card">
                 <div class="flex-between" style="margin-bottom: 20px;">
-                    <h3>Banco de Projetos Industriais</h3>
-                    <div style="display: flex; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 14px;">
+                        <button type="button" class="btn btn-secondary" onclick="switchTab('dash')" style="font-size: 0.76rem; font-weight: 700; padding: 6px 12px; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                            ⬅ Voltar ao Kanban
+                        </button>
+                        <h3 style="margin: 0;">Banco de Projetos Industriais & Pós-Venda</h3>
+                    </div>
+                    <div style="display: flex; gap: 12px; align-items: center;">
                         <input type="search" class="form-control" id="search-prj" name="search_prj_field_custom" autocomplete="new-password" data-lpignore="true" data-form-type="other" readonly onfocus="this.removeAttribute('readonly');" onblur="if(!this.value) this.setAttribute('readonly', 'readonly');" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Buscar projeto, cliente..." oninput="renderProjectsTable()" style="padding: 8px 16px;">
                         <select class="form-control" id="filter-fase" onchange="renderProjectsTable()" style="padding: 8px 16px;">
                             <option value="ALL">Fase: Todas</option>
@@ -15606,6 +15617,8 @@ Atenciosamente,`;
                 loadMetrics();
             } else if (tabId === 'supplier') {
                 loadSupplierResources();
+            } else if (tabId === 'list') {
+                if (typeof renderProjectsTable === 'function') renderProjectsTable();
             } else if (tabId === 'settings') {
                 loadSettingsTab();
             } else if (tabId === 'supply-chain') {
