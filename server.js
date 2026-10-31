@@ -215,6 +215,10 @@ function initializeDatabase() {
         db.run("ALTER TABLE projects ADD COLUMN import_net_weight REAL DEFAULT 0.0", () => {});
         db.run("ALTER TABLE projects ADD COLUMN import_packages_count INTEGER DEFAULT 0", () => {});
         db.run("ALTER TABLE projects ADD COLUMN import_packages_type TEXT DEFAULT 'Wooden Cases'", () => {});
+db.run("ALTER TABLE projects ADD COLUMN is_archived INTEGER DEFAULT 0", () => {});
+db.run("ALTER TABLE projects ADD COLUMN archived_at TEXT", () => {});
+db.run("ALTER TABLE projects ADD COLUMN delivery_invoice TEXT", () => {});
+db.run("ALTER TABLE projects ADD COLUMN delivery_date TEXT", () => {});
 
         // Limpeza automática de comentários órfãos de projetos excluídos
         db.run("DELETE FROM comments WHERE projectCode NOT IN (SELECT code FROM projects)", () => {});
@@ -7445,7 +7449,8 @@ app.put('/api/projects/:code', async (req, res) => {
         import_vessel_name, import_bl_number, import_bl_date, import_etd_date, import_eta_port_date,
         import_eta_warehouse_date, import_actual_arrival_date, import_customs_regime, import_dta_number,
         import_eadi_entry_date, import_eadi_da_number, import_notes,
-        import_cbm, import_gross_weight, import_net_weight, import_packages_count, import_packages_type
+        import_cbm, import_gross_weight, import_net_weight, import_packages_count, import_packages_type,
+        is_archived, archived_at, delivery_invoice, delivery_date
     } = req.body;
     const { code } = req.params;
 
@@ -7668,7 +7673,11 @@ app.put('/api/projects/:code', async (req, res) => {
             import_gross_weight = ?,
             import_net_weight = ?,
             import_packages_count = ?,
-            import_packages_type = ?`;
+            import_packages_type = ?,
+            is_archived = ?,
+            archived_at = ?,
+            delivery_invoice = ?,
+            delivery_date = ?`;
             
         const params = [
             serial !== undefined ? serial : oldProject.serial,
@@ -9141,6 +9150,69 @@ app.delete('/api/supply-chain/suppliers/:id', authenticateToken, restrictToSuppl
     }
 });
 
+
+// POST /api/projects/:code/archive-delivery - Finaliza projeto e arquiva no repositório de Pós-Venda
+app.post('/api/projects/:code/archive-delivery', authenticateToken, async (req, res) => {
+    const { code } = req.params;
+    const { delivery_invoice, delivery_date, delivery_notes } = req.body || {};
+    const user = req.user ? req.user.username : 'Sistema';
+    const nowIso = new Date().toISOString();
+
+    try {
+        const prj = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!prj) return res.status(404).json({ error: 'Projeto não encontrado.' });
+
+        const dDate = delivery_date || nowIso.split('T')[0];
+        const dInvoice = delivery_invoice ? String(delivery_invoice).trim() : null;
+
+        await dbRun(`
+            UPDATE projects SET
+                fase = 8,
+                is_archived = 1,
+                archived_at = ?,
+                delivery_invoice = ?,
+                delivery_date = ?,
+                motivoPerda = NULL,
+                lastUpdate = ?
+            WHERE code = ?
+        `, [nowIso, dInvoice, dDate, nowIso, code]);
+
+        const logMsg = `🎉 [PROJETO FINALIZADO & ENTREGUE] Máquina expedida ao cliente. NF: ${dInvoice || 'S/N'}. Data: ${dDate}. Arquivado no Repositório de Pós-Venda.${delivery_notes ? ' Obs: ' + delivery_notes : ''}`;
+        await recordAuditLog(code, user, logMsg);
+
+        res.json({ success: true, message: 'Projeto finalizado e arquivado com sucesso no Pós-Venda!' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao arquivar projeto: ' + err.message });
+    }
+});
+
+// POST /api/projects/:code/unarchive - Reabre projeto arquivado retornando para Fase 7 (Entrega)
+app.post('/api/projects/:code/unarchive', authenticateToken, async (req, res) => {
+    const { code } = req.params;
+    const user = req.user ? req.user.username : 'Sistema';
+    const nowIso = new Date().toISOString();
+
+    try {
+        const prj = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!prj) return res.status(404).json({ error: 'Projeto não encontrado.' });
+
+        await dbRun(`
+            UPDATE projects SET
+                fase = 7,
+                is_archived = 0,
+                archived_at = NULL,
+                lastUpdate = ?
+            WHERE code = ?
+        `, [nowIso, code]);
+
+        await recordAuditLog(code, user, `🔄 Projeto reaberto do arquivo histórico e retornado para a Fase 4 (Entrega).`);
+        res.json({ success: true, message: 'Projeto reaberto com sucesso!' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao reabrir projeto: ' + err.message });
+    }
+});
 
 // POST /api/projects/:code/advance-import-stage - Avança etapa de importação do Card Único
 app.post('/api/projects/:code/advance-import-stage', authenticateToken, restrictToSupplyChain, async (req, res) => {

@@ -2519,12 +2519,10 @@
                             <option value="ALL">Fase: Todas</option>
                             <option value="1">1. Viabilidade Técnica (Apenas Especiais)</option>
                             <option value="2">2. Pedido Fechado (Venda Ganha no RD)</option>
-                            <option value="3">3. Proforma, Câmbio & PO Fornecedor</option>
-                            <option value="4">4. Fabricação Internacional & Embarque</option>
-                            <option value="5">5. Trânsito Marítimo & EADI Bauru</option>
-                            <option value="6">6. Oficina, Setup & Testes (FAT/SAT)</option>
-                            <option value="7">7. Faturamento, Entrega & Concluído</option>
-                            <option value="8">8. Histórico / Arquivados</option>
+                            <option value="6">3. Oficina, Setup & SAT</option>
+                            <option value="7">4. Faturamento & Entrega (Em Andamento)</option>
+                            <option value="8_SUCCESS">🏁 Entregues & Concluídos (Pós-Venda)</option>
+                            <option value="8_LOST">❌ Cancelados / Perdidos</option>
                         </select>
                     </div>
                 </div>
@@ -3939,7 +3937,27 @@
                     </div>
                 </div>
                 
-                                <!-- BARRA DE NAVEGAÇÃO DE ABAS POR PERFIL / FUNÇÃO -->
+                                <!-- BANNER DE PROJETO CONCLUÍDO & ARQUIVADO NO PÓS-VENDA -->
+                <div id="modal-archived-delivery-banner" style="display: none; background: linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(5, 150, 105, 0.28) 100%); border: 1.5px solid #10b981; border-radius: 8px; padding: 14px 18px; margin-bottom: 14px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 2rem; line-height: 1;">🎉</span>
+                            <div>
+                                <div style="color: #34d399; font-weight: 800; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    PROJETO FINALIZADO & ENTREGUE COM SUCESSO (ARQUIVADO NO PÓS-VENDA)
+                                </div>
+                                <div style="font-size: 0.78rem; color: #e2e8f0; margin-top: 3px;" id="modal-archived-delivery-details">
+                                    <!-- Preenchido via JS -->
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn" onclick="reopenArchivedProject(activeProjectCode)" style="font-size: 0.76rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(16, 185, 129, 0.5); color: #34d399; font-weight: bold; padding: 6px 14px; border-radius: 6px; cursor: pointer;">
+                            🔄 Reabrir Projeto para Entrega
+                        </button>
+                    </div>
+                </div>
+
+                <!-- BARRA DE NAVEGAÇÃO DE ABAS POR PERFIL / FUNÇÃO -->
                 <div class="project-modal-nav-tabs">
                     <button type="button" class="project-modal-tab-btn active" id="modal-nav-btn-overview" onclick="switchProjectModalTab('overview')">
                         📊 Visão Geral & Diário de Bordo
@@ -5087,6 +5105,9 @@
                     <button id="btn-delete-project" class="btn btn-danger" style="background-color: #ef4444;" onclick="deleteProjectFromModal()">Deletar Projeto</button>
                 </div>
                 <div style="display: flex; gap: 10px;">
+                    <button id="btn-archive-delivery" class="btn" style="display: none; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: 800; padding: 8px 18px; border-radius: 6px; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35); border: none; cursor: pointer;" onclick="openArchiveDeliveryModal(activeProjectCode)">
+                        🎉 Finalizar & Arquivar Entrega
+                    </button>
                     <button id="btn-mark-lost" class="btn" style="background-color: #f97316;" onclick="showLostReasonPrompt()">Marcar como Perdido</button>
                     <button class="btn btn-secondary" onclick="exportProjectToPDF()" style="background: rgba(14, 165, 233, 0.1); border-color: rgba(14, 165, 233, 0.3); color: #38bdf8; display: flex; align-items: center; gap: 6px;">
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
@@ -5096,6 +5117,46 @@
                     <button id="btn-save-project-modal" class="btn" onclick="saveProjectModal()">Salvar Alterações</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE FINALIZAÇÃO E ARQUIVAMENTO DE PROJETO (PÓS-VENDA) -->
+    <div class="modal-overlay" id="modal-archive-delivery" style="z-index: 10055; display: none; align-items: center; justify-content: center;">
+        <div class="modal" style="max-width: 520px; width: 92%; background: #0f172a; border: 1.5px solid #10b981; box-shadow: 0 10px 40px rgba(0,0,0,0.85); border-radius: 8px; padding: 0; overflow: hidden;">
+            <div class="modal-header" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.3) 100%); border-bottom: 1px solid rgba(16, 185, 129, 0.3); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; color: #34d399; font-size: 1rem; display: flex; align-items: center; gap: 8px; font-weight: 800;">
+                    <span>🎉</span> Finalizar Projeto & Arquivar no Pós-Venda
+                </h3>
+                <button type="button" class="btn-close" onclick="closeArchiveDeliveryModal()" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">&times;</button>
+            </div>
+            <form onsubmit="handleConfirmArchiveDelivery(event)" style="padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+                <div style="background: rgba(16, 185, 129, 0.08); border-left: 3px solid #10b981; padding: 10px 12px; border-radius: 4px; font-size: 0.78rem; color: #cbd5e1; line-height: 1.4;">
+                    Ao finalizar, o projeto <strong id="archive-modal-project-code" style="color: #38bdf8;"></strong> será removido do quadro Kanban ativo de operação diária e guardado com segurança permanente no <strong>Banco de Projetos (Pós-Venda & Garantia)</strong>.
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="font-size: 0.72rem; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Nº da Nota Fiscal (NF):</label>
+                        <input type="text" id="archive-delivery-invoice" class="form-control" placeholder="Ex: NF 14.820" style="padding: 8px 10px; font-size: 0.82rem;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="font-size: 0.72rem; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Data de Expedição / Entrega:*</label>
+                        <input type="date" id="archive-delivery-date" class="form-control" required style="padding: 8px 10px; font-size: 0.82rem;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label style="font-size: 0.72rem; color: #94a3b8; font-weight: bold; text-transform: uppercase;">Observações / Dados do Transporte:</label>
+                    <textarea id="archive-delivery-notes" class="form-control" rows="2" placeholder="Ex: Carga despachada via Jamef, CTE 92831. Entregue com manual e kit sobressalente." style="padding: 8px 10px; font-size: 0.80rem;"></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeArchiveDeliveryModal()" style="font-size: 0.80rem; padding: 8px 16px;">Cancelar</button>
+                    <button type="submit" id="btn-confirm-archive-submit" class="btn" style="background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 800; font-size: 0.82rem; padding: 8px 20px; border-radius: 6px; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4); cursor: pointer; border: none;">
+                        🎉 Confirmar Entrega & Arquivar
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -18372,7 +18433,14 @@ function renderKanban() {
                         <span style="color: #38bdf8; font-weight: 700; font-size: 0.62rem; display: inline-flex; align-items: center; gap: 2px;">
                             Detalhes ➔
                         </span>
-                    </div>`;
+                    </div>
+                    ${project.fase === 7 ? `
+                        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(16, 185, 129, 0.3);">
+                            <button type="button" class="btn" style="background: rgba(16, 185, 129, 0.16); border: 1px solid #10b981; color: #34d399; font-size: 0.68rem; font-weight: 800; padding: 4px 8px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; width: 100%; transition: all 0.2s ease;" onclick="event.stopPropagation(); openArchiveDeliveryModal('${project.code}')" title="Máquina expedida: Finalizar e Arquivar no Pós-Venda">
+                                <span>🎉</span> Finalizar & Arquivar Entrega
+                            </button>
+                        </div>
+                    ` : ''}`;
                 const colEl = document.getElementById(`cards-fase${project.fase}`);
                 if (colEl) colEl.appendChild(card);
             });
@@ -18394,7 +18462,12 @@ function renderKanban() {
                                       p.diagnostico.toLowerCase().includes(searchVal) ||
                                       sellerStr.includes(searchVal);
                 
-                const matchesFase = filterFase === 'ALL' || p.fase === parseInt(filterFase);
+                const isDelivered = (p.fase === 8 && !p.motivoPerda) || p.is_archived === 1;
+                const isLost = (p.fase === 8 && !!p.motivoPerda);
+                const matchesFase = filterFase === 'ALL' || 
+                    (filterFase === '8_SUCCESS' ? isDelivered : 
+                    (filterFase === '8_LOST' ? isLost : 
+                    p.fase === parseInt(filterFase)));
                 
                 let matchesRole = true;
                 if (currentRole && currentRole !== 'ALL' && currentRole !== 'DIRETOR' && !searchVal) {
@@ -18480,7 +18553,13 @@ function renderKanban() {
                     </span>
                 `;
                 
-                if (isEspecial && !isApprovedByEng) {
+                if ((p.fase === 8 && !p.motivoPerda) || p.is_archived === 1) {
+                    badgeHtml = `
+                        <span class="badge-fase" style="background-color: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 800;">
+                            🎉 Entregue (Pós-Venda)
+                        </span>
+                    `;
+                } else if (isEspecial && !isApprovedByEng) {
                     badgeHtml = `
                         <span class="badge-fase" style="background-color: rgba(249, 115, 22, 0.15); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.30); font-weight: bold;">
                             Análise Técnica Pendente
@@ -18513,7 +18592,11 @@ function renderKanban() {
                 } else if (p.fase === 7) {
                     deadlineHtml = `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.25); font-weight: bold; font-size: 0.72rem;">Concluído</span>`;
                 } else if (p.fase === 8) {
-                    deadlineHtml = `<span style="background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); font-weight: 500; font-size: 0.72rem;">Cancelado</span>`;
+                    if (!p.motivoPerda || p.is_archived === 1) {
+                        deadlineHtml = `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 700; font-size: 0.72rem;">NF: ${p.delivery_invoice || 'Concluído'}</span>`;
+                    } else {
+                        deadlineHtml = `<span style="background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); font-weight: 500; font-size: 0.72rem;">Cancelado</span>`;
+                    }
                 }
 
                 const tr = document.createElement('tr');
@@ -19903,8 +19986,27 @@ function renderKanban() {
             const lostBtn = document.getElementById('btn-mark-lost');
             const lostAlertArea = document.getElementById('modal-lost-reason-alert');
             
-            if (project.fase === 8) {
+            const isDeliveredAndArchived = (project.fase === 8 && !project.motivoPerda) || project.is_archived === 1;
+            const archiveBanner = document.getElementById('modal-archived-delivery-banner');
+            const archiveDetails = document.getElementById('modal-archived-delivery-details');
+            const btnArchiveDelivery = document.getElementById('btn-archive-delivery');
+
+            if (isDeliveredAndArchived) {
+                if (archiveBanner) {
+                    archiveBanner.style.display = 'block';
+                    if (archiveDetails) {
+                        const nfStr = project.delivery_invoice ? `<strong>Nota Fiscal:</strong> ${project.delivery_invoice}` : '<strong>Nota Fiscal:</strong> Não informada';
+                        const dateStr = project.delivery_date ? `<strong>Data de Expedição:</strong> ${new Date(project.delivery_date + 'T12:00:00').toLocaleDateString('pt-BR')}` : '<strong>Data:</strong> Concluído';
+                        archiveDetails.innerHTML = `${nfStr} • ${dateStr} • <strong>Status:</strong> Arquivado no Repositório de Pós-Venda`;
+                    }
+                }
+                if (lostBtn) lostBtn.style.display = 'none';
+                if (lostAlertArea) lostAlertArea.style.display = 'none';
+                if (btnArchiveDelivery) btnArchiveDelivery.style.display = 'none';
+            } else if (project.fase === 8 && project.motivoPerda) {
+                if (archiveBanner) archiveBanner.style.display = 'none';
                 if (lostBtn) {
+                    lostBtn.style.display = 'inline-flex';
                     lostBtn.innerText = "Reativar Projeto";
                     lostBtn.style.backgroundColor = "#10b981";
                     lostBtn.onclick = function() { reactivateProject(project.code); };
@@ -19913,14 +20015,22 @@ function renderKanban() {
                     lostAlertArea.style.display = 'block';
                     document.getElementById('modal-lost-reason-text').innerText = project.motivoPerda || 'Não informado';
                 }
+                if (btnArchiveDelivery) btnArchiveDelivery.style.display = 'none';
             } else {
+                if (archiveBanner) archiveBanner.style.display = 'none';
                 if (lostBtn) {
+                    lostBtn.style.display = 'inline-flex';
                     lostBtn.innerText = "Marcar como Perdido";
                     lostBtn.style.backgroundColor = "#f97316";
                     lostBtn.onclick = function() { showLostReasonPrompt(project.code); };
                 }
                 if (lostAlertArea) {
                     lostAlertArea.style.display = 'none';
+                }
+                // Exibe botão de finalizar entrega se estiver na Fase 7 ou com SAT concluído
+                const canArchiveDelivery = project.fase === 7 || (project.checklist && project.checklist.sat);
+                if (btnArchiveDelivery) {
+                    btnArchiveDelivery.style.display = canArchiveDelivery ? 'inline-flex' : 'none';
                 }
             }
 
@@ -21341,6 +21451,121 @@ function renderKanban() {
             if (queryBtn) queryBtn.style.display = 'none';
             if (submitBtn) submitBtn.innerText = '💾 Registrar no Diário de Bordo';
             if (chatInput) chatInput.placeholder = 'Registre uma anotação técnica, decisão de engenharia, inspeção ou ocorrência...';
+        }
+
+        // Controle de Finalização e Arquivamento de Projetos (Pós-Venda)
+        let activeArchiveProjectCode = null;
+
+        function openArchiveDeliveryModal(code) {
+            activeArchiveProjectCode = code || activeProjectCode;
+            if (!activeArchiveProjectCode) return;
+
+            const codeEl = document.getElementById('archive-modal-project-code');
+            if (codeEl) codeEl.innerText = activeArchiveProjectCode;
+
+            const dateInp = document.getElementById('archive-delivery-date');
+            if (dateInp) dateInp.value = new Date().toISOString().split('T')[0];
+
+            const prj = state.projects.find(p => p.code === activeArchiveProjectCode);
+            const invoiceInp = document.getElementById('archive-delivery-invoice');
+            if (invoiceInp) invoiceInp.value = (prj && prj.delivery_invoice) ? prj.delivery_invoice : '';
+
+            const notesInp = document.getElementById('archive-delivery-notes');
+            if (notesInp) notesInp.value = '';
+
+            const modal = document.getElementById('modal-archive-delivery');
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeArchiveDeliveryModal() {
+            const modal = document.getElementById('modal-archive-delivery');
+            if (modal) modal.style.display = 'none';
+            activeArchiveProjectCode = null;
+        }
+
+        async function handleConfirmArchiveDelivery(e) {
+            e.preventDefault();
+            if (!activeArchiveProjectCode) return;
+
+            const invoiceInp = document.getElementById('archive-delivery-invoice');
+            const dateInp = document.getElementById('archive-delivery-date');
+            const notesInp = document.getElementById('archive-delivery-notes');
+
+            const payload = {
+                delivery_invoice: invoiceInp ? invoiceInp.value.trim() : '',
+                delivery_date: dateInp ? dateInp.value : new Date().toISOString().split('T')[0],
+                delivery_notes: notesInp ? notesInp.value.trim() : ''
+            };
+
+            const submitBtn = document.getElementById('btn-confirm-archive-submit');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerText = 'Arquivando...';
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                const res = await fetch('/api/projects/' + activeArchiveProjectCode + '/archive-delivery', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || 'Erro ao arquivar projeto');
+                }
+
+                showIhmToast('🎉 Projeto finalizado e arquivado no Pós-Venda com sucesso!', 'success');
+                closeArchiveDeliveryModal();
+                closeProjectModal();
+
+                if (typeof loadProjectsDB === 'function') await loadProjectsDB();
+                if (typeof renderKanban === 'function') renderKanban();
+                if (typeof renderProjectsTable === 'function') renderProjectsTable();
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao finalizar projeto: ' + err.message);
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = '🎉 Confirmar Entrega & Arquivar';
+                }
+            }
+        }
+
+        async function reopenArchivedProject(code) {
+            const targetCode = code || activeProjectCode;
+            if (!targetCode) return;
+
+            const confirmReopen = confirm('Deseja reabrir o projeto ' + targetCode + ' do Arquivo Histórico e retorná-lo para a Fase 4 (Entrega)?');
+            if (!confirmReopen) return;
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                const res = await fetch('/api/projects/' + targetCode + '/unarchive', {
+                    method: 'POST',
+                    headers
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Erro ao reabrir projeto');
+
+                showIhmToast('🔄 Projeto retornado para a Fase 4 (Entrega)!', 'info');
+                if (typeof loadProjectsDB === 'function') await loadProjectsDB();
+                openProjectModal(targetCode);
+                if (typeof renderKanban === 'function') renderKanban();
+                if (typeof renderProjectsTable === 'function') renderProjectsTable();
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao reabrir projeto: ' + err.message);
+            }
         }
 
         // Alterna manualmente o status de Aguardando Vendedor
