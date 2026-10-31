@@ -2191,36 +2191,6 @@
                     🚢 Importações & Estoque
                 </button>
             </li>
-            <li class="nav-item" id="menu-ncm" onclick="openNcmLookupModal()">
-                <button>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20M4 19.5V5A2.5 2.5 0 0 1 6.5 2.5H20v14H6.5a2.5 2.5 0 0 0-2.5 2.5z"/></svg>
-                    Consultar NCM
-                </button>
-            </li>
-            <li class="nav-item" id="menu-pouch-calc" onclick="openPouchCalcModal()">
-                <button>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
-                    1. Calculadora Embalagem
-                </button>
-            </li>
-            <li class="nav-item" id="menu-doser-calc" onclick="openDoserCalcModal()">
-                <button style="color: #4ade80;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                    2. Validador de Dosagem
-                </button>
-            </li>
-            <li class="nav-item" id="menu-box-calc" onclick="openBoxCalcModal()">
-                <button style="color: #f59e0b;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
-                    3. Seladoras Caixas FX
-                </button>
-            </li>
-            <li class="nav-item" id="menu-pallet-calc" onclick="openPalletCalcModal()">
-                <button style="color: #a855f7;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
-                    4. Paletização PBR
-                </button>
-            </li>
         </ul>
 
         <!-- Widget de Câmbio Comercial -->
@@ -2625,7 +2595,7 @@
                             </div>
                         </div>
 
-                        <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1.2fr; gap: 15px; margin-bottom: 15px;">
                             <div class="form-group" style="position: relative;">
                                 <label for="prj-client">Nome do Cliente (Razão Social)*</label>
                                 <input type="text" id="prj-client" class="form-control" placeholder="Preenchido automaticamente pelo CNPJ" required>
@@ -2634,6 +2604,24 @@
                             <div class="form-group">
                                 <label for="prj-name">Nome do Projeto*</label>
                                 <input type="text" id="prj-name" class="form-control" placeholder="Ex: Linha de Envase Suco" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label for="prj-vendor">Vendedor Responsável pelo Processo*</label>
+                                <select id="prj-vendor" class="form-control" required onchange="toggleCustomVendorInput(this.value)" style="border: 1px solid var(--primary); background: rgba(59, 130, 246, 0.04); font-weight: 600;">
+                                    <option value="" disabled selected>Selecione o Vendedor...</option>
+                                    <option value="vendas">Diana (vendas)</option>
+                                    <option value="vendas1">Alex (vendas1)</option>
+                                    <option value="vendas2">Jhordan (vendas2)</option>
+                                    <option value="vendas3">Nardeli (vendas3)</option>
+                                    <option value="vendas4">Lucas (vendas4)</option>
+                                    <option value="vendas6">Patricia (vendas6)</option>
+                                    <option value="gerente">Gerente Comercial</option>
+                                    <option value="outro">Outro / Digitar nome...</option>
+                                </select>
+                                <input type="text" id="prj-vendor-custom" class="form-control" placeholder="Digite o nome do vendedor..." style="display: none; margin-top: 6px; border: 1px dashed var(--primary);">
                             </div>
                             <div class="form-group">
                                 <label for="prj-pm">Gerente de Projetos Alocado (Tecfag)*</label>
@@ -15741,11 +15729,30 @@ Atenciosamente,`;
             return specs;
         }
 
+        function toggleCustomVendorInput(val) {
+            const customInput = document.getElementById('prj-vendor-custom');
+            if (customInput) {
+                if (val === 'outro') {
+                    customInput.style.display = 'block';
+                    customInput.focus();
+                } else {
+                    customInput.style.display = 'none';
+                    customInput.value = '';
+                }
+            }
+        }
+
         function handleFormReset() {
             const form = document.getElementById('new-project-form');
             if (form) {
                 form.reset();
             }
+            // Reset do vendedor
+            const vendorSelect = document.getElementById('prj-vendor');
+            if (vendorSelect) vendorSelect.selectedIndex = 0;
+            const vendorCustom = document.getElementById('prj-vendor-custom');
+            if (vendorCustom) { vendorCustom.value = ''; vendorCustom.style.display = 'none'; }
+
             // Reset do checkbox e botão de envio
             const checkbox = document.getElementById('prj-compromisso');
             if (checkbox) checkbox.checked = false;
@@ -16013,19 +16020,19 @@ Atenciosamente,`;
         function getProjectSeller(project) {
             if (!project) return 'S/V';
             
-            // 1. Checklist diagnostico_user
-            if (project.checklist && project.checklist.diagnostico_user && project.checklist.diagnostico_user !== '-' && project.checklist.diagnostico_user !== '--' && project.checklist.diagnostico_user !== 'S/V') {
-                const friendly = getFriendlyUserName(project.checklist.diagnostico_user);
-                if (friendly && friendly !== 'S/V' && friendly !== '-') return friendly;
-            }
-            
-            // 2. Direct seller / vendedor / creator properties
-            const directFields = [project.seller, project.vendedor, project.creator];
+            // 1. Direct seller / vendedor / creator properties (prioridade máxima se não for genérico)
+            const directFields = [project.vendedor, project.seller, project.creator];
             for (let f of directFields) {
-                if (f && f !== '-' && f !== '--') {
+                if (f && f !== '-' && f !== '--' && f !== 'S/V' && String(f).toLowerCase() !== 'admin') {
                     const friendly = getFriendlyUserName(f);
-                    if (friendly && friendly !== 'S/V' && friendly !== '-') return friendly;
+                    if (friendly && friendly !== 'S/V' && friendly !== '-' && friendly !== 'Admin') return friendly;
                 }
+            }
+
+            // 2. Checklist diagnostico_user (se não for admin)
+            if (project.checklist && project.checklist.diagnostico_user && project.checklist.diagnostico_user !== '-' && project.checklist.diagnostico_user !== '--' && project.checklist.diagnostico_user !== 'S/V' && String(project.checklist.diagnostico_user).toLowerCase() !== 'admin') {
+                const friendly = getFriendlyUserName(project.checklist.diagnostico_user);
+                if (friendly && friendly !== 'S/V' && friendly !== '-' && friendly !== 'Admin') return friendly;
             }
             
             // 3. Contact / Representative / Client Info fields
@@ -17423,6 +17430,22 @@ Atenciosamente,`;
                     }
                 }
 
+                let selectedVendor = '';
+                const vendorSel = document.getElementById('prj-vendor');
+                if (vendorSel) {
+                    if (vendorSel.value === 'outro') {
+                        const customEl = document.getElementById('prj-vendor-custom');
+                        selectedVendor = customEl ? customEl.value.trim() : '';
+                    } else {
+                        selectedVendor = vendorSel.value.trim();
+                    }
+                }
+                if (!selectedVendor) {
+                    alert('Erro: É obrigatório selecionar ou informar o Vendedor Responsável pelo processo!');
+                    resetSubmitButtonState(submitBtn);
+                    return;
+                }
+
                 const code = document.getElementById('prj-code').value.trim().toUpperCase().replace(/\s+/g, '');
                 const cnpj = document.getElementById('prj-cnpj').value.trim().replace(/\D/g, '');
                 const client = document.getElementById('prj-client').value.trim();
@@ -17676,9 +17699,11 @@ Atenciosamente,`;
                             const sel = document.getElementById('prj-intake-phase-type');
                             return sel ? parseInt(sel.value) : 2;
                         })(),
+                        vendedor: selectedVendor,
+                        seller: selectedVendor,
                         checklist: {
                             diagnostico: segment !== "" ? true : false,
-                            diagnostico_user: currentUser,
+                            diagnostico_user: selectedVendor,
                             diagnostico_date: new Date().toISOString(),
                             customizacao: (document.getElementById('prj-intake-phase-type')?.value === '1' ? false : true),
                             aprovacao: (document.getElementById('prj-intake-phase-type')?.value === '1' ? false : true),
@@ -18311,7 +18336,7 @@ function renderKanban() {
                     <!-- Rodapé do Card -->
                     <div class="project-card-footer" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 5px; margin-top: 5px; font-size: 0.66rem; color: var(--text-secondary);">
                         <span style="display: inline-flex; align-items: center; gap: 4px; max-width: 65%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                            👤 PM: <strong style="color: #f8fafc;">${(project.pm || 'Fernando').split(' ')[0]}</strong>
+                            👤 PM: <strong style="color: #f8fafc;">${(project.pm || 'Fernando').split(' ')[0]}</strong>${cardCreator && cardCreator !== 'S/V' ? `<span style="color: var(--text-secondary); margin: 0 1px;">•</span> 💼 <strong style="color: #38bdf8;">${cardCreator}</strong>` : ''}
                         </span>
                         <span style="color: #38bdf8; font-weight: 700; font-size: 0.62rem; display: inline-flex; align-items: center; gap: 2px;">
                             Detalhes ➔

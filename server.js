@@ -7298,6 +7298,9 @@ app.post('/api/projects', async (req, res) => {
         await dbRun('DELETE FROM project_phase_history WHERE projectCode = ?', [code]);
 
         let finalChecklist = checklist ? (typeof checklist === 'string' ? JSON.parse(checklist) : { ...checklist }) : {};
+        if (req.body.vendedor) {
+            finalChecklist.diagnostico_user = req.body.vendedor;
+        }
         if (!finalChecklist.diagnostico_user || finalChecklist.diagnostico_user === '-' || finalChecklist.diagnostico_user === '' || finalChecklist.diagnostico_user === 'S/V') {
             if (req.user && req.user.username && req.user.username !== 'admin') {
                 finalChecklist.diagnostico_user = req.user.username;
