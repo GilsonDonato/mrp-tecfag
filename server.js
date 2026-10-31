@@ -200,6 +200,11 @@ function initializeDatabase() {
         db.run("ALTER TABLE projects ADD COLUMN import_eadi_da_number TEXT", () => {});
         db.run("ALTER TABLE projects ADD COLUMN import_notes TEXT", () => {});
         db.run("ALTER TABLE projects ADD COLUMN import_items TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_cbm REAL DEFAULT 0.0", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_gross_weight REAL DEFAULT 0.0", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_net_weight REAL DEFAULT 0.0", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_packages_count INTEGER DEFAULT 0", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_packages_type TEXT DEFAULT 'Wooden Cases'", () => {});
 
         // Limpeza automática de comentários órfãos de projetos excluídos
         db.run("DELETE FROM comments WHERE projectCode NOT IN (SELECT code FROM projects)", () => {});
@@ -7426,7 +7431,8 @@ app.put('/api/projects/:code', async (req, res) => {
         import_stage, import_fabrication_start_date, import_fabrication_end_date, import_container_id,
         import_vessel_name, import_bl_number, import_bl_date, import_etd_date, import_eta_port_date,
         import_eta_warehouse_date, import_actual_arrival_date, import_customs_regime, import_dta_number,
-        import_eadi_entry_date, import_eadi_da_number, import_notes
+        import_eadi_entry_date, import_eadi_da_number, import_notes,
+        import_cbm, import_gross_weight, import_net_weight, import_packages_count, import_packages_type
     } = req.body;
     const { code } = req.params;
 
@@ -7644,7 +7650,12 @@ app.put('/api/projects/:code', async (req, res) => {
             import_eadi_entry_date = ?,
             import_eadi_da_number = ?,
             import_notes = ?,
-            import_items = ?`;
+            import_items = ?,
+            import_cbm = ?,
+            import_gross_weight = ?,
+            import_net_weight = ?,
+            import_packages_count = ?,
+            import_packages_type = ?`;
             
         const params = [
             serial !== undefined ? serial : oldProject.serial,
@@ -7690,7 +7701,12 @@ app.put('/api/projects/:code', async (req, res) => {
             import_eadi_entry_date !== undefined ? import_eadi_entry_date : oldProject.import_eadi_entry_date,
             import_eadi_da_number !== undefined ? import_eadi_da_number : oldProject.import_eadi_da_number,
             import_notes !== undefined ? import_notes : oldProject.import_notes,
-            import_items !== undefined ? (typeof import_items === 'string' ? import_items : JSON.stringify(import_items)) : oldProject.import_items
+            import_items !== undefined ? (typeof import_items === 'string' ? import_items : JSON.stringify(import_items)) : oldProject.import_items,
+            import_cbm !== undefined ? parseFloat(import_cbm) : (oldProject.import_cbm || 0),
+            import_gross_weight !== undefined ? parseFloat(import_gross_weight) : (oldProject.import_gross_weight || 0),
+            import_net_weight !== undefined ? parseFloat(import_net_weight) : (oldProject.import_net_weight || 0),
+            import_packages_count !== undefined ? parseInt(import_packages_count) : (oldProject.import_packages_count || 0),
+            import_packages_type !== undefined ? import_packages_type : (oldProject.import_packages_type || 'Wooden Cases')
         ];
 
         // Se o SKU definitivo foi enviado para atualização
@@ -11898,6 +11914,166 @@ Responda APENAS o JSON puro. Não utilize blocos markdown (\`\`\`json).
     } catch (err) {
         console.error('[INVOICE OCR ERROR]', err);
         res.status(500).json({ error: 'Erro ao processar arquivo da fatura: ' + err.message });
+    }
+});
+
+// POST /api/supply-chain/extract-packing-list - Extração de Packing List Oficial (Pesos GW/NW, Cubagem CBM e Caixas)
+app.post('/api/supply-chain/extract-packing-list', authenticateToken, restrictToSupplyChain, supplyChainUpload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'Nenhum arquivo de Packing List enviado.' });
+    }
+
+    const filePath = req.file.path;
+    const fileMime = req.file.mimetype;
+    let extractedText = '';
+
+    try {
+        if (fileMime.includes('pdf') || req.file.originalname.toLowerCase().endsWith('.pdf')) {
+            try {
+                const dataBuffer = fs.readFileSync(filePath);
+                const pdfData = await pdfParse(dataBuffer);
+                extractedText = pdfData.text || '';
+            } catch (pdfErr) {
+                console.warn('[PACKING LIST OCR] Aviso ao extrair texto:', pdfErr.message);
+            }
+        }
+
+        let inlinePart = null;
+        try {
+            const fileBuffer = fs.readFileSync(filePath);
+            let mime = fileMime;
+            const lowerName = req.file.originalname.toLowerCase();
+            if (lowerName.endsWith('.pdf') || (fileMime && fileMime.includes('pdf'))) {
+                mime = 'application/pdf';
+            } else if (lowerName.endsWith('.png')) {
+                mime = 'image/png';
+            } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+                mime = 'image/jpeg';
+            } else if (lowerName.endsWith('.webp')) {
+                mime = 'image/webp';
+            }
+            if (mime === 'application/pdf' || mime.startsWith('image/')) {
+                inlinePart = {
+                    inlineData: {
+                        mimeType: mime,
+                        data: fileBuffer.toString('base64')
+                    }
+                };
+            }
+        } catch (bufErr) {
+            console.warn('[PACKING LIST OCR] Falha ao codificar buffer:', bufErr.message);
+        }
+
+        let aiResult = null;
+        const apiKey = process.env.GEMINI_API_KEY;
+
+        if (apiKey && apiKey.trim() !== '') {
+            try {
+                const prompt = `
+Você é o Especialista em Logística Internacional e Comércio Exterior da Tecfag.
+Sua missão é extrair com extrema precisão os dados logísticos do PACKING LIST (Romaneio de Carga) em anexo.
+
+ATENÇÃO CRÍTICA:
+Um Packing List descreve EMBALAGENS, MEDIDAS, CUBAGEM (CBM), PESOS (GROSS WEIGHT - GW e NET WEIGHT - NW) e QUANTIDADES de máquinas.
+O Packing List NÃO POSSUI PREÇOS MONETÁRIOS. NUNCA invente preços.
+
+Texto Bruto Extraído (Referência Auxiliar):
+"""
+${extractedText.substring(0, 40000)}
+"""
+
+REGRAS DE EXTRAÇÃO:
+1. CUBAGEM TOTAL (CBM / Volume em m³): Procure pelo total de CBM / m³ (ex: 8.5, 12.3, 24.0, etc.).
+2. PESO BRUTO TOTAL (GW em kg): Procure por Total Gross Weight (G.W.) em kg.
+3. PESO LÍQUIDO TOTAL (NW em kg): Procure por Total Net Weight (N.W.) em kg.
+4. TOTAL DE PACOTES / CAIXAS: Número total de caixas de madeira (Wooden Cases) ou volumes (ex: 4 cases).
+5. TIPO DE EMBALAGEM: "Wooden Cases" (Caixas de Madeira), "Pallets", "Cartons", etc.
+6. ITENS: Liste os modelos e quantidades contidos nos volumes (sem preços).
+
+Estrutura JSON obrigatória:
+{
+  "packing_list_number": "Número do Packing List se constar",
+  "packing_list_date": "YYYY-MM-DD",
+  "total_cbm": 0.0,
+  "gross_weight_kg": 0.0,
+  "net_weight_kg": 0.0,
+  "packages_count": 1,
+  "packages_type": "Wooden Cases",
+  "items": [
+    {
+      "item_no": 1,
+      "sku": "MODELO",
+      "description": "Descrição",
+      "qty_ordered": 1,
+      "package_no": 1,
+      "cbm": 0.0,
+      "gw_kg": 0.0
+    }
+  ]
+}
+
+Responda APENAS o JSON puro. Não utilize blocos markdown (\`\`\`json).
+`;
+                const contentsParts = [];
+                if (inlinePart) contentsParts.push(inlinePart);
+                contentsParts.push({ text: prompt });
+
+                const candidateModels = [
+                    process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+                    'gemini-flash-latest',
+                    'gemini-2.0-flash'
+                ];
+
+                for (const modelName of candidateModels) {
+                    try {
+                        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                        const payload = {
+                            contents: [{ parts: contentsParts }],
+                            generationConfig: { responseMimeType: "application/json" }
+                        };
+                        const aiRes = await fetch(geminiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        if (aiRes.ok) {
+                            const aiData = await aiRes.json();
+                            if (aiData.candidates && aiData.candidates[0] && aiData.candidates[0].content && aiData.candidates[0].content.parts[0]) {
+                                const rawText = aiData.candidates[0].content.parts[0].text;
+                                aiResult = cleanAndParseJSON(rawText);
+                                if (aiResult) break;
+                            }
+                        }
+                    } catch (mErr) {
+                        console.warn(`[PACKING LIST OCR] Erro ao tentar modelo ${modelName}:`, mErr.message);
+                    }
+                }
+            } catch (gErr) {
+                console.warn('[PACKING LIST OCR] Falha ao processar com Gemini:', gErr.message);
+            }
+        }
+
+        if (!aiResult) {
+            aiResult = {
+                total_cbm: 0.0,
+                gross_weight_kg: 0.0,
+                net_weight_kg: 0.0,
+                packages_count: 1,
+                packages_type: 'Wooden Cases',
+                items: []
+            };
+        }
+
+        aiResult.file_path = 'uploads/' + req.file.filename;
+        aiResult.original_name = req.file.originalname;
+
+        res.json({
+            success: true,
+            extracted: aiResult
+        });
+    } catch (err) {
+        console.error('[PACKING LIST OCR ERROR]', err);
+        res.status(500).json({ error: 'Erro ao processar Packing List: ' + err.message });
     }
 });
 

@@ -4529,24 +4529,61 @@
                         </div>
                     </div>
 
-                    <!-- Dropzone de Seleção e Extração da Fatura / Proforma Invoice via IA -->
-                    <div id="modal-project-invoice-dropzone" ondragover="event.preventDefault(); this.style.borderColor='#38bdf8'; this.style.background='rgba(56, 189, 248, 0.1)';" ondragleave="this.style.borderColor='rgba(56, 189, 248, 0.4)'; this.style.background='rgba(15, 23, 42, 0.6)';" ondrop="event.preventDefault(); this.style.borderColor='rgba(56, 189, 248, 0.4)'; this.style.background='rgba(15, 23, 42, 0.6)'; if(event.dataTransfer.files && event.dataTransfer.files[0]) { const inp = document.getElementById('modal-project-invoice-file'); inp.files = event.dataTransfer.files; handleProjectInvoiceFileSelected(inp); }" style="border: 2px dashed rgba(56, 189, 248, 0.4); background: rgba(15, 23, 42, 0.6); border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 20px; transition: border-color 0.2s, background 0.2s;">
-                        <div style="font-size: 1.8rem; margin-bottom: 6px;">📄</div>
-                        <div style="font-weight: 700; color: #38bdf8; font-size: 0.9rem;">Arraste a Proforma Invoice (PDF ou Imagem) do Fornecedor</div>
-                        <div style="font-size: 0.75rem; color: #94a3b8; margin: 4px 0 12px 0;">O Gemini IA lerá automaticamente Fornecedor, Modelos de Máquinas, Quantidades e Preços FOB.</div>
+                    <!-- Central de Documentos Oficiais da Importação: Invoice vs Packing List -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 20px;">
                         
-                        <div style="display: flex; justify-content: center; gap: 10px; align-items: center; flex-wrap: wrap;">
-                            <input type="file" id="modal-project-invoice-file" accept=".pdf,image/*" style="display: none;" onchange="handleProjectInvoiceFileSelected(this)">
-                            <button type="button" class="btn" onclick="document.getElementById('modal-project-invoice-file').click()" style="background: #0ea5e9; color: white; padding: 8px 16px; font-weight: bold; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-                                📁 Selecionar Arquivo da Fatura
-                            </button>
-                            <span id="modal-project-selected-file-label" style="font-size: 0.78rem; color: #cbd5e1;">Nenhum arquivo selecionado</span>
-                            <button type="button" id="modal-project-btn-extract-ai" class="btn" onclick="extractProjectInvoiceWithAI()" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; font-weight: bold; padding: 8px 16px; border-radius: 6px; display: none; cursor: pointer;">
-                                ⚡ Analisar com IA
-                            </button>
+                        <!-- CARD 1: Commercial / Proforma Invoice (Fase 1 / 2) -->
+                        <div id="modal-project-invoice-dropzone" ondragover="event.preventDefault(); this.style.borderColor='#38bdf8'; this.style.background='rgba(56, 189, 248, 0.1)';" ondragleave="this.style.borderColor='rgba(56, 189, 248, 0.4)'; this.style.background='rgba(15, 23, 42, 0.6)';" ondrop="event.preventDefault(); this.style.borderColor='rgba(56, 189, 248, 0.4)'; this.style.background='rgba(15, 23, 42, 0.6)'; if(event.dataTransfer.files && event.dataTransfer.files[0]) { const inp = document.getElementById('modal-project-invoice-file'); inp.files = event.dataTransfer.files; handleProjectInvoiceFileSelected(inp); }" style="border: 2px dashed rgba(56, 189, 248, 0.4); background: rgba(15, 23, 42, 0.6); border-radius: 8px; padding: 14px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; transition: border-color 0.2s, background 0.2s;">
+                            <div>
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 4px;">
+                                    <span style="font-size: 1.3rem;">📄</span>
+                                    <strong style="color: #38bdf8; font-size: 0.88rem; text-transform: uppercase;">1. Proforma / Commercial Invoice</strong>
+                                </div>
+                                <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 10px;">Fatura com Fornecedor, Preços Unitários FOB e Condições Financeiras</div>
+                            </div>
+                            
+                            <div>
+                                <div style="display: flex; justify-content: center; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                    <input type="file" id="modal-project-invoice-file" accept=".pdf,image/*" style="display: none;" onchange="handleProjectInvoiceFileSelected(this)">
+                                    <button type="button" class="btn" onclick="document.getElementById('modal-project-invoice-file').click()" style="background: #0ea5e9; color: white; padding: 6px 12px; font-size: 0.75rem; font-weight: bold; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                        📁 Selecionar Invoice
+                                    </button>
+                                    <span id="modal-project-selected-file-label" style="font-size: 0.74rem; color: #cbd5e1;">Nenhum arquivo</span>
+                                    <button type="button" id="modal-project-btn-extract-ai" class="btn" onclick="extractProjectInvoiceWithAI()" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; font-weight: bold; padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; display: none; cursor: pointer;">
+                                        ⚡ Ler Fatura com IA
+                                    </button>
+                                </div>
+                                <div id="modal-project-ocr-status" style="display: none; margin-top: 8px; font-size: 0.75rem; font-weight: 600;"></div>
+                                <div id="modal-project-attached-invoice-info" style="margin-top: 10px; font-size: 0.75rem; color: #94a3b8; display: none;"></div>
+                            </div>
                         </div>
-                        <div id="modal-project-ocr-status" style="display: none; margin-top: 10px; font-size: 0.78rem; font-weight: 600;"></div>
-                        <div id="modal-project-attached-invoice-info" style="margin-top: 12px; font-size: 0.78rem; color: #94a3b8; display: none;"></div>
+
+                        <!-- CARD 2: Packing List Oficial (Fase 3: Embarque) -->
+                        <div id="modal-project-packing-dropzone" ondragover="event.preventDefault(); this.style.borderColor='#f59e0b'; this.style.background='rgba(245, 158, 11, 0.1)';" ondragleave="this.style.borderColor='rgba(245, 158, 11, 0.4)'; this.style.background='rgba(15, 23, 42, 0.6)';" ondrop="event.preventDefault(); this.style.borderColor='rgba(245, 158, 11, 0.4)'; this.style.background='rgba(15, 23, 42, 0.6)'; if(event.dataTransfer.files && event.dataTransfer.files[0]) { const inp = document.getElementById('modal-project-packing-file'); inp.files = event.dataTransfer.files; handleProjectPackingFileSelected(inp); }" style="border: 2px dashed rgba(245, 158, 11, 0.4); background: rgba(15, 23, 42, 0.6); border-radius: 8px; padding: 14px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; transition: border-color 0.2s, background 0.2s;">
+                            <div>
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 4px;">
+                                    <span style="font-size: 1.3rem;">📦</span>
+                                    <strong style="color: #f59e0b; font-size: 0.88rem; text-transform: uppercase;">2. Packing List Oficial (Fase 3: Carga Pronta)</strong>
+                                </div>
+                                <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 10px;">Romaneio de Carga com Pesos (GW/NW), Cubagem (CBM) e Caixas (Sem Preços)</div>
+                            </div>
+
+                            <div>
+                                <div style="display: flex; justify-content: center; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                    <input type="file" id="modal-project-packing-file" accept=".pdf,image/*" style="display: none;" onchange="handleProjectPackingFileSelected(this)">
+                                    <button type="button" class="btn" onclick="document.getElementById('modal-project-packing-file').click()" style="background: #f59e0b; color: #0f172a; padding: 6px 12px; font-size: 0.75rem; font-weight: 800; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                        📁 Selecionar Packing List
+                                    </button>
+                                    <span id="modal-project-selected-packing-label" style="font-size: 0.74rem; color: #cbd5e1;">Nenhum arquivo</span>
+                                    <button type="button" id="modal-project-btn-extract-packing-ai" class="btn" onclick="extractProjectPackingWithAI()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: bold; padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; display: none; cursor: pointer;">
+                                        🤖 Ler CBM & Pesos (IA)
+                                    </button>
+                                </div>
+                                <div id="modal-project-packing-status" style="display: none; margin-top: 8px; font-size: 0.75rem; font-weight: 600;"></div>
+                                <div id="modal-project-attached-packing-info" style="margin-top: 10px; font-size: 0.75rem; color: #94a3b8; display: none;"></div>
+                            </div>
+                        </div>
+
                     </div>
 
                     <!-- Formulário Unificado de Importação & Comex -->
@@ -4606,6 +4643,26 @@
                             <h4 style="margin-bottom: 14px; color: #38bdf8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
                                 <span>🚢</span> Logística, B/L & Desembaraço
                             </h4>
+
+                            <!-- Medidas Físicas da Carga (Extraídas do Packing List) -->
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; background: rgba(15, 23, 42, 0.4); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.68rem; font-weight: 700; color: #38bdf8;">Cubagem (CBM)</label>
+                                    <input type="number" step="0.001" id="modal-import-cbm" class="form-control" placeholder="0.000" style="padding: 6px; font-size: 0.78rem; font-weight: bold; color: #38bdf8;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.68rem; font-weight: 700; color: #f59e0b;">Peso Bruto (GW kg)</label>
+                                    <input type="number" step="0.1" id="modal-import-gross-weight" class="form-control" placeholder="0.0" style="padding: 6px; font-size: 0.78rem; font-weight: bold; color: #f59e0b;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Peso Líq. (NW kg)</label>
+                                    <input type="number" step="0.1" id="modal-import-net-weight" class="form-control" placeholder="0.0" style="padding: 6px; font-size: 0.78rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Volumes / Caixas</label>
+                                    <input type="number" min="1" step="1" id="modal-import-packages-count" class="form-control" placeholder="0" style="padding: 6px; font-size: 0.78rem;">
+                                </div>
+                            </div>
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
                                 <div class="form-group" style="margin-bottom: 0;">
@@ -14498,6 +14555,9 @@ Solicitamos cotação formal de frete marítimo internacional e despesas portuá
 • Valor FOB da Carga: ${fobTotal}
 • Porto de Embarque (POL): Ningbo / Shanghai / Shenzhen - China (confirmar conforme Packing List)
 • Porto de Descarga (POD): Porto de Santos / SP (destino principal)
+• Cubagem Total (CBM): ${(document.getElementById('modal-import-cbm')?.value || project.import_cbm) ? ((document.getElementById('modal-import-cbm')?.value || project.import_cbm) + ' m³') : 'Conforme Packing List oficial em anexo'}
+• Peso Bruto Total (GW): ${(document.getElementById('modal-import-gross-weight')?.value || project.import_gross_weight) ? ((document.getElementById('modal-import-gross-weight')?.value || project.import_gross_weight) + ' kg') : 'Conforme Packing List oficial em anexo'}
+• Volumes / Embalagem: ${(document.getElementById('modal-import-packages-count')?.value || project.import_packages_count) ? ((document.getElementById('modal-import-packages-count')?.value || project.import_packages_count) + ' volumes/caixas de madeira (Wooden Cases)') : 'Caixas de Madeira conforme Packing List'}
 • Modalidade: LCL (Carga Solta) ou FCL (conforme cubagem total / CBM indicada no Packing List)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -19715,6 +19775,10 @@ function renderKanban() {
             if (document.getElementById('modal-import-dta-number')) document.getElementById('modal-import-dta-number').value = project.import_dta_number || '';
             if (document.getElementById('modal-import-eadi-entry-date')) document.getElementById('modal-import-eadi-entry-date').value = project.import_eadi_entry_date || '';
             if (document.getElementById('modal-import-notes')) document.getElementById('modal-import-notes').value = project.import_notes || '';
+            if (document.getElementById('modal-import-cbm')) document.getElementById('modal-import-cbm').value = project.import_cbm || '';
+            if (document.getElementById('modal-import-gross-weight')) document.getElementById('modal-import-gross-weight').value = project.import_gross_weight || '';
+            if (document.getElementById('modal-import-net-weight')) document.getElementById('modal-import-net-weight').value = project.import_net_weight || '';
+            if (document.getElementById('modal-import-packages-count')) document.getElementById('modal-import-packages-count').value = project.import_packages_count || '';
 
             // Renderizar itens da Proforma Invoice vinculados ao projeto
             let importItems = [];
@@ -21842,23 +21906,50 @@ function renderKanban() {
                         if (currSelect) currSelect.value = ext.currency;
                     }
 
-                    // Renderizar itens da Proforma Invoice na tabela
+                    // Renderizar itens da Proforma Invoice na tabela COM ESCUDO ANTI-ZERAR PREÇOS
                     if (Array.isArray(ext.items) && ext.items.length > 0) {
-                        renderProjectImportItems(ext.items);
-                    }
+                        const currentItems = (typeof collectProjectImportItems === 'function' ? collectProjectImportItems() : []) || [];
+                        const currentTotalFob = parseFloat(document.getElementById('modal-import-total-fob')?.value) || 0;
 
-                    // Calcular e preencher Valor Total FOB (inclusive fallback se IA não pegou o total)
-                    let totalFob = parseFloat(ext.total_fob_value) || 0;
-                    if (totalFob <= 0 && Array.isArray(ext.items) && ext.items.length > 0) {
-                        totalFob = ext.items.reduce((acc, it) => {
-                            const lineTotal = parseFloat(it.total_price_fob) || ((parseFloat(it.qty_ordered) || 0) * (parseFloat(it.unit_price_fob) || 0));
-                            return acc + lineTotal;
-                        }, 0);
-                    }
+                        const protectedItems = ext.items.map((it, idx) => {
+                            let unitPrice = parseFloat(it.unit_price_fob) || 0;
+                            let qty = parseInt(it.qty_ordered) || 1;
+                            let ncm = it.ncm || '';
 
-                    if (totalFob > 0) {
-                        const fobInput = document.getElementById('modal-import-total-fob');
-                        if (fobInput) fobInput.value = totalFob.toFixed(2);
+                            // Proteção Antizero: se o item lido não tem preço (ex: veio de packing list), busca o preço pré-existente
+                            const existing = currentItems.find(c => c.sku && it.sku && c.sku.trim().toLowerCase() === it.sku.trim().toLowerCase()) || currentItems[idx];
+                            if (existing) {
+                                if (unitPrice <= 0 && parseFloat(existing.unit_price_fob) > 0) {
+                                    unitPrice = parseFloat(existing.unit_price_fob);
+                                }
+                                if (!ncm && existing.ncm) {
+                                    ncm = existing.ncm;
+                                }
+                            }
+                            const lineTotal = parseFloat(it.total_price_fob) > 0 ? parseFloat(it.total_price_fob) : (qty * unitPrice);
+                            return {
+                                item_no: idx + 1,
+                                sku: it.sku || (existing ? existing.sku : `Item ${idx + 1}`),
+                                description: it.description || (existing ? existing.description : ''),
+                                ncm,
+                                qty_ordered: qty,
+                                unit_price_fob: unitPrice,
+                                total_price_fob: lineTotal
+                            };
+                        });
+                        renderProjectImportItems(protectedItems);
+
+                        let totalFob = parseFloat(ext.total_fob_value) || 0;
+                        if (totalFob <= 0) {
+                            totalFob = protectedItems.reduce((acc, it) => acc + (parseFloat(it.total_price_fob) || 0), 0);
+                        }
+                        if (totalFob <= 0 && currentTotalFob > 0) {
+                            totalFob = currentTotalFob;
+                        }
+                        if (totalFob > 0) {
+                            const fobInput = document.getElementById('modal-import-total-fob');
+                            if (fobInput) fobInput.value = totalFob.toFixed(2);
+                        }
                     }
 
                     const itemsCount = Array.isArray(ext.items) ? ext.items.length : 0;
@@ -21989,38 +22080,231 @@ function renderKanban() {
             }
         }
 
+        // Gerenciamento e Funções Específicas do Packing List Oficial
+        function handleProjectPackingFileSelected(input) {
+            const fileLabel = document.getElementById('modal-project-selected-packing-label');
+            const btnAi = document.getElementById('modal-project-btn-extract-packing-ai');
+            const status = document.getElementById('modal-project-packing-status');
+            if (status) status.style.display = 'none';
+
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                if (fileLabel) fileLabel.innerText = `📦 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                if (btnAi) btnAi.style.display = 'inline-flex';
+            } else {
+                if (fileLabel) fileLabel.innerText = 'Nenhum arquivo';
+                if (btnAi) btnAi.style.display = 'none';
+            }
+        }
+
+        async function extractProjectPackingWithAI(passedFile) {
+            let file = passedFile;
+            if (!file) {
+                const fileInput = document.getElementById('modal-project-packing-file');
+                if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                    alert('Selecione um arquivo de Packing List primeiro.');
+                    return;
+                }
+                file = fileInput.files[0];
+            }
+
+            const btnAi = document.getElementById('modal-project-btn-extract-packing-ai');
+            const status = document.getElementById('modal-project-packing-status');
+
+            try {
+                if (btnAi) {
+                    btnAi.disabled = true;
+                    btnAi.innerText = '⏳ Analisando Cubagem...';
+                }
+                if (status) {
+                    status.style.display = 'block';
+                    status.style.color = '#f59e0b';
+                    status.innerText = '🤖 Lendo Cubagem (CBM), Pesos (GW/NW) e Volumes via Gemini IA...';
+                }
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch('/api/supply-chain/extract-packing-list', {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const ext = data.extracted || {};
+
+                    // Preencher campos logísticos
+                    if (ext.total_cbm > 0) {
+                        const cbmEl = document.getElementById('modal-import-cbm');
+                        if (cbmEl) cbmEl.value = ext.total_cbm;
+                    }
+                    if (ext.gross_weight_kg > 0) {
+                        const gwEl = document.getElementById('modal-import-gross-weight');
+                        if (gwEl) gwEl.value = ext.gross_weight_kg;
+                    }
+                    if (ext.net_weight_kg > 0) {
+                        const nwEl = document.getElementById('modal-import-net-weight');
+                        if (nwEl) nwEl.value = ext.net_weight_kg;
+                    }
+                    if (ext.packages_count > 0) {
+                        const pkgsEl = document.getElementById('modal-import-packages-count');
+                        if (pkgsEl) pkgsEl.value = ext.packages_count;
+                    }
+
+                    // Salvar anexo oficialmente com phase: 'packing_list'
+                    if (activeProjectCode && !passedFile) {
+                        try {
+                            const attachFormData = new FormData();
+                            attachFormData.append('projectCode', activeProjectCode);
+                            attachFormData.append('phase', 'packing_list');
+                            attachFormData.append('file', file);
+
+                            await fetch('/api/attachments', {
+                                method: 'POST',
+                                headers,
+                                body: attachFormData
+                            });
+                        } catch (attErr) {
+                            console.warn('Aviso ao salvar anexo de Packing List:', attErr);
+                        }
+                    }
+
+                    if (status) {
+                        status.style.display = 'block';
+                        status.style.color = '#4ade80';
+                        status.innerText = `✅ Packing List analisado com sucesso! CBM: ${ext.total_cbm || 0} m³ | GW: ${ext.gross_weight_kg || 0} kg | Volumes: ${ext.packages_count || 1}. (Preços da Invoice preservados intactos!)`;
+                    }
+
+                    if (activeProjectCode) {
+                        checkProjectAttachedInvoice(activeProjectCode);
+                    }
+                } else {
+                    const errData = await res.json();
+                    if (status) {
+                        status.style.display = 'block';
+                        status.style.color = '#ef4444';
+                        status.innerText = '❌ Erro ao analisar Packing List: ' + (errData.error || 'Erro desconhecido');
+                    }
+                }
+            } catch (err) {
+                if (status) {
+                    status.style.display = 'block';
+                    status.style.color = '#ef4444';
+                    status.innerText = '❌ Falha de comunicação: ' + err.message;
+                }
+            } finally {
+                if (btnAi) {
+                    btnAi.disabled = false;
+                    btnAi.innerText = '🤖 Ler CBM & Pesos (IA)';
+                }
+            }
+        }
+
+        async function reAnalyzeAttachedPacking(fileUrl, fileName) {
+            const status = document.getElementById('modal-project-packing-status');
+            const btn = document.getElementById('btn-reanalyze-attached-packing');
+            if (status) {
+                status.style.display = 'block';
+                status.style.color = '#f59e0b';
+                status.innerText = `⏳ Baixando "${fileName}" para reanálise...`;
+            }
+            if (btn) btn.disabled = true;
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const fetchRes = await fetch(fileUrl, { headers });
+                if (!fetchRes.ok) throw new Error('Não foi possível carregar o arquivo do servidor.');
+                const blob = await fetchRes.blob();
+                const file = new File([blob], fileName, { type: blob.type || 'application/pdf' });
+                await extractProjectPackingWithAI(file);
+            } catch (err) {
+                if (status) {
+                    status.style.display = 'block';
+                    status.style.color = '#ef4444';
+                    status.innerText = '❌ Erro ao reanalisar: ' + err.message;
+                }
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
         async function checkProjectAttachedInvoice(code) {
-            const infoEl = document.getElementById('modal-project-attached-invoice-info');
-            if (!infoEl) return;
+            const invInfoEl = document.getElementById('modal-project-attached-invoice-info');
+            const plInfoEl = document.getElementById('modal-project-attached-packing-info');
+
             try {
                 const token = localStorage.getItem('tecfag_session_token');
                 const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
                 const res = await fetch(`/api/attachments/${code}`, { headers });
                 if (res.ok) {
                     const attachments = await res.json();
-                    const proformaAttach = (attachments || []).find(a => a.phase === 'proforma' || (a.fileName && a.fileName.toLowerCase().includes('proforma')) || (a.fileName && a.fileName.toLowerCase().includes('invoice')) || (a.fileName && a.fileName.toLowerCase().endsWith('.pdf')));
-                    if (proformaAttach) {
-                        infoEl.style.display = 'block';
-                        const fileUrl = proformaAttach.fileData ? (proformaAttach.fileData.startsWith('http') || proformaAttach.fileData.startsWith('/') ? proformaAttach.fileData : '/' + proformaAttach.fileData) : '#';
-                        const safeFileName = escapeProjectHtml(proformaAttach.fileName || 'Fatura');
-                        const safeUrl = escapeProjectHtml(fileUrl);
-                        infoEl.innerHTML = `
-                            <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                <span>📎 Fatura Anexada Atual:</span>
-                                <strong style="color: #38bdf8;">${safeFileName}</strong>
-                                <a href="${safeUrl}" target="_blank" download="${safeFileName}" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.72rem;">⬇️ Baixar / Ver Fatura</a>
-                                <button type="button" id="btn-reanalyze-attached-invoice" class="btn" data-file-url="${safeUrl}" data-file-name="${safeFileName}" onclick="reAnalyzeAttachedInvoice(this.dataset.fileUrl, this.dataset.fileName)" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; padding: 4px 10px; font-size: 0.75rem; font-weight: bold; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; border: none; box-shadow: 0 2px 6px rgba(168, 85, 247, 0.3);">
-                                    ⚡ Ler Itens & Preencher com IA
-                                </button>
-                            </div>
-                        `;
-                        return;
+                    
+                    // 1. Localizar Invoice / Proforma
+                    const proformaAttach = (attachments || []).find(a => 
+                        a.phase === 'proforma' || a.phase === 'invoice' || 
+                        (a.fileName && (a.fileName.toLowerCase().includes('invoice') || a.fileName.toLowerCase().includes('proforma')))
+                    );
+
+                    // 2. Localizar Packing List
+                    const packingAttach = (attachments || []).find(a => 
+                        a.phase === 'packing_list' || 
+                        (a.fileName && (a.fileName.toLowerCase().includes('packing') || a.fileName.toLowerCase().includes('romaneio')))
+                    );
+
+                    // Renderizar Badge da Invoice
+                    if (invInfoEl) {
+                        if (proformaAttach) {
+                            invInfoEl.style.display = 'block';
+                            const fileUrl = proformaAttach.fileData ? (proformaAttach.fileData.startsWith('http') || proformaAttach.fileData.startsWith('/') ? proformaAttach.fileData : '/' + proformaAttach.fileData) : '#';
+                            const safeFileName = escapeProjectHtml(proformaAttach.fileName || 'Fatura');
+                            const safeUrl = escapeProjectHtml(fileUrl);
+                            invInfoEl.innerHTML = `
+                                <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 6px 10px; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <span>📎 Fatura Anexada:</span>
+                                    <strong style="color: #38bdf8;">${safeFileName}</strong>
+                                    <a href="${safeUrl}" target="_blank" download="${safeFileName}" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.72rem;">⬇️ Baixar / Ver Fatura</a>
+                                    <button type="button" id="btn-reanalyze-attached-invoice" class="btn" data-file-url="${safeUrl}" data-file-name="${safeFileName}" onclick="reAnalyzeAttachedInvoice(this.dataset.fileUrl, this.dataset.fileName)" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; padding: 3px 8px; font-size: 0.72rem; font-weight: bold; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: none;">
+                                        ⚡ Reanalisar
+                                    </button>
+                                </div>
+                            `;
+                        } else {
+                            invInfoEl.style.display = 'none';
+                            invInfoEl.innerHTML = '';
+                        }
+                    }
+
+                    // Renderizar Badge do Packing List
+                    if (plInfoEl) {
+                        if (packingAttach) {
+                            plInfoEl.style.display = 'block';
+                            const plUrl = packingAttach.fileData ? (packingAttach.fileData.startsWith('http') || packingAttach.fileData.startsWith('/') ? packingAttach.fileData : '/' + packingAttach.fileData) : '#';
+                            const safePlName = escapeProjectHtml(packingAttach.fileName || 'Packing_List');
+                            const safePlUrl = escapeProjectHtml(plUrl);
+                            plInfoEl.innerHTML = `
+                                <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 6px 10px; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <span>📎 Packing List Atual:</span>
+                                    <strong style="color: #f59e0b;">${safePlName}</strong>
+                                    <a href="${safePlUrl}" target="_blank" download="${safePlName}" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.72rem;">⬇️ Baixar / Ver Romaneio</a>
+                                    <button type="button" id="btn-reanalyze-attached-packing" class="btn" data-file-url="${safePlUrl}" data-file-name="${safePlName}" onclick="reAnalyzeAttachedPacking(this.dataset.fileUrl, this.dataset.fileName)" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 3px 8px; font-size: 0.72rem; font-weight: bold; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: none;">
+                                        🤖 Reanalisar CBM
+                                    </button>
+                                </div>
+                            `;
+                        } else {
+                            plInfoEl.style.display = 'none';
+                            plInfoEl.innerHTML = '';
+                        }
                     }
                 }
-                infoEl.style.display = 'none';
-                infoEl.innerHTML = '';
             } catch (e) {
-                if (infoEl) infoEl.style.display = 'none';
+                console.warn('Erro ao verificar anexos do projeto:', e);
             }
         }
 
@@ -22047,6 +22331,10 @@ function renderKanban() {
                 import_dta_number: document.getElementById('modal-import-dta-number')?.value || '',
                 import_eadi_entry_date: document.getElementById('modal-import-eadi-entry-date')?.value || null,
                 import_notes: document.getElementById('modal-import-notes')?.value || '',
+                import_cbm: parseFloat(document.getElementById('modal-import-cbm')?.value) || 0,
+                import_gross_weight: parseFloat(document.getElementById('modal-import-gross-weight')?.value) || 0,
+                import_net_weight: parseFloat(document.getElementById('modal-import-net-weight')?.value) || 0,
+                import_packages_count: parseInt(document.getElementById('modal-import-packages-count')?.value) || 0,
                 lastUpdate: new Date().toISOString()
             };
 
@@ -22070,6 +22358,10 @@ function renderKanban() {
                     project.import_invoice_date = payload.import_invoice_date;
                     project.import_currency = payload.import_currency;
                     project.import_total_fob_value = payload.import_total_fob_value;
+                    project.import_cbm = payload.import_cbm;
+                    project.import_gross_weight = payload.import_gross_weight;
+                    project.import_net_weight = payload.import_net_weight;
+                    project.import_packages_count = payload.import_packages_count;
                     alert('✅ Dados de importação salvos com sucesso no card do projeto!');
                     if (typeof loadProjects === 'function') await loadProjects();
                     if (typeof loadSupplyChainData === 'function') await loadSupplyChainData();
