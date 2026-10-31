@@ -4981,22 +4981,35 @@
                                         <span style="font-size: 0.65rem; color: #94a3b8; font-weight: normal;">Disparados junto com este e-mail</span>
                                     </div>
                                     
-                                    <!-- Anexar Invoice do Projeto -->
-                                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #cbd5e1;">
-                                        <input type="checkbox" id="copilot-mail-attach-invoice" checked style="cursor: pointer; width: 15px; height: 15px; accent-color: #0ea5e9;">
-                                        <label for="copilot-mail-attach-invoice" style="cursor: pointer; margin-bottom: 0; display: inline-flex; align-items: center; gap: 5px;">
-                                            <span>📄 Anexar Invoice da Fase 3:</span>
-                                            <strong id="copilot-mail-invoice-filename" style="color: #38bdf8;">(Verificando fatura...)</strong>
-                                        </label>
+                                    <!-- Anexar Invoice do Projeto (Automático) -->
+                                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.75rem; color: #cbd5e1; background: rgba(14, 165, 233, 0.08); padding: 6px 10px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.25);">
+                                        <div style="display: flex; align-items: center; gap: 6px;">
+                                            <input type="checkbox" id="copilot-mail-attach-invoice" checked style="cursor: pointer; width: 15px; height: 15px; accent-color: #0ea5e9;">
+                                            <label for="copilot-mail-attach-invoice" style="cursor: pointer; margin-bottom: 0; display: inline-flex; align-items: center; gap: 5px;">
+                                                <span>📄 <strong>Invoice Comercial:</strong></span>
+                                                <span id="copilot-mail-invoice-filename" style="color: #38bdf8;">(Verificando fatura...)</span>
+                                            </label>
+                                        </div>
+                                        <span style="font-size: 0.65rem; color: #4ade80; font-weight: bold;">✓ Vinculada ao Card</span>
                                     </div>
 
-                                    <!-- Anexar Packing List -->
-                                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #cbd5e1; flex-wrap: wrap;">
-                                        <input type="file" id="copilot-mail-packing-list-file" accept=".pdf,image/*" style="display: none;" onchange="handleCopilotPackingListSelected(this)">
-                                        <button type="button" class="btn" onclick="document.getElementById('copilot-mail-packing-list-file').click()" style="background: rgba(236, 72, 153, 0.2); border: 1px solid #ec4899; color: #f472b6; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
-                                            📦 Anexar Packing List (PDF do Chinês)
-                                        </button>
-                                        <span id="copilot-mail-packing-list-label" style="font-size: 0.72rem; color: #94a3b8; font-style: italic;">Nenhum Packing List selecionado</span>
+                                    <!-- Anexar Packing List do Projeto (Automático) -->
+                                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.75rem; color: #cbd5e1; background: rgba(245, 158, 11, 0.08); padding: 6px 10px; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.25); flex-wrap: wrap;">
+                                        <div style="display: flex; align-items: center; gap: 6px;">
+                                            <input type="checkbox" id="copilot-mail-attach-packing" checked style="cursor: pointer; width: 15px; height: 15px; accent-color: #f59e0b;">
+                                            <label for="copilot-mail-attach-packing" style="cursor: pointer; margin-bottom: 0; display: inline-flex; align-items: center; gap: 5px;">
+                                                <span>📦 <strong>Packing List Oficial:</strong></span>
+                                                <span id="copilot-mail-packing-filename" style="color: #f59e0b;">(Verificando packing list...)</span>
+                                            </label>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 6px;">
+                                            <span style="font-size: 0.65rem; color: #4ade80; font-weight: bold;">✓ Vinculado ao Card</span>
+                                            <input type="file" id="copilot-mail-packing-list-file" accept=".pdf,image/*" style="display: none;" onchange="handleCopilotPackingListSelected(this)">
+                                            <button type="button" class="btn" onclick="document.getElementById('copilot-mail-packing-list-file').click()" style="background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fbbf24; padding: 2px 7px; font-size: 0.68rem; font-weight: 700; border-radius: 4px; cursor: pointer;" title="Caso deseje anexar outro arquivo do computador">
+                                                📁 Trocar
+                                            </button>
+                                        </div>
+                                        <span id="copilot-mail-packing-list-label" style="display: none;"></span>
                                     </div>
                                 </div>
 
@@ -14236,20 +14249,45 @@
                 const res = await fetch(`/api/projects/${code}/communications`, { headers });
                 if (!res.ok) return;
 
-                // Atualizar o nome da fatura anexada no controle de anexos de e-mail
+                // Atualizar os nomes da Invoice e do Packing List anexados no card
                 try {
                     const attachRes = await fetch(`/api/attachments/${code}`, { headers });
                     if (attachRes.ok) {
                         const allAttachs = await attachRes.json();
-                        const invAttach = (allAttachs || []).find(a => a.phase === 'proforma' || (a.fileName && a.fileName.toLowerCase().includes('proforma')) || (a.fileName && a.fileName.toLowerCase().includes('invoice')));
+                        const invAttach = (allAttachs || []).find(a => 
+                            a.phase === 'proforma' || a.phase === 'invoice' || 
+                            (a.fileName && (a.fileName.toLowerCase().includes('invoice') || a.fileName.toLowerCase().includes('proforma')))
+                        );
+                        const plAttach = (allAttachs || []).find(a => 
+                            a.phase === 'packing_list' || 
+                            (a.fileName && (a.fileName.toLowerCase().includes('packing') || a.fileName.toLowerCase().includes('romaneio')))
+                        );
+
                         const invLabel = document.getElementById('copilot-mail-invoice-filename');
+                        const invCheck = document.getElementById('copilot-mail-attach-invoice');
                         if (invLabel) {
                             if (invAttach) {
                                 invLabel.innerText = invAttach.fileName;
                                 invLabel.style.color = '#38bdf8';
+                                if (invCheck) invCheck.checked = true;
                             } else {
-                                invLabel.innerText = '(Nenhuma fatura anexada)';
+                                invLabel.innerText = '(Nenhuma Invoice salva no card)';
                                 invLabel.style.color = '#94a3b8';
+                                if (invCheck) invCheck.checked = false;
+                            }
+                        }
+
+                        const plLabel = document.getElementById('copilot-mail-packing-filename');
+                        const plCheck = document.getElementById('copilot-mail-attach-packing');
+                        if (plLabel) {
+                            if (plAttach) {
+                                plLabel.innerText = plAttach.fileName;
+                                plLabel.style.color = '#f59e0b';
+                                if (plCheck) plCheck.checked = true;
+                            } else {
+                                plLabel.innerText = '(Nenhum Packing List salvo no card)';
+                                plLabel.style.color = '#94a3b8';
+                                if (plCheck) plCheck.checked = false;
                             }
                         }
                     }
@@ -14630,8 +14668,10 @@ Atenciosamente,`;
             }
 
             if (attachInvCheck) attachInvCheck.checked = true;
+            const attachPlCheck = document.getElementById('copilot-mail-attach-packing');
+            if (attachPlCheck) attachPlCheck.checked = true;
 
-            alert('🚢 E-mail de cotação preenchido com todos os contatos da Logsy e Aduana Global!\n\n• Assunto estruturado com o Número da Invoice;\n• NCM com os 4 primeiros dígitos sugeridos para emissão/validação do B/L;\n• Dados logísticos de CBM, Peso Bruto e Requisitos de RFQ.');
+            alert('🚢 E-mail de cotação preenchido com todos os contatos da Logsy e Aduana Global!\n\n• Assunto estruturado com a Invoice;\n• NCM (4 dígitos para validação do B/L);\n• Medidas de Cubagem (CBM) e Peso Bruto;\n• Invoice Comercial e Packing List vinculados automaticamente em anexo!');
         }
 
         async function handleSendCopilotEmail(event) {
@@ -14664,6 +14704,11 @@ Atenciosamente,`;
                 const attachInvCheck = document.getElementById('copilot-mail-attach-invoice');
                 if (attachInvCheck && attachInvCheck.checked) {
                     formData.append('attach_invoice', 'true');
+                }
+
+                const attachPlCheck = document.getElementById('copilot-mail-attach-packing');
+                if (attachPlCheck && attachPlCheck.checked) {
+                    formData.append('attach_packing_list', 'true');
                 }
 
                 const plFileInput = document.getElementById('copilot-mail-packing-list-file');

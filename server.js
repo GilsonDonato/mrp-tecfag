@@ -9635,7 +9635,7 @@ app.post('/api/projects/:code/send-email', authenticateToken, upload.fields([
         // Anexar Invoice vinculada ao projeto se solicitado
         if (attach_invoice === 'true' || attach_invoice === true) {
             try {
-                const invAttach = await dbGet('SELECT * FROM attachments WHERE projectCode = ? AND (phase = "proforma" OR fileName LIKE "%invoice%" OR fileName LIKE "%proforma%" OR fileName LIKE "%.pdf") ORDER BY id DESC LIMIT 1', [code]);
+                const invAttach = await dbGet('SELECT * FROM attachments WHERE projectCode = ? AND (phase = "proforma" OR phase = "invoice" OR fileName LIKE "%invoice%" OR fileName LIKE "%proforma%") ORDER BY id DESC LIMIT 1', [code]);
                 if (invAttach && invAttach.filePath) {
                     const fullInvPath = path.isAbsolute(invAttach.filePath) ? invAttach.filePath : path.join(__dirname, invAttach.filePath);
                     if (fs.existsSync(fullInvPath)) {
@@ -9671,7 +9671,7 @@ app.post('/api/projects/:code/send-email', authenticateToken, upload.fields([
         } else if (attach_packing_list === 'true' || attach_packing_list === true) {
             // Se já existia um packing list previamente salvo no projeto
             try {
-                const plAttach = await dbGet('SELECT * FROM attachments WHERE projectCode = ? AND phase = "packing_list" ORDER BY id DESC LIMIT 1', [code]);
+                const plAttach = await dbGet('SELECT * FROM attachments WHERE projectCode = ? AND (phase = "packing_list" OR fileName LIKE "%packing%" OR fileName LIKE "%romaneio%") ORDER BY id DESC LIMIT 1', [code]);
                 if (plAttach && plAttach.filePath) {
                     const fullPlPath = path.isAbsolute(plAttach.filePath) ? plAttach.filePath : path.join(__dirname, plAttach.filePath);
                     if (fs.existsSync(fullPlPath)) {
