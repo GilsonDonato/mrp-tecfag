@@ -201,6 +201,9 @@ function initializeDatabase() {
         db.run("ALTER TABLE projects ADD COLUMN import_notes TEXT", () => {});
         db.run("ALTER TABLE projects ADD COLUMN import_items TEXT", () => {});
 
+        // Limpeza automática de comentários órfãos de projetos excluídos
+        db.run("DELETE FROM comments WHERE projectCode NOT IN (SELECT code FROM projects)", () => {});
+
         // Tabela de Comentários / Discussão (Timeline do Card)
         db.run(`CREATE TABLE IF NOT EXISTS comments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2458,17 +2461,28 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
     }
 });
 
-// GET /api/projects/next-code - Gera o próximo código de projeto globalmente único
+// GET /api/projects/next-code - Gera o próximo código de projeto globalmente único (sequência estritamente crescente, sem reciclar códigos antigos)
 app.get('/api/projects/next-code', async (req, res) => {
     try {
         const rows = await dbAll('SELECT code FROM projects');
-        let counter = 1;
-        let finalCode = `PRJTEC${String(counter).padStart(9, '0')}`;
-        const codes = new Set(rows.map(r => r.code));
-        while (codes.has(finalCode)) {
-            counter++;
-            finalCode = `PRJTEC${String(counter).padStart(9, '0')}`;
-        }
+        let maxNum = 0;
+        rows.forEach(r => {
+            const m = r.code && r.code.match(/^PRJTEC(\d+)$/);
+            if (m) {
+                const num = parseInt(m[1], 10);
+                if (num > maxNum) maxNum = num;
+            }
+        });
+        const commentRows = await dbAll('SELECT DISTINCT projectCode FROM comments');
+        commentRows.forEach(r => {
+            const m = r.projectCode && r.projectCode.match(/^PRJTEC(\d+)$/);
+            if (m) {
+                const num = parseInt(m[1], 10);
+                if (num > maxNum) maxNum = num;
+            }
+        });
+        const nextNum = maxNum + 1;
+        const finalCode = `PRJTEC${String(nextNum).padStart(9, '0')}`;
         res.json({ nextCode: finalCode });
     } catch (err) {
         res.status(500).json({ error: 'Erro ao gerar próximo código: ' + err.message });
@@ -2696,6 +2710,45 @@ app.post('/api/projects/:code/comments', authenticateToken, upload.single('file'
             fs.unlinkSync(file.path);
         }
         res.status(500).json({ error: 'Erro ao salvar comentário: ' + err.message });
+    }
+});
+
+// DELETE /api/projects/:code/comments/:id - Remove um comentário específico
+app.delete('/api/projects/:code/comments/:id', authenticateToken, async (req, res) => {
+    const { code, id } = req.params;
+    try {
+        const comment = await dbGet('SELECT * FROM comments WHERE id = ? AND projectCode = ?', [id, code]);
+        if (!comment) return res.status(404).json({ error: 'Mensagem não encontrada.' });
+        if (comment.attachmentPath) {
+            const fullPath = path.join(__dirname, comment.attachmentPath.startsWith('/') ? comment.attachmentPath.slice(1) : comment.attachmentPath);
+            if (fs.existsSync(fullPath)) {
+                try { fs.unlinkSync(fullPath); } catch(e){}
+            }
+        }
+        await dbRun('DELETE FROM comments WHERE id = ?', [id]);
+        res.json({ success: true, message: 'Mensagem removida com sucesso!' });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao remover comentário: ' + err.message });
+    }
+});
+
+// DELETE /api/projects/:code/comments - Limpa todo o histórico de comentários do projeto
+app.delete('/api/projects/:code/comments', authenticateToken, async (req, res) => {
+    const { code } = req.params;
+    try {
+        const comments = await dbAll('SELECT attachmentPath FROM comments WHERE projectCode = ?', [code]);
+        comments.forEach(c => {
+            if (c.attachmentPath) {
+                const fullPath = path.join(__dirname, c.attachmentPath.startsWith('/') ? c.attachmentPath.slice(1) : c.attachmentPath);
+                if (fs.existsSync(fullPath)) {
+                    try { fs.unlinkSync(fullPath); } catch(e){}
+                }
+            }
+        });
+        await dbRun('DELETE FROM comments WHERE projectCode = ?', [code]);
+        res.json({ success: true, message: 'Histórico de mensagens limpo com sucesso!' });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao limpar mensagens: ' + err.message });
     }
 });
 
@@ -7144,6 +7197,13 @@ app.post('/api/projects', async (req, res) => {
             return res.status(400).json({ error: 'Já existe um projeto cadastrado com o código ' + code });
         }
 
+        // Limpeza preventiva de registros órfãos antigos para este código
+        await dbRun('DELETE FROM comments WHERE projectCode = ?', [code]);
+        await dbRun('DELETE FROM attachments WHERE projectCode = ?', [code]);
+        await dbRun('DELETE FROM project_communications WHERE project_code = ?', [code]);
+        await dbRun('DELETE FROM project_audit_trail WHERE project_code = ?', [code]);
+        await dbRun('DELETE FROM project_phase_history WHERE project_code = ?', [code]);
+
         let finalChecklist = checklist ? (typeof checklist === 'string' ? JSON.parse(checklist) : { ...checklist }) : {};
         if (!finalChecklist.diagnostico_user || finalChecklist.diagnostico_user === '-' || finalChecklist.diagnostico_user === '' || finalChecklist.diagnostico_user === 'S/V') {
             if (req.user && req.user.username && req.user.username !== 'admin') {
@@ -8492,7 +8552,7 @@ app.get('/api/projects/:code/validate', authenticateToken, async (req, res) => {
     }
 });
 
-// DELETE /api/projects/:code - Deleta permanentemente um projeto
+// DELETE /api/projects/:code - Deleta permanentemente um projeto em cascata
 app.delete('/api/projects/:code', async (req, res) => {
     const { code } = req.params;
 
@@ -8500,17 +8560,35 @@ app.delete('/api/projects/:code', async (req, res) => {
         // Remover arquivos físicos dos anexos vinculados a este projeto
         const attachments = await dbAll('SELECT filePath FROM attachments WHERE projectCode = ?', [code]);
         attachments.forEach(att => {
-            const fullPath = path.join(__dirname, att.filePath);
-            if (fs.existsSync(fullPath)) {
-                fs.unlinkSync(fullPath);
+            if (att.filePath) {
+                const fullPath = path.join(__dirname, att.filePath.startsWith('/') ? att.filePath.slice(1) : att.filePath);
+                if (fs.existsSync(fullPath)) {
+                    try { fs.unlinkSync(fullPath); } catch (e) {}
+                }
             }
         });
 
-        // Deletar do banco (CASCATA remove os registros da tabela attachments também)
+        // Remover arquivos físicos dos anexos de comentários
+        const comments = await dbAll('SELECT attachmentPath FROM comments WHERE projectCode = ?', [code]);
+        comments.forEach(c => {
+            if (c.attachmentPath) {
+                const fullPath = path.join(__dirname, c.attachmentPath.startsWith('/') ? c.attachmentPath.slice(1) : c.attachmentPath);
+                if (fs.existsSync(fullPath)) {
+                    try { fs.unlinkSync(fullPath); } catch (e) {}
+                }
+            }
+        });
+
+        // Deletar do banco (CASCATA remove registros de todas as tabelas filhas)
         await dbRun('DELETE FROM projects WHERE code = ?', [code]);
         await dbRun('DELETE FROM attachments WHERE projectCode = ?', [code]);
+        await dbRun('DELETE FROM comments WHERE projectCode = ?', [code]);
+        await dbRun('DELETE FROM project_communications WHERE project_code = ?', [code]);
+        await dbRun('DELETE FROM project_audit_trail WHERE project_code = ?', [code]);
+        await dbRun('DELETE FROM project_phase_history WHERE project_code = ?', [code]);
+
         sendWebhookNotification('DELETE', { code });
-        res.json({ success: true, message: 'Projeto e anexos excluídos com sucesso!' });
+        res.json({ success: true, message: 'Projeto e todos os seus históricos excluídos com sucesso!' });
     } catch (err) {
         res.status(500).json({ error: 'Erro ao excluir projeto: ' + err.message });
     }

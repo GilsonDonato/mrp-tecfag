@@ -4064,7 +4064,12 @@
                                 </div>
                             </div>
 
-                            <h5 style="color: var(--primary); font-size: 0.76rem; text-transform: uppercase; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; margin-bottom: 8px;">Histórico de Mensagens</h5>
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; margin-bottom: 8px;">
+                                <h5 style="color: var(--primary); font-size: 0.76rem; text-transform: uppercase; margin: 0;">Histórico de Mensagens</h5>
+                                <button type="button" class="btn btn-secondary" onclick="clearAllModalComments()" style="padding: 2px 8px; font-size: 0.68rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.3); cursor: pointer;" title="Limpar todo o histórico de mensagens deste projeto">
+                                    🗑️ Limpar Histórico
+                                </button>
+                            </div>
                             <div id="modal-chat-messages-container" style="flex: 1; min-height: 200px; max-height: 380px; overflow-y: auto; background: rgba(0,0,0,0.15); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
                                 <!-- Preenchido dinamicamente via JS -->
                             </div>
@@ -20325,9 +20330,12 @@ function renderKanban() {
                     }
                     
                     div.innerHTML = `
-                        <div style="display:flex; justify-content:space-between; margin-bottom: 4px; font-size:0.7rem; color:var(--text-secondary);">
+                                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px; font-size:0.7rem; color:var(--text-secondary);">
                             ${authorBadge}
-                            <span>${date}</span>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span>${date}</span>
+                                <button type="button" onclick="deleteModalComment(${c.id})" title="Excluir mensagem do histórico" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.78rem; padding: 0 2px; opacity: 0.7;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">🗑️</button>
+                            </div>
                         </div>
                         <div style="color:#e2e8f0; white-space:pre-wrap; word-break:break-word;">${c.message}</div>
                         ${attachmentHTML}
@@ -20339,6 +20347,44 @@ function renderKanban() {
             } catch (err) {
                 container.innerHTML = `<div style="color:#ef4444; font-size:0.8rem; text-align:center;">Erro ao carregar histórico: ${err.message}</div>`;
             }
+
+        async function deleteModalComment(id) {
+            if (!confirm('Deseja realmente excluir esta mensagem do histórico?')) return;
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const res = await fetch(`/api/projects/${activeProjectCode}/comments/${id}`, {
+                    method: 'DELETE',
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
+                if (res.ok) {
+                    await loadModalComments();
+                } else {
+                    const data = await res.json().catch(() => ({}));
+                    alert('Erro ao excluir mensagem: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (e) {
+                alert('Erro ao excluir mensagem: ' + e.message);
+            }
+        }
+
+        async function clearAllModalComments() {
+            if (!confirm('Atenção: Tem certeza que deseja apagar TODO o histórico de mensagens deste card? Esta ação removerá todas as mensagens antigas.')) return;
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const res = await fetch(`/api/projects/${activeProjectCode}/comments`, {
+                    method: 'DELETE',
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
+                if (res.ok) {
+                    await loadModalComments();
+                } else {
+                    const data = await res.json().catch(() => ({}));
+                    alert('Erro ao limpar mensagens: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (e) {
+                alert('Erro ao limpar mensagens: ' + e.message);
+            }
+        }
         }
 
         let modalChatSelectedFile = null;
