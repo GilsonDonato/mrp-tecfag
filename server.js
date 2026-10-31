@@ -7201,8 +7201,8 @@ app.post('/api/projects', async (req, res) => {
         await dbRun('DELETE FROM comments WHERE projectCode = ?', [code]);
         await dbRun('DELETE FROM attachments WHERE projectCode = ?', [code]);
         await dbRun('DELETE FROM project_communications WHERE project_code = ?', [code]);
-        await dbRun('DELETE FROM project_audit_trail WHERE project_code = ?', [code]);
-        await dbRun('DELETE FROM project_phase_history WHERE project_code = ?', [code]);
+        await dbRun('DELETE FROM project_audit_trail WHERE projectCode = ?', [code]);
+        await dbRun('DELETE FROM project_phase_history WHERE projectCode = ?', [code]);
 
         let finalChecklist = checklist ? (typeof checklist === 'string' ? JSON.parse(checklist) : { ...checklist }) : {};
         if (!finalChecklist.diagnostico_user || finalChecklist.diagnostico_user === '-' || finalChecklist.diagnostico_user === '' || finalChecklist.diagnostico_user === 'S/V') {
@@ -8584,8 +8584,8 @@ app.delete('/api/projects/:code', async (req, res) => {
         await dbRun('DELETE FROM attachments WHERE projectCode = ?', [code]);
         await dbRun('DELETE FROM comments WHERE projectCode = ?', [code]);
         await dbRun('DELETE FROM project_communications WHERE project_code = ?', [code]);
-        await dbRun('DELETE FROM project_audit_trail WHERE project_code = ?', [code]);
-        await dbRun('DELETE FROM project_phase_history WHERE project_code = ?', [code]);
+        await dbRun('DELETE FROM project_audit_trail WHERE projectCode = ?', [code]);
+        await dbRun('DELETE FROM project_phase_history WHERE projectCode = ?', [code]);
 
         sendWebhookNotification('DELETE', { code });
         res.json({ success: true, message: 'Projeto e todos os seus históricos excluídos com sucesso!' });
