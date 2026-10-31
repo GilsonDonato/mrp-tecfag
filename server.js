@@ -567,6 +567,7 @@ function initializeDatabase() {
         db.run(`CREATE INDEX IF NOT EXISTS idx_stock_orders_stage ON stock_orders(stage)`);
         db.run(`CREATE INDEX IF NOT EXISTS idx_stock_orders_po ON stock_orders(po_number)`);
         db.run(`CREATE INDEX IF NOT EXISTS idx_stock_items_sku ON stock_order_items(sku)`);
+        db.run("ALTER TABLE stock_order_items ADD COLUMN ncm TEXT", () => {});
         db.run(`CREATE INDEX IF NOT EXISTS idx_stock_payments_due ON stock_order_payments(due_date)`);
 
         // 5. Tabelas de Gestão de Porto Seco (EADI Bauru) e Nacionalização Fracionada
@@ -9805,12 +9806,13 @@ app.post('/api/projects/:code/transfer-to-import', authenticateToken, async (req
                     const itTotal = parseFloat(it.total_price_fob) || (itQty * itUnit);
                     await dbRun(`
                         INSERT INTO stock_order_items (
-                            order_id, sku, description, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at
-                        ) VALUES (?, ?, ?, ?, 0, ?, ?, 'PENDING', ?)
+                            order_id, sku, description, ncm, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at
+                        ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'PENDING', ?)
                     `, [
                         orderId,
                         it.sku || project.sku || project.code,
                         it.description || project.project_name || 'Item de Importação',
+                        it.ncm || '',
                         itQty,
                         itUnit,
                         itTotal,
@@ -11782,6 +11784,9 @@ REGRAS OBRIGATÓRIAS E INEGOCIÁVEIS DE EXTRAÇÃO:
 4. CONFERÊNCIA MATEMÁTICA DO TOTAL:
    - Calcule a soma de todos os "total_price_fob". Essa soma DEVE bater com o valor total da fatura ("total_fob_value").
 
+5. CLASSIFICAÇÃO FISCAL (NCM / HS CODE):
+   - Se a fatura indicar o código NCM ou HS Code (normalmente iniciando com 84, 85, etc.), extraia no campo "ncm". Se não constar, preencha com string vazia "".
+
 Estrutura JSON obrigatória:
 {
   "supplier_name": "Nome da fábrica fornecedora",
@@ -11795,6 +11800,7 @@ Estrutura JSON obrigatória:
       "item_no": 1,
       "sku": "MODELO",
       "description": "Descrição do equipamento",
+      "ncm": "8422.30.29",
       "qty_ordered": 1,
       "unit_price_fob": 0.0,
       "total_price_fob": 0.0

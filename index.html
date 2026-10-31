@@ -4679,13 +4679,14 @@
                             <table class="table" style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
                                 <thead>
                                     <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left; background: rgba(15, 23, 42, 0.5);">
-                                        <th style="padding: 8px; width: 50px; text-align: center;">Item #</th>
-                                        <th style="padding: 8px; width: 200px;">Modelo / SKU *</th>
+                                        <th style="padding: 8px; width: 45px; text-align: center;">Item #</th>
+                                        <th style="padding: 8px; width: 160px;">Modelo / SKU *</th>
                                         <th style="padding: 8px;">Descrição do Equipamento</th>
-                                        <th style="padding: 8px; width: 95px; text-align: center;">Qtd (un) *</th>
-                                        <th style="padding: 8px; width: 130px;">Unit. FOB ($) *</th>
-                                        <th style="padding: 8px; width: 130px;">Total FOB ($)</th>
-                                        <th style="padding: 8px; width: 70px; text-align: center;">Ações</th>
+                                        <th style="padding: 8px; width: 125px;">NCM / HS Code</th>
+                                        <th style="padding: 8px; width: 85px; text-align: center;">Qtd (un) *</th>
+                                        <th style="padding: 8px; width: 110px;">Unit. FOB ($) *</th>
+                                        <th style="padding: 8px; width: 110px;">Total FOB ($)</th>
+                                        <th style="padding: 8px; width: 60px; text-align: center;">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody id="modal-project-items-tbody">
@@ -14420,46 +14421,115 @@
             if (ccInput) ccInput.value = defaultCc;
 
             const supplierName = project.import_supplier || project.supplier || 'Fornecedor Internacional';
-            const invoiceNum = project.import_invoice_number || ('PI-' + project.code);
+            
+            // Número da Invoice (obrigatório no assunto e como identificador principal)
+            const rawInvoiceNum = (project.import_invoice_number && project.import_invoice_number.trim())
+                ? project.import_invoice_number.trim()
+                : (document.getElementById('modal-import-invoice-number')?.value?.trim() || '');
+            
+            const invoiceVal = rawInvoiceNum || (project.code ? `PI-${project.code}` : 'Tecfag');
+            const invoiceLabel = invoiceVal.toUpperCase().startsWith('INV') || invoiceVal.toUpperCase().startsWith('PI')
+                ? invoiceVal
+                : `Invoice ${invoiceVal}`;
+
             const fobTotal = (parseFloat(project.import_total_fob_value) > 0)
                 ? (project.import_currency || 'USD') + ' ' + parseFloat(project.import_total_fob_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
-                : 'A confirmar na Invoice';
+                : (document.getElementById('modal-import-total-fob')?.value ? ('USD ' + parseFloat(document.getElementById('modal-import-total-fob').value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })) : 'A confirmar na Invoice');
 
+            // Assunto Estruturado: No local do código do projeto, sempre usar o número da Invoice
             if (subjectInput) {
-                subjectInput.value = `RFQ - Cotação de Frete Marítimo Internacional - Projeto ${project.code} - ${project.client || 'Tecfag'}`;
+                subjectInput.value = `Solicitação de Cotação de Frete Marítimo Internacional | ${invoiceLabel} - Tecfag`;
+            }
+
+            // Função de sugestão de NCM por tipo de máquina da Tecfag caso não esteja explicitado
+            function getSuggestedNcm(sku, desc) {
+                const text = ((sku || '') + ' ' + (desc || '')).toLowerCase();
+                if (text.includes('seladora') || text.includes('selar') || text.includes('fr-') || text.includes('bsf-') || text.includes('vácuo') || text.includes('vacuo')) return '8422.30.29';
+                if (text.includes('empacotadora') || text.includes('embalad') || text.includes('bzh-') || text.includes('arlb') || text.includes('enfardadeira') || text.includes('envolvedora') || text.includes('paletizadora')) return '8422.40.90';
+                if (text.includes('dosadora') || text.includes('envasadora') || text.includes('fl-') || text.includes('encher')) return '8422.30.12';
+                if (text.includes('rotuladora') || text.includes('mt-50') || text.includes('etiquetadora')) return '8422.30.21';
+                if (text.includes('datador') || text.includes('impressora')) return '8443.39.10';
+                return '';
+            }
+
+            // Recuperar itens e NCMs do card
+            let importItems = [];
+            try {
+                if (typeof project.import_items === 'string' && project.import_items.trim()) {
+                    importItems = JSON.parse(project.import_items);
+                } else if (Array.isArray(project.import_items)) {
+                    importItems = project.import_items;
+                }
+            } catch (e) {
+                importItems = [];
+            }
+            if ((!importItems || importItems.length === 0) && typeof collectProjectImportItems === 'function') {
+                importItems = collectProjectImportItems();
+            }
+
+            let itemsSummaryText = '';
+            if (importItems && importItems.length > 0) {
+                itemsSummaryText = importItems.map((it, idx) => {
+                    const sku = it.sku || `Item ${idx + 1}`;
+                    const desc = it.description ? ` - ${it.description}` : '';
+                    const qty = it.qty_ordered || it.qty || 1;
+                    const ncmVal = (it.ncm && it.ncm.trim()) ? it.ncm.trim() : getSuggestedNcm(it.sku, it.description);
+                    const ncmText = ncmVal ? ` | NCM: ${ncmVal}` : ' | NCM: A confirmar no Packing List / Invoice';
+                    return `  ${idx + 1}. ${sku}${desc} | Qtd: ${qty} un${ncmText}`;
+                }).join('\n');
+            } else {
+                const singleSku = project.project_name || project.sku || 'Máquinas Industriais';
+                const singleNcm = getSuggestedNcm(project.sku, project.project_name);
+                itemsSummaryText = `  1. ${singleSku} | Qtd: 1 un | NCM: ${singleNcm ? singleNcm : 'Conforme Invoice e Packing List em anexo'}`;
             }
 
             if (bodyInput) {
                 bodyInput.value = 
 `Prezados (Logsy / Aduana Global),
 
-Solicitamos cotação formal de frete marítimo internacional e despesas portuárias para o seguinte embarque:
+Solicitamos cotação formal de frete marítimo internacional e despesas portuárias para o embarque abaixo discriminado:
 
-• Projeto Tecfag: ${project.code} - ${project.client || ''}
-• Equipamento / Carga: ${project.project_name || project.sku || 'Linha / Máquinas Industriais'}
-• Fornecedor Internacional: ${supplierName}
-• Fatura / Invoice Nº: ${invoiceNum}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. DADOS PRINCIPAIS DO EMBARQUE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Fatura Comercial / Invoice: ${invoiceLabel}
+• Projeto / Ref. Tecfag: ${project.code} (${project.client || 'Tecfag'})
+• Fornecedor / Fabricante: ${supplierName}
 • Valor FOB da Carga: ${fobTotal}
-• Porto de Embarque (POL): Ningbo / Shanghai (conforme Packing List)
-• Porto de Destino (POD): Santos / Navegantes / Itapoá (com trânsito DTA para EADI Bauru)
-• Modalidade: LCL (Carga Solta) ou FCL (conforme cubagem / CBM)
+• Porto de Embarque (POL): Ningbo / Shanghai / Shenzhen - China (confirmar conforme Packing List)
+• Porto de Descarga (POD): Porto de Santos / SP (destino principal)
+• Modalidade: LCL (Carga Solta) ou FCL (conforme cubagem total / CBM indicada no Packing List)
 
-Seguem em anexo a Commercial/Proforma Invoice e o Packing List para análise de cubagem (CBM), peso bruto (GW) e medidas exatas das caixas de madeira.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. DISCRIMINAÇÃO DAS MERCADORIAS & CLASSIFICAÇÃO FISCAL (NCM)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${itemsSummaryText}
 
-Favor informar:
-1. Valor do frete marítimo internacional (USD)
-2. Taxas locais de origem e destino (THC, ISPS, B/L fee, etc.)
-3. Transit time estimado e frequência de saídas
-4. Validade da tarifa
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. REQUISITOS OPERACIONAIS & CONDIÇÕES OBRIGATÓRIAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Free Time de Demurrage: Mínimo de 21 a 28 dias livres (Free Time) garantidos na descarga em Santos.
+• Trânsito Aduaneiro (DTA): Informar se a tarifa suporta remoção via DTA para Porto Seco / EADI Bauru.
+• Documentos Anexos: Seguem em anexo a Invoice Comercial e o Packing List oficial contendo cubagem (CBM), peso bruto (GW), peso líquido (NW) e dimensões das embalagens de madeira (Wooden Cases).
 
-Ficamos no aguardo de suas propostas.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. ITENS OBRIGATÓRIOS DA PROPOSTA (RFQ)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Favor apresentar proposta contendo:
+1. Frete Marítimo Internacional (All-In ou Frete Básico + BAF/GRI em USD);
+2. Taxas locais de Origem (Handling, Documentation, etc.);
+3. Taxas locais de Destino em Santos (THC, ISPS, B/L fee, Desconsolidação no caso de LCL, etc.);
+4. Transit Time estimado e frequência de saídas (fechamento de carga / cut-off);
+5. Período de validade da taxa cotada.
+
+Ficamos no aguardo de suas propostas com a máxima brevidade.
 
 Atenciosamente,`;
             }
 
             if (attachInvCheck) attachInvCheck.checked = true;
 
-            alert('🚢 E-mail de cotação preenchido com todos os contatos da Logsy e Aduana Global!\n\nSe já tiver o arquivo do Packing List enviado pelo fornecedor, clique no botão "Anexar Packing List" abaixo e em seguida clique em "Disparar E-mail".');
+            alert('🚢 E-mail de cotação preenchido com todos os contatos da Logsy e Aduana Global!\n\n• Assunto estruturado com o Número da Invoice;\n• Corpo detalhado com NCMs, Porto de Santos, Free Time mínimo de 21 dias e requisitos de RFQ.\n\nSe já tiver o arquivo do Packing List enviado pelo fornecedor, selecione-o no campo abaixo e clique em "Disparar E-mail".');
         }
 
         async function handleSendCopilotEmail(event) {
@@ -21568,6 +21638,7 @@ function renderKanban() {
 
             const sku = item.sku || '';
             const description = item.description || '';
+            const ncm = item.ncm || item.hs_code || '';
             const qty = item.qty_ordered !== undefined ? item.qty_ordered : (item.qty !== undefined ? item.qty : 1);
             const unitFob = parseFloat(item.unit_price_fob || item.unit_fob || 0) || 0;
             const totalFob = parseFloat(item.total_price_fob || item.total_fob || (qty * unitFob)) || 0;
@@ -21581,6 +21652,9 @@ function renderKanban() {
                 </td>
                 <td style="padding: 6px;">
                     <input type="text" class="form-control proj-item-desc" value="${escapeProjectHtml(description)}" placeholder="Descrição técnica do equipamento" style="padding: 6px 8px; font-size: 0.8rem;">
+                </td>
+                <td style="padding: 6px;">
+                    <input type="text" class="form-control proj-item-ncm" value="${escapeProjectHtml(ncm)}" placeholder="8422.30.29" style="padding: 6px 8px; font-size: 0.8rem; font-family: monospace; color: #a78bfa;">
                 </td>
                 <td style="padding: 6px; text-align: center;">
                     <input type="number" min="1" step="1" class="form-control proj-item-qty" value="${qty}" oninput="recalculateProjectImportItemsTotal()" style="padding: 6px 4px; font-size: 0.8rem; text-align: center; font-weight: bold;">
@@ -21668,6 +21742,7 @@ function renderKanban() {
             rows.forEach((tr, index) => {
                 const sku = tr.querySelector('.proj-item-sku')?.value.trim() || '';
                 const description = tr.querySelector('.proj-item-desc')?.value.trim() || '';
+                const ncm = tr.querySelector('.proj-item-ncm')?.value.trim() || '';
                 const qty_ordered = parseInt(tr.querySelector('.proj-item-qty')?.value) || 1;
                 const unit_price_fob = parseFloat(tr.querySelector('.proj-item-unit-fob')?.value) || 0;
                 const total_price_fob = qty_ordered * unit_price_fob;
@@ -21677,6 +21752,7 @@ function renderKanban() {
                         item_no: index + 1,
                         sku,
                         description,
+                        ncm,
                         qty_ordered,
                         unit_price_fob,
                         total_price_fob
