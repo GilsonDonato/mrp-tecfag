@@ -13908,7 +13908,7 @@
                     btn.style.borderColor = "#ef4444";
                 }
             }
-            renderKanbanBoard();
+            renderKanban();
         }
         let lockHeartbeatInterval = null;
         let setupSelectedFiles = [];
@@ -14830,10 +14830,10 @@ Atenciosamente,`;
                 ? fetch('/api/projects/locks/active', { headers: authHeaders }).then(res => res.json()).catch(err => ({}))
                 : Promise.resolve({});
 
-            fetchLocks.then(locks => {
+            return fetchLocks.then(locks => {
                 state.activeLocks = locks || {};
 
-                fetch('/api/projects', { headers: authHeaders })
+                return fetch('/api/projects', { headers: authHeaders })
                     .then(res => {
                         if (res.status === 403) {
                             return res.json().then(data => {
@@ -14906,10 +14906,13 @@ Atenciosamente,`;
                         }
                     }
 
-                    if (state.projects.length === 0) {
-                        document.getElementById('btn-seed').style.border = '2px dashed var(--primary)';
-                    } else {
-                        document.getElementById('btn-seed').style.border = '1px solid var(--border-color)';
+                    const seedBtn = document.getElementById('btn-seed');
+                    if (seedBtn) {
+                        if (state.projects.length === 0) {
+                            seedBtn.style.border = '2px dashed var(--primary)';
+                        } else {
+                            seedBtn.style.border = '1px solid var(--border-color)';
+                        }
                     }
                     updateKPIs();
                     renderKanban();
@@ -16977,7 +16980,8 @@ Atenciosamente,`;
 
         // Alterar automaticamente o tipo de solda ao selecionar formato Stick
         function handleBagStyleChange() {
-            const bagStyle = document.getElementById('prj-dosagem-bag-style').value;
+            const bagStyleEl = document.getElementById('prj-dosagem-bag-style');
+            const bagStyle = bagStyleEl ? bagStyleEl.value : '';
             if (bagStyle === 'Stick') {
                 const sealingSelect = document.getElementById('prj-dosagem-sealing-type');
                 if (sealingSelect) {
@@ -21466,6 +21470,8 @@ function renderKanban() {
 
             try {
                 await loadProjectsDB();
+                updateKPIs();
+                renderKanban();
                 showIhmToast('🔄 Funil de Projetos atualizado com sucesso!', 'info');
             } catch (err) {
                 console.error(err);
