@@ -9182,13 +9182,38 @@ app.post('/api/projects/:code/advance-import-stage', authenticateToken, restrict
         let actualArrival = project.import_actual_arrival_date;
         let newFase = project.fase;
 
+        let updatedChecklist = {};
+        try {
+            updatedChecklist = JSON.parse(project.checklist || '{}');
+        } catch (e) {}
+
         if (nextStage === 'DOCA_GALPAO') {
             actualArrival = now.split('T')[0];
             newFase = 6; // Retorna à Oficina, Setup & SAT no Quadro de Projetos!
+            ['producao', 'embarque', 'pagamento', 'fedex', 'transporte_maritimo', 'desembaraco', 'chegada_tecfag'].forEach(k => {
+                updatedChecklist[k] = true;
+            });
         } else if (nextStage === 'EM_FABRICACAO') {
             newFase = 4;
-        } else if (nextStage === 'NO_NAVIO' || nextStage === 'NO_PORTO_DESEMBARACO' || nextStage === 'ENTREPOSTADO_EADI') {
+            updatedChecklist.producao = true;
+        } else if (nextStage === 'PACKING_LIST_EMBARQUE') {
+            updatedChecklist.producao = true;
+            updatedChecklist.embarque = true;
+        } else if (nextStage === 'NO_NAVIO') {
             newFase = 5;
+            updatedChecklist.producao = true;
+            updatedChecklist.embarque = true;
+            updatedChecklist.pagamento = true;
+            updatedChecklist.fedex = true;
+            updatedChecklist.transporte_maritimo = true;
+        } else if (nextStage === 'NO_PORTO_DESEMBARACO' || nextStage === 'ENTREPOSTADO_EADI') {
+            newFase = 5;
+            updatedChecklist.producao = true;
+            updatedChecklist.embarque = true;
+            updatedChecklist.pagamento = true;
+            updatedChecklist.fedex = true;
+            updatedChecklist.transporte_maritimo = true;
+            updatedChecklist.desembaraco = true;
         }
 
         await dbRun(`
@@ -9196,10 +9221,11 @@ app.post('/api/projects/:code/advance-import-stage', authenticateToken, restrict
                 import_stage = ?,
                 import_actual_arrival_date = ?,
                 fase = ?,
+                checklist = ?,
                 faseEntryDate = ?,
                 lastUpdate = ?
             WHERE code = ?
-        `, [nextStage, actualArrival, newFase, now, now, code]);
+        `, [nextStage, actualArrival, newFase, JSON.stringify(updatedChecklist), now, now, code]);
 
         // Sincronizar ordem em stock_orders se existir
         await dbRun(`
@@ -10461,8 +10487,14 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
         // Retorna o projeto automaticamente ao Quadro de Projetos (Fase 6: Oficina, Setup & SAT)!
         if (nextStage === 'DOCA_GALPAO' && order.project_code) {
             const nowIso = new Date().toISOString();
-            await dbRun("UPDATE projects SET fase = 6, faseEntryDate = ?, lastUpdate = ? WHERE code = ?", [
-                nowIso, nowIso, order.project_code
+            const prjRow = await dbGet("SELECT checklist FROM projects WHERE code = ?", [order.project_code]);
+            let chk = {};
+            try { chk = JSON.parse(prjRow ? prjRow.checklist : '{}'); } catch(e) {}
+            ['producao', 'embarque', 'pagamento', 'fedex', 'transporte_maritimo', 'desembaraco', 'chegada_tecfag'].forEach(k => {
+                chk[k] = true;
+            });
+            await dbRun("UPDATE projects SET fase = 6, checklist = ?, faseEntryDate = ?, lastUpdate = ? WHERE code = ?", [
+                JSON.stringify(chk), nowIso, nowIso, order.project_code
             ]);
             await recordAuditLog(order.project_code, user, `Máquina liberada e entregue na Doca Tecfag. Projeto retornado ao Quadro de Projetos (Fase 6: Oficina, Setup & SAT).`);
             console.log(`[SUPPLY CHAIN -> PROJETOS] Projeto ${order.project_code} retornado ao Quadro de Projetos na Fase 6 (Oficina).`);

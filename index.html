@@ -19764,6 +19764,17 @@ function renderKanban() {
                         project.checklist[k + '_date'] = new Date().toISOString();
                     }
                 });
+            } else if (project.fase >= 6 || project.import_stage === 'DOCA_GALPAO') {
+                // Se a máquina de importação já chegou na Tecfag (Doca / Fase 6), etapas logísticas de fabricação e trânsito são concluídas
+                ['producao', 'embarque', 'pagamento', 'fedex', 'transporte_maritimo', 'desembaraco', 'chegada_tecfag'].forEach(k => {
+                    if (!project.checklist[k]) {
+                        project.checklist[k] = true;
+                        if (!project.checklist[k + '_user']) {
+                            project.checklist[k + '_user'] = 'Comex / Importação';
+                            project.checklist[k + '_date'] = new Date().toISOString();
+                        }
+                    }
+                });
             }
 
             // Highlight tasks and sync UI
@@ -22688,36 +22699,79 @@ function renderKanban() {
                 vistoria: 6, travas: 6, direcionamento: 6,
                 logistica_saida: 6, startup: 6, sat: 6
             };
+            const itemLabels = {
+                diagnostico: '1. Diagnóstico de Viabilidade e Necessidades (Aba: ⚙️ Engenharia & Escopo)',
+                customizacao: '2. Especificação Técnica e Customizações (Aba: ⚙️ Engenharia & Escopo)',
+                cotacao: '3. Cotação de Fábrica com Fornecedores (Aba: ⚙️ Engenharia & Escopo)',
+                fluxograma: '4. Elaboração de Fluxograma de Processo (Aba: ⚙️ Engenharia & Escopo)',
+                planta_baixa: '5. Validação de Layout e Planta Baixa (Aba: ⚙️ Engenharia & Escopo)',
+                aprovacao: '6. Apresentação Técnica e Aprovação do Cliente (Aba: 💼 Comercial & Financeiro)',
+                contrato: '7. Fechamento Comercial e Contrato Assinado (Aba: 💼 Comercial & Financeiro)',
+                proforma: '8. Emissão da Proforma Invoice (Aba: 💼 Comercial & Financeiro)',
+                cambio_sinal: '9. Câmbio e Fechamento de Sinal (Aba: 💼 Comercial & Financeiro)',
+                swift_pagamento: '10. Envio do Comprovante Swift (Aba: 💼 Comercial & Financeiro)',
+                producao: '11. Monitoramento de Fabricação',
+                embarque: '12. Liberação de Embarque',
+                pagamento: '13. Pagamento de Saldo',
+                fedex: '14. Documentos Originais FedEx',
+                transporte_maritimo: '15. Transporte Marítimo Internacional',
+                desembaraco: '16. Desembaraço Aduaneiro / Porto',
+                chegada_tecfag: '17. Chegada na Doca Tecfag',
+                vistoria: '18. Vistoria Técnica e Registro de Avaria (Aba: 🔧 Oficina, Setup & SAT)',
+                travas: '19. Registro ERP & Etiquetagem (Aba: 🔧 Oficina, Setup & SAT)',
+                direcionamento: '20. Roteamento Físico Definido (Aba: 🔧 Oficina, Setup & SAT)',
+                logistica_saida: '21. Setup em Bancada (Aba: 🔧 Oficina, Setup & SAT)',
+                startup: '22. Montagem e Start-up no Cliente (Aba: 🔧 Oficina, Setup & SAT)',
+                sat: '23. Teste SAT e Assinatura do Termo (Aba: 🔧 Oficina, Setup & SAT)'
+            };
             const currentItemPhase = itemPhases[key];
             const isChecking = !currentlyChecked;
 
             const importTasks = ['proforma', 'cambio_sinal', 'swift_pagamento', 'producao', 'embarque', 'pagamento', 'fedex', 'transporte_maritimo', 'desembaraco', 'chegada_tecfag'];
+            const hasArrivedAtDoca = (project.fase >= 6 || project.import_stage === 'DOCA_GALPAO');
 
             if (isChecking) {
                 // Verificar se todas as etapas das fases anteriores estão concluídas
+                const missingItems = [];
                 for (const k of Object.keys(itemPhases)) {
                     if (itemPhases[k] < currentItemPhase) {
+                        if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && importTasks.includes(k)) {
+                            continue;
+                        }
+                        if (hasArrivedAtDoca && (itemPhases[k] === 4 || itemPhases[k] === 5)) {
+                            project.checklist[k] = true;
+                            continue;
+                        }
                         if (!project.checklist[k]) {
-                            if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && importTasks.includes(k)) {
-                                continue;
-                            }
-                            alert(`Atenção: Não é permitido iniciar as etapas da Fase ${currentItemPhase} se as etapas das fases anteriores ainda não foram totalmente concluídas.`);
-                            return;
+                            missingItems.push(itemLabels[k] || k);
                         }
                     }
                 }
+
+                if (missingItems.length > 0) {
+                    alert(`⚠️ Atenção: Não é permitido iniciar as etapas da Fase ${currentItemPhase} pois as seguintes etapas anteriores ainda não foram concluídas:\n\n• ` + missingItems.join('\n• ') + `\n\nPor favor, acesse a respectiva aba informada acima para concluir a pendência.`);
+                    return;
+                }
             } else {
                 // Desmarcando: Verificar se existem etapas de fases posteriores que já estão concluídas
+                const blockingSubsequentItems = [];
                 for (const k of Object.keys(itemPhases)) {
                     if (itemPhases[k] > currentItemPhase) {
+                        if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && importTasks.includes(k)) {
+                            continue;
+                        }
+                        if (hasArrivedAtDoca && (itemPhases[k] === 4 || itemPhases[k] === 5)) {
+                            continue;
+                        }
                         if (project.checklist[k]) {
-                            if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && importTasks.includes(k)) {
-                                continue;
-                            }
-                            alert(`Atenção: Não é permitido reabrir uma etapa da Fase ${currentItemPhase} se existem etapas concluídas nas fases seguintes (Fase ${itemPhases[k]} em diante). Primeiro desmarque as etapas das fases seguintes.`);
-                            return;
+                            blockingSubsequentItems.push(itemLabels[k] || k);
                         }
                     }
+                }
+
+                if (blockingSubsequentItems.length > 0) {
+                    alert(`⚠️ Atenção: Não é permitido reabrir uma etapa da Fase ${currentItemPhase} porque existem etapas concluídas em fases posteriores:\n\n• ` + blockingSubsequentItems.join('\n• ') + `\n\nPrimeiro desmarque as etapas das fases seguintes.`);
+                    return;
                 }
             }
 
