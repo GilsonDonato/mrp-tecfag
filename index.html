@@ -2314,20 +2314,10 @@
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                     </svg>
                 </button>
-                <div style="display: flex; gap: 4px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); padding: 3px; border-radius: 8px;">
-                    <button class="btn btn-secondary" onclick="openPouchCalcModal()" style="font-size: 0.72rem; padding: 6px 10px; border: none; background: transparent; color: #38bdf8; font-weight: 700; display: flex; align-items: center; gap: 4px;" title="Simulador de Embalagem 3D & Bobina">
-                        🧮 Embalagem
-                    </button>
-                    <button class="btn btn-secondary" onclick="openDoserCalcModal()" style="font-size: 0.72rem; padding: 6px 10px; border: none; background: transparent; color: #4ade80; font-weight: 700; display: flex; align-items: center; gap: 4px;" title="Validador de Dosagem & Rosca/Pistão Tecfag">
-                        ⚖️ Dosagem
-                    </button>
-                    <button class="btn btn-secondary" onclick="openBoxCalcModal()" style="font-size: 0.72rem; padding: 6px 10px; border: none; background: transparent; color: #f59e0b; font-weight: 700; display: flex; align-items: center; gap: 4px;" title="Validador de Caixas FX-5050/6050 Tecfag">
-                        📦 Seladora Caixas
-                    </button>
-                    <button class="btn btn-secondary" onclick="openPalletCalcModal()" style="font-size: 0.72rem; padding: 6px 10px; border: none; background: transparent; color: #a855f7; font-weight: 700; display: flex; align-items: center; gap: 4px;" title="Simulador de Paletização PBR & Carga de Esteiras">
-                        🏗️ Paletização PBR
-                    </button>
-                </div>
+                <button class="btn btn-secondary" onclick="refreshKanbanData()" id="btn-header-refresh-kanban" style="padding: 8px 14px; font-size: 0.8rem; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.25);" title="Atualizar dados e sincronizar todos os cards do funil">
+                    <svg id="refresh-kanban-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" style="transition: transform 0.6s ease;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                    Atualizar Cards
+                </button>
                 <button class="btn" onclick="switchTab('cadprj')" style="margin-left: 4px;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Novo Projeto
@@ -2348,30 +2338,7 @@
 
         <!-- TAB 1: PIPELINE / KANBAN -->
         <div id="tab-dash" class="tab-content active">
-            <!-- BANNER PRINCIPAL DE FERRAMENTAS DE ENGENHARIA TECFAG -->
-            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-left: 4px solid var(--primary); border-radius: 8px; padding: 12px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; backdrop-filter: blur(8px);">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.2rem;">🛠️</span>
-                    <div>
-                        <strong style="color: var(--text-primary); font-size: 0.85rem; font-weight: 800; display: block; text-transform: uppercase; letter-spacing: 0.5px;">Ferramentas & Simuladores de Engenharia Tecfag</strong>
-                        <span style="color: var(--text-secondary); font-size: 0.72rem;">Validação de viabilidade comercial e enquadramento em máquinas 100% Standard</span>
-                    </div>
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; flex: 1; max-width: 750px;">
-                    <button class="btn btn-secondary" onclick="openPouchCalcModal()" style="font-size: 0.75rem; padding: 8px 12px; border: 1px solid rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1); color: #38bdf8; font-weight: 700; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Simulador de Embalagem 3D & Bobina">
-                        🧮 1. Embalagem 3D
-                    </button>
-                    <button class="btn btn-secondary" onclick="openDoserCalcModal()" style="font-size: 0.75rem; padding: 8px 12px; border: 1px solid rgba(74, 222, 128, 0.4); background: rgba(74, 222, 128, 0.1); color: #4ade80; font-weight: 700; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Validador de Dosagem & Rosca/Pistão Tecfag">
-                        ⚖️ 2. Dosagem & Rosca
-                    </button>
-                    <button class="btn btn-secondary" onclick="openBoxCalcModal()" style="font-size: 0.75rem; padding: 8px 12px; border: 1px solid rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.1); color: #f59e0b; font-weight: 700; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Validador de Caixas FX-5050/6050 Tecfag">
-                        📦 3. Seladoras Caixas
-                    </button>
-                    <button class="btn btn-secondary" onclick="openPalletCalcModal()" style="font-size: 0.75rem; padding: 8px 12px; border: 1px solid rgba(168, 85, 247, 0.4); background: rgba(168, 85, 247, 0.1); color: #a855f7; font-weight: 700; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Simulador de Paletização PBR & Carga de Esteiras">
-                        🏗️ 4. Paletização PBR
-                    </button>
-                </div>
-            </div>
+
 
             <!-- KPIs (4 Fases Operacionais do Quadro de Projetos) -->
             <div class="kpi-grid" style="grid-template-columns: repeat(4, minmax(180px, 1fr));">
@@ -2458,6 +2425,10 @@
                         <option value="pending">💬 Dúvidas Pendentes</option>
                     </select>
                 </div>
+
+                <button type="button" class="btn" onclick="refreshKanbanData()" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; font-size: 0.78rem; font-weight: 800; padding: 7px 14px; border-radius: 6px; border: 1px solid #38bdf8; display: flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3); white-space: nowrap;">
+                    <span>🔄</span> Atualizar Cards
+                </button>
 
                 <div style="margin-left: auto;">
                     <button type="button" class="btn btn-secondary" onclick="switchTab('list')" style="font-size: 0.78rem; font-weight: 700; padding: 7px 14px; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; display: flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
@@ -13975,10 +13946,16 @@
         }
 
         function getFilteredProjects() {
-            let filteredPrjs = state.projects;
+            let filteredPrjs = state.projects || [];
             
+            // Sincroniza sempre com o elemento visual do select
+            const sellerFilterEl = document.getElementById('kanban-seller-filter');
+            if (sellerFilterEl && sellerFilterEl.value) {
+                activeSellerFilter = sellerFilterEl.value;
+            }
+
             // Filtro de Vendedor
-            if (activeSellerFilter !== 'all') {
+            if (activeSellerFilter && activeSellerFilter !== 'all') {
                 filteredPrjs = filteredPrjs.filter(p => {
                     const sellerName = getProjectSeller(p);
                     const friendlyFilter = getFriendlyUserName(activeSellerFilter);
@@ -21464,6 +21441,39 @@ function renderKanban() {
             if (queryBtn) queryBtn.style.display = 'none';
             if (submitBtn) submitBtn.innerText = '💾 Registrar no Diário de Bordo';
             if (chatInput) chatInput.placeholder = 'Registre uma anotação técnica, decisão de engenharia, inspeção ou ocorrência...';
+        }
+
+        // Função de Atualização e Sincronização Completa do Funil Kanban
+        async function refreshKanbanData() {
+            const icon = document.getElementById('refresh-kanban-icon');
+            if (icon) icon.style.transform = 'rotate(360deg)';
+
+            // Limpa qualquer texto residual de busca / autofill
+            const searchInput = document.getElementById('kanban-search-filter');
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.setAttribute('readonly', 'readonly');
+            }
+            if (typeof toggleKanbanSearchClear === 'function') toggleKanbanSearchClear();
+
+            // Reseta filtros para exibir todos os projetos
+            const sellerFilterEl = document.getElementById('kanban-seller-filter');
+            if (sellerFilterEl) sellerFilterEl.value = 'all';
+            activeSellerFilter = 'all';
+
+            const statusFilter = document.getElementById('kanban-status-filter');
+            if (statusFilter) statusFilter.value = 'all';
+
+            try {
+                await loadProjectsDB();
+                showIhmToast('🔄 Funil de Projetos atualizado com sucesso!', 'info');
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setTimeout(() => {
+                    if (icon) icon.style.transform = 'rotate(0deg)';
+                }, 600);
+            }
         }
 
         // Controle de Finalização e Arquivamento de Projetos (Pós-Venda)
