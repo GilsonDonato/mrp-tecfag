@@ -16065,13 +16065,23 @@
                         if (cEmailEl) cEmailEl.value = ext.contact_email;
                     }
 
-                    // Preenche Segmento
+                                        // Preenche Segmento com busca inteligente por valor ou descrição
                     if (ext.segment) {
                         const segEl = document.getElementById('prj-intake-segment');
                         if (segEl) {
-                            segEl.value = ext.segment;
+                            let matched = '';
+                            const search = String(ext.segment).toUpperCase().trim();
+                            for (let opt of segEl.options) {
+                                if (opt.value === ext.segment || opt.value.toUpperCase() === search || opt.text.toUpperCase().includes(search) || search.includes(opt.value.toUpperCase())) {
+                                    matched = opt.value;
+                                    break;
+                                }
+                            }
+                            if (matched) segEl.value = matched;
+                            else segEl.value = ext.segment;
+                            
                             if (typeof updateSegmentFields === 'function') updateSegmentFields();
-                            if (typeof updateSalesPlaybook === 'function') updateSalesPlaybook(ext.segment);
+                            if (typeof updateSalesPlaybook === 'function') updateSalesPlaybook(segEl.value);
                         }
                     }
 
@@ -16109,8 +16119,12 @@
                     }
 
                     // Executa sugestão de SKU e validação
-                    if (typeof runSkuSuggestionEngine === 'function') {
-                        runSkuSuggestionEngine();
+                    try {
+                        if (typeof runSkuSuggestionEngine === 'function') {
+                            runSkuSuggestionEngine();
+                        }
+                    } catch (errSku) {
+                        console.warn('Aviso no motor de sugestão de SKU:', errSku);
                     }
                 }
             } catch (err) {
@@ -16508,29 +16522,41 @@
 
         // Motor de Sugestão de SKU / Engenharia Customizada
         function runSkuSuggestionEngine() {
-            const segment = document.getElementById('prj-intake-segment').value;
+            const getVal = (id) => {
+                const el = document.getElementById(id);
+                return el ? (el.value || '') : '';
+            };
+            const getNum = (id) => {
+                const el = document.getElementById(id);
+                return el ? (parseFloat(el.value) || 0) : 0;
+            };
+
+            const segEl = document.getElementById('prj-intake-segment');
+            const segment = segEl ? segEl.value : '';
             const hudResult = document.getElementById('sku-suggestion-result');
             const hudDetails = document.getElementById('sku-suggestion-details');
             const hudBox = document.getElementById('sku-suggestion-hud');
             
             if (!segment) {
-                hudResult.innerHTML = `Selecione um segmento...`;
-                hudDetails.innerHTML = `Preencha o segmento e os parâmetros técnicos para que o motor sugira se o projeto é padrão de catálogo ou necessita de customizações.`;
-                hudBox.style.background = 'rgba(59, 130, 246, 0.04)';
-                hudBox.style.borderColor = 'var(--primary)';
+                if (hudResult) hudResult.innerHTML = `Selecione um segmento...`;
+                if (hudDetails) hudDetails.innerHTML = `Preencha o segmento e os parâmetros técnicos para que o motor sugira se o projeto é padrão de catálogo ou necessita de customizações.`;
+                if (hudBox) {
+                    hudBox.style.background = 'rgba(59, 130, 246, 0.04)';
+                    hudBox.style.borderColor = 'var(--primary)';
+                }
                 return;
             }
 
-            const params = getSegmentParametersFromDOM(segment);
+            const params = typeof getSegmentParametersFromDOM === 'function' ? getSegmentParametersFromDOM(segment) : {};
             const getSegmentParameterValue = (fieldName) => params[fieldName] || '';
             
             // Fatores Globais de Engenharia Customizada
-            const tension = document.getElementById('prj-infra-tension').value;
+            const tension = getVal('prj-infra-tension');
             const frequency = '60Hz';
-            const material = document.getElementById('prj-infra-material').value;
-            const roughness = document.getElementById('prj-infra-roughness').value;
-            const ipRating = document.getElementById('prj-infra-ip-rating').value;
-            const nr12 = document.getElementById('prj-infra-nr12').value;
+            const material = getVal('prj-infra-material');
+            const roughness = getVal('prj-infra-roughness');
+            const ipRating = getVal('prj-infra-ip-rating');
+            const nr12 = getVal('prj-infra-nr12');
             
             let isCustom = false;
             let customReasons = [];
@@ -16571,9 +16597,9 @@
             let defaultSkuDetails = '';
             
             if (segment === 'MISTURADORES') {
-                const subtype = document.getElementById('prj-mistura-subtype').value;
+                const subtype = getVal('prj-mistura-subtype');
                 if (subtype === 'Moinho') {
-                    const dureza = document.getElementById('prj-moinho-dureza').value;
+                    const dureza = getVal('prj-moinho-dureza');
                     if (dureza === 'Alta') {
                         isCustom = true;
                         customReasons.push('Moagem de material de alta dureza/abrasividade (requer martelos e facas com revestimento de carbeto de tungstênio)');
@@ -16581,10 +16607,10 @@
                     suggestedSku = 'MOINHO-MICRON-STD (Moinho Micronizador de Facas/Martelos)';
                     defaultSkuDetails = 'Ideal para pulverização de grãos secos e produtos de dureza média.';
                 } else {
-                    const density = parseFloat(document.getElementById('prj-mistura-density').value) || 0;
-                    const volTotal = parseInt(document.getElementById('prj-mistura-volume-total').value) || 0;
-                    const discharge = document.getElementById('prj-mistura-discharge').value;
-                    const abrasive = document.getElementById('prj-mistura-abrasive').value;
+                    const density = getNum('prj-mistura-density');
+                    const volTotal = Math.round(getNum('prj-mistura-volume-total'));
+                    const discharge = getVal('prj-mistura-discharge');
+                    const abrasive = getVal('prj-mistura-abrasive');
                     
                     if (volTotal > 500) {
                         isCustom = true;
@@ -16612,10 +16638,10 @@
                 }
                 
             } else if (segment === 'ENCAPSULADORAS') {
-                const subtype = document.getElementById('prj-encapsulamento-subtype').value;
+                const subtype = getVal('prj-encapsulamento-subtype');
                 if (subtype === 'Contadores') {
-                    const dest = document.getElementById('prj-softgel-count-dest').value;
-                    const dust = document.getElementById('prj-softgel-count-dust-sensor').value;
+                    const dest = getVal('prj-softgel-count-dest');
+                    const dust = getVal('prj-softgel-count-dust-sensor');
                     
                     if (dust === 'Sim') {
                         isCustom = true;
@@ -16634,8 +16660,8 @@
                 }
                 
             } else if (segment === 'GOMAS') {
-                const colors = document.getElementById('prj-gummy-colors').value;
-                const molds = document.getElementById('prj-gummy-molds').value;
+                const colors = getVal('prj-gummy-colors');
+                const molds = getVal('prj-gummy-molds');
                 
                 if (colors > 2) {
                     isCustom = true;
@@ -16652,7 +16678,7 @@
                 }
                 
             } else if (segment === 'DOSAGEM_SEMIAUTOMATICA') {
-                const chars = document.getElementById('prj-semi-product-chars').value;
+                const chars = getVal('prj-semi-product-chars');
                 if (chars === 'Pegajoso' || chars === 'Higroscópico') {
                     isCustom = true;
                     customReasons.push('Produto de escoamento difícil / pegajoso (requer rosca especial com raspadores ou bicos aquecidos)');
@@ -16711,8 +16737,8 @@
                 }
                 
             } else if (segment === 'ENVASE') {
-                const cipSip = document.getElementById('prj-envase-cip-sip').value;
-                const shape = document.getElementById('prj-envase-bottle-shape').value;
+                const cipSip = getVal('prj-envase-cip-sip');
+                const shape = getVal('prj-envase-bottle-shape');
                 
                 if (cipSip === 'CIP_SIP') {
                     isCustom = true;
@@ -16729,9 +16755,9 @@
                 }
                 
             } else if (segment === 'FECHAMENTO_TAMPAGEM') {
-                const subtype = document.getElementById('prj-fechamento-subtype').value;
+                const subtype = getVal('prj-fechamento-subtype');
                 if (subtype === 'Rosqueadora') {
-                    const capType = document.getElementById('prj-rosqueadora-cap-type').value;
+                    const capType = getVal('prj-rosqueadora-cap-type');
                     if (capType === 'Gatilho/Trigger' || capType === 'Válvula Pump') {
                         isCustom = true;
                         customReasons.push('Fechamento de válvulas tipo Gatilho/Pump (requer alimentador/colocador robótico de pescador e torqueador especial)');
@@ -16739,8 +16765,8 @@
                     suggestedSku = 'ROSQ-AUTO-LINEAR (Rosqueadora Automática de Tampas)';
                     defaultSkuDetails = 'Ideal para rosqueamento contínuo em frascos planos ou cilíndricos.';
                 } else {
-                    const diameter = parseFloat(document.getElementById('prj-inducao-diameter').value) || 0;
-                    const materialFrasco = document.getElementById('prj-inducao-material').value;
+                    const diameter = getNum('prj-inducao-diameter');
+                    const materialFrasco = getVal('prj-inducao-material');
                     
                     if (diameter > 120) {
                         isCustom = true;
@@ -16758,7 +16784,7 @@
                 }
                 
             } else if (segment === 'VACUO_TERMOFORMADORAS') {
-                const map = document.getElementById('prj-vacuo-map').value;
+                const map = getVal('prj-vacuo-map');
                 if (map === 'Sim') {
                     isCustom = true;
                     customReasons.push('Sistema de atmosfera modificada (MAP) exige válvula misturadora de gases e analisador residual');
@@ -16767,9 +16793,9 @@
                 defaultSkuDetails = 'Perfeita para selagem robusta sob vácuo de embutidos e carnes.';
                 
             } else if (segment === 'ROTULADORAS') {
-                const shape = document.getElementById('prj-rotulagem-shape').value;
-                const label = document.getElementById('prj-rotulagem-label-type').value;
-                const transSensor = document.getElementById('prj-rotulagem-transparent-sensor').value;
+                const shape = getVal('prj-rotulagem-shape');
+                const label = getVal('prj-rotulagem-label-type');
+                const transSensor = getVal('prj-rotulagem-transparent-sensor');
                 
                 if (shape === 'Quadrado') {
                     isCustom = true;
@@ -16790,10 +16816,10 @@
                 }
                 
             } else if (segment === 'TERMOENCOLHIVEL') {
-                const sub = document.getElementById('prj-shrink-subtype').value;
+                const sub = getVal('prj-shrink-subtype');
                 if (sub === 'Seladora_L') {
-                    const barLen = parseFloat(document.getElementById('prj-shrink-bar-length').value) || 0;
-                    const barWid = parseFloat(document.getElementById('prj-shrink-bar-width').value) || 0;
+                    const barLen = getNum('prj-shrink-bar-length');
+                    const barWid = getNum('prj-shrink-bar-width');
                     if (barLen > 600 || barWid > 500) {
                         isCustom = true;
                         customReasons.push('Comprimento/Largura da barra de selagem superior a 600x500mm (exige seladora L pneumática de grande formato)');
@@ -16803,7 +16829,7 @@
                         defaultSkuDetails = 'Atende pacotes de porte médio com acionamento por botão/pedal e temporizador de solda.';
                     }
                 } else if (sub === 'Seladora_L_Continua') {
-                    const speed = parseFloat(document.getElementById('prj-shrink-sealing-speed').value) || 0;
+                    const speed = getNum('prj-shrink-sealing-speed');
                     if (speed > 25) {
                         isCustom = true;
                         customReasons.push('Velocidade de selagem superior a 25 pacotes/min (exige seladora contínua de alta cadência e sensores especiais)');
@@ -16820,9 +16846,9 @@
                 }
                 
             } else if (segment === 'FINAL_LINHA') {
-                const pallet = document.getElementById('prj-final-pallet').value;
-                const box = document.getElementById('prj-final-box').value;
-                const inspect = document.getElementById('prj-final-inspect').value;
+                const pallet = getVal('prj-final-pallet');
+                const box = getVal('prj-final-box');
+                const inspect = getVal('prj-final-inspect');
                 
                 if (pallet === 'Mecanica') {
                     isCustom = true;
@@ -16886,7 +16912,7 @@
             }
             
             if (isCustom) {
-                hudResult.innerHTML = `⚠️ <span style="color: #f97316;">Projeto Customizado de Engenharia</span>`;
+                if (hudResult) hudResult.innerHTML = `⚠️ <span style="color: #f97316;">Projeto Customizado de Engenharia</span>`;
                 hudDetails.innerHTML = `<strong style="color: #f97316;">Motivos de Customização:</strong><ul style="margin: 5px 0 0 15px; padding: 0; list-style-type: square;">` + 
                     customReasons.map(r => `<li>${r}</li>`).join('') + `</ul>`;
                 hudBox.style.background = 'rgba(249, 115, 22, 0.05)';
