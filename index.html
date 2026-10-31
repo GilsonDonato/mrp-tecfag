@@ -14498,15 +14498,53 @@
                 subjectInput.value = `Solicitação de Cotação de Frete Marítimo Internacional | ${invoiceLabel} - Tecfag`;
             }
 
-            // Função de sugestão de NCM por tipo de máquina da Tecfag caso não esteja explicitado
-            function getSuggestedNcm(sku, desc) {
+            // Sugestão de NCM por IA e classificação de 4 dígitos para validação do B/L
+            function getSuggestedNcm4(sku, desc) {
                 const text = ((sku || '') + ' ' + (desc || '')).toLowerCase();
-                if (text.includes('seladora') || text.includes('selar') || text.includes('fr-') || text.includes('bsf-') || text.includes('vácuo') || text.includes('vacuo')) return '8422.30.29';
-                if (text.includes('empacotadora') || text.includes('embalad') || text.includes('bzh-') || text.includes('arlb') || text.includes('enfardadeira') || text.includes('envolvedora') || text.includes('paletizadora')) return '8422.40.90';
-                if (text.includes('dosadora') || text.includes('envasadora') || text.includes('fl-') || text.includes('encher')) return '8422.30.12';
-                if (text.includes('rotuladora') || text.includes('mt-50') || text.includes('etiquetadora')) return '8422.30.21';
-                if (text.includes('datador') || text.includes('impressora')) return '8443.39.10';
-                return '';
+                
+                // Se já contiver dígitos de NCM / HS Code
+                const matchDigits = text.match(/\b(84\d{2}|85\d{2}|90\d{2})\b/);
+                if (matchDigits) return matchDigits[1];
+
+                // 8422: Enchimento, contagem, fechamento, tampas, dessecante, rotulagem, selagem, embalagem
+                if (
+                    text.includes('counting') || text.includes('contad') || text.includes('genius') ||
+                    text.includes('capping') || text.includes('tampad') || text.includes('rosquead') ||
+                    text.includes('desiccant') || text.includes('dessecante') || text.includes('inserter') || text.includes('inserid') ||
+                    text.includes('cotton') || text.includes('algod') ||
+                    text.includes('filling') || text.includes('envasad') || text.includes('dosad') ||
+                    text.includes('sealing') || text.includes('selad') || text.includes('fr-') || text.includes('bsf-') ||
+                    text.includes('label') || text.includes('rotulad') || text.includes('etiquet') ||
+                    text.includes('carton') || text.includes('encartuch') || text.includes('bzh-') ||
+                    text.includes('wrapping') || text.includes('envolved') || text.includes('enfard') || text.includes('empacot') || text.includes('embalad')
+                ) {
+                    return '8422';
+                }
+
+                // 8428: Mesas acumuladoras, mesas giratórias, esteiras, transportadores
+                if (
+                    text.includes('accumulator') || text.includes('acumulad') ||
+                    text.includes('conveyor') || text.includes('esteira') || text.includes('transportad') ||
+                    text.includes('table') || text.includes('mesa') || text.includes('feed table') || text.includes('turntable')
+                ) {
+                    return '8428';
+                }
+
+                // 8479: Polidoras de cápsulas, despoeiradores, misturadores industriais
+                if (
+                    text.includes('polish') || text.includes('polid') || text.includes('dedust') || text.includes('despoeir') ||
+                    text.includes('granulat') || text.includes('granulad') || text.includes('mixer') || text.includes('misturad') ||
+                    text.includes('coater') || text.includes('drageadeira')
+                ) {
+                    return '8479';
+                }
+
+                // Outras classificações industriais
+                if (text.includes('weight') || text.includes('pesad') || text.includes('balanca')) return '8423';
+                if (text.includes('metal detect') || text.includes('detector')) return '9031';
+                if (text.includes('print') || text.includes('datador') || text.includes('coder')) return '8443';
+
+                return '8422';
             }
 
             // Recuperar itens e NCMs do card
@@ -14524,21 +14562,32 @@
                 importItems = collectProjectImportItems();
             }
 
+            // Formatação do resumo com os 4 primeiros dígitos do NCM para o B/L
             let itemsSummaryText = '';
             if (importItems && importItems.length > 0) {
                 itemsSummaryText = importItems.map((it, idx) => {
                     const sku = it.sku || `Item ${idx + 1}`;
                     const desc = it.description ? ` - ${it.description}` : '';
                     const qty = it.qty_ordered || it.qty || 1;
-                    const ncmVal = (it.ncm && it.ncm.trim()) ? it.ncm.trim() : getSuggestedNcm(it.sku, it.description);
-                    const ncmText = ncmVal ? ` | NCM: ${ncmVal}` : ' | NCM: A confirmar no Packing List / Invoice';
-                    return `  ${idx + 1}. ${sku}${desc} | Qtd: ${qty} un${ncmText}`;
+                    
+                    let ncm4 = '';
+                    if (it.ncm && it.ncm.trim().length >= 4) {
+                        ncm4 = it.ncm.replace(/\D/g, '').substring(0, 4);
+                    }
+                    if (!ncm4) {
+                        ncm4 = getSuggestedNcm4(it.sku, it.description);
+                    }
+                    return `  ${idx + 1}. ${sku}${desc} | Qtd: ${qty} un | NCM (4 dígitos p/ B/L): ${ncm4}`;
                 }).join('\n');
             } else {
                 const singleSku = project.project_name || project.sku || 'Máquinas Industriais';
-                const singleNcm = getSuggestedNcm(project.sku, project.project_name);
-                itemsSummaryText = `  1. ${singleSku} | Qtd: 1 un | NCM: ${singleNcm ? singleNcm : 'Conforme Invoice e Packing List em anexo'}`;
+                const singleNcm4 = getSuggestedNcm4(project.sku, project.project_name);
+                itemsSummaryText = `  1. ${singleSku} | Qtd: 1 un | NCM (4 dígitos p/ B/L): ${singleNcm4}`;
             }
+
+            const invoiceDisplay = invoiceVal.toUpperCase().startsWith('INV') || invoiceVal.toUpperCase().startsWith('PI')
+                ? invoiceVal
+                : `Invoice ${invoiceVal}`;
 
             if (bodyInput) {
                 bodyInput.value = 
@@ -14549,7 +14598,7 @@ Solicitamos cotação formal de frete marítimo internacional e despesas portuá
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 1. DADOS PRINCIPAIS DO EMBARQUE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• Fatura Comercial / Invoice: ${invoiceLabel}
+• Fatura Comercial / Invoice: ${invoiceDisplay}
 • Projeto / Ref. Tecfag: ${project.code} (${project.client || 'Tecfag'})
 • Fornecedor / Fabricante: ${supplierName}
 • Valor FOB da Carga: ${fobTotal}
@@ -14566,14 +14615,7 @@ Solicitamos cotação formal de frete marítimo internacional e despesas portuá
 ${itemsSummaryText}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-3. REQUISITOS OPERACIONAIS & CONDIÇÕES OBRIGATÓRIAS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• Free Time de Demurrage: Mínimo de 21 a 28 dias livres (Free Time) garantidos na descarga em Santos.
-• Trânsito Aduaneiro (DTA): Informar se a tarifa suporta remoção via DTA para Porto Seco / EADI Bauru.
-• Documentos Anexos: Seguem em anexo a Invoice Comercial e o Packing List oficial contendo cubagem (CBM), peso bruto (GW), peso líquido (NW) e dimensões das embalagens de madeira (Wooden Cases).
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-4. ITENS OBRIGATÓRIOS DA PROPOSTA (RFQ)
+3. ITENS OBRIGATÓRIOS DA PROPOSTA (RFQ)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Favor apresentar proposta contendo:
 1. Frete Marítimo Internacional (All-In ou Frete Básico + BAF/GRI em USD);
@@ -14589,7 +14631,7 @@ Atenciosamente,`;
 
             if (attachInvCheck) attachInvCheck.checked = true;
 
-            alert('🚢 E-mail de cotação preenchido com todos os contatos da Logsy e Aduana Global!\n\n• Assunto estruturado com o Número da Invoice;\n• Corpo detalhado com NCMs, Porto de Santos, Free Time mínimo de 21 dias e requisitos de RFQ.\n\nSe já tiver o arquivo do Packing List enviado pelo fornecedor, selecione-o no campo abaixo e clique em "Disparar E-mail".');
+            alert('🚢 E-mail de cotação preenchido com todos os contatos da Logsy e Aduana Global!\n\n• Assunto estruturado com o Número da Invoice;\n• NCM com os 4 primeiros dígitos sugeridos para emissão/validação do B/L;\n• Dados logísticos de CBM, Peso Bruto e Requisitos de RFQ.');
         }
 
         async function handleSendCopilotEmail(event) {
