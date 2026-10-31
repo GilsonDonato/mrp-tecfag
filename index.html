@@ -21121,20 +21121,37 @@ function renderKanban() {
             const project = state.projects.find(p => p.code === code);
             if (!project) return;
 
+            const currentSupplier = document.getElementById('modal-import-supplier')?.value || project.import_supplier || project.supplier || '';
+            const currentInvoiceNum = document.getElementById('modal-import-invoice-number')?.value || project.import_invoice_number || '';
+            const currentFobVal = parseFloat(document.getElementById('modal-import-total-fob')?.value) || parseFloat(project.import_total_fob_value) || 0;
+            const currentInvoiceDate = document.getElementById('modal-import-invoice-date')?.value || project.import_invoice_date || null;
+            const currentCurrency = document.getElementById('modal-import-currency')?.value || project.import_currency || 'USD';
+            let currentItems = (typeof collectProjectImportItems === 'function' ? collectProjectImportItems() : []) || [];
+            if ((!currentItems || currentItems.length === 0) && project.import_items) {
+                try {
+                    currentItems = typeof project.import_items === 'string' ? JSON.parse(project.import_items) : project.import_items;
+                } catch(e){}
+            }
+
             const confirmMsg = "🚢 CONFIRMAR ENVIO DE INVOICE PELO FORNECEDOR?\n\n" +
                 "Projeto: " + project.code + " - " + project.client + "\n" +
-                "Máquina: " + (project.project_name || project.sku || 'Especial') + "\n\n" +
+                "Máquina: " + (project.project_name || project.sku || 'Especial') + "\n" +
+                (currentSupplier ? ("Fornecedor: " + currentSupplier + "\n") : "") +
+                (currentInvoiceNum ? ("Invoice: " + currentInvoiceNum + "\n") : "") +
+                (currentFobVal > 0 ? ("Total FOB: " + currentCurrency + " " + currentFobVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + "\n") : "") +
+                (currentItems.length > 0 ? ("Itens da Fatura: " + currentItems.length + " item(s)\n\n") : "\n") +
                 "Ao confirmar:\n" +
-                "1. Este card sairá do Quadro de Desenvolvimento de Projetos.\n" +
-                "2. Será transferido diretamente para a tela de \"Gestão de Importação & Estoque\" (Fase 1: Proforma).\n" +
-                "3. Assim que a máquina chegar fisicamente na Tecfag (Doca Liberada), o card retornará automaticamente para cá na coluna de \"Oficina, Setup & Testes (SAT)\".\n\n" +
+                "1. Este card sairá do Quadro de Desenvolvimento de Projetos;\n" +
+                "2. Será transferido para a tela de \"Gestão de Importação & Estoque\" (Fase 1: Proforma);\n" +
+                "3. Todos os itens e valores da fatura serão salvos permanentemente no card;\n" +
+                "4. Assim que a máquina chegar fisicamente na Tecfag (Doca Liberada), o card retornará automaticamente para cá na coluna de \"Oficina, Setup & Testes (SAT)\".\n\n" +
                 "Deseja prosseguir com a transferência?";
 
             if (!confirm(confirmMsg)) return;
 
-            const invoiceNum = prompt("Digite o número da Proforma / Invoice (opcional):", "PI-" + project.code) || ("PI-" + project.code);
-            const supplier = prompt("Nome do Fornecedor / Fabricante (opcional):", project.supplier || "Fornecedor Internacional") || "Fornecedor Internacional";
-            const fobVal = prompt("Valor FOB estimado em USD (opcional, apenas números):", "0") || "0";
+            const invoiceNum = currentInvoiceNum || prompt("Digite o número da Proforma / Invoice:", "PI-" + project.code) || ("PI-" + project.code);
+            const supplier = currentSupplier || prompt("Nome do Fornecedor / Fabricante:", "Fornecedor Internacional") || "Fornecedor Internacional";
+            const fobVal = currentFobVal > 0 ? currentFobVal : (parseFloat(prompt("Valor FOB estimado em USD:", "0")) || 0);
 
             try {
                 const token = localStorage.getItem('tecfag_session_token');
@@ -21147,15 +21164,25 @@ function renderKanban() {
                     body: JSON.stringify({
                         supplier_name: supplier,
                         invoice_number: invoiceNum,
-                        total_fob_value: parseFloat(fobVal) || 0,
-                        currency: 'USD',
+                        invoice_date: currentInvoiceDate,
+                        currency: currentCurrency,
+                        total_fob_value: fobVal,
+                        items: currentItems,
                         notes: "Transferido do Quadro de Projetos por envio de Invoice do fornecedor."
                     })
                 });
 
                 const data = await res.json();
                 if (res.ok) {
-                    alert("✅ Sucesso!\n\nProjeto " + code + " transferido com sucesso para a \"Gestão de Importação & Estoque\" (PO: " + (data.order?.po_number || 'PO-' + code) + ").\nO card foi transferido para o acompanhamento internacional.");
+                    project.fase = 3;
+                    project.import_supplier = supplier;
+                    project.import_invoice_number = invoiceNum;
+                    project.import_invoice_date = currentInvoiceDate;
+                    project.import_currency = currentCurrency;
+                    project.import_total_fob_value = fobVal;
+                    project.import_items = currentItems;
+
+                    alert("✅ Sucesso!\n\nProjeto " + code + " transferido com sucesso para a \"Gestão de Importação & Estoque\" (PO: " + (data.po_number || 'PO-' + code) + ").\nTodos os itens da fatura foram gravados e estão disponíveis no card.");
                     closeProjectModal();
                     if (typeof loadProjects === 'function') await loadProjects();
                     if (typeof loadSupplyChainData === 'function') await loadSupplyChainData();
@@ -21350,14 +21377,17 @@ function renderKanban() {
             }
         }
 
-        async function extractProjectInvoiceWithAI() {
-            const fileInput = document.getElementById('modal-project-invoice-file');
-            if (!fileInput || !fileInput.files || !fileInput.files[0]) {
-                alert('Selecione um arquivo de fatura primeiro.');
-                return;
+        async function extractProjectInvoiceWithAI(passedFile) {
+            let file = passedFile;
+            if (!file) {
+                const fileInput = document.getElementById('modal-project-invoice-file');
+                if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                    alert('Selecione um arquivo de fatura primeiro.');
+                    return;
+                }
+                file = fileInput.files[0];
             }
 
-            const file = fileInput.files[0];
             const btnAi = document.getElementById('modal-project-btn-extract-ai');
             const status = document.getElementById('modal-project-ocr-status');
 
@@ -21399,9 +21429,10 @@ function renderKanban() {
                         if (invInput) invInput.value = ext.invoice_number;
                     }
 
+                    let isoDate = null;
                     if (ext.invoice_date) {
                         const dateInput = document.getElementById('modal-import-invoice-date');
-                        const isoDate = normalizeToISODate(ext.invoice_date);
+                        isoDate = normalizeToISODate(ext.invoice_date);
                         if (dateInput && isoDate) dateInput.value = isoDate;
                     }
 
@@ -21430,13 +21461,9 @@ function renderKanban() {
                     }
 
                     const itemsCount = Array.isArray(ext.items) ? ext.items.length : 0;
-                    if (status) {
-                        status.style.color = '#10b981';
-                        status.innerText = `✅ Fatura lida com sucesso! Fornecedor: "${ext.supplier_name || 'Detectado'}", Invoice: "${ext.invoice_number || 'Detectado'}", Data: ${ext.invoice_date || 'N/A'}, Total FOB: ${ext.currency || 'USD'} ${Number(totalFob).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${itemsCount} itens importados)`;
-                    }
 
-                    // Também salvar o anexo oficialmente para o projeto na fase 'proforma'
-                    if (activeProjectCode) {
+                    // Também salvar o anexo oficialmente para o projeto na fase 'proforma' (caso tenha sido selecionado manualmente)
+                    if (activeProjectCode && !passedFile) {
                         try {
                             const attachFormData = new FormData();
                             attachFormData.append('projectCode', activeProjectCode);
@@ -21455,6 +21482,49 @@ function renderKanban() {
                         } catch (attachErr) {
                             console.warn('[ATTACH ERROR]', attachErr);
                         }
+                    }
+
+                    // PERSISTÊNCIA AUTOMÁTICA IMEDIATA NO BANCO DE DADOS (PUT /api/projects/:code)
+                    if (activeProjectCode) {
+                        try {
+                            const currentItems = (Array.isArray(ext.items) && ext.items.length > 0)
+                                ? ext.items
+                                : (typeof collectProjectImportItems === 'function' ? collectProjectImportItems() : []);
+
+                            const autoSavePayload = {
+                                import_supplier: ext.supplier_name || document.getElementById('modal-import-supplier')?.value || '',
+                                import_invoice_number: ext.invoice_number || document.getElementById('modal-import-invoice-number')?.value || '',
+                                import_invoice_date: isoDate || document.getElementById('modal-import-invoice-date')?.value || null,
+                                import_currency: ext.currency || document.getElementById('modal-import-currency')?.value || 'USD',
+                                import_total_fob_value: totalFob,
+                                import_items: currentItems,
+                                lastUpdate: new Date().toISOString()
+                            };
+
+                            const updateRes = await fetch('/api/projects/' + activeProjectCode, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                                },
+                                body: JSON.stringify(autoSavePayload)
+                            });
+
+                            if (updateRes.ok) {
+                                const currentProj = state.projects.find(p => p.code === activeProjectCode);
+                                if (currentProj) {
+                                    Object.assign(currentProj, autoSavePayload);
+                                }
+                                console.log('[AUTO-SAVE INVOICE] Dados e itens da fatura gravados no banco de dados!');
+                            }
+                        } catch (saveErr) {
+                            console.warn('[AUTO-SAVE INVOICE ERROR]', saveErr);
+                        }
+                    }
+
+                    if (status) {
+                        status.style.color = '#10b981';
+                        status.innerText = `✅ Fatura lida e SALVA no card com sucesso! Fornecedor: "${ext.supplier_name || 'Detectado'}", Invoice: "${ext.invoice_number || 'Detectado'}", Data: ${ext.invoice_date || 'N/A'}, Total FOB: ${ext.currency || 'USD'} ${Number(totalFob).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${itemsCount} itens gravados)`;
                     }
 
                 } else {
@@ -21478,6 +21548,46 @@ function renderKanban() {
             }
         }
 
+        async function reAnalyzeAttachedInvoice(fileUrl, fileName) {
+            const btn = document.getElementById('btn-reanalyze-attached-invoice');
+            const status = document.getElementById('modal-project-ocr-status');
+            const originalText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = '⏳ Carregando fatura...';
+            }
+            if (status) {
+                status.style.display = 'block';
+                status.style.color = '#38bdf8';
+                status.innerText = '🤖 Baixando fatura anexada e enviando para análise do Gemini IA...';
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const fileResp = await fetch(fileUrl, {
+                    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+                });
+                if (!fileResp.ok) throw new Error('Não foi possível obter o arquivo da fatura.');
+
+                const blob = await fileResp.blob();
+                const file = new File([blob], fileName || 'fatura.pdf', { type: blob.type || 'application/pdf' });
+
+                await extractProjectInvoiceWithAI(file);
+            } catch (err) {
+                console.error(err);
+                if (status) {
+                    status.style.display = 'block';
+                    status.style.color = '#ef4444';
+                    status.innerText = '❌ Erro ao ler fatura anexada: ' + err.message;
+                }
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText || '⚡ Ler Itens & Preencher com IA';
+                }
+            }
+        }
+
         async function checkProjectAttachedInvoice(code) {
             const infoEl = document.getElementById('modal-project-attached-invoice-info');
             if (!infoEl) return;
@@ -21487,15 +21597,20 @@ function renderKanban() {
                 const res = await fetch(`/api/attachments/${code}`, { headers });
                 if (res.ok) {
                     const attachments = await res.json();
-                    const proformaAttach = (attachments || []).find(a => a.phase === 'proforma' || (a.fileName && a.fileName.toLowerCase().includes('proforma')) || (a.fileName && a.fileName.toLowerCase().includes('invoice')));
+                    const proformaAttach = (attachments || []).find(a => a.phase === 'proforma' || (a.fileName && a.fileName.toLowerCase().includes('proforma')) || (a.fileName && a.fileName.toLowerCase().includes('invoice')) || (a.fileName && a.fileName.toLowerCase().endsWith('.pdf')));
                     if (proformaAttach) {
                         infoEl.style.display = 'block';
                         const fileUrl = proformaAttach.fileData ? (proformaAttach.fileData.startsWith('http') || proformaAttach.fileData.startsWith('/') ? proformaAttach.fileData : '/' + proformaAttach.fileData) : '#';
+                        const safeFileName = escapeProjectHtml(proformaAttach.fileName || 'Fatura');
+                        const safeUrl = escapeProjectHtml(fileUrl);
                         infoEl.innerHTML = `
                             <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                 <span>📎 Fatura Anexada Atual:</span>
-                                <strong style="color: #38bdf8;">${proformaAttach.fileName}</strong>
-                                <a href="${fileUrl}" target="_blank" download="${proformaAttach.fileName}" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.72rem;">⬇️ Baixar / Ver Fatura</a>
+                                <strong style="color: #38bdf8;">${safeFileName}</strong>
+                                <a href="${safeUrl}" target="_blank" download="${safeFileName}" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.72rem;">⬇️ Baixar / Ver Fatura</a>
+                                <button type="button" id="btn-reanalyze-attached-invoice" class="btn" data-file-url="${safeUrl}" data-file-name="${safeFileName}" onclick="reAnalyzeAttachedInvoice(this.dataset.fileUrl, this.dataset.fileName)" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; padding: 4px 10px; font-size: 0.75rem; font-weight: bold; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; border: none; box-shadow: 0 2px 6px rgba(168, 85, 247, 0.3);">
+                                    ⚡ Ler Itens & Preencher com IA
+                                </button>
                             </div>
                         `;
                         return;

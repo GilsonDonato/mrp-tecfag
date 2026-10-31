@@ -2419,6 +2419,27 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
     try {
         await runAutoPipelineHygiene();
         const rows = await dbAll('SELECT * FROM projects');
+
+        // Pré-carrega ordens e itens de importação para enriquecer projetos caso colunas locais estejam nulas
+        let stockOrdersMap = {};
+        let stockOrderItemsMap = {};
+        try {
+            const stockOrders = await dbAll('SELECT * FROM stock_orders WHERE project_code IS NOT NULL');
+            const stockItems = await dbAll('SELECT * FROM stock_order_items');
+            stockItems.forEach(it => {
+                if (!stockOrderItemsMap[it.order_id]) stockOrderItemsMap[it.order_id] = [];
+                stockOrderItemsMap[it.order_id].push(it);
+            });
+            stockOrders.forEach(so => {
+                stockOrdersMap[so.project_code] = {
+                    ...so,
+                    items: stockOrderItemsMap[so.id] || []
+                };
+            });
+        } catch (e) {
+            console.warn('[PROJECTS FETCH] Erro ao mapear ordens de importação:', e.message);
+        }
+
         let formatted = rows.map(p => {
             let machinesParsed = [];
             try {
@@ -2427,8 +2448,39 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
             if (!machinesParsed || !Array.isArray(machinesParsed) || machinesParsed.length === 0) {
                 machinesParsed = [{ sku: p.sku, serial: p.serial, route: p.route }];
             }
+
+            let importItemsParsed = [];
+            try {
+                if (p.import_items) {
+                    importItemsParsed = typeof p.import_items === 'string' ? JSON.parse(p.import_items) : p.import_items;
+                }
+            } catch (e) {}
+
+            // Fallback para recuperar dados a partir da ordem de importação se o card já foi transferido
+            const linkedOrder = stockOrdersMap[p.code];
+            let supp = p.import_supplier || (linkedOrder ? linkedOrder.supplier_name : null);
+            let invNum = p.import_invoice_number || (linkedOrder ? linkedOrder.invoice_number : null);
+            let fobVal = (parseFloat(p.import_total_fob_value) > 0) ? parseFloat(p.import_total_fob_value) : (linkedOrder ? parseFloat(linkedOrder.total_fob_value) || 0 : 0);
+            let curr = p.import_currency || (linkedOrder ? linkedOrder.currency : 'USD');
+
+            if ((!importItemsParsed || importItemsParsed.length === 0) && linkedOrder && Array.isArray(linkedOrder.items) && linkedOrder.items.length > 0) {
+                importItemsParsed = linkedOrder.items.map((oi, idx) => ({
+                    item_no: idx + 1,
+                    sku: oi.sku,
+                    description: oi.description,
+                    qty_ordered: oi.qty_ordered,
+                    unit_price_fob: oi.unit_price_fob,
+                    total_price_fob: oi.total_price_fob
+                }));
+            }
+
             return {
                 ...p,
+                import_supplier: supp,
+                import_invoice_number: invNum,
+                import_total_fob_value: fobVal,
+                import_currency: curr,
+                import_items: importItemsParsed,
                 checklist: p.checklist ? JSON.parse(p.checklist) : {},
                 prazos: p.prazos ? JSON.parse(p.prazos) : {},
                 setup_specs: p.setup_specs ? JSON.parse(p.setup_specs) : {},
@@ -2508,6 +2560,41 @@ app.get('/api/projects/:code', async (req, res) => {
         project.setup_specs = project.setup_specs ? JSON.parse(project.setup_specs) : {};
         project.spare_parts_recommendations = project.spare_parts_recommendations ? JSON.parse(project.spare_parts_recommendations) : [];
         project.machines = machinesParsed;
+
+        let importItemsParsed = [];
+        try {
+            if (project.import_items) {
+                importItemsParsed = typeof project.import_items === 'string' ? JSON.parse(project.import_items) : project.import_items;
+            }
+        } catch (e) {}
+
+        // Fallback para recuperar dados a partir da ordem de importação se o card foi transferido
+        try {
+            const stockOrder = await dbGet('SELECT * FROM stock_orders WHERE project_code = ?', [project.code]);
+            if (stockOrder) {
+                if (!project.import_supplier && stockOrder.supplier_name) project.import_supplier = stockOrder.supplier_name;
+                if (!project.import_invoice_number && stockOrder.invoice_number) project.import_invoice_number = stockOrder.invoice_number;
+                if (!project.import_currency && stockOrder.currency) project.import_currency = stockOrder.currency;
+                if ((!project.import_total_fob_value || parseFloat(project.import_total_fob_value) === 0) && stockOrder.total_fob_value) {
+                    project.import_total_fob_value = parseFloat(stockOrder.total_fob_value) || 0;
+                }
+                if (!importItemsParsed || importItemsParsed.length === 0) {
+                    const orderItems = await dbAll('SELECT sku, description, qty_ordered, unit_price_fob, total_price_fob FROM stock_order_items WHERE order_id = ?', [stockOrder.id]);
+                    if (orderItems && orderItems.length > 0) {
+                        importItemsParsed = orderItems.map((oi, idx) => ({
+                            item_no: idx + 1,
+                            sku: oi.sku,
+                            description: oi.description,
+                            qty_ordered: oi.qty_ordered,
+                            unit_price_fob: oi.unit_price_fob,
+                            total_price_fob: oi.total_price_fob
+                        }));
+                    }
+                }
+            }
+        } catch (e) {}
+
+        project.import_items = importItemsParsed;
 
         // Restrição de vendedor para rota individual
         if (req.user && req.user.role === 'VENDAS' && req.user.username !== 'vendas6' && req.user.username !== 'vendas6@tecfag.com.br') {
@@ -9545,7 +9632,7 @@ app.post('/api/projects/:code/send-email', authenticateToken, async (req, res) =
 // POST /api/projects/:code/transfer-to-import - Transfere projeto para o pipeline de Importação & Estoque
 app.post('/api/projects/:code/transfer-to-import', authenticateToken, async (req, res) => {
     const { code } = req.params;
-    const { supplier_name, invoice_number, total_fob_value, currency, notes } = req.body || {};
+    const { supplier_name, invoice_number, invoice_date, total_fob_value, currency, items, notes } = req.body || {};
     const user = req.user ? req.user.username : 'Sistema';
 
     try {
@@ -9556,6 +9643,19 @@ app.post('/api/projects/:code/transfer-to-import', authenticateToken, async (req
         const now = new Date().toISOString();
         let order = await dbGet('SELECT * FROM stock_orders WHERE project_code = ?', [code]);
 
+        const totalVal = (parseFloat(total_fob_value) > 0) ? parseFloat(total_fob_value) : (parseFloat(project.import_total_fob_value) || 0);
+        const finalSupplier = supplier_name || project.import_supplier || 'Fornecedor Internacional';
+        const finalInvoiceNum = invoice_number || project.import_invoice_number || ('PI-' + code);
+        const finalCurrency = currency || project.import_currency || 'USD';
+        const finalInvoiceDate = invoice_date || project.import_invoice_date || null;
+
+        let itemsList = Array.isArray(items) && items.length > 0 ? items : null;
+        if (!itemsList && project.import_items) {
+            try {
+                itemsList = typeof project.import_items === 'string' ? JSON.parse(project.import_items) : project.import_items;
+            } catch (e) {}
+        }
+
         if (!order) {
             const result = await dbRun(`
                 INSERT INTO stock_orders (
@@ -9563,36 +9663,79 @@ app.post('/api/projects/:code/transfer-to-import', authenticateToken, async (req
                     currency, total_fob_value, stage, created_by, created_at, updated_at, notes, customs_regime
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PO_EMITIDA', ?, ?, ?, ?, 'EADI_BAURU')
             `, [
-                poNumber, code, project.client, supplier_name || 'Fornecedor Internacional', invoice_number || ('PI-' + code),
-                currency || 'USD', parseFloat(total_fob_value) || 0, user, now, now, notes || ('Importação referente ao projeto ' + code)
+                poNumber, code, project.client, finalSupplier, finalInvoiceNum,
+                finalCurrency, totalVal, user, now, now, notes || ('Importação referente ao projeto ' + code)
             ]);
 
             const orderId = result.lastID;
 
-            await dbRun(`
-                INSERT INTO stock_order_items (
-                    order_id, sku, description, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at
-                ) VALUES (?, ?, ?, 1, 0, ?, ?, 'PENDING', ?)
-            `, [
-                orderId, project.sku || project.code, (project.project_name || project.sku || 'Máquina') + ' (' + project.client + ')',
-                parseFloat(total_fob_value) || 0, parseFloat(total_fob_value) || 0, now
-            ]);
+            if (Array.isArray(itemsList) && itemsList.length > 0) {
+                for (const it of itemsList) {
+                    const itQty = parseFloat(it.qty_ordered) || 1;
+                    const itUnit = parseFloat(it.unit_price_fob) || 0;
+                    const itTotal = parseFloat(it.total_price_fob) || (itQty * itUnit);
+                    await dbRun(`
+                        INSERT INTO stock_order_items (
+                            order_id, sku, description, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at
+                        ) VALUES (?, ?, ?, ?, 0, ?, ?, 'PENDING', ?)
+                    `, [
+                        orderId,
+                        it.sku || project.sku || project.code,
+                        it.description || project.project_name || 'Item de Importação',
+                        itQty,
+                        itUnit,
+                        itTotal,
+                        now
+                    ]);
+                }
+            } else {
+                await dbRun(`
+                    INSERT INTO stock_order_items (
+                        order_id, sku, description, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at
+                    ) VALUES (?, ?, ?, 1, 0, ?, ?, 'PENDING', ?)
+                `, [
+                    orderId, project.sku || project.code, (project.project_name || project.sku || 'Máquina') + ' (' + project.client + ')',
+                    totalVal, totalVal, now
+                ]);
+            }
         }
 
-        // Atualiza projeto para Fase 3 (Em Importação) para sair do Quadro de Desenvolvimento
+        // Atualiza projeto para Fase 3 (Em Importação) e SALVA os dados e itens no card do projeto!
         let chk = {};
         try { chk = project.checklist ? JSON.parse(project.checklist) : {}; } catch(e){}
         chk.proforma = true;
         chk.proforma_user = user;
         chk.proforma_date = now;
 
+        const importItemsJson = Array.isArray(itemsList) && itemsList.length > 0
+            ? JSON.stringify(itemsList)
+            : (project.import_items || '[]');
+
         await dbRun(`
             UPDATE projects 
-            SET fase = 3, checklist = ?, lastUpdate = ?
+            SET fase = 3, 
+                checklist = ?, 
+                import_supplier = ?, 
+                import_invoice_number = ?, 
+                import_invoice_date = ?, 
+                import_currency = ?, 
+                import_total_fob_value = ?, 
+                import_items = ?, 
+                lastUpdate = ?
             WHERE code = ?
-        `, [JSON.stringify(chk), now, code]);
+        `, [
+            JSON.stringify(chk),
+            finalSupplier,
+            finalInvoiceNum,
+            finalInvoiceDate,
+            finalCurrency,
+            totalVal,
+            importItemsJson,
+            now,
+            code
+        ]);
 
-        await recordAuditLog(code, user, `Fornecedor enviou Invoice (${invoice_number || 'PI'}). Projeto transferido para Gestão de Importação & Estoque (Ordem ${poNumber}).`);
+        await recordAuditLog(code, user, `Fornecedor enviou Invoice (${finalInvoiceNum}). Projeto transferido para Gestão de Importação & Estoque (Ordem ${poNumber}).`);
 
         res.json({ 
             success: true, 
