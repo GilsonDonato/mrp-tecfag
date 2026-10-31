@@ -4488,6 +4488,65 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Checklists Visuais das Etapas 11 a 17 (Fases 4 e 5) -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                        <!-- Coluna 1: Fase 4: Fabricação Internacional & Embarque -->
+                        <div class="detail-card">
+                            <h4 style="margin-bottom: 15px; color: var(--color-fase4);">
+                                Fase 4: Fabricação Internacional & Embarque (Resp: Compras - SLA 50 dias)
+                            </h4>
+                            <div class="checklist-group" style="--group-color: var(--color-fase4); border-bottom: none; padding-bottom: 0;">
+                                <div class="checklist-items">
+                                    <div class="checklist-item" id="chk-producao" onclick="toggleCheckItem('producao')">
+                                        <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                        <span class="checklist-label">11. Monitoramento de Fabricação na Origem <strong style="color: #f59e0b;">[COMPRAS]</strong></span>
+                                        <div class="step-attach-area" id="attach-step-producao" onclick="event.stopPropagation()"></div>
+                                    </div>
+                                    <div class="checklist-item" id="chk-embarque" onclick="toggleCheckItem('embarque')">
+                                        <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                        <span class="checklist-label">12. Liberação de Embarque e Prontidão de Carga <strong style="color: #f59e0b;">[COMPRAS]</strong></span>
+                                        <div class="step-attach-area" id="attach-step-embarque" onclick="event.stopPropagation()"></div>
+                                    </div>
+                                    <div class="checklist-item" id="chk-pagamento" onclick="toggleCheckItem('pagamento')">
+                                        <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                        <span class="checklist-label">13. Fechamento Câmbio & SWIFT Saldo Final (70%) <strong style="color: #f59e0b;">[COMPRAS]</strong></span>
+                                        <div class="step-attach-area" id="attach-step-pagamento" onclick="event.stopPropagation()"></div>
+                                    </div>
+                                    <div class="checklist-item" id="chk-fedex" onclick="toggleCheckItem('fedex')">
+                                        <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                        <span class="checklist-label">14. Recebimento de BL / Documentos Originais (FedEx/DHL) <strong style="color: #f59e0b;">[COMPRAS]</strong></span>
+                                        <div class="step-attach-area" id="attach-step-fedex" onclick="event.stopPropagation()"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coluna 2: Fase 5: Transporte Marítimo & Nacionalização -->
+                        <div class="detail-card">
+                            <h4 style="margin-bottom: 15px; color: var(--color-fase5);">
+                                Fase 5: Transporte Marítimo & Nacionalização (Resp: Estoque/Comex - SLA 40 dias)
+                            </h4>
+                            <div class="checklist-group" style="--group-color: var(--color-fase5); border-bottom: none; padding-bottom: 0;">
+                                <div class="checklist-items">
+                                    <div class="checklist-item" id="chk-transporte_maritimo" onclick="toggleCheckItem('transporte_maritimo')">
+                                        <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                        <span class="checklist-label">15. Rastreio de Transporte Marítimo / Trânsito Internacional <strong style="color: #06b6d4;">[ESTOQUE]</strong></span>
+                                        <div class="step-attach-area" id="attach-step-transporte_maritimo" onclick="event.stopPropagation()"></div>
+                                    </div>
+                                    <div class="checklist-item" id="chk-desembaraco" onclick="toggleCheckItem('desembaraco')">
+                                        <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                        <span class="checklist-label">16. Registro da DI / Desembaraço Aduaneiro Concluído <strong style="color: #06b6d4;">[ESTOQUE]</strong></span>
+                                        <div class="step-attach-area" id="attach-step-desembaraco" onclick="event.stopPropagation()"></div>
+                                    </div>
+                                    <div class="checklist-item" id="chk-chegada_tecfag" onclick="toggleCheckItem('chegada_tecfag')">
+                                        <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                        <span class="checklist-label">17. Chegada Física do Contêiner na Tecfag & Descarga <strong style="color: #06b6d4;">[ESTOQUE]</strong></span>
+                                        <div class="step-attach-area" id="attach-step-chegada_tecfag" onclick="event.stopPropagation()"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Central de Documentos Oficiais da Importação: Invoice vs Packing List -->
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 20px;">
@@ -20163,10 +20222,12 @@ function renderKanban() {
             
             getAttachmentsFromIDB(activeProjectCode).then(attachments => {
                 const steps = [
-                    'diagnostico', 'customizacao', 'aprovacao', 'cotacao', 'fluxograma',
-                    'contrato', 'planta_baixa',
-                    'pagamento', 'producao', 'embarque', 'fedex',
-                    'desembaraco', 'vistoria', 'travas', 'direcionamento',
+                    'diagnostico', 'customizacao', 'cotacao', 'fluxograma', 'planta_baixa',
+                    'aprovacao', 'contrato',
+                    'proforma', 'cambio_sinal', 'swift_pagamento',
+                    'producao', 'embarque', 'pagamento', 'fedex',
+                    'transporte_maritimo', 'desembaraco', 'chegada_tecfag',
+                    'vistoria', 'travas', 'direcionamento',
                     'logistica_saida', 'startup', 'sat'
                 ];
                 
