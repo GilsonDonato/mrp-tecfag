@@ -4579,6 +4579,48 @@
                         </div>
                     </div>
 
+                    <!-- Tabela de Máquinas e Equipamentos da Proforma Invoice -->
+                    <div class="detail-card" style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                            <div>
+                                <h4 style="margin: 0; color: #38bdf8; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                                    <span>📋</span> Máquinas e Equipamentos da Proforma Invoice
+                                </h4>
+                                <div style="font-size: 0.73rem; color: #94a3b8; margin-top: 2px;">Itens extraídos automaticamente do documento pelo Gemini IA ou adicionados manualmente</div>
+                            </div>
+                            <button type="button" class="btn btn-secondary" onclick="addProjectImportItemRow()" style="padding: 6px 14px; font-size: 0.76rem; font-weight: bold; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;">
+                                + Adicionar Modelo / Item
+                            </button>
+                        </div>
+
+                        <div style="overflow-x: auto;">
+                            <table class="table" style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left; background: rgba(15, 23, 42, 0.5);">
+                                        <th style="padding: 8px; width: 50px; text-align: center;">Item #</th>
+                                        <th style="padding: 8px; width: 200px;">Modelo / SKU *</th>
+                                        <th style="padding: 8px;">Descrição do Equipamento</th>
+                                        <th style="padding: 8px; width: 95px; text-align: center;">Qtd (un) *</th>
+                                        <th style="padding: 8px; width: 130px;">Unit. FOB ($) *</th>
+                                        <th style="padding: 8px; width: 130px;">Total FOB ($)</th>
+                                        <th style="padding: 8px; width: 70px; text-align: center;">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="modal-project-items-tbody">
+                                    <!-- Preenchido dinamicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-color); flex-wrap: wrap; gap: 10px;">
+                            <span id="modal-project-items-count-label" style="font-size: 0.78rem; color: #94a3b8;">Nenhum item adicionado</span>
+                            <div style="display: flex; gap: 16px; align-items: center;">
+                                <span style="font-size: 0.82rem; color: var(--text-secondary); font-weight: 600;">Soma dos Itens FOB:</span>
+                                <span style="font-size: 1.15rem; font-weight: 800; color: #4ade80;" id="modal-project-items-total-fob">$ 0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Botão de Salvar Alterações de Importação -->
                     <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 20px;">
                         <button type="button" class="btn" onclick="saveProjectImportData()" style="background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 800; padding: 10px 22px; font-size: 0.82rem; border-radius: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">
@@ -19179,6 +19221,22 @@ function renderKanban() {
             if (document.getElementById('modal-import-eadi-entry-date')) document.getElementById('modal-import-eadi-entry-date').value = project.import_eadi_entry_date || '';
             if (document.getElementById('modal-import-notes')) document.getElementById('modal-import-notes').value = project.import_notes || '';
 
+            // Renderizar itens da Proforma Invoice vinculados ao projeto
+            let importItems = [];
+            try {
+                if (typeof project.import_items === 'string' && project.import_items.trim()) {
+                    importItems = JSON.parse(project.import_items);
+                } else if (Array.isArray(project.import_items)) {
+                    importItems = project.import_items;
+                }
+            } catch (e) {
+                console.warn('Erro ao carregar itens da importação:', e);
+                importItems = [];
+            }
+            if (typeof renderProjectImportItems === 'function') {
+                renderProjectImportItems(importItems);
+            }
+
             // 2. Garante abertura na aba selecionada (overview por padrão, ou logistics se veio da importação)
             switchProjectModalTab(initialTab || 'overview');
 
@@ -20963,6 +21021,170 @@ function renderKanban() {
 
         // Salva os dados de importação do Card Único diretamente no projeto
         // Handlers para Seleção e Extração da Fatura de Projetos (Proforma / Invoice)
+        // Helper para normalizar datas de faturas em formato estrito ISO YYYY-MM-DD
+        function normalizeToISODate(dateStr) {
+            if (!dateStr) return '';
+            const s = String(dateStr).trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+            // YYYY/MM/DD ou YYYY.MM.DD
+            let m = s.match(/^(\d{4})[\/\.](\d{1,2})[\/\.](\d{1,2})$/);
+            if (m) {
+                return m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
+            }
+            // DD/MM/YYYY ou DD-MM-YYYY ou DD.MM.YYYY
+            m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+            if (m) {
+                return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+            }
+            // Fallback para parser nativo
+            const parsed = new Date(s);
+            if (!isNaN(parsed.getTime())) {
+                const y = parsed.getFullYear();
+                const mon = String(parsed.getMonth() + 1).padStart(2, '0');
+                const d = String(parsed.getDate()).padStart(2, '0');
+                return y + '-' + mon + '-' + d;
+            }
+            return '';
+        }
+
+        function escapeProjectHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function addProjectImportItemRow(item = {}) {
+            const tbody = document.getElementById('modal-project-items-tbody');
+            if (!tbody) return;
+
+            const tr = document.createElement('tr');
+            tr.className = 'proj-item-row';
+            tr.style.borderBottom = '1px solid rgba(255, 255, 255, 0.07)';
+
+            const sku = item.sku || '';
+            const description = item.description || '';
+            const qty = item.qty_ordered !== undefined ? item.qty_ordered : (item.qty !== undefined ? item.qty : 1);
+            const unitFob = parseFloat(item.unit_price_fob || item.unit_fob || 0) || 0;
+            const totalFob = parseFloat(item.total_price_fob || item.total_fob || (qty * unitFob)) || 0;
+
+            tr.innerHTML = `
+                <td style="padding: 6px; text-align: center;">
+                    <span class="proj-item-index-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-weight: 800; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem;">1</span>
+                </td>
+                <td style="padding: 6px;">
+                    <input type="text" class="form-control proj-item-sku" value="${escapeProjectHtml(sku)}" placeholder="Ex: FR-770" style="padding: 6px 8px; font-size: 0.8rem; font-weight: 700; color: #38bdf8;">
+                </td>
+                <td style="padding: 6px;">
+                    <input type="text" class="form-control proj-item-desc" value="${escapeProjectHtml(description)}" placeholder="Descrição técnica do equipamento" style="padding: 6px 8px; font-size: 0.8rem;">
+                </td>
+                <td style="padding: 6px; text-align: center;">
+                    <input type="number" min="1" step="1" class="form-control proj-item-qty" value="${qty}" oninput="recalculateProjectImportItemsTotal()" style="padding: 6px 4px; font-size: 0.8rem; text-align: center; font-weight: bold;">
+                </td>
+                <td style="padding: 6px;">
+                    <input type="number" min="0" step="0.01" class="form-control proj-item-unit-fob" value="${unitFob > 0 ? unitFob.toFixed(2) : ''}" placeholder="0.00" oninput="recalculateProjectImportItemsTotal()" style="padding: 6px 8px; font-size: 0.8rem; font-weight: bold; color: #4ade80;">
+                </td>
+                <td style="padding: 6px;">
+                    <input type="text" readonly class="form-control proj-item-total-fob" value="$ ${totalFob.toFixed(2)}" style="padding: 6px 8px; font-size: 0.8rem; font-weight: 800; color: #4ade80; background: rgba(0, 0, 0, 0.2); border-color: transparent;">
+                </td>
+                <td style="padding: 6px; text-align: center;">
+                    <button type="button" class="btn btn-secondary" onclick="removeProjectImportItemRow(this)" title="Excluir linha" style="padding: 4px 8px; font-size: 0.75rem; color: #f87171; border-color: rgba(248, 113, 113, 0.3); cursor: pointer;">
+                        🗑️
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+            renumberProjectImportItemBadges();
+            recalculateProjectImportItemsTotal();
+        }
+
+        function removeProjectImportItemRow(btn) {
+            const tr = btn.closest('tr');
+            if (tr) {
+                tr.remove();
+                renumberProjectImportItemBadges();
+                recalculateProjectImportItemsTotal();
+            }
+        }
+
+        function renumberProjectImportItemBadges() {
+            const badges = document.querySelectorAll('#modal-project-items-tbody .proj-item-index-badge');
+            badges.forEach((b, idx) => {
+                b.innerText = idx + 1;
+            });
+            const countLabel = document.getElementById('modal-project-items-count-label');
+            if (countLabel) {
+                countLabel.innerText = badges.length === 0 ? 'Nenhum item adicionado' : `${badges.length} item(s) listado(s)`;
+            }
+        }
+
+        function recalculateProjectImportItemsTotal() {
+            const rows = document.querySelectorAll('#modal-project-items-tbody tr.proj-item-row');
+            let grandTotal = 0;
+
+            rows.forEach(tr => {
+                const qty = parseFloat(tr.querySelector('.proj-item-qty')?.value) || 0;
+                const unit = parseFloat(tr.querySelector('.proj-item-unit-fob')?.value) || 0;
+                const lineTotal = qty * unit;
+                grandTotal += lineTotal;
+
+                const totalInp = tr.querySelector('.proj-item-total-fob');
+                if (totalInp) {
+                    totalInp.value = '$ ' + lineTotal.toFixed(2);
+                }
+            });
+
+            const totalDisplay = document.getElementById('modal-project-items-total-fob');
+            if (totalDisplay) {
+                totalDisplay.innerText = '$ ' + grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            const mainFobInp = document.getElementById('modal-import-total-fob');
+            if (mainFobInp && grandTotal > 0) {
+                mainFobInp.value = grandTotal.toFixed(2);
+            }
+        }
+
+        function renderProjectImportItems(items) {
+            const tbody = document.getElementById('modal-project-items-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (Array.isArray(items) && items.length > 0) {
+                items.forEach(it => addProjectImportItemRow(it));
+            } else {
+                renumberProjectImportItemBadges();
+                recalculateProjectImportItemsTotal();
+            }
+        }
+
+        function collectProjectImportItems() {
+            const rows = document.querySelectorAll('#modal-project-items-tbody tr.proj-item-row');
+            const items = [];
+            rows.forEach((tr, index) => {
+                const sku = tr.querySelector('.proj-item-sku')?.value.trim() || '';
+                const description = tr.querySelector('.proj-item-desc')?.value.trim() || '';
+                const qty_ordered = parseInt(tr.querySelector('.proj-item-qty')?.value) || 1;
+                const unit_price_fob = parseFloat(tr.querySelector('.proj-item-unit-fob')?.value) || 0;
+                const total_price_fob = qty_ordered * unit_price_fob;
+
+                if (sku || description || qty_ordered > 0) {
+                    items.push({
+                        item_no: index + 1,
+                        sku,
+                        description,
+                        qty_ordered,
+                        unit_price_fob,
+                        total_price_fob
+                    });
+                }
+            });
+            return items;
+        }
+
         function handleProjectInvoiceFileSelected(input) {
             const fileLabel = document.getElementById('modal-project-selected-file-label');
             const btnAi = document.getElementById('modal-project-btn-extract-ai');
@@ -21030,7 +21252,8 @@ function renderKanban() {
 
                     if (ext.invoice_date) {
                         const dateInput = document.getElementById('modal-import-invoice-date');
-                        if (dateInput) dateInput.value = ext.invoice_date;
+                        const isoDate = normalizeToISODate(ext.invoice_date);
+                        if (dateInput && isoDate) dateInput.value = isoDate;
                     }
 
                     if (ext.currency) {
@@ -21038,14 +21261,29 @@ function renderKanban() {
                         if (currSelect) currSelect.value = ext.currency;
                     }
 
-                    if (ext.total_fob_value) {
-                        const fobInput = document.getElementById('modal-import-total-fob');
-                        if (fobInput) fobInput.value = ext.total_fob_value;
+                    // Renderizar itens da Proforma Invoice na tabela
+                    if (Array.isArray(ext.items) && ext.items.length > 0) {
+                        renderProjectImportItems(ext.items);
                     }
 
+                    // Calcular e preencher Valor Total FOB (inclusive fallback se IA não pegou o total)
+                    let totalFob = parseFloat(ext.total_fob_value) || 0;
+                    if (totalFob <= 0 && Array.isArray(ext.items) && ext.items.length > 0) {
+                        totalFob = ext.items.reduce((acc, it) => {
+                            const lineTotal = parseFloat(it.total_price_fob) || ((parseFloat(it.qty_ordered) || 0) * (parseFloat(it.unit_price_fob) || 0));
+                            return acc + lineTotal;
+                        }, 0);
+                    }
+
+                    if (totalFob > 0) {
+                        const fobInput = document.getElementById('modal-import-total-fob');
+                        if (fobInput) fobInput.value = totalFob.toFixed(2);
+                    }
+
+                    const itemsCount = Array.isArray(ext.items) ? ext.items.length : 0;
                     if (status) {
                         status.style.color = '#10b981';
-                        status.innerText = `✅ Fatura lida com sucesso! Fornecedor: "${ext.supplier_name || 'Detectado'}", Invoice: "${ext.invoice_number || 'Detectado'}", Total FOB: ${ext.currency || 'USD'} ${Number(ext.total_fob_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                        status.innerText = `✅ Fatura lida com sucesso! Fornecedor: "${ext.supplier_name || 'Detectado'}", Invoice: "${ext.invoice_number || 'Detectado'}", Data: ${ext.invoice_date || 'N/A'}, Total FOB: ${ext.currency || 'USD'} ${Number(totalFob).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${itemsCount} itens importados)`;
                     }
 
                     // Também salvar o anexo oficialmente para o projeto na fase 'proforma'
@@ -21132,6 +21370,7 @@ function renderKanban() {
                 import_invoice_date: document.getElementById('modal-import-invoice-date')?.value || null,
                 import_currency: document.getElementById('modal-import-currency')?.value || 'USD',
                 import_total_fob_value: parseFloat(document.getElementById('modal-import-total-fob')?.value) || 0,
+                import_items: (typeof collectProjectImportItems === 'function' ? collectProjectImportItems() : []),
                 import_container_id: document.getElementById('modal-import-container-id')?.value || '',
                 import_vessel_name: document.getElementById('modal-import-vessel-name')?.value || '',
                 import_bl_number: document.getElementById('modal-import-bl-number')?.value || '',
@@ -21158,6 +21397,14 @@ function renderKanban() {
                 });
 
                 if (res.ok) {
+                    if (typeof collectProjectImportItems === 'function') {
+                        project.import_items = collectProjectImportItems();
+                    }
+                    project.import_supplier = payload.import_supplier;
+                    project.import_invoice_number = payload.import_invoice_number;
+                    project.import_invoice_date = payload.import_invoice_date;
+                    project.import_currency = payload.import_currency;
+                    project.import_total_fob_value = payload.import_total_fob_value;
                     alert('✅ Dados de importação salvos com sucesso no card do projeto!');
                     if (typeof loadProjects === 'function') await loadProjects();
                     if (typeof loadSupplyChainData === 'function') await loadSupplyChainData();

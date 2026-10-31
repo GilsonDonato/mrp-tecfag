@@ -199,6 +199,7 @@ function initializeDatabase() {
         db.run("ALTER TABLE projects ADD COLUMN import_eadi_entry_date TEXT", () => {});
         db.run("ALTER TABLE projects ADD COLUMN import_eadi_da_number TEXT", () => {});
         db.run("ALTER TABLE projects ADD COLUMN import_notes TEXT", () => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_items TEXT", () => {});
 
         // Tabela de Comentários / Discussão (Timeline do Card)
         db.run(`CREATE TABLE IF NOT EXISTS comments (
@@ -7273,6 +7274,7 @@ app.put('/api/projects/:code', async (req, res) => {
         waiting_vendor, waiting_vendor_since, waiting_vendor_reason, paused_sla_seconds,
         spare_parts_recommendations,
         import_supplier, import_invoice_number, import_invoice_date, import_currency, import_total_fob_value,
+        import_items,
         import_stage, import_fabrication_start_date, import_fabrication_end_date, import_container_id,
         import_vessel_name, import_bl_number, import_bl_date, import_etd_date, import_eta_port_date,
         import_eta_warehouse_date, import_actual_arrival_date, import_customs_regime, import_dta_number,
@@ -7493,7 +7495,8 @@ app.put('/api/projects/:code', async (req, res) => {
             import_dta_number = ?,
             import_eadi_entry_date = ?,
             import_eadi_da_number = ?,
-            import_notes = ?`;
+            import_notes = ?,
+            import_items = ?`;
             
         const params = [
             serial !== undefined ? serial : oldProject.serial,
@@ -7538,7 +7541,8 @@ app.put('/api/projects/:code', async (req, res) => {
             import_dta_number !== undefined ? import_dta_number : oldProject.import_dta_number,
             import_eadi_entry_date !== undefined ? import_eadi_entry_date : oldProject.import_eadi_entry_date,
             import_eadi_da_number !== undefined ? import_eadi_da_number : oldProject.import_eadi_da_number,
-            import_notes !== undefined ? import_notes : oldProject.import_notes
+            import_notes !== undefined ? import_notes : oldProject.import_notes,
+            import_items !== undefined ? (typeof import_items === 'string' ? import_items : JSON.stringify(import_items)) : oldProject.import_items
         ];
 
         // Se o técnico foi enviado para atualização
