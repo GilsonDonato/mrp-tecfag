@@ -21906,12 +21906,15 @@ function renderKanban() {
                         if (currSelect) currSelect.value = ext.currency;
                     }
 
-                    // Renderizar itens da Proforma Invoice na tabela COM ESCUDO ANTI-ZERAR PREÇOS
+                    // Escopo seguro de Total FOB e Itens com Escudo Anti-Zerar Preços
+                    let totalFob = parseFloat(ext.total_fob_value) || 0;
+                    const currentTotalFob = parseFloat(document.getElementById('modal-import-total-fob')?.value) || 0;
+                    let protectedItems = [];
+
                     if (Array.isArray(ext.items) && ext.items.length > 0) {
                         const currentItems = (typeof collectProjectImportItems === 'function' ? collectProjectImportItems() : []) || [];
-                        const currentTotalFob = parseFloat(document.getElementById('modal-import-total-fob')?.value) || 0;
 
-                        const protectedItems = ext.items.map((it, idx) => {
+                        protectedItems = ext.items.map((it, idx) => {
                             let unitPrice = parseFloat(it.unit_price_fob) || 0;
                             let qty = parseInt(it.qty_ordered) || 1;
                             let ncm = it.ncm || '';
@@ -21939,17 +21942,17 @@ function renderKanban() {
                         });
                         renderProjectImportItems(protectedItems);
 
-                        let totalFob = parseFloat(ext.total_fob_value) || 0;
                         if (totalFob <= 0) {
                             totalFob = protectedItems.reduce((acc, it) => acc + (parseFloat(it.total_price_fob) || 0), 0);
                         }
-                        if (totalFob <= 0 && currentTotalFob > 0) {
-                            totalFob = currentTotalFob;
-                        }
-                        if (totalFob > 0) {
-                            const fobInput = document.getElementById('modal-import-total-fob');
-                            if (fobInput) fobInput.value = totalFob.toFixed(2);
-                        }
+                    }
+
+                    if (totalFob <= 0 && currentTotalFob > 0) {
+                        totalFob = currentTotalFob;
+                    }
+                    if (totalFob > 0) {
+                        const fobInput = document.getElementById('modal-import-total-fob');
+                        if (fobInput) fobInput.value = totalFob.toFixed(2);
                     }
 
                     const itemsCount = Array.isArray(ext.items) ? ext.items.length : 0;
@@ -21979,8 +21982,8 @@ function renderKanban() {
                     // PERSISTÊNCIA AUTOMÁTICA IMEDIATA NO BANCO DE DADOS (PUT /api/projects/:code)
                     if (activeProjectCode) {
                         try {
-                            const currentItems = (Array.isArray(ext.items) && ext.items.length > 0)
-                                ? ext.items
+                            const currentItems = (protectedItems && protectedItems.length > 0)
+                                ? protectedItems
                                 : (typeof collectProjectImportItems === 'function' ? collectProjectImportItems() : []);
 
                             const autoSavePayload = {
