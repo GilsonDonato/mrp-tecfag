@@ -20850,6 +20850,7 @@ function renderKanban() {
             if (!activeProjectCode) return;
             
             getAttachmentsFromIDB(activeProjectCode).then(attachments => {
+                const project = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === activeProjectCode) : null;
                 const steps = [
                     'diagnostico', 'customizacao', 'cotacao', 'fluxograma', 'planta_baixa',
                     'aprovacao', 'contrato',
@@ -20861,67 +20862,76 @@ function renderKanban() {
                 ];
                 
                 steps.forEach(stepKey => {
-                    const container = document.getElementById(`attach-step-${stepKey}`);
-                    if (!container) return;
-                    
-                    if (stepKey === 'cotacao' && currentRole !== 'ALL' && currentRole !== 'GERENTE' && currentRole !== 'DIRETOR') {
-                        container.innerHTML = `
-                            <div style="font-size: 0.7rem; color: #ef4444; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border: 1px dashed rgba(239,68,68,0.3); border-radius: 4px; background: rgba(239,68,68,0.05);" title="Acesso restrito ao PM e Administrador">
-                                <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                <span>Restrito</span>
-                            </div>
-                        `;
-                        return;
-                    }
-
-                    const stepFiles = attachments.filter(a => a.phase === stepKey);
-                    
-                    if (stepFiles.length > 0) {
-                        // Se houver arquivo anexado à etapa, marca automaticamente como concluída
-                        if (project.checklist && !project.checklist[stepKey]) {
-                            project.checklist[stepKey] = true;
-                            if (!project.checklist[stepKey + '_user']) project.checklist[stepKey + '_user'] = 'Anexo';
-                        }
-                        const chkStepEl = document.getElementById(`chk-${stepKey}`);
-                        if (chkStepEl) chkStepEl.classList.add('checked');
-                    }
-
-                    if (stepFiles.length === 0) {
-                        container.innerHTML = `
-                            <button class="btn-step-attach" onclick="triggerStepFileInput('${stepKey}')" title="Anexar documento/foto">
-                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                            </button>
-                        `;
-                    } else {
-                        const file = stepFiles[0]; // Allow 1 file per step for simplicity
-                        const isImage = file.fileType.startsWith('image/');
-                        const displayName = file.fileName.length > 15 ? file.fileName.substring(0, 12) + "..." : file.fileName;
+                    try {
+                        const container = document.getElementById(`attach-step-${stepKey}`);
+                        if (!container) return;
                         
-                        let badgeHTML = "";
-                        if (isImage) {
-                            badgeHTML = `
-                                <div class="step-attachment-badge" onclick="openLightbox('${file.fileData}')" title="Clique para ampliar: ${file.fileName}">
-                                    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                    <span>${displayName}</span>
+                        if (stepKey === 'cotacao' && currentRole !== 'ALL' && currentRole !== 'GERENTE' && currentRole !== 'DIRETOR') {
+                            container.innerHTML = `
+                                <div style="font-size: 0.7rem; color: #ef4444; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border: 1px dashed rgba(239,68,68,0.3); border-radius: 4px; background: rgba(239,68,68,0.05);" title="Acesso restrito ao PM e Administrador">
+                                    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                    <span>Restrito</span>
                                 </div>
                             `;
+                            return;
+                        }
+
+                        const stepFiles = Array.isArray(attachments) ? attachments.filter(a => a.phase === stepKey) : [];
+                        
+                        if (stepFiles.length > 0) {
+                            // Se houver arquivo anexado à etapa, marca automaticamente como concluída
+                            if (project && project.checklist && !project.checklist[stepKey]) {
+                                project.checklist[stepKey] = true;
+                                if (!project.checklist[stepKey + '_user']) project.checklist[stepKey + '_user'] = 'Anexo';
+                            }
+                            const chkStepEl = document.getElementById(`chk-${stepKey}`);
+                            if (chkStepEl) chkStepEl.classList.add('checked');
+                        }
+
+                        if (stepFiles.length === 0) {
+                            container.innerHTML = `
+                                <button class="btn-step-attach" onclick="triggerStepFileInput('${stepKey}')" title="Anexar documento/foto">
+                                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                </button>
+                            `;
                         } else {
-                            badgeHTML = `
-                                <a class="step-attachment-badge" href="${file.fileData}" download="${file.fileName}" title="Clique para baixar: ${file.fileName}" style="text-decoration: none;">
-                                    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                    <span>${displayName}</span>
-                                </a>
+                            const file = stepFiles[0]; // Permite 1 arquivo por etapa para clareza
+                            const fileType = (file.fileType || '').toLowerCase();
+                            const fileName = file.fileName || 'documento';
+                            const isImage = fileType.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(fileName);
+                            const displayName = fileName.length > 15 ? fileName.substring(0, 12) + "..." : fileName;
+                            const fileUrl = file.fileData || ('/' + (file.filePath || ''));
+                            
+                            let badgeHTML = "";
+                            if (isImage) {
+                                badgeHTML = `
+                                    <div class="step-attachment-badge" onclick="openLightbox('${fileUrl}')" title="Clique para ampliar: ${fileName}">
+                                        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                        <span>${displayName}</span>
+                                    </div>
+                                `;
+                            } else {
+                                badgeHTML = `
+                                    <a class="step-attachment-badge" href="${fileUrl}" target="_blank" download="${fileName}" title="Clique para baixar ou abrir: ${fileName}" style="text-decoration: none;">
+                                        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                        <span>${displayName}</span>
+                                    </a>
+                                `;
+                            }
+                            
+                            container.innerHTML = `
+                                ${badgeHTML}
+                                <button class="btn-step-delete-attach" onclick="removeAttachment(${file.id}, '${file.phase}')" title="Excluir anexo para substituir">
+                                    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                                </button>
                             `;
                         }
-                        
-                        container.innerHTML = `
-                            ${badgeHTML}
-                            <button class="btn-step-delete-attach" onclick="removeAttachment(${file.id}, '${file.phase}')" title="Deletar anexo">
-                                <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
-                            </button>
-                        `;
+                    } catch (eStep) {
+                        console.error(`Erro ao renderizar anexo da etapa ${stepKey}:`, eStep);
                     }
                 });
+            }).catch(eAll => {
+                console.error('Erro ao buscar anexos para renderizar:', eAll);
             });
         }
 
