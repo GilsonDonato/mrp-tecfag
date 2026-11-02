@@ -55,13 +55,13 @@ const PORT = process.env.PORT || 3000;
 // Garantir que as pastas de uploads e banco de dados existam
 const UPLOADS_DIR = process.env.UPLOADS_PATH || path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
-    fs.mkdirSync(UPLOADS_DIR);
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
 // Configuração do SQLite
 const DB_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DB_DIR)) {
-    fs.mkdirSync(DB_DIR);
+    fs.mkdirSync(DB_DIR, { recursive: true });
 }
 const dbPath = process.env.DATABASE_PATH || path.join(DB_DIR, 'tecfag_mrp.db');
 const BACKUPS_DIR = path.join(DB_DIR, 'backups');
@@ -1588,13 +1588,13 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 50 * 1024 * 1024 } // 50MB
+    limits: { fileSize: 100 * 1024 * 1024 } // 100MB
 });
 
 // Middlewares
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // ==========================================
 // ROTAS DE AUTENTICAÇÃO
@@ -9307,7 +9307,7 @@ app.post('/api/admin/backup/send-email', authenticateToken, async (req, res) => 
 // Configuração de upload para arquivos de Supply Chain (Invoices, Packing Lists, BL, Swift)
 const supplyChainUpload = multer({
     storage: storage,
-    limits: { fileSize: 50 * 1024 * 1024 }
+    limits: { fileSize: 100 * 1024 * 1024 } // 100MB
 });
 
 // GET /api/supply-chain/suppliers - Lista todos os fornecedores internacionais
@@ -13076,6 +13076,21 @@ function calculateProjectValidationStatus(project) {
     
     return 'HOMOLOGADO';
 }
+
+// Middleware de tratamento global de erros (Multer, JSON parsing, etc.) garantindo respostas em JSON
+app.use((err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(413).json({ error: 'O arquivo enviado excede o limite máximo permitido (100MB).' });
+        }
+        return res.status(400).json({ error: `Erro no upload do arquivo: ${err.message}` });
+    }
+    if (err) {
+        console.error('[UNHANDLED EXPRESS ERROR]:', err);
+        return res.status(err.status || 500).json({ error: err.message || 'Erro interno ao processar requisição no servidor.' });
+    }
+    next();
+});
 
 // Inicialização do Servidor Express
 app.listen(PORT, () => {

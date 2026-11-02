@@ -20967,10 +20967,16 @@ function renderKanban() {
         }
 
         // Handle step attachment file upload
-        function handleStepFileUpload(stepKey) {
+        async function handleStepFileUpload(stepKey) {
             const input = document.getElementById(`upload-step-${stepKey}`);
             if (!input || !input.files.length) return;
             const file = input.files[0];
+
+            const container = document.getElementById(`attach-step-${stepKey}`);
+            const originalContainerHTML = container ? container.innerHTML : '';
+            if (container) {
+                container.innerHTML = '<span style="font-size: 0.72rem; color: #a855f7; display: flex; align-items: center; gap: 4px;">⏳ Enviando...</span>';
+            }
 
             const formData = new FormData();
             formData.append('file', file);
@@ -20980,17 +20986,25 @@ function renderKanban() {
             const token = localStorage.getItem('tecfag_session_token');
             const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-            fetch('/api/attachments', {
-                method: 'POST',
-                headers: authHeaders,
-                body: formData
-            })
-            .then(res => res.json())
-            .then(newRecord => {
-                if (newRecord.error) {
-                    alert('Erro ao enviar arquivo: ' + newRecord.error);
-                    return;
+            try {
+                const res = await fetch('/api/attachments', {
+                    method: 'POST',
+                    headers: authHeaders,
+                    body: formData
+                });
+
+                const rawText = await res.text();
+                let newRecord;
+                try {
+                    newRecord = JSON.parse(rawText);
+                } catch(e) {
+                    throw new Error(`O servidor retornou erro (${res.status}): ${rawText.slice(0, 150) || res.statusText}`);
                 }
+
+                if (!res.ok || newRecord.error) {
+                    throw new Error(newRecord.error || `Erro HTTP ${res.status}`);
+                }
+
                 const timestamp = new Date().toLocaleTimeString() + ' ' + new Date().toLocaleDateString();
                 const stepNames = {
                     diagnostico: "1. Diagnóstico Técnico",
@@ -21013,7 +21027,7 @@ function renderKanban() {
                     sat: "17. Teste SAT & Joinha"
                 };
 
-                const logText = `<strong>[ANEXO INSERIDO]</strong> Arquivo <code>${file.name}</code> anexado à etapa "${stepNames[stepKey]}" do projeto <code>${activeProjectCode}</code>.`;
+                const logText = `<strong>[ANEXO INSERIDO]</strong> Arquivo <code>${file.name}</code> anexado à etapa "${stepNames[stepKey] || stepKey}" do projeto <code>${activeProjectCode}</code>.`;
                 
                 // Marca a etapa como concluída no card imediatamente ao anexar
                 const project = state.projects.find(p => p.code === activeProjectCode);
@@ -21034,13 +21048,13 @@ function renderKanban() {
                     loadProjectsDB();
                     setTimeout(renderAttachments, 200);
                 }).catch(e => console.error('Erro log anexo:', e));
-            })
-            .catch(err => {
-                console.error(err);
-                alert('Erro ao enviar arquivo para o servidor.');
-            });
-
-            input.value = "";
+            } catch (err) {
+                console.error('[ERRO UPLOAD ANEXO]:', err);
+                if (container) container.innerHTML = originalContainerHTML;
+                alert('Erro ao enviar arquivo para o servidor: ' + (err.message || 'Falha de comunicação. Verifique se o servidor está ativo e tente novamente.'));
+            } finally {
+                input.value = "";
+            }
         }
 
         // Delete attachment
