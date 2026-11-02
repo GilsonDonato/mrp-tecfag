@@ -2529,6 +2529,13 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
                 dbRun('UPDATE projects SET fase = 3 WHERE code = ?', [p.code]).catch(() => {});
             }
 
+            const chkParsed = safeJsonParse(p.checklist, {});
+            // Se contrato foi assinado e escopo aprovado (venda formalizada), avança para Fase 3 (Proforma / Comex)
+            if (chkParsed.contrato && chkParsed.aprovacao && effectiveFase < 3 && effectiveFase !== 8 && effectiveFase !== 7 && p.equipment_origin !== 'Pronta Entrega (Estoque Local)') {
+                effectiveFase = 3;
+                dbRun('UPDATE projects SET fase = 3 WHERE code = ?', [p.code]).catch(() => {});
+            }
+
             return {
                 ...p,
                 fase: effectiveFase,
@@ -10369,10 +10376,14 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
             }
         }
 
-        // Carregar projetos sob encomenda em fase de importação internacional (fases 3, 4, 5)
+        // Carregar projetos sob encomenda em fase de importação internacional (fases 3, 4, 5 ou com contrato assinado)
         const importProjects = await dbAll(`
             SELECT * FROM projects 
-            WHERE (fase IN (3, 4, 5) OR (import_stage IS NOT NULL AND import_stage != 'DOCA_GALPAO' AND fase < 6))
+            WHERE (
+                    fase IN (3, 4, 5) 
+                    OR (import_stage IS NOT NULL AND import_stage != 'DOCA_GALPAO' AND fase < 6)
+                    OR (checklist LIKE '%"contrato":true%' AND checklist LIKE '%"aprovacao":true%' AND (equipment_origin IS NULL OR equipment_origin != 'Pronta Entrega (Estoque Local)') AND (fase IS NULL OR fase < 6))
+                  )
               AND (motivoPerda IS NULL)
         `);
 
