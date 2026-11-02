@@ -946,6 +946,85 @@ function computeCanonicalProjectPhase(project) {
     return Math.max(currentFase, calculated);
 }
 
+/**
+ * Sincronizador Atômico de Itens de Importação (Etapa 3 da Estabilização)
+ * Garante que a tabela filha stock_order_items reflita com precisão os itens
+ * lidos pela IA ou salvos pelo operador, respeitando a integridade referencial do EADI.
+ */
+async function syncStockOrderItems(orderId, items, project) {
+    if (!orderId || !Array.isArray(items) || items.length === 0) return;
+
+    try {
+        const hasClearances = await dbGet(`
+            SELECT COUNT(*) as count 
+            FROM stock_eadi_clearance_items ci
+            JOIN stock_order_items oi ON ci.order_item_id = oi.id
+            WHERE oi.order_id = ?
+        `, [orderId]);
+
+        const canSafelyDelete = !hasClearances || hasClearances.count === 0;
+
+        if (canSafelyDelete) {
+            await dbRun('DELETE FROM stock_order_items WHERE order_id = ?', [orderId]);
+            const now = new Date().toISOString();
+            for (const it of items) {
+                const qty = parseFloat(it.qty_ordered) || 1;
+                const unitFob = parseFloat(it.unit_price_fob) || 0;
+                const totalFob = parseFloat(it.total_price_fob) || (qty * unitFob);
+                await dbRun(`INSERT INTO stock_order_items (
+                    order_id, sku, description, ncm, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at
+                ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'PENDING', ?)`, [
+                    orderId,
+                    it.sku || (project ? (project.sku || project.code) : 'SKU-ITEM'),
+                    it.description || (project ? (project.project_name || 'Item de Importação') : 'Item de Importação'),
+                    it.ncm || '',
+                    qty,
+                    unitFob,
+                    totalFob,
+                    now
+                ]);
+            }
+        } else {
+            const existingItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [orderId]);
+            for (let i = 0; i < items.length; i++) {
+                const it = items[i];
+                const qty = parseFloat(it.qty_ordered) || 1;
+                const unitFob = parseFloat(it.unit_price_fob) || 0;
+                const totalFob = parseFloat(it.total_price_fob) || (qty * unitFob);
+
+                if (existingItems[i]) {
+                    await dbRun(`UPDATE stock_order_items SET 
+                        sku = ?, description = ?, ncm = ?, qty_ordered = ?, unit_price_fob = ?, total_price_fob = ?
+                        WHERE id = ?`, [
+                        it.sku || existingItems[i].sku,
+                        it.description || existingItems[i].description,
+                        it.ncm !== undefined ? it.ncm : existingItems[i].ncm,
+                        qty,
+                        unitFob,
+                        totalFob,
+                        existingItems[i].id
+                    ]);
+                } else {
+                    await dbRun(`INSERT INTO stock_order_items (
+                        order_id, sku, description, ncm, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at
+                    ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'PENDING', ?)`, [
+                        orderId,
+                        it.sku || (project ? (project.sku || project.code) : 'SKU-ITEM'),
+                        it.description || (project ? (project.project_name || 'Item de Importação') : 'Item de Importação'),
+                        it.ncm || '',
+                        qty,
+                        unitFob,
+                        totalFob,
+                        new Date().toISOString()
+                    ]);
+                }
+            }
+        }
+    } catch (err) {
+        console.warn('[SYNC STOCK ORDER ITEMS ERROR]', err.message);
+    }
+}
+
 // ==========================================
 // UTILITÁRIOS E MIDDLEWARES DE AUTENTICAÇÃO
 // ==========================================
@@ -7711,11 +7790,12 @@ app.put('/api/projects/:code', async (req, res) => {
             }
         }
 
-        // ETAPA 2: Unificação da Máquina de Estados de Fases
-        // O backend calcula a fase canônica autoritativa do projeto a partir do checklist, ordem e estado.
-        const currentChecklistJson = checklist ? (typeof checklist === 'string' ? checklist : JSON.stringify(checklist)) : oldProject.checklist;
-        let currentChecklist = {};
-        try { currentChecklist = currentChecklistJson ? JSON.parse(currentChecklistJson) : {}; } catch(e){}
+        // ETAPA 3: Mesclagem segura e atômica de checklist (evita perda concorrente de checkboxes)
+        let oldChecklist = {};
+        try { oldChecklist = oldProject.checklist ? JSON.parse(oldProject.checklist) : {}; } catch(e){}
+
+        const incomingChecklist = checklist ? (typeof checklist === 'string' ? JSON.parse(checklist) : checklist) : {};
+        let currentChecklist = { ...oldChecklist, ...incomingChecklist };
 
         // Se houver anexo de contrato registrado, assegura a flag de contrato
         if (!currentChecklist.contrato) {
@@ -7906,6 +7986,76 @@ app.put('/api/projects/:code', async (req, res) => {
         const updateResult = await dbRun(sql, params);
         if (updateResult && updateResult.changes === 0) {
             console.warn(`[WARN UPDATE] Nenhuma linha foi alterada para o projeto ${code}. Verifique se o código existe.`);
+        }
+
+        // ETAPA 3: Sincronização Atômica com Comex & Estoque (stock_orders e stock_order_items)
+        try {
+            let linkedStockOrder = await dbGet('SELECT * FROM stock_orders WHERE project_code = ?', [code]);
+            if (!linkedStockOrder && updateFields.import_invoice_number && String(updateFields.import_invoice_number).trim()) {
+                linkedStockOrder = await dbGet('SELECT * FROM stock_orders WHERE invoice_number = ?', [String(updateFields.import_invoice_number).trim()]);
+            }
+
+            let parsedImportItems = [];
+            if (updateFields.import_items) {
+                try {
+                    parsedImportItems = typeof updateFields.import_items === 'string' 
+                        ? JSON.parse(updateFields.import_items) 
+                        : updateFields.import_items;
+                } catch(e) { parsedImportItems = []; }
+            }
+
+            if (linkedStockOrder) {
+                const soFields = {};
+                if (updateFields.import_supplier) soFields.supplier_name = updateFields.import_supplier;
+                if (updateFields.import_invoice_number) soFields.invoice_number = updateFields.import_invoice_number;
+                if (updateFields.import_currency) soFields.currency = updateFields.import_currency;
+                if (updateFields.import_total_fob_value !== undefined && parseFloat(updateFields.import_total_fob_value) > 0) {
+                    soFields.total_fob_value = updateFields.import_total_fob_value;
+                }
+                if (updateFields.import_container_id) soFields.container_id = updateFields.import_container_id;
+                if (updateFields.import_customs_regime) soFields.customs_regime = updateFields.import_customs_regime;
+                if (updateFields.import_dta_number) soFields.dta_number = updateFields.import_dta_number;
+                if (updateFields.import_eadi_entry_date) soFields.eadi_entry_date = updateFields.import_eadi_entry_date;
+                if (updateFields.import_eadi_da_number) soFields.eadi_da_number = updateFields.import_eadi_da_number;
+                if (updateFields.import_notes) soFields.notes = updateFields.import_notes;
+                if (!linkedStockOrder.project_code) soFields.project_code = code;
+                soFields.updated_at = new Date().toISOString();
+
+                if (Object.keys(soFields).length > 0) {
+                    const { sql: soSql, params: soParams } = buildDynamicUpdate('stock_orders', soFields, 'id = ?', [linkedStockOrder.id]);
+                    await dbRun(soSql, soParams);
+                }
+
+                if (Array.isArray(parsedImportItems) && parsedImportItems.length > 0) {
+                    await syncStockOrderItems(linkedStockOrder.id, parsedImportItems, oldProject);
+                }
+            } else if (canonicalFase >= 3 && updateFields.import_invoice_number && updateFields.import_supplier) {
+                // Criação automática de ordem Comex para projetos na Fase 3+ com fatura internacional
+                let poNumber = 'PO-' + code;
+                const existingPo = await dbGet('SELECT id FROM stock_orders WHERE po_number = ?', [poNumber]);
+                if (existingPo) {
+                    poNumber = 'PO-' + code + '-' + Date.now().toString().slice(-4);
+                }
+                const now = new Date().toISOString();
+                const insertResult = await dbRun(`
+                    INSERT INTO stock_orders (
+                        po_number, project_code, client_name, supplier_name, invoice_number, 
+                        currency, total_fob_value, stage, created_by, created_at, updated_at, notes, customs_regime, container_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PO_EMITIDA', ?, ?, ?, ?, ?, ?)
+                `, [
+                    poNumber, code, oldProject.client, updateFields.import_supplier, updateFields.import_invoice_number,
+                    updateFields.import_currency || 'USD', updateFields.import_total_fob_value || 0,
+                    req.user ? req.user.username : 'Sistema', now, now, updateFields.import_notes || ('Importação do projeto ' + code),
+                    updateFields.import_customs_regime || 'EADI_BAURU', updateFields.import_container_id || null
+                ]);
+                const newOrderId = insertResult.lastID;
+
+                if (Array.isArray(parsedImportItems) && parsedImportItems.length > 0) {
+                    await syncStockOrderItems(newOrderId, parsedImportItems, oldProject);
+                }
+            }
+        } catch (comexSyncErr) {
+            console.warn('[COMEX SYNC ERROR]', comexSyncErr.message);
         }
 
         // Obter projeto atualizado para mandar por e-mail se a fase mudou

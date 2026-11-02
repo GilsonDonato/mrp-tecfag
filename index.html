@@ -23562,20 +23562,35 @@ function renderKanban() {
                 });
 
                 if (res.ok) {
-                    if (typeof collectProjectImportItems === 'function') {
-                        project.import_items = collectProjectImportItems();
+                    const resData = await res.json();
+                    if (resData && resData.fase !== undefined) {
+                        project.fase = resData.fase;
+                    }
+                    if (payload.import_items && payload.import_items.length > 0) {
+                        project.import_items = payload.import_items;
                     }
                     project.import_supplier = payload.import_supplier;
                     project.import_invoice_number = payload.import_invoice_number;
                     project.import_invoice_date = payload.import_invoice_date;
                     project.import_currency = payload.import_currency;
                     project.import_total_fob_value = payload.import_total_fob_value;
+                    project.import_container_id = payload.import_container_id;
+                    project.import_vessel_name = payload.import_vessel_name;
+                    project.import_bl_number = payload.import_bl_number;
+                    project.import_bl_date = payload.import_bl_date;
+                    project.import_etd_date = payload.import_etd_date;
+                    project.import_eta_port_date = payload.import_eta_port_date;
+                    project.import_eta_warehouse_date = payload.import_eta_warehouse_date;
+                    project.import_customs_regime = payload.import_customs_regime;
+                    project.import_dta_number = payload.import_dta_number;
+                    project.import_eadi_entry_date = payload.import_eadi_entry_date;
+                    project.import_notes = payload.import_notes;
                     project.import_cbm = payload.import_cbm;
                     project.import_gross_weight = payload.import_gross_weight;
                     project.import_net_weight = payload.import_net_weight;
                     project.import_packages_count = payload.import_packages_count;
                     alert('✅ Dados de importação salvos com sucesso no card do projeto!');
-                    if (typeof loadProjects === 'function') await loadProjects();
+                    if (typeof loadProjectsDB === 'function') await loadProjectsDB();
                     if (typeof loadSupplyChainData === 'function') await loadSupplyChainData();
                 } else {
                     const data = await res.json();
@@ -23608,7 +23623,7 @@ function renderKanban() {
                 const data = await res.json();
                 if (res.ok) {
                     alert(data.message || 'Etapa avançada com sucesso!');
-                    if (typeof loadProjects === 'function') await loadProjects();
+                    if (typeof loadProjectsDB === 'function') await loadProjectsDB();
                     if (typeof loadSupplyChainData === 'function') await loadSupplyChainData();
                     if (activeProjectCode === code) {
                         openProjectModal(code, 'logistics');
@@ -24153,6 +24168,12 @@ function renderKanban() {
                             updatedChecklist[k] = true;
                             if (!updatedChecklist[k + '_user']) updatedChecklist[k + '_user'] = currentUser;
                             if (!updatedChecklist[k + '_date']) updatedChecklist[k + '_date'] = new Date().toISOString();
+                        } else {
+                            if (updatedChecklist[k] === true) {
+                                updatedChecklist[k] = false;
+                                delete updatedChecklist[k + '_user'];
+                                delete updatedChecklist[k + '_date'];
+                            }
                         }
                     }
                 });
@@ -24239,14 +24260,50 @@ function renderKanban() {
                 const impInvDate = document.getElementById('modal-import-invoice-date')?.value;
                 const impCurrency = document.getElementById('modal-import-currency')?.value;
                 const impTotalFob = document.getElementById('modal-import-total-fob')?.value;
-                const impItems = (typeof collectProjectImportItems === 'function' ? collectProjectImportItems() : []) || (project.import_items || []);
+                const impContainer = document.getElementById('modal-import-container-id')?.value;
+                const impVessel = document.getElementById('modal-import-vessel-name')?.value;
+                const impBlNum = document.getElementById('modal-import-bl-number')?.value;
+                const impBlDate = document.getElementById('modal-import-bl-date')?.value;
+                const impEtdDate = document.getElementById('modal-import-etd-date')?.value;
+                const impEtaPort = document.getElementById('modal-import-eta-port-date')?.value;
+                const impEtaWh = document.getElementById('modal-import-eta-warehouse-date')?.value;
+                const impCustoms = document.getElementById('modal-import-customs-regime')?.value;
+                const impDta = document.getElementById('modal-import-dta-number')?.value;
+                const impEadiEntry = document.getElementById('modal-import-eadi-entry-date')?.value;
+                const impNotes = document.getElementById('modal-import-notes')?.value;
+                const impCbm = document.getElementById('modal-import-cbm')?.value;
+                const impGw = document.getElementById('modal-import-gross-weight')?.value;
+                const impNw = document.getElementById('modal-import-net-weight')?.value;
+                const impPkgs = document.getElementById('modal-import-packages-count')?.value;
 
-                if (impSupplier !== undefined && impSupplier !== '') updateBody.import_supplier = impSupplier.trim();
-                if (impInvNumber !== undefined && impInvNumber !== '') updateBody.import_invoice_number = impInvNumber.trim();
-                if (impInvDate) updateBody.import_invoice_date = impInvDate;
-                if (impCurrency) updateBody.import_currency = impCurrency;
-                if (impTotalFob) updateBody.import_total_fob_value = parseFloat(impTotalFob) || 0;
-                if (impItems && impItems.length > 0) updateBody.import_items = impItems;
+                if (impSupplier !== undefined) updateBody.import_supplier = impSupplier.trim();
+                if (impInvNumber !== undefined) updateBody.import_invoice_number = impInvNumber.trim();
+                if (impInvDate !== undefined) updateBody.import_invoice_date = impInvDate || null;
+                if (impCurrency !== undefined) updateBody.import_currency = impCurrency;
+                if (impTotalFob !== undefined) updateBody.import_total_fob_value = parseFloat(impTotalFob) || 0;
+
+                const collectedItems = (typeof collectProjectImportItems === 'function' ? collectProjectImportItems() : []);
+                if (collectedItems && collectedItems.length > 0) {
+                    updateBody.import_items = collectedItems;
+                } else if (Array.isArray(project.import_items) && project.import_items.length > 0) {
+                    updateBody.import_items = project.import_items;
+                }
+
+                if (impContainer !== undefined) updateBody.import_container_id = impContainer.trim();
+                if (impVessel !== undefined) updateBody.import_vessel_name = impVessel.trim();
+                if (impBlNum !== undefined) updateBody.import_bl_number = impBlNum.trim();
+                if (impBlDate !== undefined) updateBody.import_bl_date = impBlDate || null;
+                if (impEtdDate !== undefined) updateBody.import_etd_date = impEtdDate || null;
+                if (impEtaPort !== undefined) updateBody.import_eta_port_date = impEtaPort || null;
+                if (impEtaWh !== undefined) updateBody.import_eta_warehouse_date = impEtaWh || null;
+                if (impCustoms !== undefined) updateBody.import_customs_regime = impCustoms;
+                if (impDta !== undefined) updateBody.import_dta_number = impDta.trim();
+                if (impEadiEntry !== undefined) updateBody.import_eadi_entry_date = impEadiEntry || null;
+                if (impNotes !== undefined) updateBody.import_notes = impNotes.trim();
+                if (impCbm !== undefined) updateBody.import_cbm = parseFloat(impCbm) || 0;
+                if (impGw !== undefined) updateBody.import_gross_weight = parseFloat(impGw) || 0;
+                if (impNw !== undefined) updateBody.import_net_weight = parseFloat(impNw) || 0;
+                if (impPkgs !== undefined) updateBody.import_packages_count = parseInt(impPkgs) || 0;
 
                 const response = await fetch(`/api/projects/${project.code}`, {
                     method: 'PUT',
@@ -24275,6 +24332,21 @@ function renderKanban() {
                 if (updateBody.import_currency !== undefined) project.import_currency = updateBody.import_currency;
                 if (updateBody.import_total_fob_value !== undefined) project.import_total_fob_value = updateBody.import_total_fob_value;
                 if (updateBody.import_items !== undefined) project.import_items = updateBody.import_items;
+                if (updateBody.import_container_id !== undefined) project.import_container_id = updateBody.import_container_id;
+                if (updateBody.import_vessel_name !== undefined) project.import_vessel_name = updateBody.import_vessel_name;
+                if (updateBody.import_bl_number !== undefined) project.import_bl_number = updateBody.import_bl_number;
+                if (updateBody.import_bl_date !== undefined) project.import_bl_date = updateBody.import_bl_date;
+                if (updateBody.import_etd_date !== undefined) project.import_etd_date = updateBody.import_etd_date;
+                if (updateBody.import_eta_port_date !== undefined) project.import_eta_port_date = updateBody.import_eta_port_date;
+                if (updateBody.import_eta_warehouse_date !== undefined) project.import_eta_warehouse_date = updateBody.import_eta_warehouse_date;
+                if (updateBody.import_customs_regime !== undefined) project.import_customs_regime = updateBody.import_customs_regime;
+                if (updateBody.import_dta_number !== undefined) project.import_dta_number = updateBody.import_dta_number;
+                if (updateBody.import_eadi_entry_date !== undefined) project.import_eadi_entry_date = updateBody.import_eadi_entry_date;
+                if (updateBody.import_notes !== undefined) project.import_notes = updateBody.import_notes;
+                if (updateBody.import_cbm !== undefined) project.import_cbm = updateBody.import_cbm;
+                if (updateBody.import_gross_weight !== undefined) project.import_gross_weight = updateBody.import_gross_weight;
+                if (updateBody.import_net_weight !== undefined) project.import_net_weight = updateBody.import_net_weight;
+                if (updateBody.import_packages_count !== undefined) project.import_packages_count = updateBody.import_packages_count;
 
                 // Audit log details
                 const timestamp = new Date().toLocaleTimeString() + ' ' + new Date().toLocaleDateString();
