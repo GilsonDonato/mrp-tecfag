@@ -9660,14 +9660,16 @@ app.get('/api/projects/:code/communications', authenticateToken, async (req, res
     }
 });
 
-// POST /api/projects/:code/copilot-chat - Interage com Gemini IA com hiper-contexto do projeto
-app.post('/api/projects/:code/copilot-chat', authenticateToken, async (req, res) => {
+// POST /api/projects/:code/copilot-chat - Interage com Gemini IA com hiper-contexto do projeto e suporte multimodal (fotos/documentos)
+app.post('/api/projects/:code/copilot-chat', authenticateToken, upload.array('files', 5), async (req, res) => {
     try {
         await ensureCommunicationsTable();
         const { code } = req.params;
-        const { message } = req.body;
-        if (!message || !message.trim()) {
-            return res.status(400).json({ error: 'Mensagem não informada.' });
+        const message = (req.body.message || '').trim();
+        const uploadedFiles = req.files || [];
+
+        if (!message && uploadedFiles.length === 0) {
+            return res.status(400).json({ error: 'Nenhuma mensagem ou arquivo enviado.' });
         }
 
         const geminiKey = process.env.GEMINI_API_KEY;
@@ -9682,10 +9684,17 @@ app.post('/api/projects/:code/copilot-chat', authenticateToken, async (req, res)
 
         const username = (req.user && (req.user.name || req.user.username)) ? (req.user.name || req.user.username) : 'Usuário';
 
-        // Salvar pergunta do usuário
+        // Montar descrição da mensagem salva no histórico
+        let savedMessage = message;
+        if (uploadedFiles.length > 0) {
+            const filesListDesc = uploadedFiles.map(f => `[Arquivo: ${f.originalname}]`).join(' ');
+            savedMessage = savedMessage ? `${savedMessage}\n\n📎 ${filesListDesc}` : `📎 ${filesListDesc}`;
+        }
+
+        // Salvar pergunta do usuário no mural de comunicações
         await dbRun(
             'INSERT INTO project_communications (project_code, type, role, sender, message) VALUES (?, ?, ?, ?, ?)',
-            [code, 'ai_chat', 'user', username, message.trim()]
+            [code, 'ai_chat', 'user', username, savedMessage]
         );
 
         // Histórico recente para a IA
@@ -9727,13 +9736,13 @@ DADOS DE IMPORTAÇÃO & FORNECEDOR INTERNACIONAL (COMEX):
 `;
 
         const systemInstruction = `Você é o Copilot de Engenharia, Compras Internacionais e Importação da Tecfag Máquinas.
-Você auxilia o diretor Gilson e a equipe da Tecfag a gerenciar projetos industriais, tirar dúvidas técnicas sobre máquinas (seladoras, envasadoras, datadores, enfardadeiras, termosseladoras, etc.) e negociar com fornecedores na China e clientes no Brasil.
+Você auxilia o diretor Gilson e a equipe da Tecfag a gerenciar projetos industriais, analisar desenhos técnicos, fotos de frascos/máquinas, tirar dúvidas técnicas sobre máquinas (seladoras, envasadoras, datadores, enfardadeiras, termosseladoras, rotuladoras, etc.) e negociar com fornecedores na China e clientes no Brasil.
 
 Você tem acesso irrestrito ao contexto COMPLETO deste projeto:
 ${projectContext}
 
 DIRETRIZES DE RESPOSTA:
-1. Responda de forma ágil, clara, técnica e profissional.
+1. Responda de forma ágil, clara, técnica e profissional. Se o usuário enviou imagens ou arquivos PDF, analise visualmente e tecnicamente os formatos, dimensões, rótulos, esteiras, detalhes de construção e peças que aparecem neles.
 2. Quando o usuário pedir para redigir um e-mail (ou quando a resposta envolver contato com fornecedor ou cliente), forneça uma explicação breve e em seguida forneça o e-mail formatado EXATAMENTE assim para que o botão de 1 clique funcione:
 ===EMAIL_SUGGESTION_START===
 PARA: [sugestão do e-mail do fornecedor ou cliente]
@@ -9758,12 +9767,39 @@ CORPO:
             }
         }
 
-        if (contents.length === 0 || contents[contents.length - 1].parts[0].text !== message.trim()) {
-            contents.push({
-                role: 'user',
-                parts: [{ text: message.trim() }]
-            });
+        // Montar a mensagem atual com suporte a partes multimodais (Inline Data Base64)
+        const currentParts = [];
+        if (message) {
+            currentParts.push({ text: message });
+        } else {
+            currentParts.push({ text: 'Por favor, analise as imagens/documentos anexados com base nas necessidades deste projeto industrial.' });
         }
+
+        for (const file of uploadedFiles) {
+            try {
+                const fileData = fs.readFileSync(file.path);
+                const base64Data = fileData.toString('base64');
+                const mimeType = file.mimetype || 'application/octet-stream';
+                
+                // Formatos aceitos nativamente pelo Gemini: imagens e PDFs
+                if (mimeType.startsWith('image/') || mimeType === 'application/pdf') {
+                    currentParts.push({
+                        inlineData: {
+                            mimeType: mimeType,
+                            data: base64Data
+                        }
+                    });
+                }
+            } catch (err) {
+                console.warn('[COPILOT MULTIMODAL READ ERROR]:', err.message);
+            }
+        }
+
+        // Substituir ou anexar como última interação do usuário
+        contents.push({
+            role: 'user',
+            parts: currentParts
+        });
 
         const requestBody = {
             systemInstruction: { parts: [{ text: systemInstruction }] },

@@ -4942,12 +4942,23 @@
                                 </div>
                             </div>
 
-                            <!-- Input de Mensagem -->
-                            <form onsubmit="handleSendCopilotMessage(event)" style="display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;">
-                                <textarea id="copilot-chat-input" rows="3" class="form-control" placeholder="Pergunte ao Gemini ou peça para redigir um e-mail (Ctrl+Enter para enviar)..." onkeydown="if(event.ctrlKey && event.key === 'Enter') handleSendCopilotMessage(event)" style="padding: 12px 14px; font-size: 0.92rem; line-height: 1.5; resize: none;"></textarea>
-                                <button type="submit" id="copilot-btn-send" class="btn" style="background: linear-gradient(135deg, #a855f7, #7c3aed); color: white; font-weight: bold; padding: 10px 16px; border-radius: 6px; height: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;">
-                                    <span>🚀</span> Enviar
-                                </button>
+                            <!-- Input de Mensagem Multimodal (Texto + Imagens + Documentos) -->
+                            <form onsubmit="handleSendCopilotMessage(event)" style="display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;">
+                                <!-- Pré-visualização de Arquivos Anexados -->
+                                <div id="copilot-chat-attachments-preview" style="display: none; flex-wrap: wrap; gap: 8px; padding: 6px 10px; background: rgba(30, 41, 59, 0.6); border: 1px dashed rgba(168, 85, 247, 0.4); border-radius: 6px;"></div>
+
+                                <div style="display: flex; gap: 8px; align-items: flex-end;">
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <input type="file" id="copilot-chat-file-input" multiple accept="image/*,application/pdf" style="display: none;" onchange="handleCopilotChatFilesSelect(event)">
+                                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('copilot-chat-file-input').click()" title="Anexar Imagem ou PDF para a IA analisar (também aceita Ctrl+V de prints)" style="padding: 10px 12px; height: 100%; border-color: rgba(168, 85, 247, 0.4); color: #c084fc; font-weight: bold; display: flex; align-items: center; justify-content: center; border-radius: 6px;">
+                                            📎
+                                        </button>
+                                    </div>
+                                    <textarea id="copilot-chat-input" rows="3" class="form-control" placeholder="Pergunte ao Gemini ou cole prints/fotos (Ctrl+V) ou documentos para a IA compor o raciocínio..." onkeydown="if(event.ctrlKey && event.key === 'Enter') handleSendCopilotMessage(event)" onpaste="handleCopilotChatPaste(event)" style="padding: 12px 14px; font-size: 0.92rem; line-height: 1.5; resize: none; flex: 1;"></textarea>
+                                    <button type="submit" id="copilot-btn-send" class="btn" style="background: linear-gradient(135deg, #a855f7, #7c3aed); color: white; font-weight: bold; padding: 10px 16px; border-radius: 6px; height: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                        <span>🚀</span> Enviar
+                                    </button>
+                                </div>
                             </form>
                         </div>
 
@@ -14610,23 +14621,114 @@
             }
         }
 
+        // Gerenciamento de Anexos Multimodais no Chat do Copilot
+        let copilotPendingFiles = [];
+
+        function handleCopilotChatFilesSelect(event) {
+            const files = Array.from(event.target.files || []);
+            addCopilotPendingFiles(files);
+            event.target.value = '';
+        }
+
+        function handleCopilotChatPaste(event) {
+            const clipboardData = event.clipboardData || window.clipboardData;
+            if (!clipboardData || !clipboardData.items) return;
+            const pastedFiles = [];
+            for (let i = 0; i < clipboardData.items.length; i++) {
+                const item = clipboardData.items[i];
+                if (item.type.indexOf('image') !== -1 || item.type === 'application/pdf') {
+                    const file = item.getAsFile();
+                    if (file) {
+                        const renamedFile = new File([file], `print_${Date.now()}.${file.type.split('/')[1] || 'png'}`, { type: file.type });
+                        pastedFiles.push(renamedFile);
+                    }
+                }
+            }
+            if (pastedFiles.length > 0) {
+                event.preventDefault();
+                addCopilotPendingFiles(pastedFiles);
+            }
+        }
+
+        function addCopilotPendingFiles(files) {
+            files.forEach(f => {
+                if (f.size > 20 * 1024 * 1024) {
+                    alert(`Arquivo ${f.name} excede o limite de 20MB.`);
+                    return;
+                }
+                copilotPendingFiles.push(f);
+            });
+            renderCopilotAttachmentsPreview();
+        }
+
+        function removeCopilotPendingFile(idx) {
+            copilotPendingFiles.splice(idx, 1);
+            renderCopilotAttachmentsPreview();
+        }
+
+        function renderCopilotAttachmentsPreview() {
+            const previewContainer = document.getElementById('copilot-chat-attachments-preview');
+            if (!previewContainer) return;
+            if (copilotPendingFiles.length === 0) {
+                previewContainer.style.display = 'none';
+                previewContainer.innerHTML = '';
+                return;
+            }
+            previewContainer.style.display = 'flex';
+            previewContainer.innerHTML = '';
+
+            copilotPendingFiles.forEach((file, idx) => {
+                const item = document.createElement('div');
+                item.style.cssText = 'display: inline-flex; align-items: center; gap: 6px; background: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.5); border-radius: 4px; padding: 4px 8px; font-size: 0.72rem; color: #e9d5ff;';
+                
+                const isImage = file.type.startsWith('image/');
+                const icon = isImage ? '🖼️' : '📄';
+                const name = file.name.length > 20 ? file.name.substring(0, 18) + '...' : file.name;
+                const size = (file.size / 1024).toFixed(1) + ' KB';
+
+                item.innerHTML = `
+                    <span>${icon} <strong>${name}</strong> (${size})</span>
+                    <button type="button" onclick="removeCopilotPendingFile(${idx})" style="background: none; border: none; color: #f87171; cursor: pointer; font-weight: bold; font-size: 0.8rem; padding: 0 2px;">&times;</button>
+                `;
+                previewContainer.appendChild(item);
+            });
+        }
+
         async function handleSendCopilotMessage(event) {
             if (event) event.preventDefault();
             const input = document.getElementById('copilot-chat-input');
             const btn = document.getElementById('copilot-btn-send');
             const historyContainer = document.getElementById('copilot-chat-history');
 
-            if (!input || !input.value.trim() || !activeProjectCode) return;
-            const message = input.value.trim();
-            input.value = '';
+            const hasMessage = input && input.value.trim();
+            const hasFiles = copilotPendingFiles.length > 0;
+            if ((!hasMessage && !hasFiles) || !activeProjectCode) return;
+            const message = input ? input.value.trim() : '';
+            if (input) input.value = '';
 
-            // Renderiza mensagem do usuário imediatamente
+            const filesToSend = [...copilotPendingFiles];
+            copilotPendingFiles = [];
+            renderCopilotAttachmentsPreview();
+
+            // Renderiza mensagem do usuário imediatamente com anexos
             if (historyContainer) {
                 const userBubble = document.createElement('div');
                 userBubble.style.cssText = 'align-self: flex-end; max-width: 88%; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: #f8fafc;';
+                
+                let filesHtml = '';
+                if (filesToSend.length > 0) {
+                    filesHtml = '<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px;">' +
+                        filesToSend.map(f => {
+                            const icon = f.type.startsWith('image/') ? '🖼️' : '📄';
+                            return `<span style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; font-size: 0.68rem;">${icon} ${f.name}</span>`;
+                        }).join('') +
+                        '</div>';
+                }
+
                 userBubble.innerHTML = `
                     <div style="font-size: 0.68rem; color: #bae6fd; font-weight: 700; margin-bottom: 4px;">👤 Você</div>
-                    <div style="white-space: pre-wrap; line-height: 1.4;">${message}</div>
+                    ${filesHtml}
+                    <div style="white-space: pre-wrap; line-height: 1.4;">${message || '<em>[Arquivos enviados para análise da IA]</em>'}</div>
                 `;
                 historyContainer.appendChild(userBubble);
 
@@ -14634,7 +14736,7 @@
                 const typingBubble = document.createElement('div');
                 typingBubble.id = 'copilot-typing-indicator';
                 typingBubble.style.cssText = 'align-self: flex-start; max-width: 88%; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: #c084fc;';
-                typingBubble.innerHTML = '🤖 <em>Gemini está analisando o projeto e formulando a resposta...</em>';
+                typingBubble.innerHTML = '🤖 <em>Gemini está analisando o projeto, documentos/imagens e formulando a resposta...</em>';
                 historyContainer.appendChild(typingBubble);
                 historyContainer.scrollTop = historyContainer.scrollHeight;
             }
@@ -14643,14 +14745,32 @@
                 if (btn) { btn.disabled = true; btn.innerText = '⏳...'; }
 
                 const token = localStorage.getItem('tecfag_session_token');
-                const headers = { 'Content-Type': 'application/json' };
-                if (token) headers['Authorization'] = `Bearer ${token}`;
+                let res;
 
-                const res = await fetch(`/api/projects/${activeProjectCode}/copilot-chat`, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({ message })
-                });
+                if (filesToSend.length > 0) {
+                    // Envio Multimodal via FormData
+                    const formData = new FormData();
+                    formData.append('message', message);
+                    filesToSend.forEach(file => {
+                        formData.append('files', file);
+                    });
+
+                    res = await fetch(`/api/projects/${activeProjectCode}/copilot-chat`, {
+                        method: 'POST',
+                        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                        body: formData
+                    });
+                } else {
+                    // Envio de Texto Simples via JSON
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                    res = await fetch(`/api/projects/${activeProjectCode}/copilot-chat`, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({ message })
+                    });
+                }
 
                 const typing = document.getElementById('copilot-typing-indicator');
                 if (typing) typing.remove();
@@ -14668,6 +14788,14 @@
                 }
             } catch (err) {
                 console.error(err);
+                const typing = document.getElementById('copilot-typing-indicator');
+                if (typing) typing.remove();
+                alert('Erro de conexão com o Copilot: ' + err.message);
+                loadProjectCopilotHub(activeProjectCode);
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<span>🚀</span> Enviar'; }
+            }
+        }
                 const typing = document.getElementById('copilot-typing-indicator');
                 if (typing) typing.remove();
                 alert('Erro de conexão ao falar com o Copilot: ' + err.message);
