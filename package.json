@@ -4,7 +4,8 @@
   "description": "Servidor local e banco de dados SQLite para controle de workflow MRP II da Tecfag",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node check_integrity.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
