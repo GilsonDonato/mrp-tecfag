@@ -4213,6 +4213,13 @@
                                             <input type="text" class="form-control" id="modal-spec-largura" style="font-size: 0.78rem; padding: 6px;" placeholder="Ex: 320 mm">
                                         </div>
                                     </div>
+                                    <div id="modal-group-dynamic-segment" style="display: none; flex-direction: column; gap: 10px; width: 100%; border: 1px solid rgba(59, 130, 246, 0.25); background: rgba(59, 130, 246, 0.03); border-radius: 6px; padding: 10px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(59, 130, 246, 0.2); padding-bottom: 6px; margin-bottom: 4px;">
+                                            <span id="modal-group-dynamic-segment-title" style="font-size: 0.72rem; font-weight: bold; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;">Parâmetros do Segmento</span>
+                                            <span style="font-size: 0.65rem; color: var(--text-secondary); background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px;">Engenharia Dedicada</span>
+                                        </div>
+                                        <div id="modal-group-dynamic-segment-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;"></div>
+                                    </div>
                                     <div id="modal-group-envase-only" style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
                                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
                                             <div>
@@ -16190,6 +16197,134 @@ Atenciosamente,`;
             codeInput.value = finalCode;
         }
 
+const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistura","fields":[{"label":"Sub-tipo de Equipamento","key":"sub_tipo_de_equipamento","type":"select","options":["Misturador","Moinho"]},{"label":"Peso de 1 Litro do Produto Solto na Jarra (g)","key":"peso_de_1_litro_do_produto_solto_na_jarra_g","type":"number","options":[]},{"label":"Capacidade Total (Litros)","key":"capacidade_total_litros","type":"number","options":[]},{"label":"Volume Útil de Trabalho (Litros)","key":"volume_util_de_trabalho_litros","type":"number","options":[]},{"label":"Método de Alimentação de Carga (Entrada)","key":"metodo_de_alimentacao_de_carga_entrada","type":"select","options":["Manual (Operador joga sacos)","Içamento de Big Bag","Transporte Pneumático/Rosca"]},{"label":"Tempo Estimado de Ciclo (Minutos)","key":"tempo_estimado_de_ciclo_minutos","type":"number","options":[]},{"label":"Tipo de Descarga Requerida","key":"tipo_de_descarga_requerida","type":"select","options":["Válvula Borboleta Manual","Válvula Borboleta Pneumática","Válvula Guilhotina/Slide","Válvula Rotativa Sanitária"]},{"label":"Nível de Abrasividade/Corrosividade","key":"nivel_de_abrasividade_corrosividade","type":"select","options":["Baixo (Pó comum, açúcar, grãos secos)","Médio (Abrasão moderada, sal)","Alto / Crítico (Altamente corrosivo)"]},{"label":"Comportamento Físico do Produto","key":"comportamento_fisico_do_produto","type":"select","options":["Comportamento normal","Empedra (Forma grumos)","Levanta muita poeira"]},{"label":"Umidade / Presença de Líquidos (%)","key":"umidade_presenca_de_liquidos","type":"number","options":[]},{"label":"Material de Construção do Equipamento","key":"material_de_construcao_do_equipamento","type":"select","options":["Aço Inox 304 (Padrão)","Aço Inox 316L (Farma/Altamente corrosivo)","Aço Carbono (Industrial comum)"]},{"label":"Requisito de Camisa Dupla","key":"requisito_de_camisa_dupla","type":"select","options":["Não exige","Aquecimento Elétrico (Resistência)","Aquecimento por Vapor/Óleo","Resfriamento por Água Gelada"]},{"label":"Altura Máxima Disponível de Pé-Direito (mm)","key":"altura_maxima_disponivel_de_pe_direito_mm","type":"number","options":[]},{"label":"Granulometria Inicial (mm)","key":"granulometria_inicial_mm","type":"text","options":[]},{"label":"Micronização Alvo (mesh/mm)","key":"micronizacao_alvo_mesh_mm","type":"text","options":[]},{"label":"Dureza / Abrasividade do Material","key":"dureza_abrasividade_do_material","type":"select","options":["Baixa (Produtos leves)","Média (Grãos secos, sementes)","Alta (Minerais)"]},{"label":"Tipo de Peneira","key":"tipo_de_peneira","type":"select","options":["Furos Redondos Padrão","Furos Cônicos (Anti-entupimento)","Malha Tecida (Ultra fina)"]}]},"ENCAPSULADORAS":{"title":"2. Encapsulamento & Farmacêutica","fields":[{"label":"Sub-tipo de Linha","key":"sub_tipo_de_linha","type":"select","options":["Encapsuladora de Gelatina Dura / Softgel","Contadores de Comprimidos/Cápsulas"]},{"label":"Formato/Tamanho da Cápsula Dura","key":"formato_tamanho_da_capsula_dura","type":"select","options":["Nº 00 (Grande)","Nº 0 (Padrão)","Nº 1 (Médio)","Nº 2 (Pequeno)","Nº 3 (Muito pequeno)","Nº 4 (Micro)","Customizado / Sob Encomenda"]},{"label":"Origem / Material da Cápsula","key":"origem_material_da_capsula","type":"select","options":["Origem Animal (Gelatina)","Origem Vegetal (HPMC)"]},{"label":"Modelo Softgel (Formato/Tamanho)","key":"modelo_softgel_formato_tamanho","type":"select","options":["Oval 3","Oval 7.5","Oblong 10","Oblong 20","Round 5","Outro formato personalizado"]},{"label":"Características do Produto de Preenchimento","key":"caracteristicas_do_produto_de_preenchimento","type":"select","options":["Líquido Oleoso (Padrão)","Pastoso / Alta Viscosidade","Suspensão (Particulados/Decantação)","Altamente Termossensível"]},{"label":"Destino da Contagem","key":"destino_da_contagem","type":"select","options":["Frascos / Potes Plásticos ou Vidro","Sacos / Stand-up Pouch / Envelopes"]},{"label":"Aparência Visual da Cápsula/Comprimido","key":"aparencia_visual_da_capsula_comprimido","type":"select","options":["Opaco (Cor Sólida)","Translúcido / Transparente"]},{"label":"Diâmetro de Boca do Pote (mm)","key":"diametro_de_boca_do_pote_mm","type":"text","options":[]},{"label":"Altura Máxima do Pote (mm)","key":"altura_maxima_do_pote_mm","type":"text","options":[]},{"label":"Dimensão da Embalagem Flexível (L x A)","key":"dimensao_da_embalagem_flexivel_l_x_a","type":"text","options":[]},{"label":"Velocidade de Produção Alvo (Cápsulas/min)","key":"velocidade_de_producao_alvo_capsulas_min","type":"number","options":[]},{"label":"Controle Climático da Sala (HVAC)","key":"controle_climatico_da_sala_hvac","type":"select","options":["Não tem controle","Sala climatizada apenas (temp)","Sala limpa estéril com controle de umidade ativa (<30% UR)"]}]},"GOMAS":{"title":"3. Fabricação de Gomas & Balas Gummy","fields":[{"label":"Tipo de Matéria-Prima Principal","key":"tipo_de_materia_prima_principal","type":"select","options":["Pectina (Origem vegetal - rápida gelificação)","Gelatina (Origem animal - maior rigidez/tempo resfriamento)","Carragena / Outros amidos"]},{"label":"Maturidade da Receita","key":"maturidade_da_receita","type":"select","options":["Receita validada em produção contínua","Formulação inicial de laboratório/cozinha"]},{"label":"Gramatura Estimada por Goma (g)","key":"gramatura_estimada_por_goma_g","type":"number","options":[]},{"label":"Capacidade de Produção Alvo (kg/h)","key":"capacidade_de_producao_alvo_kg_h","type":"select","options":["Até 50 kg/h (Pequena escala / Lab)","Até 150 kg/h (Escala média)","Até 300 kg/h (Escala industrial)","Acima de 300 kg/h (Alta performance)"]},{"label":"Adição de Ingredientes Termossensíveis?","key":"adicao_de_ingredientes_termossensiveis","type":"select","options":["Não","Sim (Vitaminas, CBD, Melatonina, etc)"]},{"label":"Revestimento Final (Coating)","key":"revestimento_final_coating","type":"select","options":["Óleo de polimento","Açúcar Cristal / Acido (Sanded)"]},{"label":"Geometria e Molde 3D Requerido","key":"geometria_e_molde_3d_requerido","type":"select","options":["Ursinho Clássico (Gummy Bear)","Amora / Redonda Estriada","Coração / Geométrico","Formato personalizado (Exige projeto CAD/CNC)"]},{"label":"Sistema de Resfriamento Requerido","key":"sistema_de_resfriamento_requerido","type":"select","options":["Túnel de Resfriamento Contínuo com Esteira","Câmara Fria Estática (Bandejas)"]},{"label":"Teor de Sólidos / Brix do Xarope","key":"teor_de_solidos_brix_do_xarope","type":"text","options":[]},{"label":"Método de Desmolde","key":"metodo_de_desmolde","type":"select","options":["Pulverização de Óleo de Desmolde (Mais limpo)","Banho de Amido (Mogul Clássico)"]}]},"DOSAGEM_SEMIAUTOMATICA":{"title":"4. Dosagem e Pesagem Semiautomática","fields":[{"label":"Tipo de Alimentador/Dosador","key":"tipo_de_alimentador_dosador","type":"select","options":["Rosca Sem Fim (Pós densos, farináceos)","Pistão Pneumático (Líquidos viscosos, cremes, géis)","Balança de Caneca Vibratória (Granulados, grãos, petiscos)"]},{"label":"Faixa de Peso/Volume de Envase","key":"faixa_de_peso_volume_de_envase","type":"select","options":["De 5g a 50g","De 50g a 500g","De 500g a 2000g","De 2kg a 5kg"]},{"label":"Viscosidade / Fluidez do Produto","key":"viscosidade_fluidez_do_produto","type":"select","options":["Pó Fino e Aerado (ex: Whey, Leite em pó, Farinhas leves)","Pó Granulado / Arenoso (ex: Café solúvel, Açúcar, Sal)","Pó Denso / Compactável (ex: Argamassa, Talco pesado)","Líquido / Baixa Viscosidade (Água / Óleo)","Líquido / Alta Viscosidade (Mel / Xarope / Creme)"]},{"label":"Geração de Espuma","key":"geracao_de_espuma","type":"select","options":["Não gera","Gera muita espuma sob agitação"]},{"label":"Características Físicas do Produto","key":"caracteristicas_fisicas_do_produto","type":"select","options":["Pó seco / Fluidez livre","Aderente / Pegajoso","Higroscópico (Absorve umidade / Empedra)"]},{"label":"Variação Máxima Aceitável de Peso (Perda em gramas)","key":"variacao_maxima_aceitavel_de_peso_perda_em_gramas","type":"number","options":[]},{"label":"Método de Alimentação do Funil da Máquina","key":"metodo_de_alimentacao_do_funil_da_maquina","type":"select","options":["Manual (Operador joga de balde/saco)","Bomba de Transferência","Elevador de Rosca/Taliscas"]},{"label":"Tipo de Embalagem a Preencher","key":"tipo_de_embalagem_a_preencher","type":"select","options":["Rígida (Pote / Frasco)","Flexível (Saco / Pouch)"]},{"label":"Temperatura do Produto no Envase (°C)","key":"temperatura_do_produto_no_envase_c","type":"number","options":[]}]},"DOSAGEM_EMPACOTAMENTO":{"title":"5. Empacotamento Automático","fields":[{"label":"Formato da Embalagem","key":"formato_da_embalagem","type":"select","options":["VFFS Vertical Almofada / Travesseiro","VFFS Vertical Sanfonado / Fundo Chato","Stand-up Pouch (Pré-formado ou com Zíper)","Flow Pack Horizontal","Sachê tipo Stick"]},{"label":"Equipamento de Dosagem Superior Acoplado","key":"equipamento_de_dosagem_superior_acoplado","type":"select","options":["Balança Multicabeçote (Grãos/Snacks)","Dosador de Rosca Sem Fim (Pós)","Copo Volumétrico (Grãos)","Bomba de Pistão (Líquidos)","Sem dosador (Alimentação manual)"]},{"label":"Sistema de Alimentação do Produto (Flow Pack)","key":"sistema_de_alimentacao_do_produto_flow_pack","type":"select","options":["Manual por Esteira de Talas / Empurradores","Alimentador Automático / Magazine de Produto","Esteira Sincronizada em Linha Contínua","Alimentador Rotativo / Centrífugo","Alimentação por Gravidade / Rampa Inclinada"]},{"label":"Posição da Bobina do Filme","key":"posicao_da_bobina_do_filme","type":"select","options":["Bobina Superior (Padrão - Produtos Regulares/Sólidos/Bandejas)","Bobina Inferior / Invertida (Produtos Irregulares, Macios, Úmidos ou Pesados)"]},{"label":"Tipo de Movimento do Mordente Transversal","key":"tipo_de_movimento_do_mordente_transversal","type":"select","options":["Mordente Rotativo Simples (Padrão / Alta Velocidade)","Mordente Rotativo Duplo (Altíssima Velocidade)","Mordente Box Motion / D-Cam (Selagem Hermética / Pacotes Altos / MAP)"]},{"label":"Injeção de Gás Inerte (Atmosfera Modificada / MAP)?","key":"injecao_de_gas_inerte_atmosfera_modificada_map","type":"select","options":["Não (Ar ambiente)","Sim (Injeção de Gás para Aumento de Shelf-life)"]},{"label":"Dimensões do Produto / Embalagem (C x L x A em mm)","key":"dimensoes_do_produto_embalagem_c_x_l_x_a_em_mm","type":"text","options":[]},{"label":"Arte Impressa possui Fotocélula (Tarja preta)?","key":"arte_impressa_possui_fotocelula_tarja_preta","type":"select","options":["Sim (Filme impresso com marca de registro)","Não (Filme transparente / liso / contínuo)"]},{"label":"Tipo de Solda/Selagem","key":"tipo_de_solda_selagem","type":"select","options":["Solda Estriada / Recartilhada (Laminados / BOPP)","Solda Lisa (PE simples / Impulso)","Solda Fria (Cold Seal)","De acordo com projeto do cliente"]},{"label":"Tipo de Datador Requerido","key":"tipo_de_datador_requerido","type":"select","options":["Hot Stamping (Fita térmica simples)","Inkjet Integrado","Termotransferência (TTO - Dados variáveis/barras)","Não exige datador"]},{"label":"Sensibilidade do Produto à Queda","key":"sensibilidade_do_produto_a_queda","type":"select","options":["Resistente (Grãos, feijão, arroz, parafusos)","Média (Biscoitos, snacks, torradas)","Altíssima (Requer calhas inclinadas de baixa queda)"]},{"label":"Composição e Espessura da Bobina de Filme","key":"composicao_e_espessura_da_bobina_de_filme","type":"text","options":[]},{"label":"Velocidade Requerida de Produção (Pacotes/minuto - ppm)","key":"velocidade_requerida_de_producao_pacotes_minuto_ppm","type":"number","options":[]}]},"ENVASE":{"title":"6. Envasadoras Automáticas de Líquidos/Pastosos","fields":[{"label":"Tipo de Envasadora Automática","key":"tipo_de_envasadora_automatica","type":"select","options":["Pistão Volumétrico (Pastosos e Alta Viscosidade)","Gravidade por Temporização (Líquidos Finos)","Ponderal por Célula de Carga (Precisão Industrial/Química)"]},{"label":"Range Extremo de Envase (Menor e Maior Volume)","key":"range_extremo_de_envase_menor_e_maior_volume","type":"text","options":[]},{"label":"Comportamento de Corte do Fluxo","key":"comportamento_de_corte_do_fluxo","type":"select","options":["Corta limpo (Água)","Forma 'fio' / Goteja (Mel/Shampoo/Óleo)"]},{"label":"Geração de Espuma durante o envase","key":"geracao_de_espuma_durante_o_envase","type":"select","options":["Não gera espuma","Gera muita espuma sob agitação"]},{"label":"Estabilidade do Frasco Vazio","key":"estabilidade_do_frasco_vazio","type":"select","options":["Fica em pé sozinho","Tomba com facilidade (Ex: Bisnaga, rímel, frasco fino)"]},{"label":"Ciclo de Higienização","key":"ciclo_de_higienizacao","type":"select","options":["Desmontagem Manual e Limpeza Convencional","Ciclo CIP/SIP Automático (Tubulações farmacêuticas/clamp)"]},{"label":"Temperatura Máxima do Líquido no Envase (°C)","key":"temperatura_maxima_do_liquido_no_envase_c","type":"number","options":[]},{"label":"Geometria do Frasco","key":"geometria_do_frasco","type":"select","options":["Cadrão Cilíndrico (Estável)","Retangular ou Quadrado","Irregular / Instável (Exige pucks de fixação)"]},{"label":"Diâmetro Interno do Gargalo (mm)","key":"diametro_interno_do_gargalo_mm","type":"number","options":[]},{"label":"Presença de Sólidos/Pedaços no Produto","key":"presenca_de_solidos_pedacos_no_produto","type":"select","options":["Não tem sólidos (Líquido homogêneo)","Sim, contém pedaços menores de 3mm","Sim, contém pedaços maiores (Ex: polpa fruta)"]}]},"FECHAMENTO_TAMPAGEM":{"title":"7. Sistemas de Fechamento & Tampagem","fields":[{"label":"Sub-tipo de Fechamento","key":"sub_tipo_de_fechamento","type":"select","options":["Seladoras de Selo de Alumínio por Indução","Rosqueadoras Automáticas (Gatilho/Roscada)"]},{"label":"O selo de alumínio já vem embutido na tampa?","key":"o_selo_de_aluminio_ja_vem_embutido_na_tampa","type":"select","options":["Sim (Padrão de indução)","Não"]},{"label":"Largura Máxima do Selo de Alumínio (mm)","key":"largura_maxima_do_selo_de_aluminio_mm","type":"select","options":["Até 50 mm","Até 80 mm","Até 120 mm","Acima de 120 mm"]},{"label":"Sistema de Resfriamento da Cabeça","key":"sistema_de_resfriamento_da_cabeca","type":"select","options":["Refrigeração a Ar (Baixa/Média velocidade)","Refrigeração a Água Chiller (Alta velocidade/Industrial)"]},{"label":"Método de Alimentação de Tampas","key":"metodo_de_alimentacao_de_tampas","type":"select","options":["Operador coloca a tampa manual","Elevador / Panela Vibratória Automática"]},{"label":"Geometria da Tampa (Pescador)","key":"geometria_da_tampa_pescador","type":"select","options":["Tampa Simples (Rosca comum)","Com pescador longo (Válvula Pump / Gatilho Spray)"]},{"label":"Tipo de Tampa","key":"tipo_de_tampa","type":"select","options":["Tampa Roscada Comum (Plástica/Metálica)","Tampa com Gatilho / Borrifadora (Spray)","Tampa com Válvula Pump (Sabonete/Loção)","Tampa Flip-Top / Pressão"]},{"label":"Torque Requerido (Nm)","key":"torque_requerido_nm","type":"select","options":["Não sei / Padrão de prateleira","Ajuste Magnético Padrão (Leve a Médio)","Servo Motorizado (Alto torque controlado / Rastreável)"]},{"label":"Passo da Rosca e Altura da Tampa (mm)","key":"passo_da_rosca_e_altura_da_tampa_mm","type":"text","options":[]}]},"VACUO_TERMOFORMADORAS":{"title":"8. Seladoras a Vácuo & Termoformadoras","fields":[{"label":"Tipo de Seladora a Vácuo","key":"tipo_de_seladora_a_vacuo","type":"select","options":["Seladora de Campana (Câmara)","Termoformadora Industrial Automática (Bobinas de filme)","Seladora de Bandejas com Atmosfera Modificada (MAP)"]},{"label":"Presença de Líquido Livre ou Produto Quente?","key":"presenca_de_liquido_livre_ou_produto_quente","type":"select","options":["Apenas sólido e frio","Contém muito líquido (sangue, caldo) ou embalado quente"]},{"label":"Injeção de Gás (MAP) Requerida?","key":"injecao_de_gas_map_requerida","type":"select","options":["Não (Apenas Vácuo Padrão)","Sim (Atmosfera Modificada - Nitrogênio/CO2)"]},{"label":"Tipo de Barra de Selagem","key":"tipo_de_barra_de_selagem","type":"select","options":["Simples costura de selagem","Dupla barra de selagem (Segurança extra)","Bi-ativa (Aquecimento inferior e superior para sacos grossos)"]},{"label":"Dimensões Máximas do Produto a Embalar (C x L x A - mm)","key":"dimensoes_maximas_do_produto_a_embalar_c_x_l_x_a_mm","type":"text","options":[]}]},"ROTULADORAS":{"title":"9. Rotuladoras & Etiquetadoras","fields":[{"label":"Tipo de Rotuladora","key":"tipo_de_rotuladora","type":"select","options":["Linear Autoadesiva (Padrão para frascos planos/cilíndricos)","Rotativa Autoadesiva (Altíssima velocidade, múltiplos rótulos)","Aplicadora de Rótulo Sleeve (Termoencolhível com Túnel)"]},{"label":"Condição da Superfície do Frasco no Momento","key":"condicao_da_superficie_do_frasco_no_momento","type":"select","options":["Seco e limpo","Úmido/Suado (Condensação fria)","Oleoso"]},{"label":"Geometria Oculta (Conicidade)","key":"geometria_oculta_conicidade","type":"select","options":["100% Cilíndrico e Reto","Levemente cônico (Formato copo/balde)"]},{"label":"Posicionamento do Rótulo","key":"posicionamento_do_rotulo","type":"select","options":["Cilíndrico Envolvente (Envolve todo o frasco)","Frente e Verso Simultâneos (Frascos planos/ovais)","Plano Superior (Tampas, caixas)","Lacre de Segurança em L (Tampas)"]},{"label":"Sensor de Rótulo Requerido","key":"sensor_de_rotulo_requerido","type":"select","options":["Rótulo Opaco Padrão (Sensor fotoelétrico comum)","Rótulo Transparente/BOPP (Sensor ultrassônico especial)"]},{"label":"Altura Máxima do Rótulo (mm)","key":"altura_maxima_do_rotulo_mm","type":"number","options":[]},{"label":"Sentido de Desenrolamento da Bobina","key":"sentido_de_desenrolamento_da_bobina","type":"select","options":["Esquerda para Direita (Padrão)","Direita para Esquerda (Invertido)"]}]},"TERMOENCOLHIVEL":{"title":"10. Termoencolhíveis & Seladoras","fields":[{"label":"Sub-tipo Termoencolhível","key":"sub_tipo_termoencolhivel","type":"select","options":["Seladora em L Automática","Seladora em L Contínua Automática","Enfardadora Bundling (Filme PE)","Túnel de Encolhimento Elétrico","Túnel de Encolhimento a Vapor (Rótulos Sleeve)"]},{"label":"Matriz de Agrupamento do Fardo (Ex: 3x4, 2x3)","key":"matriz_de_agrupamento_do_fardo_ex_3x4_2x3","type":"text","options":[]},{"label":"Sentido de Alimentação do Produto","key":"sentido_de_alimentacao_do_produto","type":"select","options":["Frontal (Em linha reta)","Lateral (Entrada em 90 graus)"]},{"label":"Base de Sustentação do Produto/Fardo","key":"base_de_sustentacao_do_produto_fardo","type":"select","options":["Apenas filme (Garrafas soltas)","Bandeja plana de papelão por baixo (Pad)","Caixa fechada / Produto único rígido"]},{"label":"Tipo de Fechamento do Fardo","key":"tipo_de_fechamento_do_fardo","type":"select","options":["Padrão com furos laterais (Olho de Boi)","Fechamento Total (100% selado)"]},{"label":"Sensibilidade do Produto Interno ao Calor","key":"sensibilidade_do_produto_interno_ao_calor","type":"select","options":["Resistente ao calor","Sensível (Pode derreter/deformar/explodir - Chocolates, latas de aerossol)"]},{"label":"Peso Total do Fardo / Pacote (kg)","key":"peso_total_do_fardo_pacote_kg","type":"number","options":[]},{"label":"Dimensão da Área de Selagem (C x L)","key":"dimensao_da_area_de_selagem_c_x_l","type":"text","options":[]},{"label":"Produtividade Requerida (Pacotes ou Fardos/min)","key":"produtividade_requerida_pacotes_ou_fardos_min","type":"number","options":[]},{"label":"Dimensões Internas da Janela de Entrada (L x A)","key":"dimensoes_internas_da_janela_de_entrada_l_x_a","type":"text","options":[]},{"label":"Tipo de Resistência/Aquecimento","key":"tipo_de_resistencia_aquecimento","type":"select","options":["Resistências Elétricas Blindadas Aletadas","Lâmpadas Infravermelho (Rápido aquecimento/resfriamento)","Gerador de Vapor Direto (Indicado para Sleeve e frascos cheios)"]},{"label":"Tipo de Filme Termoencolhível","key":"tipo_de_filme_termoencolhivel","type":"select","options":["PVC (Alta transparência, mais rígido)","POF / Poliolefínico (Alimentício comum, flexível)","PE / Polietileno (Fardos grossos - Obrigatório em Bundling)"]}]},"FINAL_LINHA":{"title":"11. Final de Linha & Paletização","fields":[{"label":"Equipamento Final de Linha","key":"equipamento_final_de_linha","type":"select","options":["Formadora de Caixas de Papelão Automática","Fechadora de Caixas de Papelão (Fita adesiva / Hotmelt)","Paletizadora Automática (Envolvedora de filme stretch)","Esteiras de Acúmulo e Curvas de Distribuição"]},{"label":"Padrão Exato do Palete (Dimensões)","key":"padrao_exato_do_palete_dimensoes","type":"select","options":["PBR Brasil (1000x1200mm)","Euro-palete (800x1200mm)","Dimensões Especiais"]},{"label":"Qualidade do Papelão Atual","key":"qualidade_do_papelao_atual","type":"select","options":["Caixas retas e rígidas (Material Virgem)","Caixas costumam vir empenadas/moles (Material Reciclado)"]},{"label":"Tipo de Fechamento da Caixa","key":"tipo_de_fechamento_da_caixa","type":"select","options":["Fita Adesiva Plástica Comum","Cola Quente Hotmelt (Selagem estrutural de segurança)"]},{"label":"Dimensões Máximas da Caixa (C x L x A)","key":"dimensoes_maximas_da_caixa_c_x_l_x_a","type":"text","options":[]},{"label":"Peso Máximo da Caixa/Fardo Final (kg)","key":"peso_maximo_da_caixa_fardo_final_kg","type":"number","options":[]},{"label":"Altura Máxima do Palete Montado (mm)","key":"altura_maxima_do_palete_montado_mm","type":"number","options":[]},{"label":"Layout / Padrão de Paletização (Mosaico)","key":"layout_padrao_de_paletizacao_mosaico","type":"text","options":[]}]},"PROJETOS_ESPECIAIS":{"title":"12. Projetos Especiais & Customizações","fields":[{"label":"Nível de Customização Requerido","key":"nivel_de_customizacao_requerido","type":"select","options":["Adaptação de máquina padrão (Alteração de calhas/funis)","Retrofit / Upgrade tecnológico (Sensores, CLP, IHM novos)","Projeto do Zero (Desenho mecânico CAD e desenvolvimento de IHM dedicado)"]},{"label":"Método de Higienização no Fim do Turno","key":"metodo_de_higienizacao_no_fim_do_turno","type":"select","options":["Pano úmido / Ar comprimido (Limpeza a seco)","Lavagem com mangueira de água (Alta pressão)"]},{"label":"Exigência de Validação Farmacêutica (IQ/OQ/PQ)","key":"exigencia_de_validacao_farmaceutica_iq_oq_pq","type":"select","options":["Não","Sim"]},{"label":"Disponibilidade de Ar Comprimido na Fábrica","key":"disponibilidade_de_ar_comprimido_na_fabrica","type":"select","options":["Possui rede com capacidade disponível","Não possui compressor de ar"]},{"label":"Restrições de Instalação Física","key":"restricoes_de_instalacao_fisica","type":"select","options":["Acesso fácil (Galpão amplo)","Portas estreitas, escadas, ausência de empilhadeira"]},{"label":"Setor de Aplicação / Ambiente","key":"setor_de_aplicacao_ambiente","type":"select","options":["Alimentício Sanitário (Inox 304, acabamento polido)","Farmacêutico Estéril (Inox 316L, solda sanitária orbital, relatórios de validação)","Químico Industrial (Materiais anticorrosivos, vedações especiais)","Área Classificada ATEX (À prova de explosão)"]},{"label":"CLP de Preferência do Cliente","key":"clp_de_preferencia_do_cliente","type":"select","options":["Sem preferência (Padrão Tecfag)","Siemens (Altamente exigido por multinacionais)","Allen Bradley / Rockwell","WEG"]},{"label":"Tensão de Alimentação do Cliente","key":"tensao_de_alimentacao_do_cliente","type":"select","options":["220V Bifásico / Trifásico","380V Trifásico","440V Trifásico"]}]},"SELADORAS_CONTINUAS":{"title":"13. Seladoras Contínuas","fields":[{"label":"Sub-tipo de Seladora","key":"sub_tipo_de_seladora","type":"select","options":["Horizontal (Mesa)","Vertical (Líquidos/Pós)","Suporte de Chão (Pedestal)","Heavy Duty (Carga Pesada)"]},{"label":"Tipo de Datador Integrado","key":"tipo_de_datador_integrado","type":"select","options":["Sem Datador","Relevo (Embossing)","Rolo de Tinta Térmica (Ink Roller)","Inkjet TIJ (Jato de Tinta Industrial)","Gravação a Laser UV (355 nm) de Estado Sólido"]},{"label":"Velocidade de Selagem Alvo (m/min)","key":"velocidade_de_selagem_alvo_m_min","type":"number","options":[]},{"label":"Carga Máxima da Esteira (kg)","key":"carga_maxima_da_esteira_kg","type":"number","options":[]},{"label":"Tipo de Filme/Embalagem","key":"tipo_de_filme_embalagem","type":"select","options":["PE (Polietileno)","PP (Polipropileno)","Laminados/Alumínio","Papel Kraft/Plástico","Outros"]},{"label":"Espessura Média do Filme (mm)","key":"espessura_media_do_filme_mm","type":"select","options":["Fino (0.02 - 0.08 mm)","Médio (0.08 - 0.20 mm)","Grosso/Pesado (0.20 - 0.50 mm)"]}]}};
+
+        function normalizeSegmentKey(seg) {
+            if (!seg) return '';
+            const s = String(seg).toUpperCase().trim();
+            if (s.includes('ROTULA')) return 'ROTULADORAS';
+            if (s.includes('MISTURA') || s.includes('MOINHO')) return 'MISTURADORES';
+            if (s.includes('ENCAPSULA') || s.includes('FARMAC')) return 'ENCAPSULADORAS';
+            if (s.includes('GOMA') || s.includes('GUMMY')) return 'GOMAS';
+            if (s.includes('DOSAGEM_SEMIAUTOMATICA') || s.includes('SEMIAUTOMATICA') || s.includes('SEMI-AUTOMATICA')) return 'DOSAGEM_SEMIAUTOMATICA';
+            if (s.includes('DOSAGEM_EMPACOTAMENTO') || s.includes('EMPACOTAMENTO') || s.includes('VFFS') || s.includes('FLOW PACK')) return 'DOSAGEM_EMPACOTAMENTO';
+            if (s.includes('ENVASE') || s.includes('ENVASADORA')) return 'ENVASE';
+            if (s.includes('FECHAMENTO') || s.includes('TAMPAGEM') || s.includes('ROSQUEADORA') || s.includes('INDUCAO')) return 'FECHAMENTO_TAMPAGEM';
+            if (s.includes('VACUO') || s.includes('TERMOFORMADORA') || s.includes('MAP')) return 'VACUO_TERMOFORMADORAS';
+            if (s.includes('TERMOENCOLHIVEL') || s.includes('BUNDLING') || s.includes('SHRINK') || s.includes('ENFARDADORA')) return 'TERMOENCOLHIVEL';
+            if (s.includes('FINAL_LINHA') || s.includes('FINAL DE LINHA') || s.includes('PALETIZACAO') || s.includes('CAIXAS')) return 'FINAL_LINHA';
+            if (s.includes('ESPECIAIS') || s.includes('PERSONNALITE')) return 'PROJETOS_ESPECIAIS';
+            if (s.includes('SELADORAS_CONTINUAS') || s.includes('SELADORA CONTINUA')) return 'SELADORAS_CONTINUAS';
+            return s;
+        }
+
+        function renderDynamicSegmentSpecs(project, specs) {
+            const container = document.getElementById('modal-group-dynamic-segment');
+            const grid = document.getElementById('modal-group-dynamic-segment-grid');
+            const titleEl = document.getElementById('modal-group-dynamic-segment-title');
+            const envaseGroup = document.getElementById('modal-group-envase-only');
+            if (!container || !grid) return;
+
+            let rawSegment = '';
+            let diagParams = {};
+            if (project.diagnostico) {
+                try {
+                    const parsed = typeof project.diagnostico === 'string' ? JSON.parse(project.diagnostico) : project.diagnostico;
+                    rawSegment = parsed.segment || parsed.segmento || '';
+                    if (parsed.parameters) diagParams = parsed.parameters;
+                    else if (parsed.params) diagParams = parsed.params;
+                } catch(e) {}
+            }
+
+            const normalized = normalizeSegmentKey(rawSegment);
+            const segConfig = SEGMENT_SPECS_CONFIG[normalized];
+
+            // Envase só fica visível se for exatamente o segmento ENVASE
+            if (envaseGroup) {
+                if (normalized === 'ENVASE') {
+                    envaseGroup.style.display = 'flex';
+                } else {
+                    envaseGroup.style.display = 'none';
+                }
+            }
+
+            if (!segConfig || !segConfig.fields || segConfig.fields.length === 0) {
+                container.style.display = 'none';
+                grid.innerHTML = '';
+                return;
+            }
+
+            container.style.display = 'flex';
+            if (titleEl) titleEl.innerText = '⚙️ Parâmetros Específicos: ' + segConfig.title;
+            grid.innerHTML = '';
+
+            const slugify = (str) => String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+
+            segConfig.fields.forEach(field => {
+                const col = document.createElement('div');
+                col.style.display = 'flex';
+                col.style.flexDirection = 'column';
+                col.style.gap = '3px';
+
+                const lbl = document.createElement('label');
+                lbl.style.fontSize = '0.68rem';
+                lbl.style.color = 'var(--text-secondary)';
+                lbl.style.fontWeight = 'bold';
+                lbl.style.textTransform = 'uppercase';
+                lbl.innerText = field.label;
+                col.appendChild(lbl);
+
+                let initialVal = (specs && specs[field.key]) || '';
+                if (!initialVal && diagParams) {
+                    for (const [dk, dv] of Object.entries(diagParams)) {
+                        if (slugify(dk) === field.key) {
+                            initialVal = String(dv);
+                            break;
+                        }
+                    }
+                }
+
+                if (field.type === 'select' && field.options && field.options.length > 0) {
+                    const sel = document.createElement('select');
+                    sel.className = 'form-control dynamic-segment-spec-field';
+                    sel.id = 'modal-spec-dynamic-' + field.key;
+                    sel.setAttribute('data-spec-key', field.key);
+                    sel.style.fontSize = '0.78rem';
+                    sel.style.padding = '6px';
+
+                    const defOpt = document.createElement('option');
+                    defOpt.value = '';
+                    defOpt.innerText = 'Selecione...';
+                    sel.appendChild(defOpt);
+
+                    field.options.forEach(opt => {
+                        const optEl = document.createElement('option');
+                        optEl.value = opt;
+                        optEl.innerText = opt;
+                        if (initialVal && (initialVal === opt || opt.includes(initialVal) || initialVal.includes(opt))) {
+                            optEl.selected = true;
+                        }
+                        sel.appendChild(optEl);
+                    });
+                    col.appendChild(sel);
+                } else {
+                    const inp = document.createElement('input');
+                    inp.type = field.type === 'number' ? 'number' : 'text';
+                    inp.className = 'form-control dynamic-segment-spec-field';
+                    inp.id = 'modal-spec-dynamic-' + field.key;
+                    inp.setAttribute('data-spec-key', field.key);
+                    inp.style.fontSize = '0.78rem';
+                    inp.style.padding = '6px';
+                    inp.value = initialVal || '';
+                    inp.placeholder = 'Ex: ' + field.label;
+                    col.appendChild(inp);
+                }
+
+                grid.appendChild(col);
+            });
+        }
+
+
         // Variável global para armazenar o esquema de requisitos dinâmicos
         let requisitosSchema = [];
 
@@ -19283,22 +19418,8 @@ function renderKanban() {
             document.getElementById('modal-spec-nr12').value = specs.seguranca_nr12;
             document.getElementById('modal-spec-portas').value = specs.portas_seguranca;
             
-            // Controle dinâmico de visibilidade para processos que não são de Envase/Dosagem
-            let projectSegment = '';
-            if (project.diagnostico) {
-                try {
-                    const parsedDiag = typeof project.diagnostico === 'string' ? JSON.parse(project.diagnostico) : project.diagnostico;
-                    projectSegment = parsedDiag.segment || '';
-                } catch(e) {}
-            }
-            const envaseGroup = document.getElementById('modal-group-envase-only');
-            if (envaseGroup) {
-                if (projectSegment === 'FECHAMENTO_TAMPAGEM' || projectSegment === 'ROTULAGEM' || projectSegment === 'EMBALAGEM_SECUNDARIA') {
-                    envaseGroup.style.display = 'none';
-                } else {
-                    envaseGroup.style.display = 'flex';
-                }
-            }
+            // Renderização dinâmica dos parâmetros específicos por segmento (Rotuladoras, Tampadoras, etc.)
+            renderDynamicSegmentSpecs(project, specs);
             
             // Atualizar o Alerta de Pré-Requisitos do Técnico
             const specAlert = document.getElementById('modal-setup-specs-alert');
@@ -23461,6 +23582,14 @@ function renderKanban() {
                     portas_seguranca: getVal('modal-spec-portas') || existingSpecs.portas_seguranca || '',
                     case_study_md: currentCaseStudyMD || existingSpecs.case_study_md || ''
                 };
+
+                // Coletar campos dinâmicos por segmento
+                document.querySelectorAll('.dynamic-segment-spec-field').forEach(fieldEl => {
+                    const k = fieldEl.getAttribute('data-spec-key');
+                    if (k) {
+                        setupSpecs[k] = fieldEl.value.trim();
+                    }
+                });
                 
                 const updateBody = {
                     serial: projectSerial,
