@@ -23982,6 +23982,12 @@ function renderKanban() {
                     return;
                 }
 
+                // Sincroniza com a autoridade de fase canônica retornada pelo backend
+                if (data.fase !== undefined) {
+                    project.fase = data.fase;
+                    newFase = data.fase;
+                }
+
                 // Post log
                 await fetch('/api/logs', {
                     method: 'POST',
@@ -24255,10 +24261,10 @@ function renderKanban() {
                     return;
                 }
 
-                // Sincroniza estado local do projeto imediatamente
+                // Sincroniza estado local do projeto imediatamente (com autoridade canônica do backend)
                 project.serial = projectSerial;
                 project.route = projectRoute;
-                project.fase = finalFase;
+                project.fase = (data.fase !== undefined) ? data.fase : finalFase;
                 project.checklist = updatedChecklist;
                 project.machines = updatedMachines;
                 project.setup_specs = setupSpecs;

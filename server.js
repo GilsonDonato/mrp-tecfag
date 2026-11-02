@@ -857,6 +857,95 @@ function buildDynamicUpdate(tableName, fields, whereClause, whereParams = []) {
     return { sql, params };
 }
 
+/**
+ * Máquina de Estados Canônica da Fase do Projeto (Etapa 2 da Estabilização)
+ * Autoridade absoluta sobre a fase do ciclo de vida do projeto no MRP Tecfag.
+ */
+function computeCanonicalProjectPhase(project) {
+    if (!project) return 1;
+
+    // Fases terminais/especiais têm precedência máxima
+    if (project.motivoPerda || parseInt(project.fase) === 8 || project.is_archived === 1) {
+        return 8; // Cancelado / Perdido / Arquivado Pós-Venda
+    }
+
+    let chk = {};
+    if (project.checklist) {
+        try {
+            chk = typeof project.checklist === 'string' ? JSON.parse(project.checklist) : project.checklist;
+        } catch (e) {
+            chk = {};
+        }
+    }
+
+    const isLocalStock = project.equipment_origin === 'Pronta Entrega (Estoque Local)';
+
+    // SAT aprovado / entrega final
+    if (chk.sat || parseInt(project.fase) === 7) {
+        return 7; // Entregue & Homologado no Cliente
+    }
+
+    const f1Complete = !!(chk.diagnostico && chk.customizacao && chk.cotacao && chk.fluxograma && chk.planta_baixa);
+    const f2Complete = !!(chk.aprovacao && chk.contrato);
+    const f3Complete = !!(chk.proforma && chk.cambio_sinal && chk.swift_pagamento);
+    const f4Complete = !!(chk.producao && chk.embarque && chk.pagamento && chk.fedex);
+    const f5Complete = !!(chk.transporte_maritimo && chk.desembaraco && chk.chegada_tecfag);
+
+    const hasF6 = !!(chk.vistoria || chk.travas || chk.direcionamento || chk.logistica_saida || chk.startup);
+    const hasF5 = !!(chk.transporte_maritimo || chk.desembaraco || chk.chegada_tecfag);
+    const hasF4 = !!(chk.producao || chk.embarque || chk.pagamento || chk.fedex);
+    const hasF3 = !!(chk.proforma || chk.cambio_sinal || chk.swift_pagamento);
+    const hasF2 = !!(chk.aprovacao || chk.contrato);
+
+    let calculated = 1;
+
+    // Fluxo de Pronta Entrega (Estoque Local - pula Fases 3, 4 e 5 Comex)
+    if (isLocalStock) {
+        if (hasF6 || f2Complete) {
+            calculated = 6; // Oficina, Setup & SAT
+        } else if (hasF2 || f1Complete) {
+            calculated = 2; // Comercial & Contrato
+        } else {
+            calculated = 1; // Engenharia & Escopo
+        }
+    } else {
+        // Fluxo Padrão (Importação / Sob Encomenda):
+        const importStage = project.import_stage;
+        const hasArrivedDoca = importStage === 'DOCA_GALPAO' || importStage === 'DOCA_TECFAG' || hasF6 || f5Complete;
+        const inPortOrEadi = ['ENTREPOSTADO_EADI', 'NO_PORTO_DESEMBARACO', 'NO_NAVIO'].includes(importStage) || hasF5 || f4Complete;
+        const inFabrication = ['EM_FABRICACAO', 'PACKING_LIST_EMBARQUE'].includes(importStage) || hasF4 || f3Complete;
+        const hasStartedImportChecklist = hasF3 || hasF4 || hasF5 || hasF6;
+        const hasFormalImportOrder = !!(project.has_import_order && (project.import_order_id || project.import_po_number));
+        const inComex = hasF3 || f2Complete || hasFormalImportOrder;
+
+        if (hasArrivedDoca) {
+            calculated = 6; // Oficina, Setup & SAT
+        } else if (inPortOrEadi) {
+            calculated = 5; // Trânsito Marítimo & EADI Bauru
+        } else if (inFabrication) {
+            calculated = 4; // Fabricação Internacional & Embarque
+        } else if (inComex) {
+            calculated = 3; // Proforma, Câmbio & PO Fornecedor
+        } else if (hasF2 || f1Complete) {
+            calculated = 2; // Pedido Fechado / Comercial & Financeiro
+        } else {
+            calculated = 1; // Engenharia de Aplicação & Viabilidade
+        }
+
+        // Trava de integridade: se não tem contrato formalizado nem início de importação/ordem de compra,
+        // o card NUNCA pode ultrapassar a Fase 2
+        if (!f2Complete && !hasStartedImportChecklist && !hasFormalImportOrder) {
+            return Math.min(2, calculated);
+        }
+    }
+
+    const currentFase = parseInt(project.fase) || 1;
+    if (currentFase === 7 || currentFase === 8) {
+        return currentFase;
+    }
+    return Math.max(currentFase, calculated);
+}
+
 // ==========================================
 // UTILITÁRIOS E MIDDLEWARES DE AUTENTICAÇÃO
 // ==========================================
@@ -2523,35 +2612,19 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
                 }));
             }
 
-            // Sincronização estrita de Card Único: se o projeto possui ordem ativa em Comex ou fatura internacional,
-            // ele NUNCA pode coexistir nas colunas comerciais/iniciais do Quadro Kanban (Fase 1 ou 2)
+            // Sincronização Canônica da Fase do Projeto (Etapa 2 da Estabilização)
             const chkParsed = safeJsonParse(p.checklist, {});
-            let effectiveFase = parseInt(p.fase) || 1;
-            if (linkedOrder && effectiveFase !== 8 && effectiveFase !== 7) {
-                const stage = linkedOrder.stage || 'PO_EMITIDA';
-                if (stage === 'DOCA_GALPAO' || stage === 'DOCA_TECFAG') {
-                    if (effectiveFase < 6) effectiveFase = 6;
-                } else if (stage === 'ENTREPOSTADO_EADI' || stage === 'NO_PORTO_DESEMBARACO' || stage === 'NO_NAVIO') {
-                    if (effectiveFase < 5) effectiveFase = 5;
-                } else if (stage === 'EM_FABRICACAO' || stage === 'PACKING_LIST_EMBARQUE') {
-                    if (effectiveFase < 4) effectiveFase = 4;
-                } else {
-                    // PO_EMITIDA / Proforma / Negociação de Invoice Internacional
-                    if (effectiveFase < 3) effectiveFase = 3;
-                }
+            const effectiveFase = computeCanonicalProjectPhase({
+                ...p,
+                checklist: chkParsed,
+                has_import_order: !!linkedOrder,
+                import_stage: linkedOrder ? linkedOrder.stage : p.import_stage,
+                import_po_number: linkedOrder ? linkedOrder.po_number : null,
+                import_order_id: linkedOrder ? linkedOrder.id : null
+            });
 
-                if (effectiveFase !== p.fase) {
-                    dbRun('UPDATE projects SET fase = ? WHERE code = ?', [effectiveFase, p.code]).catch(() => {});
-                }
-            } else if (invNum && (effectiveFase === 1 || effectiveFase === 2) && chkParsed.contrato) {
-                effectiveFase = 3;
-                dbRun('UPDATE projects SET fase = 3 WHERE code = ?', [p.code]).catch(() => {});
-            }
-
-            // Se contrato foi assinado e escopo aprovado (venda formalizada), avança para Fase 3 (Proforma / Comex)
-            if (chkParsed.contrato && chkParsed.aprovacao && effectiveFase < 3 && effectiveFase !== 8 && effectiveFase !== 7 && p.equipment_origin !== 'Pronta Entrega (Estoque Local)') {
-                effectiveFase = 3;
-                dbRun('UPDATE projects SET fase = 3 WHERE code = ?', [p.code]).catch(() => {});
+            if (effectiveFase !== p.fase) {
+                dbRun('UPDATE projects SET fase = ? WHERE code = ?', [effectiveFase, p.code]).catch(() => {});
             }
 
             return {
@@ -2680,6 +2753,7 @@ app.get('/api/projects/:code', async (req, res) => {
         } catch (e) {}
 
         project.import_items = importItemsParsed;
+        project.fase = computeCanonicalProjectPhase(project);
 
         // Restrição de vendedor para rota individual
         if (req.user && req.user.role === 'VENDAS' && req.user.username !== 'vendas6' && req.user.username !== 'vendas6@tecfag.com.br') {
@@ -7637,74 +7711,35 @@ app.put('/api/projects/:code', async (req, res) => {
             }
         }
 
-        const targetFase = fase !== undefined ? parseInt(fase) : parseInt(oldProject.fase);
-        const currentFase = parseInt(oldProject.fase);
+        // ETAPA 2: Unificação da Máquina de Estados de Fases
+        // O backend calcula a fase canônica autoritativa do projeto a partir do checklist, ordem e estado.
+        const currentChecklistJson = checklist ? (typeof checklist === 'string' ? checklist : JSON.stringify(checklist)) : oldProject.checklist;
+        let currentChecklist = {};
+        try { currentChecklist = currentChecklistJson ? JSON.parse(currentChecklistJson) : {}; } catch(e){}
 
-        // Travas físicas de evolução de fase (apenas para fases ativas normais 1 -> 7, nunca bloqueando o cancelamento/perda na Fase 8)
-        if (targetFase !== 8 && currentFase !== 8) {
-            // Trava física para impedir transição de fase sem a reunião de alinhamento técnico concluída (Fase 1 -> Fase 2)
-            if (targetFase >= 2 && currentFase === 1) {
-                let isCustomizacaoDone = false;
-                if (checklist && checklist.customizacao !== undefined) {
-                    isCustomizacaoDone = !!checklist.customizacao;
-                } else {
-                    let oldChecklist = {};
-                    try { oldChecklist = oldProject.checklist ? JSON.parse(oldProject.checklist) : {}; } catch(e){}
-                    isCustomizacaoDone = !!oldChecklist.customizacao;
-                }
-                
-                if (!isCustomizacaoDone) {
-                    return res.status(400).json({ error: '🔴 BLOQUEIO TÉCNICO: Não é permitido evoluir o projeto para a Fase Comercial sem antes concluir a Customização do Escopo Técnico da Engenharia.' });
-                }
-            }
-
-            // Trava física para impedir transição para Proforma & Câmbio sem Contrato Assinado (Fase 2 -> Fase 3)
-            if (targetFase >= 3 && currentFase <= 2) {
-                let isContratoDone = false;
-                if (checklist && checklist.contrato !== undefined) {
-                    isContratoDone = !!checklist.contrato;
-                } else {
-                    let oldChecklist = {};
-                    try { oldChecklist = oldProject.checklist ? JSON.parse(oldProject.checklist) : {}; } catch(e){}
-                    isContratoDone = !!oldChecklist.contrato;
-                }
-                
-                if (!isContratoDone) {
-                    const contractAttach = await dbGet("SELECT id FROM attachments WHERE projectCode = ? AND phase = 'contrato' LIMIT 1", [code]);
-                    if (contractAttach) {
-                        isContratoDone = true;
-                        if (checklist) checklist.contrato = true;
-                    }
-                }
-                
-                if (!isContratoDone) {
-                    return res.status(400).json({ error: '🔴 BLOQUEIO COMERCIAL: Não é permitido evoluir o projeto para a Fase de Proforma & Câmbio sem antes registrar o Contrato Assinado.' });
-                }
-            }
-
-            // Trava física para impedir transição para Compras & Produção sem Proforma e Sinal 30% (Fase 3 -> Fase 4)
-            if (targetFase >= 4 && currentFase <= 3) {
-                let isProformaDone = false;
-                let isSwiftDone = false;
-                if (checklist) {
-                    isProformaDone = !!checklist.proforma;
-                    isSwiftDone = !!(checklist.swift_pagamento || checklist.cambio_sinal);
-                } else {
-                    let oldChecklist = {};
-                    try { oldChecklist = oldProject.checklist ? JSON.parse(oldProject.checklist) : {}; } catch(e){}
-                    isProformaDone = !!oldChecklist.proforma;
-                    isSwiftDone = !!(oldChecklist.swift_pagamento || oldChecklist.cambio_sinal);
-                }
-                
-                if (!isProformaDone || !isSwiftDone) {
-                    return res.status(400).json({ error: '🔴 BLOQUEIO FINANCEIRO: Não é permitido evoluir o projeto para a Fase de Compras & Produção sem antes validar a Proforma Invoice e registrar o Comprovante SWIFT/Fechamento de Câmbio do Sinal (30%).' });
-                }
+        // Se houver anexo de contrato registrado, assegura a flag de contrato
+        if (!currentChecklist.contrato) {
+            const contractAttach = await dbGet("SELECT id FROM attachments WHERE projectCode = ? AND phase = 'contrato' LIMIT 1", [code]);
+            if (contractAttach) {
+                currentChecklist.contrato = true;
             }
         }
 
-        const oldFase = oldProject.fase;
+        // Calcula a fase canônica autoritativa pelo backend
+        let canonicalFase = computeCanonicalProjectPhase({
+            ...oldProject,
+            ...req.body,
+            checklist: currentChecklist
+        });
+
+        // Garantir que status explícito de perda/cancelamento ou conclusão direta sejam respeitados se passados
+        if (fase !== undefined && parseInt(fase) === 8) canonicalFase = 8;
+        if (motivoPerda) canonicalFase = 8;
+        if (fase !== undefined && parseInt(fase) === 7) canonicalFase = 7;
+
+        const oldFase = parseInt(oldProject.fase) || 1;
         let newFaseEntryDate = oldProject.faseEntryDate || new Date().toISOString();
-        if (fase !== undefined && parseInt(fase) !== parseInt(oldFase)) {
+        if (canonicalFase !== oldFase) {
             newFaseEntryDate = new Date().toISOString();
         }
 
@@ -7716,9 +7751,9 @@ app.put('/api/projects/:code', async (req, res) => {
         if (route !== undefined && route !== oldProject.route) {
             await recordAuditLog(code, auditUser, `Alterou a Rota de "${oldProject.route || '-'}" para "${route || '-'}"`);
         }
-        if (fase !== undefined && parseInt(fase) !== parseInt(oldFase)) {
+        if (canonicalFase !== oldFase) {
             const faseNomesBrief = { 1: 'Viabilidade Técnica', 2: 'Pedido Fechado', 3: 'Proforma & Câmbio', 4: 'Fabricação Internacional', 5: 'Trânsito Marítimo & EADI', 6: 'Oficina & SAT', 7: 'Faturamento & Conclusão', 8: 'Cancelado' };
-            await recordAuditLog(code, auditUser, `Mudou o projeto da fase "${faseNomesBrief[oldFase] || oldFase}" para "${faseNomesBrief[fase] || fase}"`);
+            await recordAuditLog(code, auditUser, `Mudou o projeto da fase "${faseNomesBrief[oldFase] || oldFase}" para "${faseNomesBrief[canonicalFase] || canonicalFase}"`);
         }
         if (tech !== undefined && tech !== oldProject.tech) {
             await recordAuditLog(code, auditUser, `Alterou o Técnico Responsável de "${oldProject.tech || '-'}" para "${tech || '-'}"`);
@@ -7792,17 +7827,14 @@ app.put('/api/projects/:code', async (req, res) => {
         }
         // ------------------------------------------
         
-        const currentChecklistJson = checklist ? JSON.stringify(checklist) : oldProject.checklist;
-        let currentChecklist = {};
-        try { currentChecklist = currentChecklistJson ? JSON.parse(currentChecklistJson) : {}; } catch(e){}
         const validationStatus = calculateProjectValidationStatus({ checklist: currentChecklist });
 
         // ETAPA 1 DA ESTABILIZAÇÃO: Mapeamento dinâmico e seguro de campos (Fim definitivo de offset SQL)
         const updateFields = {
             serial: serial !== undefined ? serial : oldProject.serial,
             route: route !== undefined ? route : oldProject.route,
-            fase: fase !== undefined ? fase : oldProject.fase,
-            checklist: checklist ? JSON.stringify(checklist) : oldProject.checklist,
+            fase: canonicalFase,
+            checklist: JSON.stringify(currentChecklist),
             prazos: prazos ? JSON.stringify(prazos) : oldProject.prazos,
             lastUpdate: lastUpdate || new Date().toISOString(),
             motivoPerda: motivoPerda !== undefined ? motivoPerda : oldProject.motivoPerda,
@@ -7878,7 +7910,7 @@ app.put('/api/projects/:code', async (req, res) => {
 
         // Obter projeto atualizado para mandar por e-mail se a fase mudou
         const updatedProject = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
-        if (fase !== undefined && parseInt(fase) !== parseInt(oldFase)) {
+        if (canonicalFase !== oldFase) {
             const exitDate = new Date().toISOString();
             // Registrar saída da fase anterior no histórico
             const prevRecord = await dbGet('SELECT entryDate FROM project_phase_history WHERE projectCode = ? AND fase = ? AND exitDate IS NULL', [code, oldFase]);
@@ -7895,19 +7927,19 @@ app.put('/api/projects/:code', async (req, res) => {
             // Registrar entrada na nova fase no histórico
             await dbRun('INSERT INTO project_phase_history (projectCode, fase, entryDate) VALUES (?, ?, ?)', [
                 code,
-                fase,
+                canonicalFase,
                 exitDate
             ]);
 
             // Disparar e-mail de notificação de forma assíncrona (sem travar a resposta HTTP)
-            sendPhaseChangeEmail(updatedProject, oldFase, fase);
+            sendPhaseChangeEmail(updatedProject, oldFase, canonicalFase);
 
             // Disparar webhook
             sendWebhookNotification('PHASE_CHANGE', {
                 code,
                 client: updatedProject.client,
                 oldFase,
-                newFase: fase,
+                newFase: canonicalFase,
                 user: req.user ? req.user.username : 'Desconhecido'
             });
 
@@ -7916,12 +7948,17 @@ app.put('/api/projects/:code', async (req, res) => {
                 code,
                 client: updatedProject.client,
                 oldFase,
-                newFase: fase,
+                newFase: canonicalFase,
                 user: req.user ? req.user.username : 'Desconhecido'
             });
         }
 
-        res.json({ success: true, message: 'Projeto atualizado com sucesso!' });
+        res.json({ 
+            success: true, 
+            message: 'Projeto atualizado com sucesso!',
+            fase: canonicalFase,
+            project: updatedProject 
+        });
     } catch (err) {
         res.status(500).json({ error: 'Erro ao atualizar projeto: ' + err.message });
     }
@@ -12989,65 +13026,9 @@ function parseDiTextHeuristically(text, orderItems = []) {
     };
 }
 
-// Helper para cálculo inteligente da Fase do Projeto
+// Helper para cálculo inteligente da Fase do Projeto (Delega à Máquina Canônica)
 function calculateProjectPhase(project) {
-    if (!project) return 1;
-    const currentFase = parseInt(project.fase);
-    if (currentFase === 8) return 8;
-
-    let chk = {};
-    if (project.checklist) {
-        try {
-            chk = typeof project.checklist === 'string' ? JSON.parse(project.checklist) : project.checklist;
-        } catch (e) {
-            chk = {};
-        }
-    }
-
-    const isLocalStock = project.equipment_origin === 'Pronta Entrega (Estoque Local)';
-
-    if (chk.sat) {
-        return 7;
-    }
-
-    const f1Complete = !!(chk.diagnostico && chk.customizacao && chk.cotacao && chk.fluxograma && chk.planta_baixa);
-    const f2Complete = !!(chk.aprovacao && chk.contrato);
-    const f3Complete = !!(chk.proforma && chk.cambio_sinal && chk.swift_pagamento);
-    const f4Complete = !!(chk.producao && chk.embarque && chk.pagamento && chk.fedex);
-    const f5Complete = !!(chk.transporte_maritimo && chk.desembaraco && chk.chegada_tecfag);
-
-    const hasF6 = !!(chk.vistoria || chk.travas || chk.direcionamento || chk.logistica_saida || chk.startup);
-    const hasF5 = !!(chk.transporte_maritimo || chk.desembaraco || chk.chegada_tecfag);
-    const hasF4 = !!(chk.producao || chk.embarque || chk.pagamento || chk.fedex);
-    const hasF3 = !!(chk.proforma || chk.cambio_sinal || chk.swift_pagamento);
-    const hasF2 = !!(chk.aprovacao || chk.contrato);
-
-    if (isLocalStock) {
-        if (hasF6 || f2Complete) {
-            return 6;
-        }
-        if (hasF2 || f1Complete) {
-            return 2;
-        }
-        return 1;
-    }
-
-    if (hasF6 || f5Complete) {
-        return 6;
-    }
-    if (hasF5 || f4Complete) {
-        return 5;
-    }
-    if (hasF4 || f3Complete) {
-        return 4;
-    }
-    if (hasF3 || f2Complete) {
-        return 3;
-    }
-    if (hasF2 || f1Complete) {
-        return 2;
-    }
-    return 1;
+    return computeCanonicalProjectPhase(project);
 }
 
 // Helper para calcular status de validação técnica do projeto
