@@ -14796,13 +14796,6 @@
                 if (btn) { btn.disabled = false; btn.innerHTML = '<span>🚀</span> Enviar'; }
             }
         }
-                const typing = document.getElementById('copilot-typing-indicator');
-                if (typing) typing.remove();
-                alert('Erro de conexão ao falar com o Copilot: ' + err.message);
-            } finally {
-                if (btn) { btn.disabled = false; btn.innerText = '🚀 Enviar'; }
-            }
-        }
 
         function applySuggestedEmail(to, subject, body) {
             const toInput = document.getElementById('copilot-mail-to');
