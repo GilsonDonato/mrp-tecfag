@@ -840,6 +840,23 @@ const dbRun = (sql, params = []) => new Promise((resolve, reject) => {
     });
 });
 
+/**
+ * Utilitário Canônico de Construção Dinâmica de UPDATE SQL (Etapa 1 da Estabilização)
+ * Garante mapeamento 100% à prova de falhas:
+ * 1. Cada coluna adicionada ao SET possui rigorosamente seu parâmetro correspondente no mesmo índice.
+ * 2. A cláusula WHERE e seus parâmetros são anexados ao final sem qualquer risco de offset ou 'undefined'.
+ */
+function buildDynamicUpdate(tableName, fields, whereClause, whereParams = []) {
+    const keys = Object.keys(fields).filter(k => fields[k] !== undefined);
+    if (keys.length === 0) {
+        throw new Error('Nenhum campo fornecido para atualização na tabela ' + tableName);
+    }
+    const setClauses = keys.map(k => `\`${k}\` = ?`).join(', ');
+    const sql = `UPDATE \`${tableName}\` SET ${setClauses} WHERE ${whereClause}`;
+    const params = [...keys.map(k => fields[k]), ...(Array.isArray(whereParams) ? whereParams : [whereParams])];
+    return { sql, params };
+}
+
 // ==========================================
 // UTILITÁRIOS E MIDDLEWARES DE AUTENTICAÇÃO
 // ==========================================
@@ -7780,167 +7797,84 @@ app.put('/api/projects/:code', async (req, res) => {
         try { currentChecklist = currentChecklistJson ? JSON.parse(currentChecklistJson) : {}; } catch(e){}
         const validationStatus = calculateProjectValidationStatus({ checklist: currentChecklist });
 
-        let sql = `UPDATE projects SET 
-            serial = ?, 
-            route = ?, 
-            fase = ?, 
-            checklist = ?, 
-            prazos = ?, 
-            lastUpdate = ?, 
-            motivoPerda = ?,
-            machines = ?,
-            equipment_origin = ?,
-            handover_signed = ?,
-            crm_value = ?,
-            crm_source = ?,
-            crm_lost_reason = ?,
-            crm_task_title = ?,
-            crm_task_date = ?,
-            crm_last_comment_user = ?,
-            crm_last_interaction_date = ?,
-            faseEntryDate = ?,
-            setup_specs = ?,
-            diagnostico = ?,
-            validation_status = ?,
-            project_name = ?,
-            import_supplier = ?,
-            import_invoice_number = ?,
-            import_invoice_date = ?,
-            import_currency = ?,
-            import_total_fob_value = ?,
-            import_stage = ?,
-            import_fabrication_start_date = ?,
-            import_fabrication_end_date = ?,
-            import_container_id = ?,
-            import_vessel_name = ?,
-            import_bl_number = ?,
-            import_bl_date = ?,
-            import_etd_date = ?,
-            import_eta_port_date = ?,
-            import_eta_warehouse_date = ?,
-            import_actual_arrival_date = ?,
-            import_customs_regime = ?,
-            import_dta_number = ?,
-            import_eadi_entry_date = ?,
-            import_eadi_da_number = ?,
-            import_notes = ?,
-            import_items = ?,
-            import_cbm = ?,
-            import_gross_weight = ?,
-            import_net_weight = ?,
-            import_packages_count = ?,
-            import_packages_type = ?,
-            is_archived = ?,
-            archived_at = ?,
-            delivery_invoice = ?,
-            delivery_date = ?`;
-            
-        const params = [
-            serial !== undefined ? serial : oldProject.serial,
-            route !== undefined ? route : oldProject.route,
-            fase !== undefined ? fase : oldProject.fase,
-            checklist ? JSON.stringify(checklist) : oldProject.checklist,
-            prazos ? JSON.stringify(prazos) : oldProject.prazos,
-            lastUpdate || new Date().toISOString(),
-            motivoPerda !== undefined ? motivoPerda : oldProject.motivoPerda,
-            machines ? JSON.stringify(machines) : oldProject.machines,
-            equipment_origin !== undefined ? equipment_origin : oldProject.equipment_origin,
-            handover_signed !== undefined ? parseInt(handover_signed) : oldProject.handover_signed,
-            crm_value !== undefined ? parseFloat(crm_value) : oldProject.crm_value,
-            crm_source !== undefined ? crm_source : oldProject.crm_source,
-            crm_lost_reason !== undefined ? crm_lost_reason : oldProject.crm_lost_reason,
-            crm_task_title !== undefined ? crm_task_title : oldProject.crm_task_title,
-            crm_task_date !== undefined ? crm_task_date : oldProject.crm_task_date,
-            crm_last_comment_user !== undefined ? crm_last_comment_user : oldProject.crm_last_comment_user,
-            crm_last_interaction_date !== undefined ? crm_last_interaction_date : oldProject.crm_last_interaction_date,
-            newFaseEntryDate,
-            setup_specs ? JSON.stringify(setup_specs) : oldProject.setup_specs,
-            diagnostico !== undefined ? diagnostico : oldProject.diagnostico,
-            validationStatus,
-            project_name !== undefined ? project_name : oldProject.project_name,
-            import_supplier !== undefined ? import_supplier : oldProject.import_supplier,
-            import_invoice_number !== undefined ? import_invoice_number : oldProject.import_invoice_number,
-            import_invoice_date !== undefined ? import_invoice_date : oldProject.import_invoice_date,
-            import_currency !== undefined ? import_currency : (oldProject.import_currency || 'USD'),
-            import_total_fob_value !== undefined ? parseFloat(import_total_fob_value) : oldProject.import_total_fob_value,
-            import_stage !== undefined ? import_stage : oldProject.import_stage,
-            import_fabrication_start_date !== undefined ? import_fabrication_start_date : oldProject.import_fabrication_start_date,
-            import_fabrication_end_date !== undefined ? import_fabrication_end_date : oldProject.import_fabrication_end_date,
-            import_container_id !== undefined ? import_container_id : oldProject.import_container_id,
-            import_vessel_name !== undefined ? import_vessel_name : oldProject.import_vessel_name,
-            import_bl_number !== undefined ? import_bl_number : oldProject.import_bl_number,
-            import_bl_date !== undefined ? import_bl_date : oldProject.import_bl_date,
-            import_etd_date !== undefined ? import_etd_date : oldProject.import_etd_date,
-            import_eta_port_date !== undefined ? import_eta_port_date : oldProject.import_eta_port_date,
-            import_eta_warehouse_date !== undefined ? import_eta_warehouse_date : oldProject.import_eta_warehouse_date,
-            import_actual_arrival_date !== undefined ? import_actual_arrival_date : oldProject.import_actual_arrival_date,
-            import_customs_regime !== undefined ? import_customs_regime : (oldProject.import_customs_regime || 'IMPORTACAO_DIRETA'),
-            import_dta_number !== undefined ? import_dta_number : oldProject.import_dta_number,
-            import_eadi_entry_date !== undefined ? import_eadi_entry_date : oldProject.import_eadi_entry_date,
-            import_eadi_da_number !== undefined ? import_eadi_da_number : oldProject.import_eadi_da_number,
-            import_notes !== undefined ? import_notes : oldProject.import_notes,
-            import_items !== undefined ? (typeof import_items === 'string' ? import_items : JSON.stringify(import_items)) : oldProject.import_items,
-            import_cbm !== undefined ? parseFloat(import_cbm) : (oldProject.import_cbm || 0),
-            import_gross_weight !== undefined ? parseFloat(import_gross_weight) : (oldProject.import_gross_weight || 0),
-            import_net_weight !== undefined ? parseFloat(import_net_weight) : (oldProject.import_net_weight || 0),
-            import_packages_count !== undefined ? parseInt(import_packages_count) : (oldProject.import_packages_count || 0),
-            import_packages_type !== undefined ? import_packages_type : (oldProject.import_packages_type || 'Wooden Cases'),
-            is_archived !== undefined ? parseInt(is_archived) : (oldProject.is_archived || 0),
-            archived_at !== undefined ? archived_at : (oldProject.archived_at || null),
-            delivery_invoice !== undefined ? delivery_invoice : (oldProject.delivery_invoice || null),
-            delivery_date !== undefined ? delivery_date : (oldProject.delivery_date || null)
-        ];
+        // ETAPA 1 DA ESTABILIZAÇÃO: Mapeamento dinâmico e seguro de campos (Fim definitivo de offset SQL)
+        const updateFields = {
+            serial: serial !== undefined ? serial : oldProject.serial,
+            route: route !== undefined ? route : oldProject.route,
+            fase: fase !== undefined ? fase : oldProject.fase,
+            checklist: checklist ? JSON.stringify(checklist) : oldProject.checklist,
+            prazos: prazos ? JSON.stringify(prazos) : oldProject.prazos,
+            lastUpdate: lastUpdate || new Date().toISOString(),
+            motivoPerda: motivoPerda !== undefined ? motivoPerda : oldProject.motivoPerda,
+            machines: machines ? JSON.stringify(machines) : oldProject.machines,
+            equipment_origin: equipment_origin !== undefined ? equipment_origin : oldProject.equipment_origin,
+            handover_signed: handover_signed !== undefined ? parseInt(handover_signed) : oldProject.handover_signed,
+            crm_value: crm_value !== undefined ? parseFloat(crm_value) : oldProject.crm_value,
+            crm_source: crm_source !== undefined ? crm_source : oldProject.crm_source,
+            crm_lost_reason: crm_lost_reason !== undefined ? crm_lost_reason : oldProject.crm_lost_reason,
+            crm_task_title: crm_task_title !== undefined ? crm_task_title : oldProject.crm_task_title,
+            crm_task_date: crm_task_date !== undefined ? crm_task_date : oldProject.crm_task_date,
+            crm_last_comment_user: crm_last_comment_user !== undefined ? crm_last_comment_user : oldProject.crm_last_comment_user,
+            crm_last_interaction_date: crm_last_interaction_date !== undefined ? crm_last_interaction_date : oldProject.crm_last_interaction_date,
+            faseEntryDate: newFaseEntryDate,
+            setup_specs: setup_specs ? JSON.stringify(setup_specs) : oldProject.setup_specs,
+            diagnostico: diagnostico !== undefined ? diagnostico : oldProject.diagnostico,
+            validation_status: validationStatus,
+            project_name: project_name !== undefined ? project_name : oldProject.project_name,
+            import_supplier: import_supplier !== undefined ? import_supplier : oldProject.import_supplier,
+            import_invoice_number: import_invoice_number !== undefined ? import_invoice_number : oldProject.import_invoice_number,
+            import_invoice_date: import_invoice_date !== undefined ? import_invoice_date : oldProject.import_invoice_date,
+            import_currency: import_currency !== undefined ? import_currency : (oldProject.import_currency || 'USD'),
+            import_total_fob_value: import_total_fob_value !== undefined ? parseFloat(import_total_fob_value) : oldProject.import_total_fob_value,
+            import_stage: import_stage !== undefined ? import_stage : oldProject.import_stage,
+            import_fabrication_start_date: import_fabrication_start_date !== undefined ? import_fabrication_start_date : oldProject.import_fabrication_start_date,
+            import_fabrication_end_date: import_fabrication_end_date !== undefined ? import_fabrication_end_date : oldProject.import_fabrication_end_date,
+            import_container_id: import_container_id !== undefined ? import_container_id : oldProject.import_container_id,
+            import_vessel_name: import_vessel_name !== undefined ? import_vessel_name : oldProject.import_vessel_name,
+            import_bl_number: import_bl_number !== undefined ? import_bl_number : oldProject.import_bl_number,
+            import_bl_date: import_bl_date !== undefined ? import_bl_date : oldProject.import_bl_date,
+            import_etd_date: import_etd_date !== undefined ? import_etd_date : oldProject.import_etd_date,
+            import_eta_port_date: import_eta_port_date !== undefined ? import_eta_port_date : oldProject.import_eta_port_date,
+            import_eta_warehouse_date: import_eta_warehouse_date !== undefined ? import_eta_warehouse_date : oldProject.import_eta_warehouse_date,
+            import_actual_arrival_date: import_actual_arrival_date !== undefined ? import_actual_arrival_date : oldProject.import_actual_arrival_date,
+            import_customs_regime: import_customs_regime !== undefined ? import_customs_regime : (oldProject.import_customs_regime || 'IMPORTACAO_DIRETA'),
+            import_dta_number: import_dta_number !== undefined ? import_dta_number : oldProject.import_dta_number,
+            import_eadi_entry_date: import_eadi_entry_date !== undefined ? import_eadi_entry_date : oldProject.import_eadi_entry_date,
+            import_eadi_da_number: import_eadi_da_number !== undefined ? import_eadi_da_number : oldProject.import_eadi_da_number,
+            import_notes: import_notes !== undefined ? import_notes : oldProject.import_notes,
+            import_items: import_items !== undefined ? (typeof import_items === 'string' ? import_items : JSON.stringify(import_items)) : oldProject.import_items,
+            import_cbm: import_cbm !== undefined ? parseFloat(import_cbm) : (oldProject.import_cbm || 0),
+            import_gross_weight: import_gross_weight !== undefined ? parseFloat(import_gross_weight) : (oldProject.import_gross_weight || 0),
+            import_net_weight: import_net_weight !== undefined ? parseFloat(import_net_weight) : (oldProject.import_net_weight || 0),
+            import_packages_count: import_packages_count !== undefined ? parseInt(import_packages_count) : (oldProject.import_packages_count || 0),
+            import_packages_type: import_packages_type !== undefined ? import_packages_type : (oldProject.import_packages_type || 'Wooden Cases'),
+            is_archived: is_archived !== undefined ? parseInt(is_archived) : (oldProject.is_archived || 0),
+            archived_at: archived_at !== undefined ? archived_at : (oldProject.archived_at || null),
+            delivery_invoice: delivery_invoice !== undefined ? delivery_invoice : (oldProject.delivery_invoice || null),
+            delivery_date: delivery_date !== undefined ? delivery_date : (oldProject.delivery_date || null)
+        };
 
-        // Se o SKU definitivo foi enviado para atualização
         if (sku !== undefined) {
-            sql += `, sku = ?`;
-            params.push(sku);
+            updateFields.sku = sku;
             if (sku !== oldProject.sku) {
                 await recordAuditLog(code, auditUser, `Alterou o SKU definitivo de "${oldProject.sku || '-'}" para "${sku}"`);
             }
         }
-
-        // Se o técnico foi enviado para atualização
-        if (tech !== undefined) {
-            sql += `, tech = ?`;
-            params.push(tech);
-        }
-
-        // Se o gerente (PM) foi enviado para atualização
-        if (pm !== undefined) {
-            sql += `, pm = ?`;
-            params.push(pm);
-        }
-
-        if (waiting_vendor !== undefined) {
-            sql += `, waiting_vendor = ?`;
-            params.push(waiting_vendor ? 1 : 0);
-        }
-
-        if (waiting_vendor_since !== undefined) {
-            sql += `, waiting_vendor_since = ?`;
-            params.push(waiting_vendor_since);
-        }
-
-        if (waiting_vendor_reason !== undefined) {
-            sql += `, waiting_vendor_reason = ?`;
-            params.push(waiting_vendor_reason);
-        }
-
-        if (paused_sla_seconds !== undefined) {
-            sql += `, paused_sla_seconds = ?`;
-            params.push(parseInt(paused_sla_seconds) || 0);
-        }
-
+        if (tech !== undefined) updateFields.tech = tech;
+        if (pm !== undefined) updateFields.pm = pm;
+        if (waiting_vendor !== undefined) updateFields.waiting_vendor = waiting_vendor ? 1 : 0;
+        if (waiting_vendor_since !== undefined) updateFields.waiting_vendor_since = waiting_vendor_since;
+        if (waiting_vendor_reason !== undefined) updateFields.waiting_vendor_reason = waiting_vendor_reason;
+        if (paused_sla_seconds !== undefined) updateFields.paused_sla_seconds = parseInt(paused_sla_seconds) || 0;
         if (spare_parts_recommendations !== undefined) {
-            sql += `, spare_parts_recommendations = ?`;
-            params.push(typeof spare_parts_recommendations === 'string' ? spare_parts_recommendations : JSON.stringify(spare_parts_recommendations));
+            updateFields.spare_parts_recommendations = typeof spare_parts_recommendations === 'string' ? spare_parts_recommendations : JSON.stringify(spare_parts_recommendations);
         }
 
-        sql += ` WHERE code = ?`;
-        params.push(code);
-
-        await dbRun(sql, params);
+        const { sql, params } = buildDynamicUpdate('projects', updateFields, 'code = ?', [code]);
+        const updateResult = await dbRun(sql, params);
+        if (updateResult && updateResult.changes === 0) {
+            console.warn(`[WARN UPDATE] Nenhuma linha foi alterada para o projeto ${code}. Verifique se o código existe.`);
+        }
 
         // Obter projeto atualizado para mandar por e-mail se a fase mudou
         const updatedProject = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
