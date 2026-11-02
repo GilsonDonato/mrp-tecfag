@@ -10011,7 +10011,7 @@ Sua missão:
 
 app.post('/api/projects/:code/send-email', authenticateToken, upload.fields([
     { name: 'packing_list_file', maxCount: 1 },
-    { name: 'extra_files', maxCount: 5 }
+    { name: 'extra_files', maxCount: 10 }
 ]), async (req, res) => {
     try {
         await ensureCommunicationsTable();
@@ -10114,14 +10114,52 @@ app.post('/api/projects/:code/send-email', authenticateToken, upload.fields([
             }
         }
 
-        // Outros arquivos extras se houverem
+        // Outros arquivos extras enviados diretamente do computador
         if (req.files && req.files['extra_files']) {
-            req.files['extra_files'].forEach(f => {
+            for (const f of req.files['extra_files']) {
                 mailAttachments.push({
                     filename: f.originalname,
                     path: f.path
                 });
-            });
+                try {
+                    const relPath = 'uploads/' + f.filename;
+                    await dbRun(`INSERT INTO attachments (
+                        projectCode, phase, fileName, fileType, filePath, dateAdded
+                    ) VALUES (?, 'email_anexo', ?, ?, ?, ?)`, [
+                        code, f.originalname, f.mimetype, relPath, new Date().toISOString()
+                    ]);
+                } catch(dbAttErr) {
+                    console.warn('[SAVE EXTRA FILE ERR]', dbAttErr.message);
+                }
+            }
+        }
+
+        // Anexar documentos salvos previamente no projeto selecionados pelo usuário
+        if (req.body.selected_project_attachment_ids) {
+            try {
+                let ids = req.body.selected_project_attachment_ids;
+                if (typeof ids === 'string') {
+                    try { ids = JSON.parse(ids); } catch(e) { ids = ids.split(',').map(s => s.trim()); }
+                }
+                if (Array.isArray(ids) && ids.length > 0) {
+                    for (const id of ids) {
+                        const att = await dbGet('SELECT * FROM attachments WHERE id = ? AND projectCode = ?', [id, code]);
+                        if (att && att.filePath) {
+                            const fullAttPath = path.isAbsolute(att.filePath) ? att.filePath : path.join(__dirname, att.filePath);
+                            if (fs.existsSync(fullAttPath)) {
+                                if (!mailAttachments.some(a => a.path === fullAttPath)) {
+                                    mailAttachments.push({
+                                        filename: att.fileName || `Documento_${id}.pdf`,
+                                        path: fullAttPath
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch(attErr) {
+                console.warn('[ATTACH PROJECT ATTACHMENTS ERR]', attErr.message);
+            }
         }
 
         const attachedFilesNames = mailAttachments.filter(a => !a.cid).map(a => a.filename).join(', ');
