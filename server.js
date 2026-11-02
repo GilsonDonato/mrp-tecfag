@@ -9134,15 +9134,22 @@ app.post('/api/attachments', authenticateToken, upload.single('file'), async (re
             'logistica_saida', 'startup', 'sat'
         ];
         if (validChecklistSteps.includes(phase)) {
-            const prjRow = await dbGet('SELECT checklist FROM projects WHERE code = ?', [projectCode]);
+            const prjRow = await dbGet('SELECT * FROM projects WHERE code = ?', [projectCode]);
             if (prjRow) {
                 let prjChk = {};
                 try { prjChk = JSON.parse(prjRow.checklist || '{}'); } catch(e){}
                 prjChk[phase] = true;
-                if (!prjChk[phase + '_user']) prjChk[phase + '_user'] = req.user ? req.user.username : 'Upload Anexo';
+                if (!prjChk[phase + '_user']) prjChk[phase + '_user'] = req.user ? (req.user.name || req.user.username) : 'Upload Anexo';
                 if (!prjChk[phase + '_date']) prjChk[phase + '_date'] = new Date().toISOString();
-                await dbRun('UPDATE projects SET checklist = ?, lastUpdate = ? WHERE code = ?', [
-                    JSON.stringify(prjChk), new Date().toISOString(), projectCode
+                
+                // Recalcula a nova fase do projeto de forma inteligente e automática
+                const calculatedFase = calculateProjectPhase({ ...prjRow, checklist: prjChk });
+                const currentFase = parseInt(prjRow.fase) || 1;
+                // Não regredir fase se já estiver concluído (7) ou cancelado (8)
+                const finalFase = (currentFase === 7 || currentFase === 8) ? currentFase : Math.max(currentFase, calculatedFase);
+
+                await dbRun('UPDATE projects SET checklist = ?, fase = ?, lastUpdate = ? WHERE code = ?', [
+                    JSON.stringify(prjChk), finalFase, new Date().toISOString(), projectCode
                 ]);
             }
         }

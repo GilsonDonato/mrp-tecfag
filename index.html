@@ -20937,7 +20937,7 @@ function renderKanban() {
 
         // Trigger step-by-step file input dynamically
         function triggerStepFileInput(stepKey) {
-            if (stepKey === 'cotacao' && currentRole !== 'ALL' && currentRole !== 'GERENTE') {
+            if (stepKey === 'cotacao' && currentRole !== 'ALL' && currentRole !== 'GERENTE' && currentRole !== 'DIRETOR') {
                 alert('Acesso negado: Apenas o Administrador ou o Gerente de Projetos podem anexar arquivos nesta etapa.');
                 return;
             }
@@ -20953,6 +20953,7 @@ function renderKanban() {
             const isAuthorized = (
                 currentRole === 'ALL' || 
                 currentRole === 'GERENTE' || 
+                currentRole === 'DIRETOR' ||
                 currentRole === requiredRole || 
                 (requiredRole === 'VENDAS' && currentRole === 'GERENTE_COMERCIAL')
             );
@@ -21069,7 +21070,7 @@ function renderKanban() {
 
         // Delete attachment
         function removeAttachment(id, phase) {
-            if (phase === 'cotacao' && currentRole !== 'ALL' && currentRole !== 'GERENTE') {
+            if (phase === 'cotacao' && currentRole !== 'ALL' && currentRole !== 'GERENTE' && currentRole !== 'DIRETOR') {
                 alert('Acesso negado: Apenas o Administrador ou o Gerente de Projetos podem excluir arquivos desta etapa.');
                 return;
             }
@@ -21085,6 +21086,7 @@ function renderKanban() {
             const isAuthorized = (
                 currentRole === 'ALL' || 
                 currentRole === 'GERENTE' || 
+                currentRole === 'DIRETOR' ||
                 currentRole === requiredRole || 
                 (requiredRole === 'VENDAS' && currentRole === 'GERENTE_COMERCIAL')
             );
@@ -23553,6 +23555,7 @@ function renderKanban() {
             const isAuthorized = (
                 currentRole === 'ALL' || 
                 currentRole === 'GERENTE' || 
+                currentRole === 'DIRETOR' ||
                 currentRole === requiredRole || 
                 (requiredRole === 'VENDAS' && currentRole === 'GERENTE_COMERCIAL')
             );
@@ -23568,7 +23571,7 @@ function renderKanban() {
             // 3. Verificar se está tentando desmarcar (editar) uma ação executada por outro usuário
             if (currentlyChecked) {
                 const completedByUser = project.checklist[key + '_user'];
-                if (completedByUser && completedByUser !== currentUser && currentRole !== 'ALL' && currentRole !== 'GERENTE') {
+                if (completedByUser && completedByUser !== currentUser && currentRole !== 'ALL' && currentRole !== 'GERENTE' && currentRole !== 'DIRETOR') {
                     alert(`Acesso negado: Esta ação foi executada pelo usuário "${completedByUser}". Apenas ele ou um Administrador pode alterá-la.`);
                     return;
                 }
