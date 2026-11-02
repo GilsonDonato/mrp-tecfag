@@ -20376,6 +20376,16 @@ function renderKanban() {
 
                     const stepFiles = attachments.filter(a => a.phase === stepKey);
                     
+                    if (stepFiles.length > 0) {
+                        // Se houver arquivo anexado à etapa, marca automaticamente como concluída
+                        if (project.checklist && !project.checklist[stepKey]) {
+                            project.checklist[stepKey] = true;
+                            if (!project.checklist[stepKey + '_user']) project.checklist[stepKey + '_user'] = 'Anexo';
+                        }
+                        const chkStepEl = document.getElementById(`chk-${stepKey}`);
+                        if (chkStepEl) chkStepEl.classList.add('checked');
+                    }
+
                     if (stepFiles.length === 0) {
                         container.innerHTML = `
                             <button class="btn-step-attach" onclick="triggerStepFileInput('${stepKey}')" title="Anexar documento/foto">
@@ -20505,6 +20515,17 @@ function renderKanban() {
 
                 const logText = `<strong>[ANEXO INSERIDO]</strong> Arquivo <code>${file.name}</code> anexado à etapa "${stepNames[stepKey]}" do projeto <code>${activeProjectCode}</code>.`;
                 
+                // Marca a etapa como concluída no card imediatamente ao anexar
+                const project = state.projects.find(p => p.code === activeProjectCode);
+                if (project) {
+                    if (!project.checklist) project.checklist = {};
+                    project.checklist[stepKey] = true;
+                    project.checklist[stepKey + '_user'] = currentUser;
+                    project.checklist[stepKey + '_date'] = new Date().toISOString();
+                    const chkStepEl = document.getElementById(`chk-${stepKey}`);
+                    if (chkStepEl) chkStepEl.classList.add('checked');
+                }
+
                 fetch('/api/logs', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', ...authHeaders },
@@ -23071,26 +23092,32 @@ function renderKanban() {
             const hasArrivedAtDoca = (project.fase >= 6 || project.import_stage === 'DOCA_GALPAO');
 
             if (isChecking) {
-                // Verificar se todas as etapas das fases anteriores estão concluídas
-                const missingItems = [];
-                for (const k of Object.keys(itemPhases)) {
-                    if (itemPhases[k] < currentItemPhase) {
-                        if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && importTasks.includes(k)) {
-                            continue;
-                        }
-                        if (hasArrivedAtDoca && (itemPhases[k] === 4 || itemPhases[k] === 5)) {
-                            project.checklist[k] = true;
-                            continue;
-                        }
-                        if (!project.checklist[k]) {
-                            missingItems.push(itemLabels[k] || k);
+                // Verificar se a etapa possui anexo comprobatório ou se o usuário é Administrador/Gerente
+                const hasStepAttach = document.getElementById(`attach-step-${key}`)?.querySelector('.step-attachment-badge');
+                const isAdminOrManager = (currentRole === 'ALL' || currentRole === 'GERENTE' || currentRole === 'DIRETOR');
+
+                // Apenas bloqueia se não for Admin e a etapa não possuir documento anexado
+                if (!hasStepAttach && !isAdminOrManager) {
+                    const missingItems = [];
+                    for (const k of Object.keys(itemPhases)) {
+                        if (itemPhases[k] < currentItemPhase) {
+                            if (project.equipment_origin === 'Pronta Entrega (Estoque Local)' && importTasks.includes(k)) {
+                                continue;
+                            }
+                            if (hasArrivedAtDoca && (itemPhases[k] === 4 || itemPhases[k] === 5)) {
+                                project.checklist[k] = true;
+                                continue;
+                            }
+                            if (!project.checklist[k]) {
+                                missingItems.push(itemLabels[k] || k);
+                            }
                         }
                     }
-                }
 
-                if (missingItems.length > 0) {
-                    alert(`⚠️ Atenção: Não é permitido iniciar as etapas da Fase ${currentItemPhase} pois as seguintes etapas anteriores ainda não foram concluídas:\n\n• ` + missingItems.join('\n• ') + `\n\nPor favor, acesse a respectiva aba informada acima para concluir a pendência.`);
-                    return;
+                    if (missingItems.length > 0) {
+                        alert(`⚠️ Atenção: Não é permitido iniciar as etapas da Fase ${currentItemPhase} pois as seguintes etapas anteriores ainda não foram concluídas:\n\n• ` + missingItems.join('\n• ') + `\n\nPor favor, acesse a respectiva aba informada acima para concluir a pendência.`);
+                        return;
+                    }
                 }
             } else {
                 // Desmarcando: Verificar se existem etapas de fases posteriores que já estão concluídas
@@ -23363,6 +23390,20 @@ function renderKanban() {
                 const projectRoute = nonHyphenRoutes.length > 0 ? nonHyphenRoutes.join(', ') : '-';
 
                 let updatedChecklist = { ...(project.checklist || {}) };
+
+                // Sincroniza todos os itens do checklist visualmente marcados ou com anexos na tela
+                const modalChecklistItems = document.querySelectorAll('.checklist-item');
+                modalChecklistItems.forEach(itemEl => {
+                    const k = itemEl.id ? itemEl.id.replace('chk-', '') : '';
+                    if (k) {
+                        const hasBadge = document.getElementById(`attach-step-${k}`)?.querySelector('.step-attachment-badge');
+                        if (itemEl.classList.contains('checked') || hasBadge) {
+                            updatedChecklist[k] = true;
+                            if (!updatedChecklist[k + '_user']) updatedChecklist[k + '_user'] = currentUser;
+                            if (!updatedChecklist[k + '_date']) updatedChecklist[k + '_date'] = new Date().toISOString();
+                        }
+                    }
+                });
 
                 const fase1To5Completed = [
                     'diagnostico', 'customizacao', 'cotacao', 'fluxograma', 'planta_baixa',

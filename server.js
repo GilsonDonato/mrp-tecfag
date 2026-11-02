@@ -7535,6 +7535,14 @@ app.put('/api/projects/:code', async (req, res) => {
                 }
                 
                 if (!isContratoDone) {
+                    const contractAttach = await dbGet("SELECT id FROM attachments WHERE projectCode = ? AND phase = 'contrato' LIMIT 1", [code]);
+                    if (contractAttach) {
+                        isContratoDone = true;
+                        if (checklist) checklist.contrato = true;
+                    }
+                }
+                
+                if (!isContratoDone) {
                     return res.status(400).json({ error: '🔴 BLOQUEIO COMERCIAL: Não é permitido evoluir o projeto para a Fase de Proforma & Câmbio sem antes registrar o Contrato Assinado.' });
                 }
             }
@@ -8917,6 +8925,28 @@ app.post('/api/attachments', authenticateToken, upload.single('file'), async (re
 
         const newRecord = await dbGet('SELECT * FROM attachments WHERE id = ?', [runResult.lastID]);
         
+        // Se o anexo for para uma etapa do checklist do projeto (ex: contrato, aprovacao, etc.), marca a etapa automaticamente como concluída
+        const validChecklistSteps = [
+            'diagnostico', 'customizacao', 'cotacao', 'fluxograma', 'planta_baixa',
+            'aprovacao', 'contrato', 'proforma', 'cambio_sinal', 'swift_pagamento',
+            'producao', 'embarque', 'pagamento', 'fedex', 'transporte_maritimo',
+            'desembaraco', 'chegada_tecfag', 'vistoria', 'travas', 'direcionamento',
+            'logistica_saida', 'startup', 'sat'
+        ];
+        if (validChecklistSteps.includes(phase)) {
+            const prjRow = await dbGet('SELECT checklist FROM projects WHERE code = ?', [projectCode]);
+            if (prjRow) {
+                let prjChk = {};
+                try { prjChk = JSON.parse(prjRow.checklist || '{}'); } catch(e){}
+                prjChk[phase] = true;
+                if (!prjChk[phase + '_user']) prjChk[phase + '_user'] = req.user ? req.user.username : 'Upload Anexo';
+                if (!prjChk[phase + '_date']) prjChk[phase + '_date'] = new Date().toISOString();
+                await dbRun('UPDATE projects SET checklist = ?, lastUpdate = ? WHERE code = ?', [
+                    JSON.stringify(prjChk), new Date().toISOString(), projectCode
+                ]);
+            }
+        }
+
         // Formatar filePath como URL absoluta para download
         res.status(201).json({
             ...newRecord,
