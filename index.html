@@ -19773,48 +19773,26 @@ function renderKanban() {
             const setupStatus = document.getElementById('modal-setup-files-status');
             if (setupStatus) setupStatus.innerText = 'Nenhum arquivo selecionado';
 
-            // 1. Tenta obter da memória local
+            // 1. Sempre tenta obter os dados mais atualizados diretamente do servidor
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const resSingle = await fetch(`/api/projects/${code}`, { headers: authHeaders });
+                if (resSingle.ok) {
+                    const freshProject = await resSingle.json();
+                    if (freshProject && freshProject.code) {
+                        freshProject.fase = parseInt(freshProject.fase) || 1;
+                        if (!Array.isArray(state.projects)) state.projects = [];
+                        const existIdx = state.projects.findIndex(p => p.code === code);
+                        if (existIdx >= 0) state.projects[existIdx] = freshProject;
+                        else state.projects.push(freshProject);
+                    }
+                }
+            } catch (err) {
+                console.warn('[OPEN MODAL] Erro ao sincronizar projeto individual:', err);
+            }
+
             let project = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === code) : null;
-
-            // 2. Se não estiver em memória, tenta buscar diretamente o projeto no endpoint individual
-            if (!project) {
-                try {
-                    const token = localStorage.getItem('tecfag_session_token');
-                    const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
-                    const resSingle = await fetch(`/api/projects/${code}`, { headers: authHeaders });
-                    if (resSingle.ok) {
-                        project = await resSingle.json();
-                        if (project && project.code) {
-                            project.fase = parseInt(project.fase) || 1;
-                            if (!Array.isArray(state.projects)) state.projects = [];
-                            const existIdx = state.projects.findIndex(p => p.code === code);
-                            if (existIdx >= 0) state.projects[existIdx] = project;
-                            else state.projects.push(project);
-                        }
-                    }
-                } catch (err) {
-                    console.warn('[OPEN MODAL] Erro ao buscar projeto individual:', err);
-                }
-            }
-
-            // 3. Fallback: Sincroniza lista completa caso ainda não tenha encontrado
-            if (!project) {
-                try {
-                    const token = localStorage.getItem('tecfag_session_token');
-                    const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
-                    const res = await fetch('/api/projects', { headers: authHeaders });
-                    if (res.ok) {
-                        const prjs = await res.json();
-                        if (Array.isArray(prjs)) {
-                            prjs.forEach(p => { p.fase = parseInt(p.fase) || 1; });
-                            state.projects = prjs;
-                            project = state.projects.find(p => p.code === code);
-                        }
-                    }
-                } catch (e) {
-                    console.error('[OPEN MODAL] Erro ao sincronizar projetos do servidor:', e);
-                }
-            }
 
             // 4. Se não encontrar a ficha do projeto (pode ser card órfão de importação)
             if (!project) {
@@ -20661,10 +20639,28 @@ function renderKanban() {
             // Highlight tasks and sync UI
             const role = getBottleneckRole(project);
             
-            Object.keys(project.checklist).forEach(key => {
+            // Limpa classes anteriores de todos os itens do modal
+            document.querySelectorAll('.checklist-item').forEach(el => {
+                el.classList.remove('checked', 'active-role-task');
+            });
+
+            // Sincroniza o estado de cada etapa com base no checklist canônico do projeto
+            const chkObj = project.checklist || {};
+            const allChecklistKeys = [
+                'diagnostico', 'customizacao', 'cotacao', 'fluxograma', 'planta_baixa',
+                'aprovacao', 'contrato',
+                'proforma', 'cambio_sinal', 'swift_pagamento',
+                'producao', 'embarque', 'pagamento', 'fedex',
+                'transporte_maritimo', 'desembaraco', 'chegada_tecfag',
+                'vistoria', 'travas', 'direcionamento',
+                'logistica_saida', 'startup', 'sat'
+            ];
+
+            allChecklistKeys.forEach(key => {
                 const el = document.getElementById(`chk-${key}`);
                 if (el) {
-                    if (project.checklist[key]) {
+                    const isChecked = !!(chkObj[key] === true || chkObj[key] === 1 || chkObj[key] === 'true');
+                    if (isChecked) {
                         el.classList.add('checked');
                     } else {
                         el.classList.remove('checked');
@@ -24231,6 +24227,21 @@ function renderKanban() {
                     spare_parts_recommendations: project.spare_parts_recommendations || []
                 };
 
+                // Sincroniza campos de importação presentes no modal caso tenham sido alterados ou lidos por IA
+                const impSupplier = document.getElementById('modal-import-supplier')?.value;
+                const impInvNumber = document.getElementById('modal-import-invoice-number')?.value;
+                const impInvDate = document.getElementById('modal-import-invoice-date')?.value;
+                const impCurrency = document.getElementById('modal-import-currency')?.value;
+                const impTotalFob = document.getElementById('modal-import-total-fob')?.value;
+                const impItems = (typeof collectProjectImportItems === 'function' ? collectProjectImportItems() : []) || (project.import_items || []);
+
+                if (impSupplier !== undefined && impSupplier !== '') updateBody.import_supplier = impSupplier.trim();
+                if (impInvNumber !== undefined && impInvNumber !== '') updateBody.import_invoice_number = impInvNumber.trim();
+                if (impInvDate) updateBody.import_invoice_date = impInvDate;
+                if (impCurrency) updateBody.import_currency = impCurrency;
+                if (impTotalFob) updateBody.import_total_fob_value = parseFloat(impTotalFob) || 0;
+                if (impItems && impItems.length > 0) updateBody.import_items = impItems;
+
                 const response = await fetch(`/api/projects/${project.code}`, {
                     method: 'PUT',
                     headers: authHeaders,
@@ -24252,6 +24263,12 @@ function renderKanban() {
                 project.machines = updatedMachines;
                 project.setup_specs = setupSpecs;
                 project.lastUpdate = updateBody.lastUpdate;
+                if (updateBody.import_supplier !== undefined) project.import_supplier = updateBody.import_supplier;
+                if (updateBody.import_invoice_number !== undefined) project.import_invoice_number = updateBody.import_invoice_number;
+                if (updateBody.import_invoice_date !== undefined) project.import_invoice_date = updateBody.import_invoice_date;
+                if (updateBody.import_currency !== undefined) project.import_currency = updateBody.import_currency;
+                if (updateBody.import_total_fob_value !== undefined) project.import_total_fob_value = updateBody.import_total_fob_value;
+                if (updateBody.import_items !== undefined) project.import_items = updateBody.import_items;
 
                 // Audit log details
                 const timestamp = new Date().toLocaleTimeString() + ' ' + new Date().toLocaleDateString();

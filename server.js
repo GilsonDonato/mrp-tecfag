@@ -7884,7 +7884,11 @@ app.put('/api/projects/:code', async (req, res) => {
             import_gross_weight !== undefined ? parseFloat(import_gross_weight) : (oldProject.import_gross_weight || 0),
             import_net_weight !== undefined ? parseFloat(import_net_weight) : (oldProject.import_net_weight || 0),
             import_packages_count !== undefined ? parseInt(import_packages_count) : (oldProject.import_packages_count || 0),
-            import_packages_type !== undefined ? import_packages_type : (oldProject.import_packages_type || 'Wooden Cases')
+            import_packages_type !== undefined ? import_packages_type : (oldProject.import_packages_type || 'Wooden Cases'),
+            is_archived !== undefined ? parseInt(is_archived) : (oldProject.is_archived || 0),
+            archived_at !== undefined ? archived_at : (oldProject.archived_at || null),
+            delivery_invoice !== undefined ? delivery_invoice : (oldProject.delivery_invoice || null),
+            delivery_date !== undefined ? delivery_date : (oldProject.delivery_date || null)
         ];
 
         // Se o SKU definitivo foi enviado para atualização
