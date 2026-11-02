@@ -124,9 +124,10 @@ const db = new sqlite3.Database(dbPath, (err) => {
     } else {
         console.log('Conectado com sucesso ao banco SQLite em:', dbPath);
         initializeDatabase();
-        runAutoPipelineHygiene();
-        setTimeout(sendAutoHygieneWarningEmails, 10000);
-        setInterval(sendAutoHygieneWarningEmails, 24 * 60 * 60 * 1000);
+        // Desativado: rotinas de cancelamento automático do antigo funil de vendas (Foco 100% em Engenharia/Projetos)
+        // runAutoPipelineHygiene();
+        // setTimeout(sendAutoHygieneWarningEmails, 10000);
+        // setInterval(sendAutoHygieneWarningEmails, 24 * 60 * 60 * 1000);
         runDailyBackup();
         setInterval(runDailyBackup, 24 * 60 * 60 * 1000);
     }
@@ -2438,7 +2439,8 @@ async function runAutoPipelineHygiene() {
 // GET /api/projects - Lista todos os projetos
 app.get('/api/projects', authenticateToken, async (req, res) => {
     try {
-        await runAutoPipelineHygiene();
+        // Desativado: auto-cancelamento do funil comercial ao listar projetos (preservação estrita dos cards)
+        // await runAutoPipelineHygiene();
         const rows = await dbAll('SELECT * FROM projects');
 
         // Pré-carrega ordens e itens de importação para enriquecer projetos caso colunas locais estejam nulas
