@@ -23420,6 +23420,9 @@ function renderKanban() {
             const project = state.projects.find(p => p.code === activeProjectCode);
             if (!project) return;
 
+            const userStr = localStorage.getItem('tecfag_user');
+            const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
+
             const saveBtn = document.getElementById('btn-save-project-modal');
             const token = localStorage.getItem('tecfag_session_token');
             const authHeaders = {
