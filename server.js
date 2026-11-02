@@ -8012,6 +8012,96 @@ O projeto passará pelas fases de engenharia e produção física para validaç�
     };
 }
 
+// POST /api/projects/:code/ai-extract-specs - Extrai e infere especificações técnicas completas via Gemini AI
+app.post('/api/projects/:code/ai-extract-specs', authenticateToken, async (req, res) => {
+    const { code } = req.params;
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) {
+            return res.status(404).json({ error: 'Projeto não encontrado.' });
+        }
+
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey || apiKey.trim() === '') {
+            return res.status(400).json({ error: 'Chave GEMINI_API_KEY não configurada no servidor.' });
+        }
+
+        let diagParsed = {};
+        if (project.diagnostico) {
+            try {
+                diagParsed = typeof project.diagnostico === 'string' ? JSON.parse(project.diagnostico) : project.diagnostico;
+            } catch(e) {}
+        }
+
+        // Buscar anexos e comentários recentes para dar contexto completo à IA
+        const attachments = await dbAll('SELECT original_name FROM attachments WHERE project_code = ?', [code]);
+        const comments = await dbAll('SELECT user, comment FROM comments WHERE projectCode = ? ORDER BY id DESC LIMIT 10', [code]);
+
+        const prompt = `
+Você é o Engenheiro Chefe de Aplicação e Automação Industrial da Tecfag.
+Sua missão é ler todos os dados cadastrais, diagnóstico comercial, variações de frascos/embalagens, desenhos técnicos anexados e observações do projeto e PREENCHER com máxima precisão técnica os campos da Ficha de Compra e Alinhamento Técnico de Engenharia da máquina.
+
+--- DADOS DO PROJETO ---
+Código: ${project.code}
+Cliente: ${project.client}
+Equipamento/SKU: ${project.sku || '-'}
+Segmento: ${diagParsed.segment || '-'}
+Parâmetros Técnicos Registrados: ${JSON.stringify(diagParsed.parameters || diagParsed.params || {})}
+Infraestrutura Registrada: ${JSON.stringify(diagParsed.infra || {})}
+Formatos e Variações de Frasco/Produto: ${JSON.stringify(diagParsed.variations || [])}
+Observações Técnicas / Histórico: ${diagParsed.observations || '-'}
+Arquivos/Desenhos Anexados: ${attachments.map(a => a.original_name).join(', ') || 'Nenhum'}
+Comentários Recentes da Equipe: ${comments.map(c => `${c.user}: ${c.comment}`).join(' | ') || 'Nenhum'}
+
+--- FORMATO DE RESPOSTA OBRIGATÓRIO (JSON PURO) ---
+Retorne estritamente um JSON com a seguinte estrutura (infira valores realistas e técnicos com base nos dados do projeto; se não houver menção, use o padrão técnico adequado para a família do equipamento):
+{
+  "frasco_tamanho": "Dimensões dos frascos, potes ou insumos (Ex: Frasco 20ml Ø29.8x55mm PEAD | Frasco 30ml 36x22x78mm)",
+  "formato_embalagem": "Geometria da embalagem (Ex: Cilíndrico e Reto / Plano / Cônico)",
+  "tampa_tamanho": "Informações da tampa, fechamento ou solda (Ex: Tampa rosca Ø10.5mm / Selagem / Rótulo Envolvente)",
+  "largura_bobina": "Largura da bobina de rótulo ou filme em mm (Ex: 70 mm / 320 mm)",
+  "tensao_eletrica": "Tensão elétrica da fábrica (Ex: 220V Monofásico / 220V Trifásico / 380V)",
+  "eletrica_frequencia": "Frequência (Ex: 60Hz)",
+  "ar_comprimido": "Pressão de ar comprimido (Ex: 6 bar / Não requer)",
+  "consumo_ar": "Consumo de ar em L/min (Ex: 150 L/min)",
+  "aco_grau": "Material em contato com produto/estrutura (Ex: Aço Inox 304 / Inox 316L)",
+  "polimento_grau": "Acabamento/rugosidade (Ex: Sanitário / Padrão Industrial)",
+  "seguranca_nr12": "Atendimento à norma de segurança (Ex: Sim, portas intertravadas e parada de emergência)",
+  "portas_seguranca": "Sensores de segurança (Ex: Sensores magnéticos codificados)",
+  "espaco_disponivel": "Cadência/Produtividade alvo e layout (Ex: 167 frascos/min (10.000 un/h), esteira sentido E->D altura 850mm)",
+  "obs_startup": "Recomendações técnicas de oficina para o setup, ferramental e testes práticos de validação (FAT/SAT)"
+}
+`;
+
+        const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+        const payload = {
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" }
+        };
+
+        const response = await fetch(geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errBody = await response.text();
+            throw new Error(`Erro na API Gemini (${response.status}): ${errBody}`);
+        }
+
+        const data = await response.json();
+        const rawJsonText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        const extractedSpecs = JSON.parse(rawJsonText);
+
+        res.json({ success: true, specs: extractedSpecs });
+    } catch(err) {
+        console.error('[AI SPECS EXTRACTION ERROR]:', err.message);
+        res.status(500).json({ error: 'Erro ao extrair especificações com IA: ' + err.message });
+    }
+});
+
 // POST /api/projects/:code/generate-case-study - Gera o Estudo de Caso e valida escopo via Gemini ou Fallback
 app.post('/api/projects/:code/generate-case-study', authenticateToken, async (req, res) => {
     const { code } = req.params;

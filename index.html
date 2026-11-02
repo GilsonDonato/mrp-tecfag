@@ -4176,9 +4176,14 @@
                         <!-- Coluna Direita: Ficha de Alinhamento Técnico + IA Estudo de Caso e Peças -->
                         <div style="display: flex; flex-direction: column; gap: 16px;">
                             <div class="detail-card">
-                                <h4 style="color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; font-size: 0.88rem;">
-                                    ⚙️ Reunião de Alinhamento Técnico & Ficha de Compra
-                                </h4>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                    <h4 style="color: var(--primary); margin: 0; display: flex; align-items: center; gap: 6px; font-size: 0.88rem;">
+                                        ⚙️ Reunião de Alinhamento Técnico & Ficha de Compra
+                                    </h4>
+                                    <button type="button" class="btn btn-secondary" id="btn-sync-specs-ai" onclick="syncSpecsWithAI()" style="font-size: 0.72rem; padding: 4px 10px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; font-weight: bold; display: flex; align-items: center; gap: 5px; cursor: pointer; border-radius: 4px;">
+                                        ✨ Sincronizar com IA (Gemini)
+                                    </button>
+                                </div>
                                 <p style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.3;">
                                     Especificações fechadas pela Engenharia para a fabricação da máquina.
                                 </p>
@@ -15719,7 +15724,20 @@ Atenciosamente,`;
                 espaco_disponivel: '',
                 tensao_eletrica: '',
                 ar_comprimido: '',
-                obs_startup: ''
+                obs_startup: '',
+                formato_embalagem: '',
+                largura_bobina: '',
+                tipo_dosador: '',
+                bicos_envase: '',
+                higienizacao_cip: '',
+                produto_fluidez: '',
+                produto_densidade: '',
+                aco_grau: '',
+                polimento_grau: '',
+                eletrica_frequencia: '',
+                consumo_ar: '',
+                seguranca_nr12: '',
+                portas_seguranca: ''
             };
             
             if (!project || !project.diagnostico) return specs;
@@ -15730,44 +15748,73 @@ Atenciosamente,`;
             if (diagStr.startsWith('{')) {
                 try {
                     const parsed = JSON.parse(diagStr);
-                    if (parsed && parsed.params) {
-                        const p = parsed.params;
-                        
-                        // Tamanho do Insumo / Filme / Embalagem / Frasco
-                        const frascoParts = [];
-                        if (parsed.segment) frascoParts.push(`Segmento: ${parsed.segment}`);
-                        if (p.bagStyle) frascoParts.push(`Formato: ${p.bagStyle}`);
-                        if (p.filmWidth) frascoParts.push(`Lg. Filme: ${p.filmWidth}`);
-                        if (p.bottleShape) frascoParts.push(`Garafa/Frasco: ${p.bottleShape}`);
-                        if (p.countAltura) frascoParts.push(`Alt: ${p.countAltura}`);
-                        if (p.shrinkPkgDims) frascoParts.push(`Pacote: ${p.shrinkPkgDims}`);
-                        if (p.semiVolume) frascoParts.push(`Dosagem: ${p.semiVolume}`);
-                        if (p.vacuoBarSize) frascoParts.push(`Barra Selagem: ${p.vacuoBarSize}`);
-                        specs.frasco_tamanho = frascoParts.join(' | ');
+                    const p = parsed.parameters || parsed.params || {};
+                    const infra = parsed.infra || {};
+                    const variations = parsed.variations || [];
+                    const obs = parsed.observations || '';
 
-                        // Especificações de Tampas / Fechamento / Solda
-                        const tampaParts = [];
-                        if (p.rosqueadoraCapType) tampaParts.push(`Tampa: ${p.rosqueadoraCapType}`);
-                        if (p.inducaoDiameter) tampaParts.push(`Gargalo: ${p.inducaoDiameter}`);
-                        if (p.inducaoFoilType) tampaParts.push(`Foil: ${p.inducaoFoilType}`);
-                        if (p.dosagemSealingType) tampaParts.push(`Solda: ${p.dosagemSealingType}`);
-                        specs.tampa_tamanho = tampaParts.join(' | ');
+                    // Insumo / Frasco / Variações
+                    if (variations.length > 0) {
+                        const vList = variations.map(v => {
+                            let desc = v.name || 'Frasco';
+                            const dims = [];
+                            if (v.height) dims.push(`Alt:${v.height}mm`);
+                            if (v.width) dims.push(`Larg/Diâm:${v.width}mm`);
+                            if (v.gargalo) dims.push(`Gargalo:${v.gargalo}mm`);
+                            return dims.length > 0 ? `${desc} (${dims.join(' x ')})` : desc;
+                        });
+                        specs.frasco_tamanho = vList.join(' | ');
+                    } else if (p.bottleShape || p['Geometria Oculta (Conicidade)*']) {
+                        specs.frasco_tamanho = p.bottleShape || p['Geometria Oculta (Conicidade)*'] || '';
+                    }
 
-                        // Layout / Sentido de Linha / Velocidade
-                        const espacoParts = [];
-                        if (p.productivity) espacoParts.push(`Produtividade: ${p.productivity}`);
-                        if (p.cycleTime) espacoParts.push(`Ciclo: ${p.cycleTime}`);
-                        if (p.countRejeicao) espacoParts.push(`Rejeição: ${p.countRejeicao}`);
-                        if (p.countElevador) espacoParts.push(`Elevador: ${p.countElevador}`);
-                        specs.espaco_disponivel = espacoParts.join(' | ');
+                    // Formato da Embalagem
+                    if (p['Geometria Oculta (Conicidade)*']) {
+                        specs.formato_embalagem = p['Geometria Oculta (Conicidade)*'];
+                    } else if (p.bagStyle) {
+                        specs.formato_embalagem = p.bagStyle;
+                    }
 
-                        // Observações Gerais
-                        const obsParts = [];
-                        if (p.viscosity || p.envaseViscosity) obsParts.push(`Viscosidade: ${p.viscosity || p.envaseViscosity}`);
-                        if (p.temp || p.envaseTemp) obsParts.push(`Temp: ${p.temp || p.envaseTemp}`);
-                        if (p.printer) obsParts.push(`Datador: ${p.printer}`);
-                        if (p.countDustSensor) obsParts.push(`Sensor Pó: ${p.countDustSensor}`);
-                        specs.obs_startup = obsParts.join(' | ');
+                    // Fechamento / Solda / Tampagem
+                    if (p['Posicionamento do Rótulo*']) {
+                        specs.tampa_tamanho = p['Posicionamento do Rótulo*'];
+                    } else if (p.rosqueadoraCapType) {
+                        specs.tampa_tamanho = `Tampa: ${p.rosqueadoraCapType}`;
+                    } else if (p.dosagemSealingType) {
+                        specs.tampa_tamanho = `Solda: ${p.dosagemSealingType}`;
+                    }
+
+                    // Tensão Elétrica e Frequência
+                    if (infra.tension) specs.tensao_eletrica = infra.tension;
+                    if (infra.frequency) specs.eletrica_frequencia = infra.frequency;
+
+                    // Ar Comprimido e Consumo
+                    if (infra.pressure) specs.ar_comprimido = infra.pressure;
+                    if (infra.airConsumption) specs.consumo_ar = infra.airConsumption;
+
+                    // Aço em contato e Polimento
+                    if (infra.material || infra.structureMaterial) {
+                        specs.aco_grau = infra.material || infra.structureMaterial;
+                    }
+                    if (infra.roughness) specs.polimento_grau = infra.roughness;
+
+                    // Segurança NR12 e Portas
+                    if (infra.nr12) specs.seguranca_nr12 = `Adequação: ${infra.nr12}`;
+                    if (infra.ipRating && infra.ipRating !== 'Não se aplica') {
+                        specs.portas_seguranca = `Grau IP: ${infra.ipRating}`;
+                    }
+
+                    // Produtividade / Linha / Espaço
+                    const espacoParts = [];
+                    if (p.productivity) espacoParts.push(`Produtividade: ${p.productivity}`);
+                    if (p.cycleTime) espacoParts.push(`Ciclo: ${p.cycleTime}`);
+                    if (infra.cleaning) espacoParts.push(`Limpeza: ${infra.cleaning}`);
+                    if (infra.spaceLimit && infra.spaceLimit !== 'Não') espacoParts.push(`Limitação Espaço: ${infra.spaceLimit}`);
+                    specs.espaco_disponivel = espacoParts.join(' | ');
+
+                    // Notas gerais / startup
+                    if (obs) {
+                        specs.obs_startup = obs.length > 500 ? obs.substring(0, 500) + '...' : obs;
                     }
                 } catch(e) {}
             } else if (diagStr.startsWith('SEGMENTO:')) {
@@ -16311,6 +16358,83 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
 
                 grid.appendChild(col);
             });
+        }
+
+
+        // Sincronização inteligente dos campos da Ficha de Compra e Alinhamento Técnico usando Gemini AI
+        async function syncSpecsWithAI() {
+            if (!activeProjectCode) {
+                alert('Nenhum projeto ativo selecionado.');
+                return;
+            }
+
+            const btn = document.getElementById('btn-sync-specs-ai');
+            const originalText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '⏳ Analisando dados com IA...';
+                btn.style.opacity = '0.7';
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const response = await fetch(`/api/projects/${activeProjectCode}/ai-extract-specs`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    }
+                });
+
+                const data = await response.json();
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || 'Falha ao sincronizar com IA.');
+                }
+
+                const s = data.specs || {};
+                let filledCount = 0;
+
+                const setValWithEffect = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el && val && val.trim() !== '') {
+                        el.value = val.trim();
+                        el.style.transition = 'background-color 0.8s ease, border-color 0.8s ease';
+                        el.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
+                        el.style.borderColor = '#10b981';
+                        setTimeout(() => {
+                            el.style.backgroundColor = '';
+                            el.style.borderColor = '';
+                        }, 2500);
+                        filledCount++;
+                    }
+                };
+
+                setValWithEffect('modal-spec-frasco', s.frasco_tamanho);
+                setValWithEffect('modal-spec-formato', s.formato_embalagem);
+                setValWithEffect('modal-spec-tampa', s.tampa_tamanho);
+                setValWithEffect('modal-spec-largura', s.largura_bobina);
+                setValWithEffect('modal-spec-tensao', s.tensao_eletrica);
+                setValWithEffect('modal-spec-frequencia', s.eletrica_frequencia);
+                setValWithEffect('modal-spec-ar', s.ar_comprimido);
+                setValWithEffect('modal-spec-consumo-ar', s.consumo_ar);
+                setValWithEffect('modal-spec-aco', s.aco_grau);
+                setValWithEffect('modal-spec-polimento', s.polimento_grau);
+                setValWithEffect('modal-spec-nr12', s.seguranca_nr12);
+                setValWithEffect('modal-spec-portas', s.portas_seguranca);
+                setValWithEffect('modal-spec-espaco', s.espaco_disponivel);
+                setValWithEffect('modal-spec-obs', s.obs_startup);
+
+                alert(`✨ Sucesso! A IA analisou o memorial, desenhos e diagnóstico do projeto e preencheu ${filledCount} campos técnicos na Ficha de Compra.\n\nRevise os campos destacados e clique em "Salvar Alterações".`);
+            } catch (err) {
+                console.error('[SYNC SPECS AI ERROR]:', err);
+                alert('Erro ao sincronizar com IA: ' + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    btn.style.opacity = '1';
+                }
+            }
         }
 
 
@@ -19369,19 +19493,19 @@ function renderKanban() {
                 ar_comprimido: savedSpecs.ar_comprimido || extracted.ar_comprimido || '',
                 obs_startup: savedSpecs.obs_startup || extracted.obs_startup || '',
                 obs_documentacao: savedSpecs.obs_documentacao || '',
-                formato_embalagem: savedSpecs.formato_embalagem || '',
-                largura_bobina: savedSpecs.largura_bobina || '',
-                tipo_dosador: savedSpecs.tipo_dosador || '',
-                bicos_envase: savedSpecs.bicos_envase || '',
-                higienizacao_cip: savedSpecs.higienizacao_cip || '',
-                produto_fluidez: savedSpecs.produto_fluidez || '',
-                produto_densidade: savedSpecs.produto_densidade || '',
-                aco_grau: savedSpecs.aco_grau || '',
-                polimento_grau: savedSpecs.polimento_grau || '',
-                eletrica_frequencia: savedSpecs.eletrica_frequencia || '',
-                consumo_ar: savedSpecs.consumo_ar || '',
-                seguranca_nr12: savedSpecs.seguranca_nr12 || '',
-                portas_seguranca: savedSpecs.portas_seguranca || ''
+                formato_embalagem: savedSpecs.formato_embalagem || extracted.formato_embalagem || '',
+                largura_bobina: savedSpecs.largura_bobina || extracted.largura_bobina || '',
+                tipo_dosador: savedSpecs.tipo_dosador || extracted.tipo_dosador || '',
+                bicos_envase: savedSpecs.bicos_envase || extracted.bicos_envase || '',
+                higienizacao_cip: savedSpecs.higienizacao_cip || extracted.higienizacao_cip || '',
+                produto_fluidez: savedSpecs.produto_fluidez || extracted.produto_fluidez || '',
+                produto_densidade: savedSpecs.produto_densidade || extracted.produto_densidade || '',
+                aco_grau: savedSpecs.aco_grau || extracted.aco_grau || '',
+                polimento_grau: savedSpecs.polimento_grau || extracted.polimento_grau || '',
+                eletrica_frequencia: savedSpecs.eletrica_frequencia || extracted.eletrica_frequencia || '',
+                consumo_ar: savedSpecs.consumo_ar || extracted.consumo_ar || '',
+                seguranca_nr12: savedSpecs.seguranca_nr12 || extracted.seguranca_nr12 || '',
+                portas_seguranca: savedSpecs.portas_seguranca || extracted.portas_seguranca || ''
             };
             
             document.getElementById('modal-spec-frasco').value = specs.frasco_tamanho;
