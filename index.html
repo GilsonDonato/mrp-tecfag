@@ -17882,17 +17882,17 @@ Atenciosamente,`;
             if (document.getElementById('kpi-fase7')) document.getElementById('kpi-fase7').innerText = countFase(7);
 
             // Atualizar banner de projetos em importação internacional
-            const inTransitProjects = (state.projects || []).filter(p => p.fase >= 3 && p.fase <= 5);
+            const inTransitProjects = (state.projects || []).filter(p => (p.fase >= 3 && p.fase <= 5) || (p.has_import_order && p.import_stage !== 'DOCA_GALPAO' && p.import_stage !== 'DOCA_TECFAG' && p.fase < 6));
             const countEl = document.getElementById('count-transit-projects');
             const descEl = document.getElementById('desc-transit-projects');
             if (countEl) countEl.innerText = inTransitProjects.length;
             if (descEl && inTransitProjects.length > 0) {
                 const clientNames = inTransitProjects.map(p => {
-                    let c = p.client.split(' ')[0];
+                    let c = (p.client || '').split(' ')[0];
                     if (p.code === 'PRJTEC000000001') c = 'Sheep Agro';
                     return c;
                 }).join(', ');
-                descEl.innerHTML = '<strong>' + inTransitProjects.length + ' máquina(s) em trânsito:</strong> ' + clientNames + ' — Retornam automaticamente para Oficina (Fase 3) na chegada Tecfag.';
+                descEl.innerHTML = '<strong>' + inTransitProjects.length + ' máquina(s) em importação/trânsito:</strong> ' + clientNames + ' — Retornam automaticamente para Oficina (Fase 3 do Funil) na chegada física Tecfag.';
             }
             if (document.getElementById('kpi-fase8')) document.getElementById('kpi-fase8').innerText = countFase(8);
 
@@ -17958,6 +17958,22 @@ Atenciosamente,`;
             const hasF4 = !!(chk.producao || chk.embarque || chk.pagamento || chk.fedex);
             const hasF3 = !!(chk.proforma || chk.cambio_sinal || chk.swift_pagamento);
             const hasF2 = !!(chk.aprovacao || chk.contrato);
+
+            // Card Único: Se o projeto já possui ordem de importação ativa no Comex ou fatura internacional em negociação,
+            // sua fase mínima é 3 (sai das colunas 1 e 2 do Kanban de Projetos)
+            const hasActiveImport = !isLocalStock && (
+                project.has_import_order || 
+                project.import_po_number || 
+                project.import_invoice_number || 
+                (project.import_stage && project.import_stage !== 'DOCA_GALPAO' && project.import_stage !== 'DOCA_TECFAG' && project.import_stage !== 'CANCELADA')
+            );
+
+            if (hasActiveImport) {
+                if (hasF6 || project.import_stage === 'DOCA_GALPAO' || project.import_stage === 'DOCA_TECFAG') return 6;
+                if (hasF5 || ['ENTREPOSTADO_EADI', 'NO_PORTO_DESEMBARACO', 'NO_NAVIO'].includes(project.import_stage)) return 5;
+                if (hasF4 || ['EM_FABRICACAO', 'PACKING_LIST_EMBARQUE'].includes(project.import_stage)) return 4;
+                return 3; // Proforma / Negociação de Invoice Internacional
+            }
 
             if (isLocalStock) {
                 // Pronta Entrega: pula Fases 3, 4, 5
@@ -18171,6 +18187,15 @@ function renderKanban() {
             }
 
             filteredProjects.forEach(project => {
+                // Card Único: se o projeto está em fase de importação internacional (fase 3, 4 ou 5) ou possui ordem de compra internacional ativa,
+                // ele sai das colunas de desenvolvimento do Kanban e fica sob gestão exclusiva do Comex / Banner de Trânsito
+                if (project.fase >= 3 && project.fase <= 5) {
+                    return;
+                }
+                if (project.has_import_order && project.import_stage !== 'DOCA_GALPAO' && project.import_stage !== 'DOCA_TECFAG' && project.fase < 6) {
+                    return;
+                }
+
                 const bottleneck = getBottleneckRole(project);
                 const isMyBottleneck = currentRole !== 'ALL' && bottleneck === currentRole;
 

@@ -647,6 +647,7 @@ db.run("ALTER TABLE projects ADD COLUMN delivery_date TEXT", () => {});
         db.run("ALTER TABLE stock_orders ADD COLUMN dta_number TEXT", (err) => {});
         db.run("ALTER TABLE stock_orders ADD COLUMN eadi_entry_date TEXT", (err) => {});
         db.run("ALTER TABLE stock_orders ADD COLUMN eadi_da_number TEXT", (err) => {});
+    db.run("UPDATE projects SET fase = 3 WHERE code IN (SELECT project_code FROM stock_orders WHERE project_code IS NOT NULL AND stage NOT IN ('DOCA_GALPAO', 'DOCA_TECFAG')) AND fase < 3", () => {});
         db.run("ALTER TABLE stock_order_items ADD COLUMN qty_eadi_admitted INTEGER DEFAULT 0", (err) => {});
         db.run("ALTER TABLE stock_order_items ADD COLUMN ncm TEXT", (err) => {});
         db.run("ALTER TABLE stock_eadi_clearances ADD COLUMN di_file_path TEXT", (err) => {});
@@ -2494,8 +2495,37 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
                 }));
             }
 
+            // Sincronização estrita de Card Único: se o projeto possui ordem ativa em Comex ou fatura internacional,
+            // ele NUNCA pode coexistir nas colunas comerciais/iniciais do Quadro Kanban (Fase 1 ou 2)
+            let effectiveFase = parseInt(p.fase) || 1;
+            if (linkedOrder && effectiveFase !== 8 && effectiveFase !== 7) {
+                const stage = linkedOrder.stage || 'PO_EMITIDA';
+                if (stage === 'DOCA_GALPAO' || stage === 'DOCA_TECFAG') {
+                    if (effectiveFase < 6) effectiveFase = 6;
+                } else if (stage === 'ENTREPOSTADO_EADI' || stage === 'NO_PORTO_DESEMBARACO' || stage === 'NO_NAVIO') {
+                    if (effectiveFase < 5) effectiveFase = 5;
+                } else if (stage === 'EM_FABRICACAO' || stage === 'PACKING_LIST_EMBARQUE') {
+                    if (effectiveFase < 4) effectiveFase = 4;
+                } else {
+                    // PO_EMITIDA / Proforma / Negociação de Invoice Internacional
+                    if (effectiveFase < 3) effectiveFase = 3;
+                }
+
+                if (effectiveFase !== p.fase) {
+                    dbRun('UPDATE projects SET fase = ? WHERE code = ?', [effectiveFase, p.code]).catch(() => {});
+                }
+            } else if (invNum && (effectiveFase === 1 || effectiveFase === 2)) {
+                effectiveFase = 3;
+                dbRun('UPDATE projects SET fase = 3 WHERE code = ?', [p.code]).catch(() => {});
+            }
+
             return {
                 ...p,
+                fase: effectiveFase,
+                has_import_order: !!linkedOrder,
+                import_stage: linkedOrder ? linkedOrder.stage : (p.import_stage || (effectiveFase >= 3 && effectiveFase <= 5 ? 'PO_EMITIDA' : null)),
+                import_po_number: linkedOrder ? linkedOrder.po_number : null,
+                import_order_id: linkedOrder ? linkedOrder.id : null,
                 import_supplier: supp,
                 import_invoice_number: invNum,
                 import_total_fob_value: fobVal,
