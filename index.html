@@ -4194,17 +4194,17 @@
                                             <input type="text" class="form-control" id="modal-spec-frasco" style="font-size: 0.78rem; padding: 6px;" placeholder="Ex: Frasco 500ml PEAD">
                                         </div>
                                         <div>
-                                            <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Fechamento / Solda</label>
+                                            <label id="modal-spec-tampa-label" style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Fechamento / Solda</label>
                                             <input type="text" class="form-control" id="modal-spec-tampa" style="font-size: 0.78rem; padding: 6px;" placeholder="Ex: Selo Alumínio / Rosca 28mm">
                                         </div>
                                     </div>
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                        <div>
-                                            <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Formato Embalagem</label>
+                                    <div id="modal-spec-row-embalagem" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                        <div id="modal-spec-formato-wrapper">
+                                            <label id="modal-spec-formato-label" style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Formato Embalagem</label>
                                             <input type="text" class="form-control" id="modal-spec-formato" style="font-size: 0.78rem; padding: 6px;" placeholder="Ex: Cilíndrico / Pouch">
                                         </div>
-                                        <div>
-                                            <label style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Largura Filme / Bobina</label>
+                                        <div id="modal-spec-largura-wrapper">
+                                            <label id="modal-spec-largura-label" style="font-size: 0.68rem; color: var(--text-secondary); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Largura Filme / Bobina</label>
                                             <input type="text" class="form-control" id="modal-spec-largura" style="font-size: 0.78rem; padding: 6px;" placeholder="Ex: 320 mm">
                                         </div>
                                     </div>
@@ -16637,6 +16637,45 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
             return s;
         }
 
+        function detectProjectSegment(project) {
+            if (!project) return '';
+            let rawSegment = '';
+            if (project.diagnostico) {
+                try {
+                    const parsed = typeof project.diagnostico === 'string' ? JSON.parse(project.diagnostico) : project.diagnostico;
+                    if (parsed && typeof parsed === 'object') {
+                        rawSegment = parsed.segment || parsed.segmento || '';
+                    } else if (typeof project.diagnostico === 'string') {
+                        rawSegment = project.diagnostico;
+                    }
+                } catch(e) {
+                    rawSegment = String(project.diagnostico);
+                }
+            }
+            const combined = [
+                rawSegment,
+                project.project_name || '',
+                project.sku || '',
+                typeof project.diagnostico === 'string' ? project.diagnostico : ''
+            ].join(' ').toUpperCase();
+
+            if (combined.includes('ENVASE') || combined.includes('ENVASADORA') || combined.includes('ENVASAD')) return 'ENVASE';
+            if (combined.includes('ROTULA') || combined.includes('ETIQUET')) return 'ROTULADORAS';
+            if (combined.includes('MISTURA') || combined.includes('MOINHO')) return 'MISTURADORES';
+            if (combined.includes('ENCAPSULA') || combined.includes('FARMAC')) return 'ENCAPSULADORAS';
+            if (combined.includes('GOMA') || combined.includes('GUMMY')) return 'GOMAS';
+            if (combined.includes('DOSAGEM_SEMIAUTOMATICA') || combined.includes('SEMIAUTOMATICA') || combined.includes('SEMI-AUTOMATICA')) return 'DOSAGEM_SEMIAUTOMATICA';
+            if (combined.includes('DOSAGEM_EMPACOTAMENTO') || combined.includes('EMPACOTAMENTO') || combined.includes('VFFS') || combined.includes('FLOW PACK') || combined.includes('FLOWPACK')) return 'DOSAGEM_EMPACOTAMENTO';
+            if (combined.includes('FECHAMENTO') || combined.includes('TAMPAGEM') || combined.includes('ROSQUEADORA') || combined.includes('INDUCAO') || combined.includes('TAMPA')) return 'FECHAMENTO_TAMPAGEM';
+            if (combined.includes('VACUO') || combined.includes('TERMOFORMADORA') || combined.includes('MAP')) return 'VACUO_TERMOFORMADORAS';
+            if (combined.includes('TERMOENCOLHIVEL') || combined.includes('BUNDLING') || combined.includes('SHRINK') || combined.includes('ENFARDADORA')) return 'TERMOENCOLHIVEL';
+            if (combined.includes('FINAL_LINHA') || combined.includes('FINAL DE LINHA') || combined.includes('PALETIZACAO') || combined.includes('CAIXAS')) return 'FINAL_LINHA';
+            if (combined.includes('ESPECIAIS') || combined.includes('PERSONNALITE')) return 'PROJETOS_ESPECIAIS';
+            if (combined.includes('SELADORAS_CONTINUAS') || combined.includes('SELADORA CONTINUA')) return 'SELADORAS_CONTINUAS';
+            
+            return normalizeSegmentKey(rawSegment);
+        }
+
         function renderDynamicSegmentSpecs(project, specs) {
             const container = document.getElementById('modal-group-dynamic-segment');
             const grid = document.getElementById('modal-group-dynamic-segment-grid');
@@ -16644,21 +16683,73 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
             const envaseGroup = document.getElementById('modal-group-envase-only');
             if (!container || !grid) return;
 
-            let rawSegment = '';
             let diagParams = {};
-            if (project.diagnostico) {
+            if (project && project.diagnostico) {
                 try {
                     const parsed = typeof project.diagnostico === 'string' ? JSON.parse(project.diagnostico) : project.diagnostico;
-                    rawSegment = parsed.segment || parsed.segmento || '';
-                    if (parsed.parameters) diagParams = parsed.parameters;
-                    else if (parsed.params) diagParams = parsed.params;
+                    if (parsed && typeof parsed === 'object') {
+                        if (parsed.parameters) diagParams = parsed.parameters;
+                        else if (parsed.params) diagParams = parsed.params;
+                    }
                 } catch(e) {}
             }
 
-            const normalized = normalizeSegmentKey(rawSegment);
+            const normalized = detectProjectSegment(project);
             const segConfig = SEGMENT_SPECS_CONFIG[normalized];
 
-            // Envase só fica visível se for exatamente o segmento ENVASE
+            // Elementos de cabeçalho da Ficha Técnica
+            const larguraWrapper = document.getElementById('modal-spec-largura-wrapper');
+            const embalagemRow = document.getElementById('modal-spec-row-embalagem');
+            const tampaLabel = document.getElementById('modal-spec-tampa-label');
+            const tampaInput = document.getElementById('modal-spec-tampa');
+            const frascoLabel = document.getElementById('modal-spec-frasco-label');
+            const frascoInput = document.getElementById('modal-spec-frasco');
+            const formatoLabel = document.getElementById('modal-spec-formato-label');
+            const formatoInput = document.getElementById('modal-spec-formato');
+
+            // Segmentos que NÃO utilizam bobina de filme (trabalham com frasco, pote, cápsula ou sólido)
+            const nonFilmSegments = ['ENVASE', 'ROTULADORAS', 'FECHAMENTO_TAMPAGEM', 'MISTURADORES', 'ENCAPSULADORAS', 'GOMAS'];
+            const isNonFilm = nonFilmSegments.includes(normalized);
+
+            if (larguraWrapper) {
+                larguraWrapper.style.display = isNonFilm ? 'none' : 'block';
+            }
+            if (embalagemRow) {
+                embalagemRow.style.gridTemplateColumns = isNonFilm ? '1fr' : '1fr 1fr';
+            }
+
+            // Customização inteligente de rótulos conforme o segmento da máquina
+            if (normalized === 'ENVASE') {
+                if (tampaLabel) tampaLabel.innerText = 'Tipo de Tampa / Rosca / Batoque';
+                if (tampaInput) tampaInput.placeholder = 'Ex: Tampa Rosca 28mm / Batoque Pressão / Válvula Spray';
+                if (frascoLabel) frascoLabel.innerText = 'Insumo / Frasco / Pote';
+                if (frascoInput) frascoInput.placeholder = 'Ex: Frasco Cilíndrico 100ml a 500ml PET';
+                if (formatoLabel) formatoLabel.innerText = 'Geometria do Frasco / Boca';
+                if (formatoInput) formatoInput.placeholder = 'Ex: Cilíndrico boca 20mm / Pote Cônico';
+            } else if (normalized === 'FECHAMENTO_TAMPAGEM') {
+                if (tampaLabel) tampaLabel.innerText = 'Tipo de Tampa / Fechamento';
+                if (tampaInput) tampaInput.placeholder = 'Ex: Tampa Rosca 28mm / Selo Alumínio Indução';
+                if (frascoLabel) frascoLabel.innerText = 'Frasco / Pote Alvo';
+                if (frascoInput) frascoInput.placeholder = 'Ex: Pote 500g PEAD';
+                if (formatoLabel) formatoLabel.innerText = 'Diâmetro / Boca';
+                if (formatoInput) formatoInput.placeholder = 'Ex: Boca 38mm / Pescador 15cm';
+            } else if (normalized === 'ROTULADORAS') {
+                if (tampaLabel) tampaLabel.innerText = 'Posicionamento do Rótulo';
+                if (tampaInput) tampaInput.placeholder = 'Ex: Cilíndrico Envolvente / Frente e Verso';
+                if (frascoLabel) frascoLabel.innerText = 'Frasco / Embalagem';
+                if (frascoInput) frascoInput.placeholder = 'Ex: Frasco Cilíndrico 250ml';
+                if (formatoLabel) formatoLabel.innerText = 'Geometria da Superfície';
+                if (formatoInput) formatoInput.placeholder = 'Ex: 100% Reto Cilíndrico';
+            } else {
+                if (tampaLabel) tampaLabel.innerText = 'Fechamento / Solda';
+                if (tampaInput) tampaInput.placeholder = 'Ex: Selo Alumínio / Rosca 28mm';
+                if (frascoLabel) frascoLabel.innerText = 'Insumo / Frasco / Pote';
+                if (frascoInput) frascoInput.placeholder = 'Ex: Frasco 500ml PET';
+                if (formatoLabel) formatoLabel.innerText = 'Formato Embalagem';
+                if (formatoInput) formatoInput.placeholder = 'Ex: Cilíndrico / Pouch';
+            }
+
+            // Bloco de dosador, bicos e CIP (específico para Envasadoras)
             if (envaseGroup) {
                 if (normalized === 'ENVASE') {
                     envaseGroup.style.display = 'flex';
@@ -18592,7 +18683,12 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
 
             // Card Único: Se o projeto já possui ordem de importação ativa no Comex ou fatura internacional em negociação,
             // sua fase mínima é 3 (sai das colunas 1 e 2 do Kanban de Projetos)
-            const hasActiveImport = !isLocalStock && (
+            // IMPORTANTE: Só consideramos importação ativa se a Fase 2 (Comercial) foi concluída com Contrato Assinado (f2Complete)
+            // OU se o projeto já possui etapas de Comex iniciadas (hasF3, hasF4, hasF5, hasF6)
+            // OU se possui ordem de compra internacional formalmente vinculada (has_import_order && (import_order_id || import_po_number))
+            const hasFormalImportOrder = !!(project.has_import_order && (project.import_order_id || project.import_po_number));
+            const hasStartedImportChecklist = hasF3 || hasF4 || hasF5 || hasF6;
+            const hasActiveImport = !isLocalStock && (hasFormalImportOrder || hasStartedImportChecklist || f2Complete) && (
                 project.has_import_order || 
                 project.import_po_number || 
                 project.import_invoice_number || 
@@ -18628,9 +18724,16 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
             } else if (hasF3 || f2Complete) {
                 calculated = 3; // Proforma, Câmbio & PO Fornecedor
             } else if (hasF2 || f1Complete) {
-                calculated = 2; // Pedido Fechado (Venda Ganha no RD)
+                calculated = 2; // Pedido Fechado (Comercial & Financeiro)
             } else {
-                calculated = 1; // Viabilidade Técnica (Especiais)
+                calculated = 1; // Engenharia de Aplicação & Escopo
+            }
+
+            // Trava de integridade: Se o contrato ainda não foi assinado (f2Complete = false)
+            // e o projeto não iniciou importação nem possui ordem de compra formal,
+            // sua fase máxima permitida é 2 (Comercial & Financeiro), evitando qualquer salto indevido para Proforma
+            if (!f2Complete && !hasStartedImportChecklist && !hasFormalImportOrder) {
+                return Math.min(2, calculated);
             }
 
             const currentFase = parseInt(project.fase) || 1;

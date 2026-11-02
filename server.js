@@ -228,6 +228,7 @@ db.run("ALTER TABLE projects ADD COLUMN is_archived INTEGER DEFAULT 0", () => {}
 db.run("ALTER TABLE projects ADD COLUMN archived_at TEXT", () => {});
 db.run("ALTER TABLE projects ADD COLUMN delivery_invoice TEXT", () => {});
 db.run("ALTER TABLE projects ADD COLUMN delivery_date TEXT", () => {});
+db.run("UPDATE projects SET import_stage = NULL WHERE (fase IS NULL OR fase <= 2) AND (checklist NOT LIKE '%\"contrato\":true%')", () => {});
 
         // Limpeza automática de comentários órfãos de projetos excluídos
         db.run("DELETE FROM comments WHERE projectCode NOT IN (SELECT code FROM projects)", () => {});
@@ -2507,6 +2508,7 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
 
             // Sincronização estrita de Card Único: se o projeto possui ordem ativa em Comex ou fatura internacional,
             // ele NUNCA pode coexistir nas colunas comerciais/iniciais do Quadro Kanban (Fase 1 ou 2)
+            const chkParsed = safeJsonParse(p.checklist, {});
             let effectiveFase = parseInt(p.fase) || 1;
             if (linkedOrder && effectiveFase !== 8 && effectiveFase !== 7) {
                 const stage = linkedOrder.stage || 'PO_EMITIDA';
@@ -2524,12 +2526,11 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
                 if (effectiveFase !== p.fase) {
                     dbRun('UPDATE projects SET fase = ? WHERE code = ?', [effectiveFase, p.code]).catch(() => {});
                 }
-            } else if (invNum && (effectiveFase === 1 || effectiveFase === 2)) {
+            } else if (invNum && (effectiveFase === 1 || effectiveFase === 2) && chkParsed.contrato) {
                 effectiveFase = 3;
                 dbRun('UPDATE projects SET fase = 3 WHERE code = ?', [p.code]).catch(() => {});
             }
 
-            const chkParsed = safeJsonParse(p.checklist, {});
             // Se contrato foi assinado e escopo aprovado (venda formalizada), avança para Fase 3 (Proforma / Comex)
             if (chkParsed.contrato && chkParsed.aprovacao && effectiveFase < 3 && effectiveFase !== 8 && effectiveFase !== 7 && p.equipment_origin !== 'Pronta Entrega (Estoque Local)') {
                 effectiveFase = 3;
@@ -2540,7 +2541,7 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
                 ...p,
                 fase: effectiveFase,
                 has_import_order: !!linkedOrder,
-                import_stage: linkedOrder ? linkedOrder.stage : (p.import_stage || (effectiveFase >= 3 && effectiveFase <= 5 ? 'PO_EMITIDA' : null)),
+                import_stage: linkedOrder ? linkedOrder.stage : ((effectiveFase >= 3 && effectiveFase <= 6) ? (p.import_stage || 'PO_EMITIDA') : null),
                 import_po_number: linkedOrder ? linkedOrder.po_number : null,
                 import_order_id: linkedOrder ? linkedOrder.id : null,
                 import_supplier: supp,
@@ -10419,7 +10420,6 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
             SELECT * FROM projects 
             WHERE (
                     fase IN (3, 4, 5) 
-                    OR (import_stage IS NOT NULL AND import_stage != 'DOCA_GALPAO' AND fase < 6)
                     OR (checklist LIKE '%"contrato":true%' AND checklist LIKE '%"aprovacao":true%' AND (equipment_origin IS NULL OR equipment_origin != 'Pronta Entrega (Estoque Local)') AND (fase IS NULL OR fase < 6))
                   )
               AND (motivoPerda IS NULL)
