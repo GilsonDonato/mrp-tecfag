@@ -4573,6 +4573,9 @@
                                     <button type="button" id="modal-project-btn-extract-ai" class="btn" onclick="extractProjectInvoiceWithAI()" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; font-weight: bold; padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; display: none; cursor: pointer;">
                                         ⚡ Ler Fatura com IA
                                     </button>
+                                    <button type="button" id="modal-project-btn-clear-invoice" class="btn" onclick="deleteProjectInvoice(activeProjectCode)" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; font-weight: 700; padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; display: none; align-items: center; gap: 6px;">
+                                        🗑️ Excluir / Desvincular Invoice
+                                    </button>
                                 </div>
                                 <div id="modal-project-ocr-status" style="display: none; margin-top: 8px; font-size: 0.75rem; font-weight: 600;"></div>
                                 <div id="modal-project-attached-invoice-info" style="margin-top: 10px; font-size: 0.75rem; color: #94a3b8; display: none;"></div>
@@ -23484,12 +23487,23 @@ function renderKanban() {
                                     <button type="button" id="btn-reanalyze-attached-invoice" class="btn" data-file-url="${safeUrl}" data-file-name="${safeFileName}" onclick="reAnalyzeAttachedInvoice(this.dataset.fileUrl, this.dataset.fileName)" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; padding: 3px 8px; font-size: 0.72rem; font-weight: bold; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: none;">
                                         ⚡ Reanalisar
                                     </button>
+                                    <button type="button" id="btn-delete-attached-invoice" class="btn" onclick="deleteProjectInvoice('${escapeProjectHtml(code)}')" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 3px 8px; font-size: 0.72rem; font-weight: bold; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                        🗑️ Excluir Fatura
+                                    </button>
                                 </div>
                             `;
                         } else {
                             invInfoEl.style.display = 'none';
                             invInfoEl.innerHTML = '';
                         }
+                    }
+
+                    // Controle de visibilidade do botão de desvinculação no card da invoice
+                    const clearBtn = document.getElementById('modal-project-btn-clear-invoice');
+                    const currentProj = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === code) : null;
+                    const hasInvoiceData = !!(proformaAttach || (currentProj && (currentProj.import_invoice_number || currentProj.import_supplier)));
+                    if (clearBtn) {
+                        clearBtn.style.display = hasInvoiceData ? 'inline-flex' : 'none';
                     }
 
                     // Renderizar Badge do Packing List
@@ -23517,6 +23531,105 @@ function renderKanban() {
                 }
             } catch (e) {
                 console.warn('Erro ao verificar anexos do projeto:', e);
+            }
+        }
+
+        // Exclui e desvincula Proforma / Commercial Invoice anexada por engano em um card
+        async function deleteProjectInvoice(code) {
+            const projectCode = code || activeProjectCode;
+            if (!projectCode) return;
+
+            if (!confirm(`Tem certeza de que deseja EXCLUIR e desvincular a Proforma / Commercial Invoice do projeto ${projectCode}?\n\nIsso removerá a fatura anexada, resetará os itens e valores importados por engano e retornará o card para a fase correta.`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                const res = await fetch(`/api/projects/${encodeURIComponent(projectCode)}/invoice`, {
+                    method: 'DELETE',
+                    headers
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    alert('Erro ao excluir invoice: ' + (data.error || 'Erro desconhecido.'));
+                    return;
+                }
+
+                // Atualizar estado em memória
+                const localProj = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === projectCode) : null;
+                if (localProj) {
+                    localProj.import_supplier = '';
+                    localProj.import_invoice_number = '';
+                    localProj.import_invoice_date = null;
+                    localProj.import_total_fob_value = 0;
+                    localProj.import_items = [];
+                    if (data.fase !== undefined) localProj.fase = data.fase;
+                    if (localProj.checklist) {
+                        if (typeof localProj.checklist === 'string') {
+                            try {
+                                const c = JSON.parse(localProj.checklist);
+                                c.proforma = false;
+                                delete c.proforma_user;
+                                delete c.proforma_date;
+                                localProj.checklist = JSON.stringify(c);
+                            } catch(e) {}
+                        } else {
+                            localProj.checklist.proforma = false;
+                            delete localProj.checklist.proforma_user;
+                            delete localProj.checklist.proforma_date;
+                        }
+                    }
+                }
+
+                // Limpar campos do modal se estiver visualizando o mesmo projeto
+                if (activeProjectCode === projectCode) {
+                    if (document.getElementById('modal-import-supplier')) document.getElementById('modal-import-supplier').value = '';
+                    if (document.getElementById('modal-import-invoice-number')) document.getElementById('modal-import-invoice-number').value = '';
+                    if (document.getElementById('modal-import-invoice-date')) document.getElementById('modal-import-invoice-date').value = '';
+                    if (document.getElementById('modal-import-total-fob')) document.getElementById('modal-import-total-fob').value = '';
+                    if (document.getElementById('modal-import-currency')) document.getElementById('modal-import-currency').value = 'USD';
+
+                    const fileInput = document.getElementById('modal-project-invoice-file');
+                    if (fileInput) fileInput.value = '';
+                    const labelEl = document.getElementById('modal-project-selected-file-label');
+                    if (labelEl) labelEl.innerText = 'Nenhum arquivo';
+                    const aiBtn = document.getElementById('modal-project-btn-extract-ai');
+                    if (aiBtn) aiBtn.style.display = 'none';
+
+                    const invInfoEl = document.getElementById('modal-project-attached-invoice-info');
+                    if (invInfoEl) {
+                        invInfoEl.style.display = 'none';
+                        invInfoEl.innerHTML = '';
+                    }
+
+                    const clearBtn = document.getElementById('modal-project-btn-clear-invoice');
+                    if (clearBtn) clearBtn.style.display = 'none';
+
+                    if (typeof renderProjectImportItems === 'function') {
+                        renderProjectImportItems([]);
+                    }
+
+                    const chkProformaEl = document.getElementById('chk-proforma');
+                    if (chkProformaEl) chkProformaEl.classList.remove('checked');
+
+                    const activeTabBtn = document.querySelector('.project-modal-tab.active');
+                    const currentTabName = activeTabBtn ? activeTabBtn.dataset.tab : 'logistics';
+                    if (typeof openProjectModal === 'function') {
+                        await openProjectModal(projectCode, currentTabName);
+                    }
+                }
+
+                alert('✅ Proforma / Commercial Invoice excluída com sucesso!\nO card foi desvinculado e recalculado.');
+
+                if (typeof loadProjectsDB === 'function') await loadProjectsDB();
+                if (typeof loadSupplyChainData === 'function') await loadSupplyChainData();
+            } catch (err) {
+                console.error('Erro ao deletar invoice:', err);
+                alert('Erro ao excluir invoice: ' + err.message);
             }
         }
 

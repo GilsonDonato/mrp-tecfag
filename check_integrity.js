@@ -238,6 +238,125 @@ async function main() {
         assert(!serverCode.includes('setInterval(sendAutoHygieneWarningEmails'), 'sendAutoHygieneWarningEmails não deve ser agendada');
     });
 
+    // ----------------------------------------------------
+    // 6. TESTE DE EXCLUSÃO DE PROFORMA/COMMERCIAL INVOICE
+    // ----------------------------------------------------
+    console.log('\n🗑️ 6. Testando Exclusão e Desvinculação de Proforma/Commercial Invoice...');
+
+    reportTest('Endpoint DELETE /api/projects/:code/invoice e UI de exclusão estão presentes', () => {
+        assert(serverCode.includes("app.delete('/api/projects/:code/invoice'"), 'Endpoint DELETE /api/projects/:code/invoice deve existir em server.js');
+        assert(indexCode.includes('function deleteProjectInvoice('), 'deleteProjectInvoice deve existir em index.html');
+        assert(indexCode.includes('modal-project-btn-clear-invoice'), 'Botão modal-project-btn-clear-invoice deve existir em index.html');
+        assert(indexCode.includes('btn-delete-attached-invoice'), 'Botão btn-delete-attached-invoice deve existir em index.html');
+    });
+
+    await reportTestAsync('Ciclo atômico de exclusão de invoice e recálculo de fase', async () => {
+        await dbRun(`CREATE TABLE projects (
+            code TEXT PRIMARY KEY,
+            fase INTEGER,
+            client TEXT,
+            import_supplier TEXT,
+            import_invoice_number TEXT,
+            import_invoice_date TEXT,
+            import_currency TEXT,
+            import_total_fob_value REAL,
+            import_items TEXT,
+            import_stage TEXT,
+            checklist TEXT,
+            lastUpdate TEXT
+        )`);
+
+        await dbRun(`CREATE TABLE attachments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            projectCode TEXT,
+            phase TEXT,
+            fileName TEXT,
+            fileType TEXT,
+            filePath TEXT,
+            dateAdded TEXT
+        )`);
+
+        const initChk = JSON.stringify({
+            diagnostico: true, customizacao: true, cotacao: true, fluxograma: true, planta_baixa: true,
+            aprovacao: true, contrato: false, proforma: true, proforma_user: 'Usuario Teste'
+        });
+
+        await dbRun(`INSERT INTO projects (
+            code, fase, client, import_supplier, import_invoice_number, import_total_fob_value, import_currency, import_items, checklist
+        ) VALUES (
+            'PRJ-TEST-INV', 3, 'Cliente Teste', 'Fornecedor XYZ', 'PI-999', 15000, 'USD', '[{"sku":"MAQ-01"}]', ?
+        )`, [initChk]);
+
+        await dbRun(`INSERT INTO attachments (projectCode, phase, fileName, filePath) VALUES 
+            ('PRJ-TEST-INV', 'proforma', 'Proforma_PI999.pdf', 'uploads/test.pdf')`);
+
+        const orderRes = await dbRun(`INSERT INTO stock_orders (
+            po_number, project_code, supplier_name, invoice_number, currency, total_fob_value
+        ) VALUES ('PO-PRJ-TEST-INV', 'PRJ-TEST-INV', 'Fornecedor XYZ', 'PI-999', 'USD', 15000)`);
+        const delOrderId = orderRes.lastID;
+
+        await dbRun(`INSERT INTO stock_order_items (order_id, sku, qty_ordered) VALUES (?, 'MAQ-01', 1)`, [delOrderId]);
+
+        // Simulação do endpoint de exclusão
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', ['PRJ-TEST-INV']);
+        assert(project, 'Projeto deve existir antes da exclusão');
+
+        // 1. Remover attachments
+        await dbRun(`DELETE FROM attachments WHERE projectCode = ? AND (phase = 'proforma' OR phase = 'invoice')`, ['PRJ-TEST-INV']);
+
+        // 2. Resetar checklist
+        let chk = JSON.parse(project.checklist);
+        chk.proforma = false;
+        delete chk.proforma_user;
+        delete chk.proforma_date;
+        chk.import_order_deleted = true;
+
+        // 3. Resetar campos e recalcular fase
+        const updatedFields = {
+            import_supplier: null,
+            import_invoice_number: null,
+            import_invoice_date: null,
+            import_total_fob_value: 0,
+            import_currency: 'USD',
+            import_items: '[]',
+            checklist: JSON.stringify(chk)
+        };
+
+        const canonicalFase = computeCanonicalProjectPhase({
+            ...project,
+            ...updatedFields,
+            checklist: chk,
+            has_import_order: 0,
+            import_order_id: null,
+            import_po_number: null,
+            import_stage: null
+        });
+
+        assert.strictEqual(canonicalFase, 2, 'Sem contrato concluído e sem proforma, o projeto deve retornar para Fase 2');
+
+        const { sql, params } = buildDynamicUpdate('projects', { ...updatedFields, fase: canonicalFase }, 'code = ?', ['PRJ-TEST-INV']);
+        await dbRun(sql, params);
+
+        // 4. Limpar stock_orders sem desembaraço
+        await dbRun('DELETE FROM stock_order_items WHERE order_id IN (SELECT id FROM stock_orders WHERE project_code = ?)', ['PRJ-TEST-INV']);
+        await dbRun('DELETE FROM stock_orders WHERE project_code = ?', ['PRJ-TEST-INV']);
+
+        // Validações pós-exclusão
+        const pPost = await dbGet('SELECT * FROM projects WHERE code = ?', ['PRJ-TEST-INV']);
+        assert.strictEqual(pPost.fase, 2, 'Fase deve ser 2');
+        assert.strictEqual(pPost.import_invoice_number, null, 'Invoice number deve ser nulo');
+        assert.strictEqual(pPost.import_supplier, null, 'Supplier deve ser nulo');
+
+        const chkPost = JSON.parse(pPost.checklist);
+        assert.strictEqual(chkPost.proforma, false, 'Checklist proforma deve ser falso');
+
+        const attPost = await dbAll('SELECT * FROM attachments WHERE projectCode = ?', ['PRJ-TEST-INV']);
+        assert.strictEqual(attPost.length, 0, 'Anexos de proforma devem ter sido removidos');
+
+        const ordPost = await dbAll('SELECT * FROM stock_orders WHERE project_code = ?', ['PRJ-TEST-INV']);
+        assert.strictEqual(ordPost.length, 0, 'Ordens de estoque devem ter sido removidas');
+    });
+
     console.log('\n====================================================');
     console.log(`🎉 AUDITORIA CONCLUÍDA: ${passedTests}/${totalTests} TESTES APROVADOS (100%)`);
     console.log('✨ SISTEMA MRP TECFAG ESTABILIZADO E PRONTO PARA OPERAÇÃO!');

@@ -9753,6 +9753,122 @@ app.post('/api/projects/:code/cancel-import', authenticateToken, restrictToSuppl
     }
 });
 
+// DELETE /api/projects/:code/invoice - Exclui/desvincula Proforma/Commercial Invoice anexada por engano
+app.delete('/api/projects/:code/invoice', authenticateToken, async (req, res) => {
+    const { code } = req.params;
+    const user = req.user ? (req.user.name || req.user.username) : 'Sistema';
+
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) {
+            return res.status(404).json({ error: 'Projeto não encontrado.' });
+        }
+
+        // Restrição de vendedor (se aplicável)
+        if (req.user && req.user.role === 'VENDEDOR') {
+            const projectSales = (project.consultant || '').toLowerCase().trim();
+            const userName = (req.user.name || '').toLowerCase().trim();
+            const userLogin = (req.user.username || '').toLowerCase().trim();
+            if (projectSales && projectSales !== userName && projectSales !== userLogin) {
+                return res.status(403).json({ error: 'Acesso negado: Você só pode modificar projetos sob sua responsabilidade.' });
+            }
+        }
+
+        // 1. Remover arquivos físicos e registros de anexo da Proforma/Invoice
+        const invoiceAttachments = await dbAll(
+            `SELECT * FROM attachments 
+             WHERE projectCode = ? 
+               AND (phase = 'proforma' OR phase = 'invoice' 
+                    OR LOWER(fileName) LIKE '%invoice%' OR LOWER(fileName) LIKE '%proforma%')`,
+            [code]
+        );
+
+        for (const att of invoiceAttachments) {
+            if (att.filePath) {
+                const fullPath = path.join(__dirname, att.filePath);
+                try {
+                    if (fs.existsSync(fullPath)) {
+                        fs.unlinkSync(fullPath);
+                    }
+                } catch (fsErr) {
+                    console.warn(`[DELETE INVOICE] Falha ao deletar arquivo físico ${fullPath}:`, fsErr.message);
+                }
+            }
+            await dbRun('DELETE FROM attachments WHERE id = ?', [att.id]);
+        }
+
+        // 2. Atualizar checklist removendo proforma
+        let chk = safeJsonParse(project.checklist, {});
+        chk.proforma = false;
+        delete chk.proforma_user;
+        delete chk.proforma_date;
+        chk.import_order_deleted = true;
+
+        // 3. Limpar campos de importação / invoice no card do projeto
+        const now = new Date().toISOString();
+        const updatedFields = {
+            import_supplier: null,
+            import_invoice_number: null,
+            import_invoice_date: null,
+            import_total_fob_value: 0,
+            import_currency: 'USD',
+            import_items: '[]',
+            checklist: JSON.stringify(chk),
+            lastUpdate: now
+        };
+
+        // 4. Calcular nova fase canônica sem a proforma/invoice
+        const projectForPhaseCalc = {
+            ...project,
+            ...updatedFields,
+            checklist: chk,
+            has_import_order: 0,
+            import_order_id: null,
+            import_po_number: null,
+            import_stage: null
+        };
+        const canonicalFase = computeCanonicalProjectPhase(projectForPhaseCalc);
+        updatedFields.fase = canonicalFase;
+        if (canonicalFase <= 2) {
+            updatedFields.import_stage = null;
+        }
+
+        const { sql, params } = buildDynamicUpdate('projects', updatedFields, 'code = ?', [code]);
+        await dbRun(sql, params);
+
+        // 5. Tratar ordens vinculadas em stock_orders (se houver e não tiver desembaraço concluído)
+        const linkedOrders = await dbAll('SELECT id FROM stock_orders WHERE project_code = ?', [code]);
+        for (const ord of linkedOrders) {
+            const clearanceItems = await dbAll(
+                'SELECT ci.id FROM stock_eadi_clearance_items ci JOIN stock_order_items oi ON ci.order_item_id = oi.id WHERE oi.order_id = ?',
+                [ord.id]
+            );
+            if (!clearanceItems || clearanceItems.length === 0) {
+                await dbRun('DELETE FROM stock_order_items WHERE order_id = ?', [ord.id]);
+                await dbRun('DELETE FROM stock_orders WHERE id = ?', [ord.id]);
+            } else {
+                await dbRun('UPDATE stock_orders SET project_code = NULL WHERE id = ?', [ord.id]);
+            }
+        }
+
+        // 6. Registrar no log de auditoria
+        const logMsg = `Proforma/Commercial Invoice excluída/desvinculada por ${user}. Checklist e dados da fatura resetados. Projeto recalculado para Fase ${canonicalFase}.`;
+        await recordAuditLog(code, user, logMsg);
+
+        const refreshedProject = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+
+        res.json({
+            success: true,
+            message: 'Proforma / Commercial Invoice excluída e desvinculada com sucesso!',
+            fase: canonicalFase,
+            project: refreshedProject
+        });
+    } catch (err) {
+        console.error('[DELETE INVOICE ERROR]', err);
+        res.status(500).json({ error: 'Erro ao excluir invoice do projeto: ' + err.message });
+    }
+});
+
 // ==========================================
 // MÓDULO COPILOT & COMUNICAÇÕES DE PROJETOS
 // ==========================================
