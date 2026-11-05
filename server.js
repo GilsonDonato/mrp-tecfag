@@ -7895,10 +7895,17 @@ app.put('/api/projects/:code', async (req, res) => {
             checklist: currentChecklist
         });
 
-        // Garantir que status explícito de perda/cancelamento ou conclusão direta sejam respeitados se passados
+        // Garantir que status explícito de perda/cancelamento, conclusão direta ou retorno para Fase 1 sejam respeitados se passados
         if (fase !== undefined && parseInt(fase) === 8) canonicalFase = 8;
         if (motivoPerda) canonicalFase = 8;
         if (fase !== undefined && parseInt(fase) === 7) canonicalFase = 7;
+        if (fase !== undefined && parseInt(fase) === 1) {
+            // Permitir mover explicitamente para Fase 1 se não houver etapas de comex/importação ativas
+            const hasStartedImport = !!(currentChecklist.proforma || currentChecklist.cambio_sinal || currentChecklist.swift_pagamento || oldProject.has_import_order);
+            if (!hasStartedImport) {
+                canonicalFase = 1;
+            }
+        }
 
         const oldFase = parseInt(oldProject.fase) || 1;
         let newFaseEntryDate = oldProject.faseEntryDate || new Date().toISOString();

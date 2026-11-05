@@ -3862,6 +3862,9 @@
                     <button type="button" class="btn" id="btn-transfer-import" onclick="openTransferToImportModal(activeProjectCode)" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); border: 1px solid #38bdf8; color: white; padding: 6px 12px; font-size: 0.72rem; font-weight: 800; border-radius: 6px; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(14, 165, 233, 0.4);" title="Fornecedor mandou a Invoice: Transfere o projeto para a Gestão de Importação & Estoque">
                         🚀 <span>Fornecedor Mandou Invoice</span>
                     </button>
+                    <button type="button" class="btn" id="btn-regress-to-fase1" onclick="moveProjectToFase1(activeProjectCode)" style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; padding: 6px 12px; font-size: 0.72rem; font-weight: 800; border-radius: 6px; align-items: center; gap: 6px; cursor: pointer;" title="Retornar o projeto para a Fase 1 (Viabilidade Técnica / Engenharia)">
+                        📐 <span>Mover para Fase 1 (Viabilidade)</span>
+                    </button>
                     <button class="btn" id="btn-prorrogar-prazo" onclick="handleProrrogarPrazo()" style="background-color: #d97706; border-color: #d97706; color: #ffffff; padding: 6px 12px; font-size: 0.72rem; font-weight: bold; display: none; align-items: center; gap: 6px; border-radius: 6px;" title="Prorrogar o prazo de inatividade por +7 dias">
                         ⏱️ <span>Prorrogar Prazo</span>
                     </button>
@@ -19891,6 +19894,13 @@ function renderKanban() {
                 btnTransfer.style.display = (currentFase === 1 || currentFase === 2) ? 'inline-flex' : 'none';
             }
 
+            // Exibir botão de Mover para Fase 1 se o projeto estiver na Fase 2
+            const btnRegressFase1 = document.getElementById('btn-regress-to-fase1');
+            if (btnRegressFase1) {
+                const currentFase = parseInt(project.fase);
+                btnRegressFase1.style.display = (currentFase === 2) ? 'inline-flex' : 'none';
+            }
+
             const btnProrrogar = document.getElementById('btn-prorrogar-prazo');
             if (btnProrrogar) {
                 const currentFase = parseInt(project.fase);
@@ -23633,6 +23643,90 @@ function renderKanban() {
             } catch (err) {
                 console.error('Erro ao deletar invoice:', err);
                 alert('Erro ao excluir invoice: ' + err.message);
+            }
+        }
+
+        // Move o card da Fase 2 (Pedido Fechado) de volta para a Fase 1 (Viabilidade Técnica)
+        async function moveProjectToFase1(code) {
+            const projectCode = code || activeProjectCode;
+            if (!projectCode) return;
+
+            const project = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === projectCode) : null;
+            if (!project) return;
+
+            if (!confirm(`Deseja mover o projeto ${projectCode} (${project.client || ''}) para a FASE 1 (Viabilidade Técnica / Engenharia)?\n\nTodos os dados do cliente, CNPJ e especificações técnicas serão mantidos intactos, e o checklist de viabilidade retornará como pendente para a Engenharia.`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                let chk = {};
+                try {
+                    chk = typeof project.checklist === 'string' ? JSON.parse(project.checklist) : { ...project.checklist };
+                } catch(e) {
+                    chk = {};
+                }
+
+                // Resetar itens de checklist marcados automaticamente no cadastro de Fase 2
+                chk.customizacao = false;
+                delete chk.customizacao_user;
+                delete chk.customizacao_date;
+
+                chk.cotacao = false;
+                delete chk.cotacao_user;
+                delete chk.cotacao_date;
+
+                chk.fluxograma = false;
+                delete chk.fluxograma_user;
+                delete chk.fluxograma_date;
+
+                chk.planta_baixa = false;
+                delete chk.planta_baixa_user;
+                delete chk.planta_baixa_date;
+
+                chk.aprovacao = false;
+                delete chk.aprovacao_user;
+                delete chk.aprovacao_date;
+
+                chk.contrato = false;
+                delete chk.contrato_user;
+                delete chk.contrato_date;
+
+                const payload = {
+                    fase: 1,
+                    checklist: chk,
+                    lastUpdate: new Date().toISOString()
+                };
+
+                const res = await fetch(`/api/projects/${encodeURIComponent(projectCode)}`, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    alert('Erro ao mover projeto para Fase 1: ' + (data.error || 'Erro desconhecido.'));
+                    return;
+                }
+
+                project.fase = 1;
+                project.checklist = chk;
+
+                alert('✅ Projeto movido com sucesso para a FASE 1 (Viabilidade Técnica / Engenharia)!');
+
+                if (activeProjectCode === projectCode && typeof openProjectModal === 'function') {
+                    await openProjectModal(projectCode, 'engineering');
+                }
+
+                if (typeof loadProjectsDB === 'function') await loadProjectsDB();
+                if (typeof renderKanban === 'function') renderKanban();
+            } catch (err) {
+                console.error('Erro ao mover para Fase 1:', err);
+                alert('Erro ao mover para Fase 1: ' + err.message);
             }
         }
 
