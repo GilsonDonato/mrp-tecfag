@@ -2267,11 +2267,14 @@
         </div>
 
         <!-- Storage Low Warning Banner (Shown only when disk space is > 80%) -->
-        <div id="storage-low-warning" style="display: none; background: linear-gradient(90deg, #ef4444 0%, #b91c1c 100%); color: #ffffff; padding: 14px 20px; border-radius: 8px; margin-bottom: 25px; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25); border-left: 5px solid #7f1d1d;">
-            <div style="display: flex; align-items: center; gap: 12px; font-size: 0.9rem; font-weight: 500;">
+        <div id="storage-low-warning" style="display: none; background: linear-gradient(90deg, #ef4444 0%, #b91c1c 100%); color: #ffffff; padding: 14px 20px; border-radius: 8px; margin-bottom: 25px; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25); border-left: 5px solid #7f1d1d; cursor: pointer; flex-wrap: wrap; gap: 12px;" onclick="openStorageOptimizerModal()">
+            <div style="display: flex; align-items: center; gap: 12px; font-size: 0.9rem; font-weight: 500; flex: 1; min-width: 280px;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                <span><strong>ALERTA DE ESPAÇO:</strong> O armazenamento do servidor está crítico (<span id="storage-warning-pct">--</span>% usado). Risco iminente de travamento. Por favor, remova anexos antigos ou faça o upgrade do plano de disco no Render!</span>
+                <span><strong>ALERTA DE ESPAÇO:</strong> O armazenamento do servidor está crítico (<span id="storage-warning-pct">--</span>% usado). Risco iminente de travamento. Por favor, remova anexos antigos, execute a otimização ou faça o upgrade do disco no Render!</span>
             </div>
+            <button type="button" class="btn" onclick="event.stopPropagation(); openStorageOptimizerModal();" style="background: #ffffff; color: #b91c1c; font-weight: 800; padding: 8px 16px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; border: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.25); flex-shrink: 0;">
+                🧹 Abrir Gerenciador & Otimizar
+            </button>
         </div>
 
         <!-- High-Tech Industrial Telemetry Header (Live HUD) -->

@@ -59,7 +59,7 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 // Configuração do SQLite
-const DB_DIR = path.join(__dirname, 'data');
+const DB_DIR = process.env.DATABASE_PATH ? path.dirname(process.env.DATABASE_PATH) : path.join(__dirname, 'data');
 if (!fs.existsSync(DB_DIR)) {
     fs.mkdirSync(DB_DIR, { recursive: true });
 }
@@ -104,7 +104,7 @@ function runDailyBackup() {
             console.log(`[BACKUP GZIP] Cópia compactada gerada com sucesso em: ${backupGzPath} (${(compressed.length / (1024 * 1024)).toFixed(2)} MB)`);
         }
 
-        // Rotação: manter no máximo os 3 backups mais recentes (.db ou .db.gz) e deletar excedentes
+        // Rotação: manter no máximo os 2 backups mais recentes (.db ou .db.gz) e deletar excedentes
         const files = fs.readdirSync(BACKUPS_DIR);
         const backupFiles = files
             .filter(f => f.startsWith('tecfag_mrp_backup_'))
@@ -112,8 +112,8 @@ function runDailyBackup() {
 
         backupFiles.sort((a, b) => a.time - b.time);
 
-        if (backupFiles.length > 3) {
-            const filesToDelete = backupFiles.slice(0, backupFiles.length - 3);
+        if (backupFiles.length > 2) {
+            const filesToDelete = backupFiles.slice(0, backupFiles.length - 2);
             filesToDelete.forEach(f => {
                 try {
                     fs.unlinkSync(f.path);
@@ -3761,7 +3761,12 @@ app.get('/api/system-storage', authenticateToken, async (req, res) => {
 
         if (process.env.DATABASE_PATH) {
             // Em produção (Render com disco persistente /data)
-            totalUsedBytes = getDirectorySize('/data');
+            const baseDataDir = path.dirname(process.env.DATABASE_PATH);
+            const dataBackups = path.join(baseDataDir, 'backups');
+            const dataUploads = path.join(baseDataDir, 'uploads');
+            if (fs.existsSync(dataBackups)) backupsBytes = Math.max(backupsBytes, getDirectorySize(dataBackups));
+            if (fs.existsSync(dataUploads)) uploadsBytes = Math.max(uploadsBytes, getDirectorySize(dataUploads));
+            totalUsedBytes = getDirectorySize(baseDataDir);
         } else {
             totalUsedBytes = (fs.existsSync(dbDir) ? getDirectorySize(dbDir) : 0) + uploadsBytes;
         }
@@ -3789,60 +3794,139 @@ app.get('/api/system-storage', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/system-storage/optimize - Executa VACUUM no SQLite e faxina de backups não comprimidos/antigos
+// POST /api/system-storage/optimize - Executa VACUUM no SQLite, rotação de backups e faxina de uploads órfãos
 app.post('/api/system-storage/optimize', authenticateToken, async (req, res) => {
     try {
-        console.log('[STORAGE OPTIMIZE] Iniciando otimização do disco e SQLite...');
+        console.log('[STORAGE OPTIMIZE] Iniciando otimização completa do disco, backups e SQLite...');
         const dbDir = process.env.DATABASE_PATH ? path.dirname(process.env.DATABASE_PATH) : path.join(__dirname, 'data');
-        const backupsDir = path.join(dbDir, 'backups');
+        const candidateBackupDirs = [
+            path.join(dbDir, 'backups'),
+            path.join(__dirname, 'data', 'backups')
+        ];
 
         let removedBackupsCount = 0;
         let freedBackupBytes = 0;
 
-        // 1. Limpeza de backups brutos descompactados antigos (.db) mantendo apenas os compactados mais recentes
-        if (fs.existsSync(backupsDir)) {
-            const files = fs.readdirSync(backupsDir);
-            // Ordenar por data
-            const backupEntries = files
-                .filter(f => f.startsWith('tecfag_mrp_backup_'))
-                .map(f => {
-                    const fullP = path.join(backupsDir, f);
-                    return { name: f, path: fullP, size: fs.statSync(fullP).size, isGz: f.endsWith('.gz'), time: fs.statSync(fullP).mtime };
-                });
+        // 1. Limpeza e rotação de backups em todas as pastas conhecidas
+        for (const bDir of candidateBackupDirs) {
+            if (fs.existsSync(bDir)) {
+                const files = fs.readdirSync(bDir);
+                const backupEntries = files
+                    .filter(f => f.startsWith('tecfag_mrp_backup_'))
+                    .map(f => {
+                        const fullP = path.join(bDir, f);
+                        return { name: f, path: fullP, size: fs.statSync(fullP).size, isGz: f.endsWith('.gz'), time: fs.statSync(fullP).mtime };
+                    });
 
-            backupEntries.sort((a, b) => b.time - a.time); // mais novos primeiro
+                backupEntries.sort((a, b) => b.time - a.time); // mais novos primeiro
 
-            // Manter apenas no máximo 3 backups no total
-            if (backupEntries.length > 3) {
-                const toDelete = backupEntries.slice(3);
-                for (const b of toDelete) {
-                    try {
-                        fs.unlinkSync(b.path);
-                        removedBackupsCount++;
-                        freedBackupBytes += b.size;
-                        console.log(`[STORAGE OPTIMIZE] Backup excedente removido: ${b.name}`);
-                    } catch(e) {}
+                // Manter apenas no máximo os 2 backups mais recentes
+                if (backupEntries.length > 2) {
+                    const toDelete = backupEntries.slice(2);
+                    for (const b of toDelete) {
+                        try {
+                            fs.unlinkSync(b.path);
+                            removedBackupsCount++;
+                            freedBackupBytes += b.size;
+                            console.log(`[STORAGE OPTIMIZE] Backup antigo excedente removido: ${b.name}`);
+                        } catch(e) {}
+                    }
+                }
+
+                // Compactar os 2 restantes se ainda forem .db brutos
+                const remaining = backupEntries.slice(0, 2);
+                for (const b of remaining) {
+                    if (!b.isGz && fs.existsSync(b.path)) {
+                        try {
+                            const raw = fs.readFileSync(b.path);
+                            const comp = zlib.gzipSync(raw);
+                            const gzPath = b.path + '.gz';
+                            fs.writeFileSync(gzPath, comp);
+                            fs.unlinkSync(b.path);
+                            freedBackupBytes += (raw.length - comp.length);
+                            console.log(`[STORAGE OPTIMIZE] Backup comprimido retroativamente: ${b.name} -> ${b.name}.gz`);
+                        } catch(e) {}
+                    }
                 }
             }
+        }
 
-            // Compactar os 3 restantes se ainda forem .db brutos
-            const remaining = backupEntries.slice(0, 3);
-            for (const b of remaining) {
-                if (!b.isGz && fs.existsSync(b.path)) {
+        // 2. Limpeza de arquivos órfãos em uploads (não referenciados no banco e com mais de 6 horas)
+        let removedOrphansCount = 0;
+        let freedOrphanBytes = 0;
+        const candidateUploadDirs = [
+            UPLOADS_DIR,
+            process.env.DATABASE_PATH ? path.join(path.dirname(process.env.DATABASE_PATH), 'uploads') : null
+        ].filter(Boolean);
+
+        const uniqueUploadDirs = [...new Set(candidateUploadDirs)];
+
+        for (const uplDir of uniqueUploadDirs) {
+            if (fs.existsSync(uplDir)) {
+                const referencedFiles = new Set();
+                const addPathToSet = (p) => {
+                    if (!p) return;
+                    const norm = path.basename(p.trim().replace(/\\/g, '/'));
+                    if (norm) referencedFiles.add(norm.toLowerCase());
+                };
+
+                try {
+                    const attRows = await dbAll('SELECT filePath FROM attachments WHERE filePath IS NOT NULL');
+                    attRows.forEach(r => addPathToSet(r.filePath));
+                } catch(e) {}
+
+                try {
+                    const comRows = await dbAll('SELECT attachmentPath FROM comments WHERE attachmentPath IS NOT NULL');
+                    comRows.forEach(r => addPathToSet(r.attachmentPath));
+                } catch(e) {}
+
+                try {
+                    const soRows = await dbAll('SELECT invoice_file_path, packing_list_file_path, bl_file_path FROM stock_orders');
+                    soRows.forEach(r => {
+                        addPathToSet(r.invoice_file_path);
+                        addPathToSet(r.packing_list_file_path);
+                        addPathToSet(r.bl_file_path);
+                    });
+                } catch(e) {}
+
+                try {
+                    const payRows = await dbAll('SELECT swift_file_path FROM stock_supplier_payments WHERE swift_file_path IS NOT NULL');
+                    payRows.forEach(r => addPathToSet(r.swift_file_path));
+                } catch(e) {}
+
+                try {
+                    const eadiRows = await dbAll('SELECT di_file_path FROM stock_eadi_clearances WHERE di_file_path IS NOT NULL');
+                    eadiRows.forEach(r => addPathToSet(r.di_file_path));
+                } catch(e) {}
+
+                try {
+                    const resRows = await dbAll('SELECT url FROM supplier_resources WHERE url IS NOT NULL');
+                    resRows.forEach(r => addPathToSet(r.url));
+                } catch(e) {}
+
+                const uploadFiles = fs.readdirSync(uplDir);
+                const now = Date.now();
+                const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+
+                for (const f of uploadFiles) {
+                    const fullPath = path.join(uplDir, f);
                     try {
-                        const raw = fs.readFileSync(b.path);
-                        const comp = zlib.gzipSync(raw);
-                        const gzPath = b.path + '.gz';
-                        fs.writeFileSync(gzPath, comp);
-                        fs.unlinkSync(b.path);
-                        freedBackupBytes += (raw.length - comp.length);
-                        console.log(`[STORAGE OPTIMIZE] Backup comprimido retroativamente: ${b.name} -> ${b.name}.gz`);
+                        const stat = fs.statSync(fullPath);
+                        if (stat.isFile()) {
+                            if ((now - stat.mtimeMs > SIX_HOURS_MS) && !referencedFiles.has(f.toLowerCase())) {
+                                fs.unlinkSync(fullPath);
+                                removedOrphansCount++;
+                                freedOrphanBytes += stat.size;
+                                console.log(`[STORAGE OPTIMIZE] Arquivo órfão de upload removido: ${f} (${(stat.size / 1024).toFixed(1)} KB)`);
+                            }
+                        }
                     } catch(e) {}
                 }
             }
         }
 
-        // 2. Executar VACUUM no SQLite para devolver páginas vazias ao sistema de arquivos
+        // 3. Executar VACUUM no SQLite para devolver páginas vazias ao sistema de arquivos
+        const dbSizeBefore = fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0;
         await new Promise((resolve, reject) => {
             db.run('VACUUM', (err) => {
                 if (err) {
@@ -3854,21 +3938,25 @@ app.post('/api/system-storage/optimize', authenticateToken, async (req, res) => 
                 }
             });
         });
+        const dbSizeAfter = fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0;
+        const freedFromVacuum = Math.max(0, dbSizeBefore - dbSizeAfter);
 
-        // 3. Recalcular espaço final
+        // 4. Recalcular espaço final
         let totalUsedBytes = 0;
         if (process.env.DATABASE_PATH) {
-            totalUsedBytes = getDirectorySize('/data');
+            totalUsedBytes = getDirectorySize(path.dirname(process.env.DATABASE_PATH));
         } else {
             totalUsedBytes = (fs.existsSync(dbDir) ? getDirectorySize(dbDir) : 0) + (fs.existsSync(UPLOADS_DIR) ? getDirectorySize(UPLOADS_DIR) : 0);
         }
         const limitBytes = 1 * 1024 * 1024 * 1024;
         const usagePercentage = ((totalUsedBytes / limitBytes) * 100).toFixed(2);
+        const totalFreedBytes = freedBackupBytes + freedOrphanBytes + freedFromVacuum;
 
         res.json({
             success: true,
-            message: `Otimização concluída com sucesso! ${removedBackupsCount} backup(s) antigo(s) removido(s) e banco SQLite desfragmentado (VACUUM).`,
-            freedFormatted: (freedBackupBytes / (1024 * 1024)).toFixed(2) + ' MB',
+            message: `Otimização concluída com sucesso! ${removedBackupsCount} backup(s) antigo(s) e ${removedOrphansCount} anexo(s) órfão(s) removido(s). Banco SQLite desfragmentado via VACUUM.`,
+            freedBytes: totalFreedBytes,
+            freedFormatted: (totalFreedBytes / (1024 * 1024)).toFixed(2) + ' MB',
             newUsagePct: parseFloat(usagePercentage),
             usedFormatted: (totalUsedBytes / (1024 * 1024)).toFixed(2) + ' MB'
         });
