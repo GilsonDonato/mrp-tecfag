@@ -4376,6 +4376,118 @@
 
                 <!-- ABA 3: COMERCIAL & FINANCEIRO -->
                 <div id="modal-pane-commercial" class="project-modal-tab-pane" style="display: none;">
+                    
+                    <!-- Central de Documentos da Venda: Proposta Comercial vs DANFE (Fase 2) -->
+                    <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                            <div>
+                                <h4 style="margin: 0; color: #38bdf8; font-size: 0.92rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+                                    <span>📋</span> Central de Documentos da Venda: Proposta Comercial & DANFE
+                                </h4>
+                                <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 3px;">
+                                    Anexe a Proposta e a Nota Fiscal para que a IA extraia o que foi prometido ao cliente e alinhe automaticamente com a Engenharia.
+                                </div>
+                            </div>
+                            <button type="button" class="btn" id="btn-align-commercial-fiscal" onclick="runCommercialFiscalAlignment()" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; font-weight: 800; padding: 6px 14px; font-size: 0.76rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);">
+                                ✨ <span>Cruzar Proposta vs DANFE com IA</span>
+                            </button>
+                        </div>
+
+                        <!-- Grid dos 2 Cards de Documento: Proposta vs DANFE -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 14px;">
+                            
+                            <!-- CARD 1: Proposta Comercial Aprovada -->
+                            <div id="modal-project-proposal-dropzone" style="border: 2px dashed rgba(59, 130, 246, 0.4); background: rgba(15, 23, 42, 0.6); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div>
+                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                                        <div style="display: flex; align-items: center; gap: 6px;">
+                                            <span style="font-size: 1.2rem;">📄</span>
+                                            <strong style="color: #60a5fa; font-size: 0.85rem; text-transform: uppercase;">1. Proposta Comercial Aceita</strong>
+                                        </div>
+                                        <span id="badge-proposal-status" style="font-size: 0.68rem; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.06); color: #94a3b8;">Não anexada</span>
+                                    </div>
+                                    <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 10px;">
+                                        Contém máquinas, opcionais técnicos e prazos prometidos ao cliente.
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div style="display: flex; justify-content: flex-start; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                        <input type="file" id="modal-project-proposal-file" accept=".pdf,image/*" style="display: none;" onchange="handleProjectProposalFileSelected(this)">
+                                        <button type="button" class="btn" onclick="document.getElementById('modal-project-proposal-file').click()" style="background: #2563eb; color: white; padding: 6px 12px; font-size: 0.75rem; font-weight: bold; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                            📁 Selecionar Proposta
+                                        </button>
+                                        <span id="modal-project-selected-proposal-label" style="font-size: 0.74rem; color: #cbd5e1;">Nenhum arquivo</span>
+                                        <button type="button" id="modal-project-btn-extract-proposal-ai" class="btn" onclick="extractProjectProposalWithAI()" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; font-weight: bold; padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; display: none; cursor: pointer;">
+                                            ⚡ Ler Proposta com IA
+                                        </button>
+                                    </div>
+                                    <div id="modal-project-proposal-ocr-status" style="display: none; margin-top: 8px; font-size: 0.75rem; font-weight: 600;"></div>
+                                    <div id="modal-project-attached-proposal-info" style="margin-top: 10px; font-size: 0.75rem; color: #94a3b8; display: none;"></div>
+                                    <div id="modal-project-proposal-data-preview" style="display: none; margin-top: 10px; background: rgba(0,0,0,0.25); border-radius: 6px; padding: 10px; font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.06);"></div>
+                                </div>
+                            </div>
+
+                            <!-- CARD 2: DANFE / Nota Fiscal de Faturamento -->
+                            <div id="modal-project-danfe-dropzone" style="border: 2px dashed rgba(16, 185, 129, 0.4); background: rgba(15, 23, 42, 0.6); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div>
+                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                                        <div style="display: flex; align-items: center; gap: 6px;">
+                                            <span style="font-size: 1.2rem;">🧾</span>
+                                            <strong style="color: #34d399; font-size: 0.85rem; text-transform: uppercase;">2. DANFE / Nota Fiscal (PDF)</strong>
+                                        </div>
+                                        <span id="badge-danfe-status" style="font-size: 0.68rem; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.06); color: #94a3b8;">Não faturada</span>
+                                    </div>
+                                    <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 10px;">
+                                        Nota fiscal emitida com valor faturado, chave de acesso e itens da venda.
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div style="display: flex; justify-content: flex-start; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                        <input type="file" id="modal-project-danfe-file" accept=".pdf,image/*" style="display: none;" onchange="handleProjectDanfeFileSelected(this)">
+                                        <button type="button" class="btn" onclick="document.getElementById('modal-project-danfe-file').click()" style="background: #059669; color: white; padding: 6px 12px; font-size: 0.75rem; font-weight: bold; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                            🧾 Selecionar DANFE
+                                        </button>
+                                        <span id="modal-project-selected-danfe-label" style="font-size: 0.74rem; color: #cbd5e1;">Nenhum arquivo</span>
+                                        <button type="button" id="modal-project-btn-extract-danfe-ai" class="btn" onclick="extractProjectDanfeWithAI()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: bold; padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; display: none; cursor: pointer;">
+                                            🤖 Ler DANFE com IA
+                                        </button>
+                                    </div>
+                                    <div id="modal-project-danfe-ocr-status" style="display: none; margin-top: 8px; font-size: 0.75rem; font-weight: 600;"></div>
+                                    <div id="modal-project-attached-danfe-info" style="margin-top: 10px; font-size: 0.75rem; color: #94a3b8; display: none;"></div>
+                                    <div id="modal-project-danfe-data-preview" style="display: none; margin-top: 10px; background: rgba(0,0,0,0.25); border-radius: 6px; padding: 10px; font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.06);"></div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Painel de Resultado do Cruzamento Proposta vs DANFE (IA) -->
+                        <div id="modal-commercial-alignment-panel" style="display: none; background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 8px; padding: 14px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 1.2rem;">🔍</span>
+                                    <strong style="color: #c084fc; font-size: 0.85rem; text-transform: uppercase;">Relatório de Auditoria: Proposta Comercial vs DANFE</strong>
+                                    <span id="alignment-status-badge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; font-weight: bold;"></span>
+                                </div>
+                                <button type="button" class="btn" onclick="applyAlignmentToEngineeringSpecs()" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: bold; padding: 5px 12px; font-size: 0.74rem; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                                    📥 <span>Aplicar na Ficha Técnica da Engenharia</span>
+                                </button>
+                            </div>
+                            <div id="alignment-summary-text" style="font-size: 0.78rem; color: #e2e8f0; line-height: 1.4; margin-bottom: 10px;"></div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px;">
+                                <div style="background: rgba(0,0,0,0.2); border-radius: 6px; padding: 10px; border: 1px solid rgba(255,255,255,0.05);">
+                                    <div style="font-size: 0.72rem; font-weight: bold; color: #34d399; margin-bottom: 6px; text-transform: uppercase;">⚖️ Conferência dos Itens / Máquinas</div>
+                                    <div id="alignment-items-table" style="font-size: 0.74rem; color: #cbd5e1;"></div>
+                                </div>
+                                <div style="background: rgba(0,0,0,0.2); border-radius: 6px; padding: 10px; border: 1px solid rgba(255,255,255,0.05);">
+                                    <div style="font-size: 0.72rem; font-weight: bold; color: #f59e0b; margin-bottom: 6px; text-transform: uppercase;">⚠️ Alertas de Opcionais & Engenharia</div>
+                                    <div id="alignment-alerts-list" style="font-size: 0.74rem; color: #cbd5e1;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="project-modal-grid-2col">
                         <!-- Coluna Esquerda: Fases 2 e 3 -->
                         <div style="display: flex; flex-direction: column; gap: 16px;">
@@ -19873,6 +19985,7 @@ function renderKanban() {
             const invoiceOcrStatus = document.getElementById('modal-project-ocr-status');
             if (invoiceOcrStatus) { invoiceOcrStatus.style.display = 'none'; invoiceOcrStatus.innerText = ''; }
             if (typeof checkProjectAttachedInvoice === 'function') checkProjectAttachedInvoice(code);
+            if (typeof checkProjectCommercialDocuments === 'function') checkProjectCommercialDocuments(code);
 
             document.getElementById('modal-project-title').innerText = `${project.code} - ${project.client}${project.project_name ? ' | ' + project.project_name : ''}`;
             
@@ -23727,6 +23840,614 @@ function renderKanban() {
             } catch (err) {
                 console.error('Erro ao mover para Fase 1:', err);
                 alert('Erro ao mover para Fase 1: ' + err.message);
+            }
+        }
+
+        // ==========================================
+        // CENTRAL DE DOCUMENTOS COMERCIAIS & DANFE (FASE 2)
+        // ==========================================
+
+        function handleProjectProposalFileSelected(input) {
+            const labelEl = document.getElementById('modal-project-selected-proposal-label');
+            const aiBtn = document.getElementById('modal-project-btn-extract-proposal-ai');
+            if (input && input.files && input.files[0]) {
+                const file = input.files[0];
+                if (labelEl) labelEl.innerText = file.name;
+                if (aiBtn) aiBtn.style.display = 'inline-flex';
+            } else {
+                if (labelEl) labelEl.innerText = 'Nenhum arquivo';
+                if (aiBtn) aiBtn.style.display = 'none';
+            }
+        }
+
+        function handleProjectDanfeFileSelected(input) {
+            const labelEl = document.getElementById('modal-project-selected-danfe-label');
+            const aiBtn = document.getElementById('modal-project-btn-extract-danfe-ai');
+            if (input && input.files && input.files[0]) {
+                const file = input.files[0];
+                if (labelEl) labelEl.innerText = file.name;
+                if (aiBtn) aiBtn.style.display = 'inline-flex';
+            } else {
+                if (labelEl) labelEl.innerText = 'Nenhum arquivo';
+                if (aiBtn) aiBtn.style.display = 'none';
+            }
+        }
+
+        async function extractProjectProposalWithAI() {
+            const fileInput = document.getElementById('modal-project-proposal-file');
+            const statusEl = document.getElementById('modal-project-proposal-ocr-status');
+            const aiBtn = document.getElementById('modal-project-btn-extract-proposal-ai');
+
+            if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                alert('Selecione o arquivo PDF da Proposta Comercial do Cliente antes de extrair com IA.');
+                return;
+            }
+
+            const code = activeProjectCode;
+            if (!code) {
+                alert('Nenhum projeto ativo selecionado.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                if (statusEl) {
+                    statusEl.style.display = 'block';
+                    statusEl.style.color = '#38bdf8';
+                    statusEl.innerHTML = '<span class="spinner" style="display:inline-block;width:14px;height:14px;border:2px solid #38bdf8;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-right:6px;vertical-align:middle;"></span> 🤖 Lendo e interpretando Proposta Comercial com IA Gemini... Aguarde...';
+                }
+                if (aiBtn) aiBtn.disabled = true;
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/projects/${encodeURIComponent(code)}/extract-commercial-proposal`, {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Falha ao processar proposta comercial.');
+                }
+
+                if (statusEl) {
+                    statusEl.style.color = '#10b981';
+                    statusEl.innerText = '✅ Proposta Comercial lida e salva com sucesso!';
+                }
+
+                // Atualizar projeto em memória
+                const prj = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === code) : null;
+                if (prj) {
+                    prj.commercial_proposal_data = JSON.stringify(data.proposalData);
+                    if (!prj.checklist) prj.checklist = {};
+                    else if (typeof prj.checklist === 'string') {
+                        try { prj.checklist = JSON.parse(prj.checklist); } catch(e) { prj.checklist = {}; }
+                    }
+                    prj.checklist.aprovacao = true;
+                }
+
+                // Marcar checkbox de aprovação no modal
+                const chkAprov = document.getElementById('chk-aprovacao');
+                if (chkAprov) chkAprov.classList.add('checked');
+
+                await checkProjectCommercialDocuments(code);
+                if (typeof loadProjectsDB === 'function') loadProjectsDB();
+
+            } catch (err) {
+                console.error('Erro na extração de proposta comercial:', err);
+                if (statusEl) {
+                    statusEl.style.display = 'block';
+                    statusEl.style.color = '#ef4444';
+                    statusEl.innerText = '❌ Erro: ' + err.message;
+                }
+                alert('Erro ao processar proposta comercial: ' + err.message);
+            } finally {
+                if (aiBtn) aiBtn.disabled = false;
+            }
+        }
+
+        async function extractProjectDanfeWithAI() {
+            const fileInput = document.getElementById('modal-project-danfe-file');
+            const statusEl = document.getElementById('modal-project-danfe-ocr-status');
+            const aiBtn = document.getElementById('modal-project-btn-extract-danfe-ai');
+
+            if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                alert('Selecione o arquivo PDF da DANFE / Nota Fiscal antes de extrair com IA.');
+                return;
+            }
+
+            const code = activeProjectCode;
+            if (!code) {
+                alert('Nenhum projeto ativo selecionado.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                if (statusEl) {
+                    statusEl.style.display = 'block';
+                    statusEl.style.color = '#34d399';
+                    statusEl.innerHTML = '<span class="spinner" style="display:inline-block;width:14px;height:14px;border:2px solid #34d399;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-right:6px;vertical-align:middle;"></span> 🤖 Lendo e processando DANFE com IA Gemini... Aguarde...';
+                }
+                if (aiBtn) aiBtn.disabled = true;
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/projects/${encodeURIComponent(code)}/extract-danfe`, {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Falha ao processar DANFE.');
+                }
+
+                if (statusEl) {
+                    statusEl.style.color = '#10b981';
+                    statusEl.innerText = '✅ DANFE processada e faturamento registrado com sucesso!';
+                }
+
+                // Atualizar projeto em memória
+                const prj = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === code) : null;
+                if (prj && data.danfeData) {
+                    prj.danfe_number = data.danfeData.number || '';
+                    prj.danfe_date = data.danfeData.date || null;
+                    prj.danfe_value = data.danfeData.total_value || 0;
+                    prj.danfe_access_key = data.danfeData.access_key || '';
+                    prj.danfe_items = JSON.stringify(data.danfeData.items || []);
+                }
+
+                await checkProjectCommercialDocuments(code);
+                if (typeof loadProjectsDB === 'function') loadProjectsDB();
+
+            } catch (err) {
+                console.error('Erro na extração de DANFE:', err);
+                if (statusEl) {
+                    statusEl.style.display = 'block';
+                    statusEl.style.color = '#ef4444';
+                    statusEl.innerText = '❌ Erro: ' + err.message;
+                }
+                alert('Erro ao processar DANFE: ' + err.message);
+            } finally {
+                if (aiBtn) aiBtn.disabled = false;
+            }
+        }
+
+        async function runCommercialFiscalAlignment() {
+            const code = activeProjectCode;
+            if (!code) return;
+
+            const btn = document.getElementById('btn-align-commercial-fiscal');
+            const originalText = btn ? btn.innerHTML : '';
+
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '✨ <span>Cruzando Proposta vs DANFE com IA...</span>';
+                }
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                const res = await fetch(`/api/projects/${encodeURIComponent(code)}/align-commercial-fiscal`, {
+                    method: 'POST',
+                    headers
+                });
+
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Não foi possível cruzar os documentos.');
+                }
+
+                const prj = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === code) : null;
+                if (prj) {
+                    prj.commercial_alignment_summary = JSON.stringify(data.alignment);
+                }
+
+                renderCommercialAlignmentResult(data.alignment);
+                alert('✅ Cruzamento concluído com sucesso pela IA!\nConsulte o relatório de auditoria e os alertas para Engenharia.');
+
+            } catch (err) {
+                console.error('Erro ao cruzar proposta e DANFE:', err);
+                alert('Erro ao cruzar proposta e DANFE: ' + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            }
+        }
+
+        function renderCommercialAlignmentResult(alignment) {
+            const panel = document.getElementById('modal-commercial-alignment-panel');
+            if (!panel) return;
+
+            if (!alignment) {
+                panel.style.display = 'none';
+                return;
+            }
+
+            panel.style.display = 'block';
+
+            const badge = document.getElementById('alignment-status-badge');
+            const summary = document.getElementById('alignment-summary-text');
+            const itemsTable = document.getElementById('alignment-items-table');
+            const alertsList = document.getElementById('alignment-alerts-list');
+
+            const status = (alignment.status || 'ANALISADO').toUpperCase();
+            if (badge) {
+                badge.innerText = status;
+                if (status.includes('100%') || status.includes('ALINHADO') || status.includes('OK') || status.includes('CONFORME')) {
+                    badge.style.background = 'rgba(16, 185, 129, 0.2)';
+                    badge.style.color = '#34d399';
+                    badge.style.border = '1px solid rgba(16, 185, 129, 0.4)';
+                } else if (status.includes('DIVERG') || status.includes('ERRO') || status.includes('INCOMPLETO')) {
+                    badge.style.background = 'rgba(239, 68, 68, 0.2)';
+                    badge.style.color = '#f87171';
+                    badge.style.border = '1px solid rgba(239, 68, 68, 0.4)';
+                } else {
+                    badge.style.background = 'rgba(245, 158, 11, 0.2)';
+                    badge.style.color = '#fbbf24';
+                    badge.style.border = '1px solid rgba(245, 158, 11, 0.4)';
+                }
+            }
+
+            if (summary) {
+                summary.innerHTML = escapeProjectHtml(alignment.summary || 'Análise de alinhamento executada pela IA.').replace(/\n/g, '<br>');
+            }
+
+            if (itemsTable) {
+                if (Array.isArray(alignment.items_comparison) && alignment.items_comparison.length > 0) {
+                    let rows = alignment.items_comparison.map(item => {
+                        const matchStatus = item.match ? '✅' : '⚠️';
+                        const matchColor = item.match ? '#34d399' : '#f59e0b';
+                        return `
+                            <div style="padding: 6px; border-bottom: 1px dashed rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; color: #f8fafc;">${matchStatus} ${escapeProjectHtml(item.machine || item.item || item.item_name || 'Item')}</div>
+                                    <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 2px;">
+                                        <strong>Proposta:</strong> ${escapeProjectHtml(item.proposal_spec || item.proposal_item || '-')} | 
+                                        <strong>NF:</strong> ${escapeProjectHtml(item.danfe_item || item.danfe_spec || '-')}
+                                    </div>
+                                    ${item.notes ? `<div style="font-size: 0.68rem; color: ${matchColor}; margin-top: 2px;"><em>${escapeProjectHtml(item.notes)}</em></div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    itemsTable.innerHTML = rows;
+                } else {
+                    itemsTable.innerHTML = '<span style="color: #94a3b8; font-size: 0.72rem;">Nenhuma divergência detectada nos itens principais.</span>';
+                }
+            }
+
+            if (alertsList) {
+                const alerts = Array.isArray(alignment.engineering_alerts) ? alignment.engineering_alerts : [];
+                if (alerts.length > 0) {
+                    alertsList.innerHTML = alerts.map(alt => `
+                        <div style="padding: 4px 0; color: #fbbf24; display: flex; align-items: flex-start; gap: 6px;">
+                            <span>⚠️</span>
+                            <span>${escapeProjectHtml(typeof alt === 'string' ? alt : (alt.description || JSON.stringify(alt)))}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    alertsList.innerHTML = '<span style="color: #34d399; font-size: 0.72rem;">Nenhum alerta crítico ou requisito pendente detectado.</span>';
+                }
+            }
+        }
+
+        async function applyAlignmentToEngineeringSpecs() {
+            const code = activeProjectCode;
+            if (!code) return;
+
+            const prj = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === code) : null;
+            if (!prj) return;
+
+            let alignment = null;
+            try {
+                if (typeof prj.commercial_alignment_summary === 'string' && prj.commercial_alignment_summary.trim()) {
+                    alignment = JSON.parse(prj.commercial_alignment_summary);
+                } else if (typeof prj.commercial_alignment_summary === 'object') {
+                    alignment = prj.commercial_alignment_summary;
+                }
+            } catch(e) {
+                alignment = null;
+            }
+
+            let proposal = null;
+            try {
+                if (typeof prj.commercial_proposal_data === 'string' && prj.commercial_proposal_data.trim()) {
+                    proposal = JSON.parse(prj.commercial_proposal_data);
+                } else if (typeof prj.commercial_proposal_data === 'object') {
+                    proposal = prj.commercial_proposal_data;
+                }
+            } catch(e) {
+                proposal = null;
+            }
+
+            const suggested = (alignment && alignment.engineering_specs_suggested) ? alignment.engineering_specs_suggested : {};
+            const propSpecs = (proposal && proposal.technical_requirements) ? proposal.technical_requirements : {};
+
+            const tensao = suggested.tensao || propSpecs.tensao || propSpecs.voltage || '';
+            const freq = suggested.frequencia || propSpecs.frequencia || '';
+            const insumo = suggested.insumo || propSpecs.frasco || propSpecs.insumo || propSpecs.packaging || '';
+            const tampa = suggested.fechamento || propSpecs.tampa || propSpecs.fechamento || '';
+            const obs = suggested.observacoes || (alignment && alignment.summary ? `Alinhamento Comercial/DANFE: ${alignment.summary}` : '');
+
+            let appliedCount = 0;
+            if (tensao && document.getElementById('modal-spec-tensao')) {
+                document.getElementById('modal-spec-tensao').value = tensao;
+                appliedCount++;
+            }
+            if (freq && document.getElementById('modal-spec-frequencia')) {
+                document.getElementById('modal-spec-frequencia').value = freq;
+                appliedCount++;
+            }
+            if (insumo && document.getElementById('modal-spec-frasco')) {
+                document.getElementById('modal-spec-frasco').value = insumo;
+                appliedCount++;
+            }
+            if (tampa && document.getElementById('modal-spec-tampa')) {
+                document.getElementById('modal-spec-tampa').value = tampa;
+                appliedCount++;
+            }
+            if (obs && document.getElementById('modal-spec-obs')) {
+                const currentObs = document.getElementById('modal-spec-obs').value.trim();
+                document.getElementById('modal-spec-obs').value = currentObs ? `${currentObs}\n${obs}` : obs;
+                appliedCount++;
+            }
+
+            if (appliedCount > 0) {
+                alert(`✅ ${appliedCount} parâmetros técnicos foram preenchidos automaticamente na Ficha Técnica da Engenharia (Aba 2)!\n\nRedirecionando para a aba de Engenharia para validação...`);
+                switchProjectModalTab('engineering');
+            } else {
+                alert('ℹ️ Não foram encontrados parâmetros específicos (tensão, embalagem, fechamento) estruturados na proposta ou cruzamento para preenchimento automático.');
+            }
+        }
+
+        async function deleteProjectCommercialDocument(docType) {
+            const code = activeProjectCode;
+            if (!code) return;
+
+            const label = docType === 'danfe' ? 'DANFE / Nota Fiscal' : 'Proposta Comercial';
+            if (!confirm(`Tem certeza de que deseja EXCLUIR e desvincular a ${label} deste projeto?\n\nOs dados extraídos serão limpos e o arquivo será desanexado.`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                const res = await fetch(`/api/projects/${encodeURIComponent(code)}/commercial-document/${encodeURIComponent(docType)}`, {
+                    method: 'DELETE',
+                    headers
+                });
+
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Erro ao excluir documento comercial.');
+                }
+
+                // Resetar campos em memória
+                const prj = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === code) : null;
+                if (prj) {
+                    if (docType === 'danfe') {
+                        prj.danfe_number = null;
+                        prj.danfe_date = null;
+                        prj.danfe_value = null;
+                        prj.danfe_access_key = null;
+                        prj.danfe_items = null;
+                    } else {
+                        prj.commercial_proposal_data = null;
+                    }
+                    prj.commercial_alignment_summary = null;
+                }
+
+                alert(`✅ ${label} excluída com sucesso!`);
+                await checkProjectCommercialDocuments(code);
+                if (typeof loadProjectsDB === 'function') loadProjectsDB();
+
+            } catch (err) {
+                console.error('Erro ao deletar documento comercial:', err);
+                alert('Erro ao excluir documento comercial: ' + err.message);
+            }
+        }
+
+        async function checkProjectCommercialDocuments(code) {
+            const prjCode = code || activeProjectCode;
+            if (!prjCode) return;
+
+            // Elementos Proposta
+            const propBadge = document.getElementById('badge-proposal-status');
+            const propInfo = document.getElementById('modal-project-attached-proposal-info');
+            const propPreview = document.getElementById('modal-project-proposal-data-preview');
+            const propLabel = document.getElementById('modal-project-selected-proposal-label');
+            const propAiBtn = document.getElementById('modal-project-btn-extract-proposal-ai');
+
+            // Elementos DANFE
+            const danfeBadge = document.getElementById('badge-danfe-status');
+            const danfeInfo = document.getElementById('modal-project-attached-danfe-info');
+            const danfePreview = document.getElementById('modal-project-danfe-data-preview');
+            const danfeLabel = document.getElementById('modal-project-selected-danfe-label');
+            const danfeAiBtn = document.getElementById('modal-project-btn-extract-danfe-ai');
+
+            // Reset inicial dos labels
+            if (propLabel) propLabel.innerText = 'Nenhum arquivo';
+            if (propAiBtn) propAiBtn.style.display = 'none';
+            if (danfeLabel) danfeLabel.innerText = 'Nenhum arquivo';
+            if (danfeAiBtn) danfeAiBtn.style.display = 'none';
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                // Buscar anexos do projeto
+                const resAtt = await fetch(`/api/attachments/${encodeURIComponent(prjCode)}`, { headers });
+                let attachments = [];
+                if (resAtt.ok) {
+                    attachments = await resAtt.json();
+                }
+
+                const prj = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === prjCode) : null;
+
+                // 1. Verificar Proposta Comercial
+                const proposalAttach = (attachments || []).find(a => 
+                    a.phase === 'proposta_comercial' || (a.phase === 'proposta' && !(a.fileName || '').toLowerCase().includes('invoice'))
+                );
+
+                let propData = null;
+                if (prj && prj.commercial_proposal_data) {
+                    try {
+                        propData = typeof prj.commercial_proposal_data === 'string' ? JSON.parse(prj.commercial_proposal_data) : prj.commercial_proposal_data;
+                    } catch(e) { propData = null; }
+                }
+
+                if (proposalAttach || propData) {
+                    if (propBadge) {
+                        propBadge.innerText = propData ? 'Anexada & Analisada' : 'Anexada';
+                        propBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+                        propBadge.style.color = '#34d399';
+                    }
+
+                    if (propInfo) {
+                        propInfo.style.display = 'block';
+                        const pUrl = proposalAttach && proposalAttach.fileData ? (proposalAttach.fileData.startsWith('http') || proposalAttach.fileData.startsWith('/') ? proposalAttach.fileData : '/' + proposalAttach.fileData) : '#';
+                        const pName = proposalAttach ? escapeProjectHtml(proposalAttach.fileName || 'Proposta_Comercial.pdf') : 'Proposta_Comercial.pdf';
+                        const safePUrl = escapeProjectHtml(pUrl);
+                        propInfo.innerHTML = `
+                            <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 6px; padding: 6px 10px; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span>📄 Proposta:</span>
+                                <strong style="color: #60a5fa;">${pName}</strong>
+                                ${proposalAttach ? `<a href="${safePUrl}" target="_blank" download="${pName}" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.72rem;">⬇️ Ver Proposta</a>` : ''}
+                                <button type="button" class="btn" onclick="deleteProjectCommercialDocument('proposta')" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 3px 8px; font-size: 0.72rem; font-weight: bold; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                    🗑️ Excluir
+                                </button>
+                            </div>
+                        `;
+                    }
+
+                    if (propPreview) {
+                        if (propData) {
+                            propPreview.style.display = 'block';
+                            const machinesHtml = Array.isArray(propData.machines) ? propData.machines.map(m => `• ${escapeProjectHtml(typeof m === 'string' ? m : (m.name || m.model || JSON.stringify(m)))}`).join('<br>') : (propData.machines || '-');
+                            const valHtml = propData.total_value ? `R$ ${parseFloat(propData.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-';
+                            propPreview.innerHTML = `
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <div style="color: #60a5fa; font-weight: bold;">📋 Resumo Extraído da Proposta:</div>
+                                    <div><strong>Máquinas / Escopo:</strong><br><span style="color: #f1f5f9;">${machinesHtml}</span></div>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px;">
+                                        <div><strong>Valor Proposta:</strong> ${valHtml}</div>
+                                        <div><strong>Prazo Entrega:</strong> ${escapeProjectHtml(propData.delivery_time || '-')}</div>
+                                    </div>
+                                    ${propData.payment_terms ? `<div><strong>Condições Pagamento:</strong> ${escapeProjectHtml(propData.payment_terms)}</div>` : ''}
+                                </div>
+                            `;
+                        } else {
+                            propPreview.style.display = 'none';
+                        }
+                    }
+                } else {
+                    if (propBadge) {
+                        propBadge.innerText = 'Não anexada';
+                        propBadge.style.background = 'rgba(255,255,255,0.06)';
+                        propBadge.style.color = '#94a3b8';
+                    }
+                    if (propInfo) { propInfo.style.display = 'none'; propInfo.innerHTML = ''; }
+                    if (propPreview) { propPreview.style.display = 'none'; propPreview.innerHTML = ''; }
+                }
+
+                // 2. Verificar DANFE / Nota Fiscal
+                const danfeAttach = (attachments || []).find(a => 
+                    a.phase === 'danfe_venda' || a.phase === 'danfe' || (a.fileName || '').toLowerCase().includes('danfe')
+                );
+
+                const hasDanfeData = prj && (prj.danfe_number || prj.danfe_value || prj.danfe_items);
+
+                if (danfeAttach || hasDanfeData) {
+                    if (danfeBadge) {
+                        danfeBadge.innerText = prj && prj.danfe_number ? `NF ${prj.danfe_number}` : 'Anexada';
+                        danfeBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+                        danfeBadge.style.color = '#34d399';
+                    }
+
+                    if (danfeInfo) {
+                        danfeInfo.style.display = 'block';
+                        const dUrl = danfeAttach && danfeAttach.fileData ? (danfeAttach.fileData.startsWith('http') || danfeAttach.fileData.startsWith('/') ? danfeAttach.fileData : '/' + danfeAttach.fileData) : '#';
+                        const dName = danfeAttach ? escapeProjectHtml(danfeAttach.fileName || 'DANFE_NotaFiscal.pdf') : 'DANFE_NotaFiscal.pdf';
+                        const safeDUrl = escapeProjectHtml(dUrl);
+                        danfeInfo.innerHTML = `
+                            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 6px 10px; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span>🧾 DANFE:</span>
+                                <strong style="color: #34d399;">${dName}</strong>
+                                ${danfeAttach ? `<a href="${safeDUrl}" target="_blank" download="${dName}" style="background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.72rem;">⬇️ Ver DANFE</a>` : ''}
+                                <button type="button" class="btn" onclick="deleteProjectCommercialDocument('danfe')" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 3px 8px; font-size: 0.72rem; font-weight: bold; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                    🗑️ Excluir
+                                </button>
+                            </div>
+                        `;
+                    }
+
+                    if (danfePreview) {
+                        if (hasDanfeData) {
+                            danfePreview.style.display = 'block';
+                            const valHtml = prj.danfe_value ? `R$ ${parseFloat(prj.danfe_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-';
+                            let itemsCount = 0;
+                            try {
+                                const parsedItems = typeof prj.danfe_items === 'string' ? JSON.parse(prj.danfe_items) : prj.danfe_items;
+                                if (Array.isArray(parsedItems)) itemsCount = parsedItems.length;
+                            } catch(e) {}
+                            danfePreview.innerHTML = `
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <div style="color: #34d399; font-weight: bold;">🧾 Dados Fiscais Registrados:</div>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                                        <div><strong>Número NF:</strong> ${escapeProjectHtml(prj.danfe_number || '-')}</div>
+                                        <div><strong>Emissão:</strong> ${prj.danfe_date ? new Date(prj.danfe_date + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}</div>
+                                        <div><strong>Valor Faturado:</strong> ${valHtml}</div>
+                                        <div><strong>Itens Faturados:</strong> ${itemsCount} itens</div>
+                                    </div>
+                                    ${prj.danfe_access_key ? `<div style="font-size: 0.68rem; color: #94a3b8; word-break: break-all;"><strong>Chave:</strong> ${escapeProjectHtml(prj.danfe_access_key)}</div>` : ''}
+                                </div>
+                            `;
+                        } else {
+                            danfePreview.style.display = 'none';
+                        }
+                    }
+                } else {
+                    if (danfeBadge) {
+                        danfeBadge.innerText = 'Não faturada';
+                        danfeBadge.style.background = 'rgba(255,255,255,0.06)';
+                        danfeBadge.style.color = '#94a3b8';
+                    }
+                    if (danfeInfo) { danfeInfo.style.display = 'none'; danfeInfo.innerHTML = ''; }
+                    if (danfePreview) { danfePreview.style.display = 'none'; danfePreview.innerHTML = ''; }
+                }
+
+                // 3. Verificar Relatório de Alinhamento / Auditoria
+                if (prj && prj.commercial_alignment_summary) {
+                    let alignmentData = null;
+                    try {
+                        alignmentData = typeof prj.commercial_alignment_summary === 'string' ? JSON.parse(prj.commercial_alignment_summary) : prj.commercial_alignment_summary;
+                    } catch(e) { alignmentData = null; }
+                    renderCommercialAlignmentResult(alignmentData);
+                } else {
+                    const panel = document.getElementById('modal-commercial-alignment-panel');
+                    if (panel) panel.style.display = 'none';
+                }
+
+            } catch (err) {
+                console.warn('Erro ao verificar documentos comerciais do projeto:', err);
             }
         }
 

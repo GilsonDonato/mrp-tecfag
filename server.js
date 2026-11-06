@@ -224,6 +224,13 @@ db.run("ALTER TABLE projects ADD COLUMN is_archived INTEGER DEFAULT 0", () => {}
 db.run("ALTER TABLE projects ADD COLUMN archived_at TEXT", () => {});
 db.run("ALTER TABLE projects ADD COLUMN delivery_invoice TEXT", () => {});
 db.run("ALTER TABLE projects ADD COLUMN delivery_date TEXT", () => {});
+db.run("ALTER TABLE projects ADD COLUMN danfe_number TEXT", () => {});
+db.run("ALTER TABLE projects ADD COLUMN danfe_date TEXT", () => {});
+db.run("ALTER TABLE projects ADD COLUMN danfe_value REAL DEFAULT 0.0", () => {});
+db.run("ALTER TABLE projects ADD COLUMN danfe_access_key TEXT", () => {});
+db.run("ALTER TABLE projects ADD COLUMN danfe_items TEXT", () => {});
+db.run("ALTER TABLE projects ADD COLUMN commercial_proposal_data TEXT", () => {});
+db.run("ALTER TABLE projects ADD COLUMN commercial_alignment_summary TEXT", () => {});
 db.run("UPDATE projects SET import_stage = NULL WHERE (fase IS NULL OR fase <= 2) AND (checklist NOT LIKE '%\"contrato\":true%')", () => {});
 
         // Limpeza automática de comentários órfãos de projetos excluídos
@@ -7851,7 +7858,9 @@ app.put('/api/projects/:code', async (req, res) => {
         import_eta_warehouse_date, import_actual_arrival_date, import_customs_regime, import_dta_number,
         import_eadi_entry_date, import_eadi_da_number, import_notes,
         import_cbm, import_gross_weight, import_net_weight, import_packages_count, import_packages_type,
-        is_archived, archived_at, delivery_invoice, delivery_date
+        is_archived, archived_at, delivery_invoice, delivery_date,
+        danfe_number, danfe_date, danfe_value, danfe_access_key, danfe_items,
+        commercial_proposal_data, commercial_alignment_summary
     } = req.body;
     const { code } = req.params;
 
@@ -8053,7 +8062,14 @@ app.put('/api/projects/:code', async (req, res) => {
             is_archived: is_archived !== undefined ? parseInt(is_archived) : (oldProject.is_archived || 0),
             archived_at: archived_at !== undefined ? archived_at : (oldProject.archived_at || null),
             delivery_invoice: delivery_invoice !== undefined ? delivery_invoice : (oldProject.delivery_invoice || null),
-            delivery_date: delivery_date !== undefined ? delivery_date : (oldProject.delivery_date || null)
+            delivery_date: delivery_date !== undefined ? delivery_date : (oldProject.delivery_date || null),
+            danfe_number: danfe_number !== undefined ? danfe_number : (oldProject.danfe_number || null),
+            danfe_date: danfe_date !== undefined ? danfe_date : (oldProject.danfe_date || null),
+            danfe_value: danfe_value !== undefined ? parseFloat(danfe_value) : (oldProject.danfe_value || 0),
+            danfe_access_key: danfe_access_key !== undefined ? danfe_access_key : (oldProject.danfe_access_key || null),
+            danfe_items: danfe_items !== undefined ? (typeof danfe_items === 'string' ? danfe_items : JSON.stringify(danfe_items)) : (oldProject.danfe_items || null),
+            commercial_proposal_data: commercial_proposal_data !== undefined ? (typeof commercial_proposal_data === 'string' ? commercial_proposal_data : JSON.stringify(commercial_proposal_data)) : (oldProject.commercial_proposal_data || null),
+            commercial_alignment_summary: commercial_alignment_summary !== undefined ? (typeof commercial_alignment_summary === 'string' ? commercial_alignment_summary : JSON.stringify(commercial_alignment_summary)) : (oldProject.commercial_alignment_summary || null)
         };
 
         if (sku !== undefined) {
@@ -9961,6 +9977,610 @@ app.delete('/api/projects/:code/invoice', authenticateToken, async (req, res) =>
     } catch (err) {
         console.error('[DELETE INVOICE ERROR]', err);
         res.status(500).json({ error: 'Erro ao excluir invoice do projeto: ' + err.message });
+    }
+});
+
+// =========================================================================
+// MÓDULO COMERCIAL & FISCAL: PROPOSTA COMERCIAL & DANFE (FASE 2)
+// =========================================================================
+
+// POST /api/projects/:code/extract-commercial-proposal - Lê e processa Proposta Comercial via Gemini AI
+app.post('/api/projects/:code/extract-commercial-proposal', authenticateToken, upload.single('file'), async (req, res) => {
+    const { code } = req.params;
+    const file = req.file;
+
+    if (!file) {
+        return res.status(400).json({ error: 'Nenhum arquivo de proposta comercial enviado.' });
+    }
+
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) {
+            if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+            return res.status(404).json({ error: 'Projeto não encontrado.' });
+        }
+
+        const relativePath = 'uploads/' + file.filename;
+
+        // Remover anexo antigo de proposta comercial se já existia
+        const oldAttach = await dbGet("SELECT * FROM attachments WHERE projectCode = ? AND phase = 'proposta_comercial'", [code]);
+        if (oldAttach) {
+            const oldFullPath = path.join(__dirname, oldAttach.filePath);
+            if (fs.existsSync(oldFullPath)) {
+                try { fs.unlinkSync(oldFullPath); } catch(e){}
+            }
+            await dbRun('DELETE FROM attachments WHERE id = ?', [oldAttach.id]);
+        }
+
+        // Salvar novo anexo
+        await dbRun(`INSERT INTO attachments (
+            projectCode, phase, fileName, fileType, filePath, dateAdded
+        ) VALUES (?, 'proposta_comercial', ?, ?, ?, ?)`, [
+            code, file.originalname, file.mimetype, relativePath, new Date().toISOString()
+        ]);
+
+        // Extração de texto bruto
+        let extractedText = '';
+        const fileMime = file.mimetype || '';
+        if (fileMime.includes('pdf') || file.originalname.toLowerCase().endsWith('.pdf')) {
+            try {
+                const dataBuffer = fs.readFileSync(file.path);
+                const pdfData = await pdfParse(dataBuffer);
+                extractedText = pdfData.text || '';
+            } catch (pdfErr) {
+                console.warn('[PROPOSTA OCR] Falha ao extrair texto com pdf-parse:', pdfErr.message);
+            }
+        }
+
+        // Preparar multimodal
+        let inlinePart = null;
+        try {
+            const fileBuffer = fs.readFileSync(file.path);
+            let mime = fileMime;
+            const lowerName = file.originalname.toLowerCase();
+            if (lowerName.endsWith('.pdf') || fileMime.includes('pdf')) {
+                mime = 'application/pdf';
+            } else if (lowerName.endsWith('.png')) {
+                mime = 'image/png';
+            } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+                mime = 'image/jpeg';
+            }
+            if (mime === 'application/pdf' || mime.startsWith('image/')) {
+                inlinePart = {
+                    inlineData: {
+                        mimeType: mime,
+                        data: fileBuffer.toString('base64')
+                    }
+                };
+            }
+        } catch (bufErr) {
+            console.warn('[PROPOSTA OCR] Falha ao preparar inlineData:', bufErr.message);
+        }
+
+        let proposalData = null;
+        const apiKey = process.env.GEMINI_API_KEY;
+
+        if (apiKey && apiKey.trim() !== '') {
+            try {
+                const prompt = `
+Você é o Especialista Comercial e de Engenharia de Aplicação da Tecfag.
+Sua missão é extrair com total precisão todos os dados, equipamentos, acessórios, opcionais técnicos e condições comerciais da PROPOSTA COMERCIAL anexada emitida pela Tecfag ou pelo cliente.
+
+Texto Bruto Extraído:
+"""
+${extractedText.substring(0, 45000)}
+"""
+
+Cliente do Projeto: ${project.client || ''}
+Código do Projeto: ${code}
+
+DIRETRIZES DE EXTRAÇÃO:
+1. Extraia o número da proposta/orçamento, data, valor total em Reais (R$), condições de pagamento e prazo de entrega prometido em dias.
+2. Na lista de "items", extraia cada máquina, esteira, alimentador, datador ou peça com:
+   - item_no (1, 2, 3...)
+   - sku / modelo
+   - description (descrição completa das características)
+   - qty (quantidade)
+   - voltage (voltagem: ex 220V Mono, 220V Tri, 380V Tri)
+   - unit_price (R$) e total_price (R$)
+   - custom_features (opcionais prometidos: esteira mais longa, bico corta-gota, fotocélula, guia, etc.)
+3. Em "technical_notes", sintetize as principais exigências técnicas do escopo prometido.
+
+Retorne EXCLUSIVAMENTE um objeto JSON válido no formato:
+{
+  "proposal_number": "Número da Proposta / Orçamento",
+  "proposal_date": "YYYY-MM-DD",
+  "total_value": 0.0,
+  "payment_terms": "Condições de pagamento",
+  "delivery_deadline_days": 30,
+  "items": [
+    {
+      "item_no": 1,
+      "sku": "MODELO",
+      "description": "Descrição detalhada",
+      "qty": 1,
+      "voltage": "220V",
+      "unit_price": 0.0,
+      "total_price": 0.0,
+      "custom_features": "Opcionais e promessas técnicas"
+    }
+  ],
+  "technical_notes": "Resumo de exigências técnicas e promessas ao cliente"
+}
+`;
+
+                const contentsParts = [];
+                if (inlinePart) contentsParts.push(inlinePart);
+                contentsParts.push({ text: prompt });
+
+                const candidateModels = [
+                    process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+                    'gemini-flash-latest',
+                    'gemini-2.0-flash'
+                ];
+
+                for (const modelName of candidateModels) {
+                    try {
+                        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                        const aiRes = await fetch(geminiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts: contentsParts }],
+                                generationConfig: { responseMimeType: "application/json" }
+                            })
+                        });
+
+                        if (aiRes.ok) {
+                            const aiData = await aiRes.json();
+                            if (aiData.candidates && aiData.candidates[0]?.content?.parts[0]) {
+                                const raw = aiData.candidates[0].content.parts[0].text;
+                                proposalData = cleanAndParseJSON(raw);
+                                if (proposalData) break;
+                            }
+                        }
+                    } catch (mErr) {
+                        console.warn(`[PROPOSTA GEMINI] Erro no modelo ${modelName}:`, mErr.message);
+                    }
+                }
+            } catch (aiErr) {
+                console.warn('[PROPOSTA OCR] Falha ao extrair com IA:', aiErr.message);
+            }
+        }
+
+        if (!proposalData) {
+            proposalData = {
+                proposal_number: 'N/A',
+                proposal_date: new Date().toISOString().split('T')[0],
+                total_value: 0,
+                payment_terms: '',
+                items: [],
+                technical_notes: extractedText.substring(0, 500)
+            };
+        }
+
+        // Atualizar no banco
+        let chk = safeJsonParse(project.checklist, {});
+        chk.aprovacao = true;
+        if (!chk.aprovacao_user) chk.aprovacao_user = req.user ? (req.user.name || req.user.username) : 'Upload Proposta';
+        if (!chk.aprovacao_date) chk.aprovacao_date = new Date().toISOString();
+
+        await dbRun(`
+            UPDATE projects SET
+                commercial_proposal_data = ?,
+                checklist = ?,
+                lastUpdate = ?
+            WHERE code = ?
+        `, [
+            JSON.stringify(proposalData),
+            JSON.stringify(chk),
+            new Date().toISOString(),
+            code
+        ]);
+
+        const user = req.user ? (req.user.name || req.user.username) : 'Sistema';
+        await recordAuditLog(code, user, `Proposta comercial anexada (${file.originalname}) e lida via IA por ${user}.`);
+
+        res.json({
+            success: true,
+            message: 'Proposta Comercial anexada e processada com sucesso!',
+            proposal: proposalData,
+            fileUrl: '/' + relativePath,
+            fileName: file.originalname
+        });
+
+    } catch (err) {
+        console.error('[EXTRACT PROPOSAL ERROR]', err);
+        res.status(500).json({ error: 'Erro ao processar proposta comercial: ' + err.message });
+    }
+});
+
+// POST /api/projects/:code/extract-danfe - Lê e processa Nota Fiscal (DANFE) via Gemini AI
+app.post('/api/projects/:code/extract-danfe', authenticateToken, upload.single('file'), async (req, res) => {
+    const { code } = req.params;
+    const file = req.file;
+
+    if (!file) {
+        return res.status(400).json({ error: 'Nenhum arquivo de DANFE/Nota Fiscal enviado.' });
+    }
+
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) {
+            if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+            return res.status(404).json({ error: 'Projeto não encontrado.' });
+        }
+
+        const relativePath = 'uploads/' + file.filename;
+
+        // Remover anexo antigo de DANFE se já existia
+        const oldAttach = await dbGet("SELECT * FROM attachments WHERE projectCode = ? AND phase = 'danfe_venda'", [code]);
+        if (oldAttach) {
+            const oldFullPath = path.join(__dirname, oldAttach.filePath);
+            if (fs.existsSync(oldFullPath)) {
+                try { fs.unlinkSync(oldFullPath); } catch(e){}
+            }
+            await dbRun('DELETE FROM attachments WHERE id = ?', [oldAttach.id]);
+        }
+
+        // Salvar novo anexo
+        await dbRun(`INSERT INTO attachments (
+            projectCode, phase, fileName, fileType, filePath, dateAdded
+        ) VALUES (?, 'danfe_venda', ?, ?, ?, ?)`, [
+            code, file.originalname, file.mimetype, relativePath, new Date().toISOString()
+        ]);
+
+        // Extração de texto bruto
+        let extractedText = '';
+        const fileMime = file.mimetype || '';
+        if (fileMime.includes('pdf') || file.originalname.toLowerCase().endsWith('.pdf')) {
+            try {
+                const dataBuffer = fs.readFileSync(file.path);
+                const pdfData = await pdfParse(dataBuffer);
+                extractedText = pdfData.text || '';
+            } catch (pdfErr) {
+                console.warn('[DANFE OCR] Falha ao extrair texto com pdf-parse:', pdfErr.message);
+            }
+        }
+
+        // Preparar multimodal
+        let inlinePart = null;
+        try {
+            const fileBuffer = fs.readFileSync(file.path);
+            let mime = fileMime;
+            const lowerName = file.originalname.toLowerCase();
+            if (lowerName.endsWith('.pdf') || fileMime.includes('pdf')) {
+                mime = 'application/pdf';
+            } else if (lowerName.endsWith('.png')) {
+                mime = 'image/png';
+            } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+                mime = 'image/jpeg';
+            }
+            if (mime === 'application/pdf' || mime.startsWith('image/')) {
+                inlinePart = {
+                    inlineData: {
+                        mimeType: mime,
+                        data: fileBuffer.toString('base64')
+                    }
+                };
+            }
+        } catch (bufErr) {
+            console.warn('[DANFE OCR] Falha ao preparar inlineData:', bufErr.message);
+        }
+
+        let danfeData = null;
+        const apiKey = process.env.GEMINI_API_KEY;
+
+        if (apiKey && apiKey.trim() !== '') {
+            try {
+                const prompt = `
+Você é o Especialista Fiscal e de Expedição da Tecfag.
+Sua missão é extrair com precisão cirúrgica absoluta todos os dados da NOTA FISCAL ELETRÔNICA (DANFE) anexada emitida para o cliente.
+
+Texto Bruto Extraído:
+"""
+${extractedText.substring(0, 45000)}
+"""
+
+Cliente do Projeto: ${project.client || ''}
+CNPJ: ${project.cnpj || ''}
+
+DIRETRIZES DE EXTRAÇÃO:
+1. Extraia o Número da Nota Fiscal (Nº NF-e), a Série, a Data de Emissão (YYYY-MM-DD), a Chave de Acesso de 44 dígitos (somente números), o Valor Total da Nota Fiscal (R$), Natureza da Operação e o CFOP principal.
+2. Na lista de "items", extraia cada item faturado na DANFE com item_no, code/sku, description, ncm, cfop, qty, unit_price e total_price.
+
+Retorne EXCLUSIVAMENTE um objeto JSON válido no formato:
+{
+  "danfe_number": "12345",
+  "danfe_series": "1",
+  "danfe_date": "YYYY-MM-DD",
+  "danfe_value": 0.0,
+  "danfe_access_key": "44 dígitos numéricos",
+  "danfe_cfop": "5102",
+  "natureza_operacao": "Venda de mercadoria",
+  "items": [
+    {
+      "item_no": 1,
+      "code": "CODIGO_PRODUTO",
+      "description": "Descrição do item na nota",
+      "ncm": "8422.30.29",
+      "cfop": "5102",
+      "qty": 1,
+      "unit_price": 0.0,
+      "total_price": 0.0
+    }
+  ]
+}
+`;
+
+                const contentsParts = [];
+                if (inlinePart) contentsParts.push(inlinePart);
+                contentsParts.push({ text: prompt });
+
+                const candidateModels = [
+                    process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+                    'gemini-flash-latest',
+                    'gemini-2.0-flash'
+                ];
+
+                for (const modelName of candidateModels) {
+                    try {
+                        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                        const aiRes = await fetch(geminiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts: contentsParts }],
+                                generationConfig: { responseMimeType: "application/json" }
+                            })
+                        });
+
+                        if (aiRes.ok) {
+                            const aiData = await aiRes.json();
+                            if (aiData.candidates && aiData.candidates[0]?.content?.parts[0]) {
+                                const raw = aiData.candidates[0].content.parts[0].text;
+                                danfeData = cleanAndParseJSON(raw);
+                                if (danfeData) break;
+                            }
+                        }
+                    } catch (mErr) {
+                        console.warn(`[DANFE GEMINI] Erro no modelo ${modelName}:`, mErr.message);
+                    }
+                }
+            } catch (aiErr) {
+                console.warn('[DANFE OCR] Falha ao extrair com IA:', aiErr.message);
+            }
+        }
+
+        if (!danfeData) {
+            danfeData = {
+                danfe_number: '',
+                danfe_series: '1',
+                danfe_date: new Date().toISOString().split('T')[0],
+                danfe_value: 0,
+                danfe_access_key: '',
+                danfe_cfop: '',
+                items: []
+            };
+        }
+
+        // Atualizar no banco
+        await dbRun(`
+            UPDATE projects SET
+                danfe_number = ?,
+                danfe_date = ?,
+                danfe_value = ?,
+                danfe_access_key = ?,
+                danfe_items = ?,
+                delivery_invoice = COALESCE(?, delivery_invoice),
+                lastUpdate = ?
+            WHERE code = ?
+        `, [
+            danfeData.danfe_number || null,
+            danfeData.danfe_date || null,
+            danfeData.danfe_value || 0,
+            danfeData.danfe_access_key || null,
+            JSON.stringify(danfeData.items || []),
+            danfeData.danfe_number || null,
+            new Date().toISOString(),
+            code
+        ]);
+
+        const user = req.user ? (req.user.name || req.user.username) : 'Sistema';
+        await recordAuditLog(code, user, `DANFE / Nota Fiscal anexada (${file.originalname}) e lida via IA por ${user}. NF nº ${danfeData.danfe_number || '-'}.`);
+
+        res.json({
+            success: true,
+            message: 'DANFE / Nota Fiscal anexada e processada com sucesso!',
+            danfe: danfeData,
+            fileUrl: '/' + relativePath,
+            fileName: file.originalname
+        });
+
+    } catch (err) {
+        console.error('[EXTRACT DANFE ERROR]', err);
+        res.status(500).json({ error: 'Erro ao processar DANFE: ' + err.message });
+    }
+});
+
+// POST /api/projects/:code/align-commercial-fiscal - Cruza Proposta Comercial vs DANFE e gera alinhamento técnico
+app.post('/api/projects/:code/align-commercial-fiscal', authenticateToken, async (req, res) => {
+    const { code } = req.params;
+
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) {
+            return res.status(404).json({ error: 'Projeto não encontrado.' });
+        }
+
+        const proposal = safeJsonParse(project.commercial_proposal_data, null);
+        const danfeItems = safeJsonParse(project.danfe_items, []);
+        const setupSpecs = safeJsonParse(project.setup_specs, {});
+
+        if (!proposal && (!danfeItems || danfeItems.length === 0)) {
+            return res.status(400).json({ error: 'Para realizar o cruzamento, anexe pelo menos a Proposta Comercial ou a DANFE.' });
+        }
+
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            return res.status(500).json({ error: 'Chave GEMINI_API_KEY não configurada no servidor.' });
+        }
+
+        const prompt = `
+Você é o Auditor Sênior de Qualidade, Engenharia e Comércio da Tecfag.
+Realize um cruzamento minucioso entre o que foi PROMETIDO COMERCIALMENTE ao cliente e o que foi FATURADO NA NOTA FISCAL (DANFE), gerando também as diretrizes exatas para a Ficha Técnica de Engenharia e Montagem.
+
+DADOS DO PROJETO:
+- Código: ${project.code}
+- Cliente: ${project.client}
+- Modelo Base Cadastrado (SKU): ${project.sku}
+
+PROPOSTA COMERCIAL APROVADA:
+${JSON.stringify(proposal, null, 2)}
+
+DANFE / NOTA FISCAL DE VENDA:
+- Nº da NF: ${project.danfe_number || 'Não informado'}
+- Data Emissão: ${project.danfe_date || 'Não informado'}
+- Valor Total NF: R$ ${project.danfe_value || 0}
+- Chave de Acesso: ${project.danfe_access_key || 'Não informado'}
+- Itens da Nota:
+${JSON.stringify(danfeItems, null, 2)}
+
+ESPECIFICAÇÕES TÉCNICAS ATUAIS DO CARD:
+${JSON.stringify(setupSpecs, null, 2)}
+
+SUA MISSÃO:
+1. Comparar os itens da Proposta Comercial com os itens da DANFE (conformidade de quantidades, modelos e valores).
+2. Listar claramente quaisquer DIVERGÊNCIAS ou ITENS FALTANTES.
+3. Identificar TODOS os opcionais, customizações técnicas, voltagem elétrica, esteiras ou acessórios prometidos ao cliente que a Engenharia/Oficina DEVE garantir na preparação física da máquina.
+4. Extrair e preencher os parâmetros recomendados para a Ficha Técnica de Engenharia (voltagem, tipo de solda/tampa, formato da embalagem, dosador, etc.).
+
+Retorne EXCLUSIVAMENTE um objeto JSON no formato:
+{
+  "status_conformidade": "CONFORME" | "DIVERGENTE" | "ALERTA_TECNICO",
+  "resumo_executivo": "Texto com o sumário claro da conferência para o gestor",
+  "conferencia_itens": [
+    {
+      "equipamento": "Nome do equipamento",
+      "qtd_proposta": 1,
+      "qtd_danfe": 1,
+      "status": "OK" | "DIVERGENTE",
+      "observacao": "Detalhe da conferência"
+    }
+  ],
+  "alertas_engenharia": [
+    "Alerta 1: Voltagem prometida...",
+    "Alerta 2: Opcional de esteira..."
+  ],
+  "parametros_sugeridos_engenharia": {
+    "tensao_eletrica": "220V Tri ou 380V Tri",
+    "fechamento_solda": "Tipo de selagem/tampa",
+    "formato_embalagem": "Formato prometido",
+    "dosador": "Tipo de dosador",
+    "obs_startup": "Instruções específicas para a oficina de testes e setup"
+  }
+}
+`;
+
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const aiRes = await fetch(geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            })
+        });
+
+        if (!aiRes.ok) {
+            throw new Error(`Gemini retornou status ${aiRes.status}`);
+        }
+
+        const aiData = await aiRes.json();
+        const rawJson = aiData.candidates[0].content.parts[0].text;
+        const auditResult = cleanAndParseJSON(rawJson);
+
+        // Salvar resumo no banco
+        await dbRun(`
+            UPDATE projects SET
+                commercial_alignment_summary = ?,
+                lastUpdate = ?
+            WHERE code = ?
+        `, [
+            JSON.stringify(auditResult),
+            new Date().toISOString(),
+            code
+        ]);
+
+        const user = req.user ? (req.user.name || req.user.username) : 'Sistema';
+        await recordAuditLog(code, user, `Auditoria e Cruzamento Proposta vs DANFE realizado por ${user}. Status: ${auditResult.status_conformidade || 'CONCLUÍDO'}.`);
+
+        res.json({
+            success: true,
+            alignment: auditResult
+        });
+
+    } catch (err) {
+        console.error('[ALIGN COMMERCIAL FISCAL ERROR]', err);
+        res.status(500).json({ error: 'Erro ao cruzar proposta e DANFE: ' + err.message });
+    }
+});
+
+// DELETE /api/projects/:code/commercial-document/:docType - Exclui/desvincula Proposta ou DANFE anexada por engano
+app.delete('/api/projects/:code/commercial-document/:docType', authenticateToken, async (req, res) => {
+    const { code, docType } = req.params;
+    const user = req.user ? (req.user.name || req.user.username) : 'Sistema';
+
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) {
+            return res.status(404).json({ error: 'Projeto não encontrado.' });
+        }
+
+        if (docType === 'proposta') {
+            const attach = await dbGet("SELECT * FROM attachments WHERE projectCode = ? AND phase = 'proposta_comercial'", [code]);
+            if (attach && attach.filePath) {
+                const fullP = path.join(__dirname, attach.filePath);
+                try { if (fs.existsSync(fullP)) fs.unlinkSync(fullP); } catch(e){}
+                await dbRun('DELETE FROM attachments WHERE id = ?', [attach.id]);
+            }
+            await dbRun(`
+                UPDATE projects SET
+                    commercial_proposal_data = NULL,
+                    commercial_alignment_summary = NULL,
+                    lastUpdate = ?
+                WHERE code = ?
+            `, [new Date().toISOString(), code]);
+
+            await recordAuditLog(code, user, `Proposta comercial desvinculada/removida por ${user}.`);
+            return res.json({ success: true, message: 'Proposta Comercial desvinculada com sucesso!' });
+        } else if (docType === 'danfe') {
+            const attach = await dbGet("SELECT * FROM attachments WHERE projectCode = ? AND phase = 'danfe_venda'", [code]);
+            if (attach && attach.filePath) {
+                const fullP = path.join(__dirname, attach.filePath);
+                try { if (fs.existsSync(fullP)) fs.unlinkSync(fullP); } catch(e){}
+                await dbRun('DELETE FROM attachments WHERE id = ?', [attach.id]);
+            }
+            await dbRun(`
+                UPDATE projects SET
+                    danfe_number = NULL,
+                    danfe_date = NULL,
+                    danfe_value = 0,
+                    danfe_access_key = NULL,
+                    danfe_items = '[]',
+                    commercial_alignment_summary = NULL,
+                    lastUpdate = ?
+                WHERE code = ?
+            `, [new Date().toISOString(), code]);
+
+            await recordAuditLog(code, user, `DANFE / Nota Fiscal desvinculada/removida por ${user}.`);
+            return res.json({ success: true, message: 'DANFE / Nota Fiscal desvinculada com sucesso!' });
+        } else {
+            return res.status(400).json({ error: 'Tipo de documento inválido. Use "proposta" ou "danfe".' });
+        }
+    } catch (err) {
+        console.error('[DELETE COMMERCIAL DOC ERROR]', err);
+        res.status(500).json({ error: 'Erro ao desvincular documento: ' + err.message });
     }
 });
 

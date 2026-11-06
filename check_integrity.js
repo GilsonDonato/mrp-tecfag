@@ -357,6 +357,93 @@ async function main() {
         assert.strictEqual(ordPost.length, 0, 'Ordens de estoque devem ter sido removidas');
     });
 
+    // ----------------------------------------------------
+    // 7. TESTE DA CENTRAL DE PROPOSTA COMERCIAL & DANFE (FASE 2)
+    // ----------------------------------------------------
+    console.log('\n📄 7. Testando Leitura e Cruzamento de Proposta Comercial & DANFE...');
+
+    reportTest('Validação dos endpoints e colunas de Proposta e DANFE no server.js', () => {
+        assert(serverCode.includes('/api/projects/:code/extract-commercial-proposal'), 'Endpoint extract-commercial-proposal deve existir');
+        assert(serverCode.includes('/api/projects/:code/extract-danfe'), 'Endpoint extract-danfe deve existir');
+        assert(serverCode.includes('/api/projects/:code/align-commercial-fiscal'), 'Endpoint align-commercial-fiscal deve existir');
+        assert(serverCode.includes('/api/projects/:code/commercial-document/:docType'), 'Endpoint commercial-document deve existir');
+        assert(serverCode.includes('danfe_number'), 'Coluna danfe_number deve ser tratada no server');
+        assert(serverCode.includes('commercial_proposal_data'), 'Coluna commercial_proposal_data deve ser tratada no server');
+        assert(serverCode.includes('commercial_alignment_summary'), 'Coluna commercial_alignment_summary deve ser tratada no server');
+    });
+
+    reportTest('Validação da interface e funções de Proposta e DANFE no index.html', () => {
+        assert(indexCode.includes('id="modal-project-proposal-dropzone"'), 'Dropzone de proposta deve existir');
+        assert(indexCode.includes('id="modal-project-danfe-dropzone"'), 'Dropzone de DANFE deve existir');
+        assert(indexCode.includes('id="btn-align-commercial-fiscal"'), 'Botão de cruzamento IA deve existir');
+        assert(indexCode.includes('id="modal-commercial-alignment-panel"'), 'Painel de auditoria do cruzamento deve existir');
+        assert(indexCode.includes('function extractProjectProposalWithAI'), 'extractProjectProposalWithAI deve estar declarada');
+        assert(indexCode.includes('function extractProjectDanfeWithAI'), 'extractProjectDanfeWithAI deve estar declarada');
+        assert(indexCode.includes('function runCommercialFiscalAlignment'), 'runCommercialFiscalAlignment deve estar declarada');
+        assert(indexCode.includes('function applyAlignmentToEngineeringSpecs'), 'applyAlignmentToEngineeringSpecs deve estar declarada');
+        assert(indexCode.includes('function deleteProjectCommercialDocument'), 'deleteProjectCommercialDocument deve estar declarada');
+        assert(indexCode.includes('function checkProjectCommercialDocuments'), 'checkProjectCommercialDocuments deve estar declarada');
+    });
+
+    await reportTestAsync('Persistência e exclusão segura de Proposta Comercial e DANFE no banco', async () => {
+        // Criar colunas na tabela em memória
+        await dbRun(`ALTER TABLE projects ADD COLUMN danfe_number TEXT`).catch(() => {});
+        await dbRun(`ALTER TABLE projects ADD COLUMN danfe_date TEXT`).catch(() => {});
+        await dbRun(`ALTER TABLE projects ADD COLUMN danfe_value REAL`).catch(() => {});
+        await dbRun(`ALTER TABLE projects ADD COLUMN danfe_access_key TEXT`).catch(() => {});
+        await dbRun(`ALTER TABLE projects ADD COLUMN danfe_items TEXT`).catch(() => {});
+        await dbRun(`ALTER TABLE projects ADD COLUMN commercial_proposal_data TEXT`).catch(() => {});
+        await dbRun(`ALTER TABLE projects ADD COLUMN commercial_alignment_summary TEXT`).catch(() => {});
+
+        // Inserir projeto de teste
+        await dbRun(`
+            INSERT OR REPLACE INTO projects (code, client, fase, checklist)
+            VALUES (?, ?, ?, ?)
+        `, ['PRJ-DOC-TEST', 'CLIENTE DOC TEST', 2, JSON.stringify({ customizacao: true, cotacao: true })]);
+
+        // Simular salvamento de proposta e DANFE
+        const propData = { machines: ['Rotuladora Sleeve Auto'], total_value: 120000, technical_requirements: { tensao: '220V Tri', frequencia: '60Hz' } };
+        const danfeData = { number: '12345', date: '2026-11-05', total_value: 120000, access_key: '35261100000000000000000000000000000000000000', items: [{ item: 'Rotuladora Sleeve Auto', qty: 1 }] };
+        const alignmentData = { status: '100% ALINHADO', summary: 'Proposta e DANFE conferem.', items_comparison: [{ machine: 'Rotuladora', match: true }] };
+
+        const updateFields = {
+            commercial_proposal_data: JSON.stringify(propData),
+            danfe_number: danfeData.number,
+            danfe_date: danfeData.date,
+            danfe_value: danfeData.total_value,
+            danfe_access_key: danfeData.access_key,
+            danfe_items: JSON.stringify(danfeData.items),
+            commercial_alignment_summary: JSON.stringify(alignmentData)
+        };
+
+        const { sql, params } = buildDynamicUpdate('projects', updateFields, 'code = ?', ['PRJ-DOC-TEST']);
+        await dbRun(sql, params);
+
+        const saved = await dbGet('SELECT * FROM projects WHERE code = ?', ['PRJ-DOC-TEST']);
+        assert.strictEqual(saved.danfe_number, '12345', 'danfe_number deve ser 12345');
+        assert.strictEqual(saved.danfe_value, 120000, 'danfe_value deve ser 120000');
+        assert(saved.commercial_proposal_data.includes('Rotuladora Sleeve Auto'), 'commercial_proposal_data deve conter o item');
+        assert(saved.commercial_alignment_summary.includes('100% ALINHADO'), 'commercial_alignment_summary deve conter status');
+
+        // Simular exclusão de DANFE
+        const clearDanfe = {
+            danfe_number: null,
+            danfe_date: null,
+            danfe_value: null,
+            danfe_access_key: null,
+            danfe_items: null,
+            commercial_alignment_summary: null
+        };
+        const { sql: sqlDel, params: paramsDel } = buildDynamicUpdate('projects', clearDanfe, 'code = ?', ['PRJ-DOC-TEST']);
+        await dbRun(sqlDel, paramsDel);
+
+        const cleared = await dbGet('SELECT * FROM projects WHERE code = ?', ['PRJ-DOC-TEST']);
+        assert.strictEqual(cleared.danfe_number, null, 'danfe_number deve ser nulo após exclusão');
+        assert.strictEqual(cleared.danfe_value, null, 'danfe_value deve ser nulo após exclusão');
+        assert.strictEqual(cleared.commercial_alignment_summary, null, 'commercial_alignment_summary deve ser nulo após exclusão');
+        assert(cleared.commercial_proposal_data.includes('Rotuladora Sleeve Auto'), 'commercial_proposal_data deve continuar intacto');
+    });
+
     console.log('\n====================================================');
     console.log(`🎉 AUDITORIA CONCLUÍDA: ${passedTests}/${totalTests} TESTES APROVADOS (100%)`);
     console.log('✨ SISTEMA MRP TECFAG ESTABILIZADO E PRONTO PARA OPERAÇÃO!');
