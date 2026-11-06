@@ -5073,13 +5073,20 @@
                         
                         <!-- Coluna 1: Chat Interativo com Gemini IA -->
                         <div class="detail-card" style="display: flex; flex-direction: column; height: 100%; padding: 20px; box-sizing: border-box;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px; margin-bottom: 10px;">
-                                <h4 style="margin: 0; color: #38bdf8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                                <h4 style="margin: 0; color: #38bdf8; font-size: 0.92rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
                                     <span>💬</span> Diálogo com o Gemini (Contextualizado)
                                 </h4>
-                                <span style="font-size: 0.68rem; color: #4ade80; background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); padding: 2px 8px; border-radius: 12px; font-weight: 600;">
-                                    ● Contexto Ativo
-                                </span>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="display: inline-flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 2px 8px;">
+                                        <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 600;">Tamanho da Letra:</span>
+                                        <button type="button" class="btn btn-secondary" onclick="adjustCopilotFontSize(-1)" style="padding: 2px 7px; font-size: 0.76rem; font-weight: bold; border-color: rgba(255,255,255,0.2); color: #cbd5e1; line-height: 1; cursor: pointer;" title="Diminuir tamanho da letra">A-</button>
+                                        <button type="button" class="btn btn-secondary" onclick="adjustCopilotFontSize(1)" style="padding: 2px 7px; font-size: 0.82rem; font-weight: bold; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; line-height: 1; cursor: pointer;" title="Aumentar tamanho da letra">A+</button>
+                                    </div>
+                                    <span style="font-size: 0.68rem; color: #4ade80; background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); padding: 2px 8px; border-radius: 12px; font-weight: 600;">
+                                        ● Contexto Ativo
+                                    </span>
+                                </div>
                             </div>
 
                             <!-- Sugestões Rápidas de Prompt -->
@@ -5114,7 +5121,7 @@
                                             📎
                                         </button>
                                     </div>
-                                    <textarea id="copilot-chat-input" rows="3" class="form-control" placeholder="Pergunte ao Gemini ou cole prints/fotos (Ctrl+V) ou documentos para a IA compor o raciocínio..." onkeydown="if(event.ctrlKey && event.key === 'Enter') handleSendCopilotMessage(event)" onpaste="handleCopilotChatPaste(event)" style="padding: 12px 14px; font-size: 0.92rem; line-height: 1.5; resize: none; flex: 1;"></textarea>
+                                    <textarea id="copilot-chat-input" rows="3" class="form-control" placeholder="Pergunte ao Gemini ou cole prints/fotos (Ctrl+V) ou documentos para a IA compor o raciocínio..." onkeydown="if(event.ctrlKey && event.key === 'Enter') handleSendCopilotMessage(event)" onpaste="handleCopilotChatPaste(event)" style="padding: 12px 14px; font-size: 1.02rem; line-height: 1.5; resize: none; flex: 1;"></textarea>
                                     <button type="submit" id="copilot-btn-send" class="btn" style="background: linear-gradient(135deg, #a855f7, #7c3aed); color: white; font-weight: bold; padding: 10px 16px; border-radius: 6px; height: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;">
                                         <span>🚀</span> Enviar
                                     </button>
@@ -14527,6 +14534,20 @@
             }
         }
 
+        let copilotBaseFontSize = parseInt(localStorage.getItem('copilot_font_size')) || 18;
+
+        function adjustCopilotFontSize(delta) {
+            copilotBaseFontSize = Math.max(14, Math.min(28, copilotBaseFontSize + delta));
+            localStorage.setItem('copilot_font_size', copilotBaseFontSize);
+            const historyContainer = document.getElementById('copilot-chat-history');
+            if (historyContainer) {
+                historyContainer.style.fontSize = copilotBaseFontSize + 'px';
+                historyContainer.querySelectorAll('.copilot-chat-bubble-body, .copilot-bubble-text, .copilot-chat-bubble-msg').forEach(el => {
+                    el.style.fontSize = copilotBaseFontSize + 'px';
+                });
+            }
+        }
+
         function formatCopilotMarkdown(text) {
             if (!text) return '';
             // Preserva quebras de linha e trata tags html básicas
@@ -14535,24 +14556,68 @@
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;');
 
-            // Títulos Markdown ###
-            safe = safe.replace(/###\s+(.*)/g, '<h5 style="color: #38bdf8; font-size: 1.05rem; margin: 12px 0 6px 0; font-weight: 800;">$1</h5>');
-            safe = safe.replace(/##\s+(.*)/g, '<h4 style="color: #c084fc; font-size: 1.15rem; margin: 14px 0 8px 0; font-weight: 800;">$1</h4>');
+            // 1. Processar Tabelas Markdown (| coluna 1 | coluna 2 |)
+            safe = safe.replace(/((?:\|[^\n]+\|\r?\n)+)/g, function(tableMatch) {
+                const rows = tableMatch.trim().split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+                if (rows.length >= 2) {
+                    let html = '<div style="overflow-x: auto; margin: 14px 0;"><table style="width: 100%; border-collapse: collapse; font-size: 1.02rem; background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; overflow: hidden;">';
+                    let isHeader = true;
+                    for (let i = 0; i < rows.length; i++) {
+                        const row = rows[i];
+                        if (/^\|[\s\-:]+(\|[\s\-:]+)+\|$/.test(row)) {
+                            isHeader = false;
+                            continue;
+                        }
+                        const cells = row.split('|').slice(1, -1).map(c => c.trim());
+                        if (isHeader) {
+                            html += '<thead style="background: rgba(56, 189, 248, 0.18); border-bottom: 2px solid rgba(56, 189, 248, 0.4);"><tr>';
+                            cells.forEach(c => {
+                                html += `<th style="padding: 10px 14px; text-align: left; font-weight: 800; color: #38bdf8; font-size: 1.02rem;">${c}</th>`;
+                            });
+                            html += '</tr></thead><tbody>';
+                        } else {
+                            html += '<tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">';
+                            cells.forEach(c => {
+                                html += `<td style="padding: 9px 14px; color: #f1f5f9; font-size: 1.02rem;">${c}</td>`;
+                            });
+                            html += '</tr>';
+                        }
+                    }
+                    html += '</tbody></table></div>';
+                    return html;
+                }
+                return tableMatch;
+            });
 
-            // Negrito **texto**
-            safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #38bdf8; font-weight: 700;">$1</strong>');
+            // 2. Divisores Horizontais ---
+            safe = safe.replace(/^---+$/gm, '<hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.14); margin: 16px 0;">');
 
-            // Itálico *texto*
+            // 3. Blockquotes > ...
+            safe = safe.replace(/^&gt;\s*(.*)$/gm, '<div style="border-left: 4px solid #f59e0b; background: rgba(245, 158, 11, 0.1); padding: 10px 16px; margin: 12px 0; border-radius: 4px; color: #fef08a; font-size: 1.05rem; line-height: 1.65;">$1</div>');
+
+            // 4. Títulos Markdown #, ##, ###
+            safe = safe.replace(/^###\s+(.*)/gm, '<h5 style="color: #38bdf8; font-size: 1.22rem; margin: 16px 0 8px 0; font-weight: 800;">$1</h5>');
+            safe = safe.replace(/^##\s+(.*)/gm, '<h4 style="color: #c084fc; font-size: 1.35rem; margin: 18px 0 10px 0; font-weight: 800;">$1</h4>');
+            safe = safe.replace(/^#\s+(.*)/gm, '<h3 style="color: #60a5fa; font-size: 1.5rem; margin: 20px 0 12px 0; font-weight: 900;">$1</h3>');
+
+            // 5. Tópicos numerados principais destacados (ex: 1. Resumo do Acordo Comercial...)
+            safe = safe.replace(/^(\d+)\.\s+([^\n<]+)/gm, '<div style="margin-top: 18px; margin-bottom: 8px; font-size: 1.25rem; font-weight: 800; color: #38bdf8;"><span style="color: #fff; background: #0284c7; border-radius: 4px; padding: 2px 8px; margin-right: 8px; font-size: 1.05rem; font-weight: 800;">$1</span>$2</div>');
+
+            // 6. Negrito **texto**
+            safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #67e8f9; font-weight: 700;">$1</strong>');
+
+            // 7. Itálico *texto*
             safe = safe.replace(/\*(.*?)\*/g, '<em style="color: #cbd5e1;">$1</em>');
 
-            // Marcadores de lista (- ou *)
-            safe = safe.replace(/^[\*\-]\s+(.*)$/gm, '<li style="margin-left: 18px; margin-bottom: 4px;">$1</li>');
+            // 8. Marcadores de lista (- ou *)
+            safe = safe.replace(/^[\*\-]\s+(.*)$/gm, '<li style="margin-left: 22px; margin-bottom: 6px; font-size: 1.08rem; line-height: 1.75; color: #f1f5f9;">$1</li>');
 
-            // Listas numeradas (1. , 2. )
-            safe = safe.replace(/^(\d+)\.\s+(.*)$/gm, '<li style="margin-left: 18px; margin-bottom: 4px;"><strong>$1.</strong> $2</li>');
-
-            // Parágrafos e quebras
+            // 9. Parágrafos e quebras
             safe = safe.replace(/\n/g, '<br>');
+
+            // Limpar quebras duplicadas ao redor de blocos estruturados
+            safe = safe.replace(/<br>\s*(<(?:div|table|thead|tbody|tr|th|td|hr|h3|h4|h5|li)[\s>])/gi, '$1');
+            safe = safe.replace(/(<\/(?:div|table|thead|tbody|tr|th|td|hr|h3|h4|h5|li)>)\s*<br>/gi, '$1');
 
             return safe;
         }
@@ -14768,13 +14833,13 @@
                             }
                             bubble.style.cssText = `
                                 align-self: ${isUser ? 'flex-end' : 'flex-start'};
-                                max-width: 90%;
+                                max-width: 92%;
                                 background: ${bubbleBg};
                                 border: 1px solid ${bubbleBorder};
                                 border-radius: 10px;
-                                padding: 14px 18px;
-                                font-size: 0.94rem;
-                                line-height: 1.65;
+                                padding: 16px 22px;
+                                font-size: ${copilotBaseFontSize}px;
+                                line-height: 1.75;
                                 color: #f8fafc;
                                 box-shadow: 0 4px 14px rgba(0,0,0,0.25);
                             `;
@@ -14789,11 +14854,11 @@
                                         const se = meta.suggestedEmail;
                                         cleanMsg = cleanMsg.replace(/===EMAIL_SUGGESTION_START===[\s\S]*?===EMAIL_SUGGESTION_END===/, '').trim();
                                         suggestionBlock = `
-                                            <div style="margin-top: 10px; background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 6px; padding: 10px;">
-                                                <div style="font-size: 0.72rem; font-weight: 800; color: #c084fc; margin-bottom: 4px;">✉️ MINUTA DE E-MAIL SUGERIDA:</div>
-                                                <div style="font-size: 0.72rem; color: #cbd5e1; margin-bottom: 2px;"><strong>Para:</strong> ${se.to || '-'}</div>
-                                                <div style="font-size: 0.72rem; color: #cbd5e1; margin-bottom: 6px;"><strong>Assunto:</strong> ${se.subject || '-'}</div>
-                                                <button type="button" class="btn" onclick="applySuggestedEmail('${(se.to || '').replace(/'/g, "\\'")}', '${(se.subject || '').replace(/'/g, "\\'")}', decodeURIComponent('${encodeURIComponent(se.body || '')}'))" style="background: #a855f7; color: white; font-weight: bold; font-size: 0.72rem; padding: 4px 10px; border-radius: 4px; width: 100%;">
+                                            <div style="margin-top: 12px; background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 6px; padding: 12px;">
+                                                <div style="font-size: 0.82rem; font-weight: 800; color: #c084fc; margin-bottom: 4px;">✉️ MINUTA DE E-MAIL SUGERIDA:</div>
+                                                <div style="font-size: 0.82rem; color: #cbd5e1; margin-bottom: 2px;"><strong>Para:</strong> ${se.to || '-'}</div>
+                                                <div style="font-size: 0.82rem; color: #cbd5e1; margin-bottom: 8px;"><strong>Assunto:</strong> ${se.subject || '-'}</div>
+                                                <button type="button" class="btn" onclick="applySuggestedEmail('${(se.to || '').replace(/'/g, "\\'")}', '${(se.subject || '').replace(/'/g, "\\'")}', decodeURIComponent('${encodeURIComponent(se.body || '')}'))" style="background: #a855f7; color: white; font-weight: bold; font-size: 0.82rem; padding: 6px 12px; border-radius: 4px; width: 100%; cursor: pointer;">
                                                     📨 Usar Este E-mail no Formulário de Disparo ➔
                                                 </button>
                                             </div>
@@ -14803,11 +14868,11 @@
                             }
 
                             bubble.innerHTML = `
-                                <div style="display: flex; justify-content: space-between; font-size: 0.68rem; color: ${isUser ? '#bae6fd' : '#c084fc'}; font-weight: 700; margin-bottom: 4px;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: ${isUser ? '#bae6fd' : '#c084fc'}; font-weight: 700; margin-bottom: 6px;">
                                     <span>${isReceived ? '📥 Resposta Recebida: ' + (msg.sender || 'Fornecedor') : (isUser ? '👤 ' + (msg.sender || 'Você') : '🤖 Gemini Copilot')}</span>
                                     <span style="opacity: 0.8;">${new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
-                                <div style="line-height: 1.65; font-size: 0.94rem;">${formatCopilotMarkdown(cleanMsg)}</div>
+                                <div class="copilot-chat-bubble-body" style="line-height: 1.75; font-size: ${copilotBaseFontSize}px; color: #f8fafc;">${formatCopilotMarkdown(cleanMsg)}</div>
                                 ${suggestionBlock}
                             `;
                             historyContainer.appendChild(bubble);
@@ -14937,29 +15002,29 @@
             // Renderiza mensagem do usuário imediatamente com anexos
             if (historyContainer) {
                 const userBubble = document.createElement('div');
-                userBubble.style.cssText = 'align-self: flex-end; max-width: 88%; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: #f8fafc;';
+                userBubble.style.cssText = `align-self: flex-end; max-width: 90%; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 10px; padding: 14px 18px; font-size: ${copilotBaseFontSize}px; line-height: 1.6; color: #f8fafc;`;
                 
                 let filesHtml = '';
                 if (filesToSend.length > 0) {
-                    filesHtml = '<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px;">' +
+                    filesHtml = '<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">' +
                         filesToSend.map(f => {
                             const icon = f.type.startsWith('image/') ? '🖼️' : '📄';
-                            return `<span style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; font-size: 0.68rem;">${icon} ${f.name}</span>`;
+                            return `<span style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px; font-size: 0.8rem;">${icon} ${f.name}</span>`;
                         }).join('') +
                         '</div>';
                 }
 
                 userBubble.innerHTML = `
-                    <div style="font-size: 0.68rem; color: #bae6fd; font-weight: 700; margin-bottom: 4px;">👤 Você</div>
+                    <div style="font-size: 0.78rem; color: #bae6fd; font-weight: 700; margin-bottom: 6px;">👤 Você</div>
                     ${filesHtml}
-                    <div style="white-space: pre-wrap; line-height: 1.4;">${message || '<em>[Arquivos enviados para análise da IA]</em>'}</div>
+                    <div class="copilot-chat-bubble-body" style="white-space: pre-wrap; line-height: 1.6; font-size: ${copilotBaseFontSize}px;">${message || '<em>[Arquivos enviados para análise da IA]</em>'}</div>
                 `;
                 historyContainer.appendChild(userBubble);
 
                 // Indicador de digitação
                 const typingBubble = document.createElement('div');
                 typingBubble.id = 'copilot-typing-indicator';
-                typingBubble.style.cssText = 'align-self: flex-start; max-width: 88%; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: #c084fc;';
+                typingBubble.style.cssText = `align-self: flex-start; max-width: 90%; background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 10px; padding: 14px 18px; font-size: ${copilotBaseFontSize}px; color: #c084fc;`;
                 typingBubble.innerHTML = '🤖 <em>Gemini está analisando o projeto, documentos/imagens e formulando a resposta...</em>';
                 historyContainer.appendChild(typingBubble);
                 historyContainer.scrollTop = historyContainer.scrollHeight;
