@@ -884,7 +884,7 @@ function computeCanonicalProjectPhase(project) {
     const isLocalStock = project.equipment_origin === 'Pronta Entrega (Estoque Local)';
 
     // SAT aprovado / entrega final
-    if (chk.sat || parseInt(project.fase) === 7) {
+    if (chk.sat) {
         return 7; // Entregue & Homologado no Cliente
     }
 
@@ -942,11 +942,7 @@ function computeCanonicalProjectPhase(project) {
         }
     }
 
-    const currentFase = parseInt(project.fase) || 1;
-    if (currentFase === 7 || currentFase === 8) {
-        return currentFase;
-    }
-    return Math.max(currentFase, calculated);
+    return calculated;
 }
 
 /**
@@ -7907,7 +7903,7 @@ app.put('/api/projects/:code', async (req, res) => {
         // Garantir que status explícito de perda/cancelamento, conclusão direta ou retorno para Fase 1 sejam respeitados se passados
         if (fase !== undefined && parseInt(fase) === 8) canonicalFase = 8;
         if (motivoPerda) canonicalFase = 8;
-        if (fase !== undefined && parseInt(fase) === 7) canonicalFase = 7;
+        if (fase !== undefined && parseInt(fase) === 7 && (currentChecklist.sat || oldProject.is_archived === 1)) canonicalFase = 7;
         if (fase !== undefined && parseInt(fase) === 1) {
             // Permitir mover explicitamente para Fase 1 se não houver etapas de comex/importação ativas
             const hasStartedImport = !!(currentChecklist.proforma || currentChecklist.cambio_sinal || currentChecklist.swift_pagamento || oldProject.has_import_order);

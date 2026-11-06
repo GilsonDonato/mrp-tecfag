@@ -18961,9 +18961,7 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
                 return Math.min(2, calculated);
             }
 
-            const currentFase = parseInt(project.fase) || 1;
-            // Não regredir a fase se ela já estiver avançada no banco ou na operação física
-            return Math.max(currentFase, calculated);
+            return calculated;
         }
 
         // Cálculo do Progresso do Projeto (%) com base nas etapas do checklist
@@ -24832,7 +24830,7 @@ function renderKanban() {
                 (requiredRole === 'VENDAS' && currentRole === 'GERENTE_COMERCIAL')
             );
             if (!isAuthorized) {
-                alert(`Acesso negado: Seu cargo (${getRoleLabel(currentRole)}) não tem permissão para editar esta etapa. Responsável: ${getRoleLabel(requiredRole)}.`);
+                alert(`⚠️ Acesso restrito:\n\nSeu perfil atual (${getRoleLabel(currentRole)}) não tem permissão para alterar esta etapa.\n\n👤 Setor responsável: ${getRoleLabel(requiredRole)}.\n(Ou faça login como Gerente/Diretor).`);
                 return;
             }
 
@@ -25042,6 +25040,11 @@ function renderKanban() {
                 if (data.fase !== undefined) {
                     project.fase = data.fase;
                     newFase = data.fase;
+                }
+                if (data.project && data.project.checklist) {
+                    project.checklist = typeof data.project.checklist === 'string'
+                        ? JSON.parse(data.project.checklist)
+                        : data.project.checklist;
                 }
 
                 // Post log
