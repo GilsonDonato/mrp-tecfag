@@ -18964,6 +18964,39 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
             return calculated;
         }
 
+        // Calcula a etapa canônica de importação / Comex com base no avanço dos checkboxes
+        function computeCanonicalImportStage(project) {
+            if (!project) return null;
+            const chk = project.checklist || {};
+            const customsRegime = project.import_customs_regime || 'IMPORTACAO_DIRETA';
+
+            // Fase 5/6: Chegada no galpão Tecfag
+            if (chk.chegada_tecfag) {
+                return 'DOCA_GALPAO';
+            }
+            // Fase 5: Desembaraço aduaneiro concluído
+            if (chk.desembaraco) {
+                return (customsRegime === 'EADI_BAURU') ? 'ENTREPOSTADO_EADI' : 'NO_PORTO_DESEMBARACO';
+            }
+            // Fase 5: Transporte marítimo internacional
+            if (chk.transporte_maritimo) {
+                return 'NO_NAVIO';
+            }
+            // Fase 4: Caixinhas 12 + (13 ou 14) concluídas (Liberação de embarque + prontidão de carga)
+            if (chk.embarque && (chk.pagamento || chk.fedex)) {
+                return 'PACKING_LIST_EMBARQUE';
+            }
+            // Fase 4: Caixinha 11 concluída (Monitoramento de Fabricação na Origem)
+            if (chk.producao) {
+                return 'EM_FABRICACAO';
+            }
+            // Fase 3: Proforma ou câmbio/sinal emitidos
+            if (chk.proforma || chk.cambio_sinal || chk.swift_pagamento || project.import_invoice_number || project.has_import_order) {
+                return 'PO_EMITIDA';
+            }
+            return project.import_stage || null;
+        }
+
         // Cálculo do Progresso do Projeto (%) com base nas etapas do checklist
         function calculateProjectProgress(project) {
             if (!project || !project.checklist) return 0;
@@ -21028,7 +21061,7 @@ function renderKanban() {
                 'ENTREPOSTADO_EADI': '6. PORTO SECO (EADI BAURU)',
                 'DOCA_GALPAO': '7. DOCA TECFAG / LIBERADO'
             };
-            const currentImportStage = project.import_stage || (project.fase === 4 ? 'EM_FABRICACAO' : (project.fase === 5 ? 'ENTREPOSTADO_EADI' : 'PO_EMITIDA'));
+            const currentImportStage = computeCanonicalImportStage(project) || project.import_stage || (project.fase === 4 ? 'EM_FABRICACAO' : (project.fase === 5 ? 'ENTREPOSTADO_EADI' : 'PO_EMITIDA'));
             const stageBadgeEl = document.getElementById('modal-import-stage-badge');
             if (stageBadgeEl) stageBadgeEl.innerText = stageLabelsMap[currentImportStage] || currentImportStage;
 
@@ -25003,6 +25036,22 @@ function renderKanban() {
             let newFase = calculateProjectPhase(project);
             project.fase = newFase;
 
+            const nextImportStage = computeCanonicalImportStage(project);
+            if (nextImportStage) {
+                project.import_stage = nextImportStage;
+                const stageBadgeEl = document.getElementById('modal-import-stage-badge');
+                const stageLabelsMap = {
+                    'PO_EMITIDA': '1. PROFORMA',
+                    'EM_FABRICACAO': '2. EM FABRICAÇÃO',
+                    'PACKING_LIST_EMBARQUE': '3. PACKING LIST & EMBARQUE',
+                    'NO_NAVIO': '4. NO NAVIO (TRÂNSITO)',
+                    'NO_PORTO_DESEMBARACO': '5. PORTO & DESEMBARAÇO',
+                    'ENTREPOSTADO_EADI': '6. PORTO SECO (EADI BAURU)',
+                    'DOCA_GALPAO': '7. DOCA TECFAG / LIBERADO'
+                };
+                if (stageBadgeEl) stageBadgeEl.innerText = stageLabelsMap[nextImportStage] || nextImportStage;
+            }
+
             // Sync visual checkbox
             el.classList.toggle('checked', isChecked);
 
@@ -25012,6 +25061,7 @@ function renderKanban() {
             const updateBody = {
                 checklist: project.checklist,
                 fase: newFase,
+                import_stage: project.import_stage,
                 lastUpdate: new Date().toISOString()
             };
 

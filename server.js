@@ -946,6 +946,48 @@ function computeCanonicalProjectPhase(project) {
 }
 
 /**
+ * Calcula a etapa canônica de importação / Comex com base no avanço dos checkboxes
+ */
+function computeCanonicalImportStage(project) {
+    if (!project) return null;
+    let chk = {};
+    if (project.checklist) {
+        try {
+            chk = typeof project.checklist === 'string' ? JSON.parse(project.checklist) : project.checklist;
+        } catch (e) {
+            chk = {};
+        }
+    }
+    const customsRegime = project.import_customs_regime || 'IMPORTACAO_DIRETA';
+
+    // Fase 5/6: Chegada no galpão Tecfag
+    if (chk.chegada_tecfag) {
+        return 'DOCA_GALPAO';
+    }
+    // Fase 5: Desembaraço aduaneiro concluído
+    if (chk.desembaraco) {
+        return (customsRegime === 'EADI_BAURU') ? 'ENTREPOSTADO_EADI' : 'NO_PORTO_DESEMBARACO';
+    }
+    // Fase 5: Transporte marítimo internacional
+    if (chk.transporte_maritimo) {
+        return 'NO_NAVIO';
+    }
+    // Fase 4: Caixinhas 12 + (13 ou 14) concluídas (Liberação de embarque + prontidão de carga)
+    if (chk.embarque && (chk.pagamento || chk.fedex)) {
+        return 'PACKING_LIST_EMBARQUE';
+    }
+    // Fase 4: Caixinha 11 concluída (Monitoramento de Fabricação na Origem)
+    if (chk.producao) {
+        return 'EM_FABRICACAO';
+    }
+    // Fase 3: Proforma ou câmbio/sinal emitidos
+    if (chk.proforma || chk.cambio_sinal || chk.swift_pagamento || project.import_invoice_number || project.has_import_order) {
+        return 'PO_EMITIDA';
+    }
+    return project.import_stage || null;
+}
+
+/**
  * Sincronizador Atômico de Itens de Importação (Etapa 3 da Estabilização)
  * Garante que a tabela filha stock_order_items reflita com precisão os itens
  * lidos pela IA ou salvos pelo operador, respeitando a integridade referencial do EADI.
@@ -2704,11 +2746,16 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
                 dbRun('UPDATE projects SET fase = ? WHERE code = ?', [effectiveFase, p.code]).catch(() => {});
             }
 
+            const canonImportStage = computeCanonicalImportStage({
+                ...p,
+                checklist: chkParsed
+            }) || (linkedOrder ? linkedOrder.stage : p.import_stage) || 'PO_EMITIDA';
+
             return {
                 ...p,
                 fase: effectiveFase,
                 has_import_order: !!linkedOrder,
-                import_stage: linkedOrder ? linkedOrder.stage : ((effectiveFase >= 3 && effectiveFase <= 6) ? (p.import_stage || 'PO_EMITIDA') : null),
+                import_stage: ((effectiveFase >= 3 && effectiveFase <= 6) ? canonImportStage : null),
                 import_po_number: linkedOrder ? linkedOrder.po_number : null,
                 import_order_id: linkedOrder ? linkedOrder.id : null,
                 import_supplier: supp,
@@ -8004,6 +8051,12 @@ app.put('/api/projects/:code', async (req, res) => {
         
         const validationStatus = calculateProjectValidationStatus({ checklist: currentChecklist });
 
+        const canonicalImportStage = computeCanonicalImportStage({
+            ...oldProject,
+            ...req.body,
+            checklist: currentChecklist
+        });
+
         // ETAPA 1 DA ESTABILIZAÇÃO: Mapeamento dinâmico e seguro de campos (Fim definitivo de offset SQL)
         const updateFields = {
             serial: serial !== undefined ? serial : oldProject.serial,
@@ -8033,7 +8086,7 @@ app.put('/api/projects/:code', async (req, res) => {
             import_invoice_date: import_invoice_date !== undefined ? import_invoice_date : oldProject.import_invoice_date,
             import_currency: import_currency !== undefined ? import_currency : (oldProject.import_currency || 'USD'),
             import_total_fob_value: import_total_fob_value !== undefined ? parseFloat(import_total_fob_value) : oldProject.import_total_fob_value,
-            import_stage: import_stage !== undefined ? import_stage : oldProject.import_stage,
+            import_stage: (import_stage !== undefined && import_stage !== null && import_stage !== '') ? import_stage : (canonicalImportStage || oldProject.import_stage),
             import_fabrication_start_date: import_fabrication_start_date !== undefined ? import_fabrication_start_date : oldProject.import_fabrication_start_date,
             import_fabrication_end_date: import_fabrication_end_date !== undefined ? import_fabrication_end_date : oldProject.import_fabrication_end_date,
             import_container_id: import_container_id !== undefined ? import_container_id : oldProject.import_container_id,
@@ -8120,6 +8173,7 @@ app.put('/api/projects/:code', async (req, res) => {
                 if (updateFields.import_eadi_entry_date) soFields.eadi_entry_date = updateFields.import_eadi_entry_date;
                 if (updateFields.import_eadi_da_number) soFields.eadi_da_number = updateFields.import_eadi_da_number;
                 if (updateFields.import_notes) soFields.notes = updateFields.import_notes;
+                if (updateFields.import_stage) soFields.stage = updateFields.import_stage;
                 if (!linkedStockOrder.project_code) soFields.project_code = code;
                 soFields.updated_at = new Date().toISOString();
 
@@ -11374,13 +11428,15 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
 
         for (const p of importProjects) {
             const existingOrder = orders.find(o => o.project_code === p.code || o.po_number === 'PO-' + p.code.replace('PRJTEC000000', 'PRJ'));
+            const canonStage = computeCanonicalImportStage(p) || p.import_stage || 'PO_EMITIDA';
             if (existingOrder) {
                 existingOrder.is_project = true;
                 existingOrder.client_name = p.client;
                 existingOrder.project_name = p.project_name;
                 existingOrder.project_sku = p.sku;
+                existingOrder.stage = canonStage;
             } else {
-                const stage = p.import_stage || (p.fase === 4 ? 'EM_FABRICACAO' : (p.fase === 5 ? 'ENTREPOSTADO_EADI' : 'PO_EMITIDA'));
+                const stage = canonStage;
                 let daysInEadi = 0;
                 if (p.import_eadi_entry_date) {
                     daysInEadi = Math.max(0, Math.floor((now - new Date(p.import_eadi_entry_date + 'T00:00:00')) / (1000 * 60 * 60 * 24)));
