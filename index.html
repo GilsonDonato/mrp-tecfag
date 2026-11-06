@@ -3960,8 +3960,120 @@
                     </button>
                 </div>
 
-                <!-- ABA 1: VISÃO GERAL & CHAT -->
+                <!-- ABA 1: VISÃO GERAL & CHAT (GESTÃO E CONTROLE DE PROJETOS) -->
                 <div id="modal-pane-overview" class="project-modal-tab-pane" style="display: block;">
+                    
+                    <!-- Central de Documentos da Venda: Proposta Comercial vs DANFE (Gestão de Projetos / Fase 2) -->
+                    <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                            <div>
+                                <h4 style="margin: 0; color: #38bdf8; font-size: 0.92rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+                                    <span>📋</span> Central de Documentos da Venda: Proposta Comercial Assinada & DANFE
+                                </h4>
+                                <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 3px;">
+                                    Anexe a Proposta Assinada e a Nota Fiscal para que a IA extraia o escopo prometido ao cliente e auxilie a Engenharia na definição dos equipamentos.
+                                </div>
+                            </div>
+                            <button type="button" class="btn" id="btn-align-commercial-fiscal" onclick="runCommercialFiscalAlignment()" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; font-weight: 800; padding: 6px 14px; font-size: 0.76rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);">
+                                ✨ <span>Cruzar Proposta vs DANFE com IA</span>
+                            </button>
+                        </div>
+
+                        <!-- Grid dos 2 Cards de Documento: Proposta vs DANFE -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 14px;">
+                            
+                            <!-- CARD 1: Proposta Comercial Aprovada -->
+                            <div id="modal-project-proposal-dropzone" style="border: 2px dashed rgba(59, 130, 246, 0.4); background: rgba(15, 23, 42, 0.6); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div>
+                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                                        <div style="display: flex; align-items: center; gap: 6px;">
+                                            <span style="font-size: 1.2rem;">📄</span>
+                                            <strong style="color: #60a5fa; font-size: 0.85rem; text-transform: uppercase;">1. Proposta Comercial Aceita / Assinada</strong>
+                                        </div>
+                                        <span id="badge-proposal-status" style="font-size: 0.68rem; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.06); color: #94a3b8;">Não anexada</span>
+                                    </div>
+                                    <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 10px;">
+                                        Contém máquinas, opcionais técnicos e prazos prometidos ao cliente.
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div style="display: flex; justify-content: flex-start; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                        <input type="file" id="modal-project-proposal-file" accept=".pdf,image/*" style="display: none;" onchange="handleProjectProposalFileSelected(this)">
+                                        <button type="button" class="btn" onclick="document.getElementById('modal-project-proposal-file').click()" style="background: #2563eb; color: white; padding: 6px 12px; font-size: 0.75rem; font-weight: bold; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                            📁 Selecionar Proposta
+                                        </button>
+                                        <span id="modal-project-selected-proposal-label" style="font-size: 0.74rem; color: #cbd5e1;">Nenhum arquivo</span>
+                                        <button type="button" id="modal-project-btn-extract-proposal-ai" class="btn" onclick="extractProjectProposalWithAI()" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; font-weight: bold; padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; display: none; cursor: pointer;">
+                                            ⚡ Ler Proposta com IA
+                                        </button>
+                                    </div>
+                                    <div id="modal-project-proposal-ocr-status" style="display: none; margin-top: 8px; font-size: 0.75rem; font-weight: 600;"></div>
+                                    <div id="modal-project-attached-proposal-info" style="margin-top: 10px; font-size: 0.75rem; color: #94a3b8; display: none;"></div>
+                                    <div id="modal-project-proposal-data-preview" style="display: none; margin-top: 10px; background: rgba(0,0,0,0.25); border-radius: 6px; padding: 10px; font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.06);"></div>
+                                </div>
+                            </div>
+
+                            <!-- CARD 2: DANFE / Nota Fiscal de Faturamento -->
+                            <div id="modal-project-danfe-dropzone" style="border: 2px dashed rgba(16, 185, 129, 0.4); background: rgba(15, 23, 42, 0.6); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div>
+                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                                        <div style="display: flex; align-items: center; gap: 6px;">
+                                            <span style="font-size: 1.2rem;">🧾</span>
+                                            <strong style="color: #34d399; font-size: 0.85rem; text-transform: uppercase;">2. DANFE / Nota Fiscal (PDF)</strong>
+                                        </div>
+                                        <span id="badge-danfe-status" style="font-size: 0.68rem; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.06); color: #94a3b8;">Não faturada</span>
+                                    </div>
+                                    <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 10px;">
+                                        Nota fiscal emitida com valor faturado, chave de acesso e itens da venda.
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div style="display: flex; justify-content: flex-start; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                        <input type="file" id="modal-project-danfe-file" accept=".pdf,image/*" style="display: none;" onchange="handleProjectDanfeFileSelected(this)">
+                                        <button type="button" class="btn" onclick="document.getElementById('modal-project-danfe-file').click()" style="background: #059669; color: white; padding: 6px 12px; font-size: 0.75rem; font-weight: bold; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                            🧾 Selecionar DANFE
+                                        </button>
+                                        <span id="modal-project-selected-danfe-label" style="font-size: 0.74rem; color: #cbd5e1;">Nenhum arquivo</span>
+                                        <button type="button" id="modal-project-btn-extract-danfe-ai" class="btn" onclick="extractProjectDanfeWithAI()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: bold; padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; display: none; cursor: pointer;">
+                                            🤖 Ler DANFE com IA
+                                        </button>
+                                    </div>
+                                    <div id="modal-project-danfe-ocr-status" style="display: none; margin-top: 8px; font-size: 0.75rem; font-weight: 600;"></div>
+                                    <div id="modal-project-attached-danfe-info" style="margin-top: 10px; font-size: 0.75rem; color: #94a3b8; display: none;"></div>
+                                    <div id="modal-project-danfe-data-preview" style="display: none; margin-top: 10px; background: rgba(0,0,0,0.25); border-radius: 6px; padding: 10px; font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.06);"></div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Painel de Resultado do Cruzamento Proposta vs DANFE (IA) -->
+                        <div id="modal-commercial-alignment-panel" style="display: none; background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 8px; padding: 14px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 1.2rem;">🔍</span>
+                                    <strong style="color: #c084fc; font-size: 0.85rem; text-transform: uppercase;">Relatório de Auditoria: Proposta Comercial vs DANFE</strong>
+                                    <span id="alignment-status-badge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; font-weight: bold;"></span>
+                                </div>
+                                <button type="button" class="btn" onclick="applyAlignmentToEngineeringSpecs()" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: bold; padding: 5px 12px; font-size: 0.74rem; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                                    📥 <span>Aplicar na Ficha Técnica da Engenharia</span>
+                                </button>
+                            </div>
+                            <div id="alignment-summary-text" style="font-size: 0.78rem; color: #e2e8f0; line-height: 1.4; margin-bottom: 10px;"></div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px;">
+                                <div style="background: rgba(0,0,0,0.2); border-radius: 6px; padding: 10px; border: 1px solid rgba(255,255,255,0.05);">
+                                    <div style="font-size: 0.72rem; font-weight: bold; color: #34d399; margin-bottom: 6px; text-transform: uppercase;">⚖️ Conferência dos Itens / Máquinas</div>
+                                    <div id="alignment-items-table" style="font-size: 0.74rem; color: #cbd5e1;"></div>
+                                </div>
+                                <div style="background: rgba(0,0,0,0.2); border-radius: 6px; padding: 10px; border: 1px solid rgba(255,255,255,0.05);">
+                                    <div style="font-size: 0.72rem; font-weight: bold; color: #f59e0b; margin-bottom: 6px; text-transform: uppercase;">⚠️ Alertas de Opcionais & Engenharia</div>
+                                    <div id="alignment-alerts-list" style="font-size: 0.74rem; color: #cbd5e1;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="project-modal-grid-2col">
                         <!-- Coluna Esquerda: Informações Gerais do Lead / Cliente -->
                         <div style="display: flex; flex-direction: column; gap: 16px;">
@@ -4112,6 +4224,28 @@
 
                 <!-- ABA 2: ENGENHARIA & ESCOPO -->
                 <div id="modal-pane-engineering" class="project-modal-tab-pane" style="display: none;">
+                    
+                    <!-- Banner de Alinhamento Rápido com Proposta Comercial & DANFE -->
+                    <div style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.3rem;">📋</span>
+                            <div>
+                                <strong style="color: #c084fc; font-size: 0.82rem; text-transform: uppercase;">Proposta Comercial & DANFE Vinculadas ao Projeto</strong>
+                                <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 2px;">
+                                    A IA lê o que foi acordado com o cliente na Proposta Comercial e DANFE e preenche a ficha técnica da Engenharia automaticamente.
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button type="button" class="btn" onclick="switchProjectModalTab('overview')" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #cbd5e1; font-weight: 700; font-size: 0.72rem; padding: 6px 12px; border-radius: 6px; cursor: pointer;">
+                                📄 Ver Documentos na Aba 1
+                            </button>
+                            <button type="button" class="btn" onclick="applyAlignmentToEngineeringSpecs()" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; font-weight: 800; font-size: 0.74rem; padding: 6px 14px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);">
+                                📥 <span>Aplicar Parâmetros da Proposta na Engenharia</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="project-modal-grid-2col">
                         <!-- Coluna Esquerda: Checklist Fase 1 + Copiloto IA -->
                         <div style="display: flex; flex-direction: column; gap: 16px;">
@@ -4377,115 +4511,20 @@
                 <!-- ABA 3: COMERCIAL & FINANCEIRO -->
                 <div id="modal-pane-commercial" class="project-modal-tab-pane" style="display: none;">
                     
-                    <!-- Central de Documentos da Venda: Proposta Comercial vs DANFE (Fase 2) -->
-                    <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                    <!-- Banner de Acesso Rápido à Central de Documentos da Venda -->
+                    <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.4rem;">📋</span>
                             <div>
-                                <h4 style="margin: 0; color: #38bdf8; font-size: 0.92rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
-                                    <span>📋</span> Central de Documentos da Venda: Proposta Comercial & DANFE
-                                </h4>
-                                <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 3px;">
-                                    Anexe a Proposta e a Nota Fiscal para que a IA extraia o que foi prometido ao cliente e alinhe automaticamente com a Engenharia.
-                                </div>
-                            </div>
-                            <button type="button" class="btn" id="btn-align-commercial-fiscal" onclick="runCommercialFiscalAlignment()" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; font-weight: 800; padding: 6px 14px; font-size: 0.76rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);">
-                                ✨ <span>Cruzar Proposta vs DANFE com IA</span>
-                            </button>
-                        </div>
-
-                        <!-- Grid dos 2 Cards de Documento: Proposta vs DANFE -->
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 14px;">
-                            
-                            <!-- CARD 1: Proposta Comercial Aprovada -->
-                            <div id="modal-project-proposal-dropzone" style="border: 2px dashed rgba(59, 130, 246, 0.4); background: rgba(15, 23, 42, 0.6); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between;">
-                                <div>
-                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-                                        <div style="display: flex; align-items: center; gap: 6px;">
-                                            <span style="font-size: 1.2rem;">📄</span>
-                                            <strong style="color: #60a5fa; font-size: 0.85rem; text-transform: uppercase;">1. Proposta Comercial Aceita</strong>
-                                        </div>
-                                        <span id="badge-proposal-status" style="font-size: 0.68rem; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.06); color: #94a3b8;">Não anexada</span>
-                                    </div>
-                                    <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 10px;">
-                                        Contém máquinas, opcionais técnicos e prazos prometidos ao cliente.
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div style="display: flex; justify-content: flex-start; gap: 8px; align-items: center; flex-wrap: wrap;">
-                                        <input type="file" id="modal-project-proposal-file" accept=".pdf,image/*" style="display: none;" onchange="handleProjectProposalFileSelected(this)">
-                                        <button type="button" class="btn" onclick="document.getElementById('modal-project-proposal-file').click()" style="background: #2563eb; color: white; padding: 6px 12px; font-size: 0.75rem; font-weight: bold; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-                                            📁 Selecionar Proposta
-                                        </button>
-                                        <span id="modal-project-selected-proposal-label" style="font-size: 0.74rem; color: #cbd5e1;">Nenhum arquivo</span>
-                                        <button type="button" id="modal-project-btn-extract-proposal-ai" class="btn" onclick="extractProjectProposalWithAI()" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; font-weight: bold; padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; display: none; cursor: pointer;">
-                                            ⚡ Ler Proposta com IA
-                                        </button>
-                                    </div>
-                                    <div id="modal-project-proposal-ocr-status" style="display: none; margin-top: 8px; font-size: 0.75rem; font-weight: 600;"></div>
-                                    <div id="modal-project-attached-proposal-info" style="margin-top: 10px; font-size: 0.75rem; color: #94a3b8; display: none;"></div>
-                                    <div id="modal-project-proposal-data-preview" style="display: none; margin-top: 10px; background: rgba(0,0,0,0.25); border-radius: 6px; padding: 10px; font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.06);"></div>
-                                </div>
-                            </div>
-
-                            <!-- CARD 2: DANFE / Nota Fiscal de Faturamento -->
-                            <div id="modal-project-danfe-dropzone" style="border: 2px dashed rgba(16, 185, 129, 0.4); background: rgba(15, 23, 42, 0.6); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between;">
-                                <div>
-                                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-                                        <div style="display: flex; align-items: center; gap: 6px;">
-                                            <span style="font-size: 1.2rem;">🧾</span>
-                                            <strong style="color: #34d399; font-size: 0.85rem; text-transform: uppercase;">2. DANFE / Nota Fiscal (PDF)</strong>
-                                        </div>
-                                        <span id="badge-danfe-status" style="font-size: 0.68rem; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.06); color: #94a3b8;">Não faturada</span>
-                                    </div>
-                                    <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 10px;">
-                                        Nota fiscal emitida com valor faturado, chave de acesso e itens da venda.
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div style="display: flex; justify-content: flex-start; gap: 8px; align-items: center; flex-wrap: wrap;">
-                                        <input type="file" id="modal-project-danfe-file" accept=".pdf,image/*" style="display: none;" onchange="handleProjectDanfeFileSelected(this)">
-                                        <button type="button" class="btn" onclick="document.getElementById('modal-project-danfe-file').click()" style="background: #059669; color: white; padding: 6px 12px; font-size: 0.75rem; font-weight: bold; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-                                            🧾 Selecionar DANFE
-                                        </button>
-                                        <span id="modal-project-selected-danfe-label" style="font-size: 0.74rem; color: #cbd5e1;">Nenhum arquivo</span>
-                                        <button type="button" id="modal-project-btn-extract-danfe-ai" class="btn" onclick="extractProjectDanfeWithAI()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: bold; padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; display: none; cursor: pointer;">
-                                            🤖 Ler DANFE com IA
-                                        </button>
-                                    </div>
-                                    <div id="modal-project-danfe-ocr-status" style="display: none; margin-top: 8px; font-size: 0.75rem; font-weight: 600;"></div>
-                                    <div id="modal-project-attached-danfe-info" style="margin-top: 10px; font-size: 0.75rem; color: #94a3b8; display: none;"></div>
-                                    <div id="modal-project-danfe-data-preview" style="display: none; margin-top: 10px; background: rgba(0,0,0,0.25); border-radius: 6px; padding: 10px; font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.06);"></div>
-                                </div>
-                            </div>
-
-                        </div>
-
-                        <!-- Painel de Resultado do Cruzamento Proposta vs DANFE (IA) -->
-                        <div id="modal-commercial-alignment-panel" style="display: none; background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 8px; padding: 14px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span style="font-size: 1.2rem;">🔍</span>
-                                    <strong style="color: #c084fc; font-size: 0.85rem; text-transform: uppercase;">Relatório de Auditoria: Proposta Comercial vs DANFE</strong>
-                                    <span id="alignment-status-badge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; font-weight: bold;"></span>
-                                </div>
-                                <button type="button" class="btn" onclick="applyAlignmentToEngineeringSpecs()" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: bold; padding: 5px 12px; font-size: 0.74rem; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                                    📥 <span>Aplicar na Ficha Técnica da Engenharia</span>
-                                </button>
-                            </div>
-                            <div id="alignment-summary-text" style="font-size: 0.78rem; color: #e2e8f0; line-height: 1.4; margin-bottom: 10px;"></div>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px;">
-                                <div style="background: rgba(0,0,0,0.2); border-radius: 6px; padding: 10px; border: 1px solid rgba(255,255,255,0.05);">
-                                    <div style="font-size: 0.72rem; font-weight: bold; color: #34d399; margin-bottom: 6px; text-transform: uppercase;">⚖️ Conferência dos Itens / Máquinas</div>
-                                    <div id="alignment-items-table" style="font-size: 0.74rem; color: #cbd5e1;"></div>
-                                </div>
-                                <div style="background: rgba(0,0,0,0.2); border-radius: 6px; padding: 10px; border: 1px solid rgba(255,255,255,0.05);">
-                                    <div style="font-size: 0.72rem; font-weight: bold; color: #f59e0b; margin-bottom: 6px; text-transform: uppercase;">⚠️ Alertas de Opcionais & Engenharia</div>
-                                    <div id="alignment-alerts-list" style="font-size: 0.74rem; color: #cbd5e1;"></div>
+                                <strong style="color: #38bdf8; font-size: 0.88rem; text-transform: uppercase;">Central de Documentos da Venda (Proposta & DANFE)</strong>
+                                <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 2px;">
+                                    A Proposta Comercial Assinada, a DANFE e o Cruzamento IA estão integrados diretamente na <strong>Aba 1: Visão Geral (Gestão e Controle do Projeto)</strong> para acesso imediato.
                                 </div>
                             </div>
                         </div>
+                        <button type="button" class="btn" onclick="switchProjectModalTab('overview')" style="background: rgba(59, 130, 246, 0.18); border: 1px solid #3b82f6; color: #60a5fa; font-size: 0.74rem; font-weight: 700; padding: 7px 16px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                            <span>Abrir Documentos na Visão Geral</span> ➔
+                        </button>
                     </div>
 
                     <div class="project-modal-grid-2col">
@@ -19273,6 +19312,12 @@ function renderKanban() {
                                 <div style="display: flex; align-items: center; gap: 6px; font-size: 0.63rem; color: #38bdf8; font-weight: 600; margin-top: 1px;">
                                     <span>⚡ ${techSummary.tensao}</span>
                                     ${techSummary.cadencia ? `<span>• ⏱️ ${techSummary.cadencia}</span>` : ''}
+                                </div>
+                            ` : ''}
+                            ${(project.commercial_proposal_data || project.danfe_number) ? `
+                                <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; padding-top: 4px; border-top: 1px dashed rgba(255,255,255,0.06);">
+                                    ${project.commercial_proposal_data ? `<span style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 1px 5px; border-radius: 4px; font-size: 0.58rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;" title="Proposta Comercial Assinada Vinculada">📄 Proposta Aceita</span>` : ''}
+                                    ${project.danfe_number ? `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 1px 5px; border-radius: 4px; font-size: 0.58rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;" title="Nota Fiscal Faturada">🧾 NF ${project.danfe_number}</span>` : ''}
                                 </div>
                             ` : ''}
                         </div>
