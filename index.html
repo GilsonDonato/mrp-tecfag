@@ -30131,7 +30131,8 @@ function renderKanban() {
                 const isRollover = order.is_rollover_order === 1;
                 const rolloverBadge = isRollover ? `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(245, 158, 11, 0.3);">SALDO REMANESCENTE</span>` : '';
                 const invoiceBadge = order.invoice_number ? `<span style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: bold;" title="Invoice / Proforma">📄 Inv: ${order.invoice_number}</span>` : '';
-                const projectBadge = order.project_code ? `<span style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: 800;" title="Projeto Especial vinculado: ${order.client_name || ''}">🎯 ${order.project_code}${order.client_name ? ' (' + order.client_name + ')' : ''}</span>` : '';
+                const clientLabel = (order.client_name && order.client_name.trim()) ? order.client_name.trim() : order.project_code;
+                const projectBadge = order.project_code ? `<span style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: 800;" title="Projeto Especial vinculado: ${order.project_code} • ${order.client_name || ''}">🎯 ${clientLabel}</span>` : '';
 
                 // Datas formatadas e Cores do Semáforo
                 const totalFobStr = (order.currency || 'USD') + ' ' + (order.total_fob_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
