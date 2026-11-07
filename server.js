@@ -10245,47 +10245,134 @@ Retorne EXCLUSIVAMENTE um objeto JSON válido no formato:
     }
 });
 
-// POST /api/projects/:code/extract-danfe - Lê e processa Nota Fiscal (DANFE) via Gemini AI
+// Helper de Fallback para extração textual de DANFE via Regex quando a IA não estiver disponível
+function extractDanfeFallbackFromText(text, project) {
+    if (!text || typeof text !== 'string') return null;
+
+    let danfe_number = '';
+    let danfe_series = '1';
+    let danfe_date = '';
+    let danfe_value = 0;
+    let danfe_access_key = '';
+    let danfe_cfop = '';
+    let items = [];
+
+    // Chave de Acesso (44 dígitos numéricos)
+    const keyMatch = text.replace(/[\s.-]/g, '').match(/\b(\d{44})\b/);
+    if (keyMatch) {
+        danfe_access_key = keyMatch[1];
+    }
+
+    // Número da NF
+    const numMatch = text.match(/(?:N[ºo°]\.?|N[úu]mero|NF-e)\s*[:.]?\s*(\d{1,9})/i) ||
+                     text.match(/DANFE[\s\S]*?(\d{3}\.\d{3}\.\d{3}|\d{1,9})/i);
+    if (numMatch) {
+        danfe_number = numMatch[1].replace(/\D/g, '');
+    }
+
+    // Data de Emissão (DD/MM/YYYY)
+    const dateMatch = text.match(/(?:DATA\s*(?:DA)?\s*EMISS[ÃA]O|EMISS[ÃA]O)[\s:]*(\d{2})[\/.-](\d{2})[\/.-](\d{4})/i);
+    if (dateMatch) {
+        danfe_date = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+    }
+
+    // Valor Total da NF
+    const valMatch = text.match(/(?:VALOR\s*TOTAL\s*(?:DA\s*NOTA|DO\s*PRODUTO)|TOTAL\s*DA\s*NOTA)[\s:]*R?\$?\s*([\d.]+,\d{2})/i) ||
+                     text.match(/V\.\s*TOTAL[^\d]*([\d.]+,\d{2})/i);
+    if (valMatch) {
+        const cleanVal = valMatch[1].replace(/\./g, '').replace(',', '.');
+        danfe_value = parseFloat(cleanVal) || 0;
+    }
+
+    // CFOP
+    const cfopMatch = text.match(/\b(5\d{3}|6\d{3})\b/);
+    if (cfopMatch) danfe_cfop = cfopMatch[1];
+
+    // Se houver SKU no projeto, sugerir como item principal inicial
+    if (project && project.sku) {
+        items.push({
+            item_no: 1,
+            code: project.sku || 'MÁQUINA',
+            description: project.project_name || project.sku || 'Máquina / Equipamento Faturado',
+            ncm: '',
+            cfop: danfe_cfop || '5102',
+            qty: 1,
+            unit_price: danfe_value || 0,
+            total_price: danfe_value || 0
+        });
+    }
+
+    return {
+        danfe_number,
+        danfe_series,
+        danfe_date: danfe_date || new Date().toISOString().split('T')[0],
+        danfe_value,
+        danfe_access_key,
+        danfe_cfop,
+        natureza_operacao: 'Venda de mercadoria',
+        items
+    };
+}
+
+// POST /api/projects/:code/extract-danfe - Lê e processa Nota Fiscal (DANFE) via Gemini AI ou anexo existente
 app.post('/api/projects/:code/extract-danfe', authenticateToken, upload.single('file'), async (req, res) => {
     const { code } = req.params;
-    const file = req.file;
-
-    if (!file) {
-        return res.status(400).json({ error: 'Nenhum arquivo de DANFE/Nota Fiscal enviado.' });
-    }
+    let file = req.file;
 
     try {
         const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
         if (!project) {
-            if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+            if (file && fs.existsSync(file.path)) fs.unlinkSync(file.path);
             return res.status(404).json({ error: 'Projeto não encontrado.' });
         }
 
-        const relativePath = 'uploads/' + file.filename;
+        let filePathToParse = '';
+        let originalName = '';
+        let fileMime = '';
+        let relativePath = '';
 
-        // Remover anexo antigo de DANFE se já existia
-        const oldAttach = await dbGet("SELECT * FROM attachments WHERE projectCode = ? AND phase = 'danfe_venda'", [code]);
-        if (oldAttach) {
-            const oldFullPath = path.join(__dirname, oldAttach.filePath);
-            if (fs.existsSync(oldFullPath)) {
-                try { fs.unlinkSync(oldFullPath); } catch(e){}
+        if (file) {
+            relativePath = 'uploads/' + file.filename;
+            filePathToParse = file.path;
+            originalName = file.originalname;
+            fileMime = file.mimetype || '';
+
+            // Remover anexo antigo de DANFE se já existia
+            const oldAttach = await dbGet("SELECT * FROM attachments WHERE projectCode = ? AND phase = 'danfe_venda'", [code]);
+            if (oldAttach) {
+                const oldFullPath = path.join(__dirname, oldAttach.filePath);
+                if (fs.existsSync(oldFullPath)) {
+                    try { fs.unlinkSync(oldFullPath); } catch(e){}
+                }
+                await dbRun('DELETE FROM attachments WHERE id = ?', [oldAttach.id]);
             }
-            await dbRun('DELETE FROM attachments WHERE id = ?', [oldAttach.id]);
+
+            // Salvar novo anexo
+            await dbRun(`INSERT INTO attachments (
+                projectCode, phase, fileName, fileType, filePath, dateAdded
+            ) VALUES (?, 'danfe_venda', ?, ?, ?, ?)`, [
+                code, file.originalname, file.mimetype, relativePath, new Date().toISOString()
+            ]);
+        } else {
+            // Suporte para re-extrair de anexo já existente no projeto!
+            const existingAttach = await dbGet("SELECT * FROM attachments WHERE projectCode = ? AND (phase = 'danfe_venda' OR phase = 'danfe' OR fileName LIKE '%danfe%') ORDER BY id DESC LIMIT 1", [code]);
+            if (!existingAttach) {
+                return res.status(400).json({ error: 'Nenhum arquivo de DANFE enviado e nenhum anexo anterior encontrado para este projeto.' });
+            }
+            filePathToParse = path.join(__dirname, existingAttach.filePath);
+            if (!fs.existsSync(filePathToParse)) {
+                return res.status(404).json({ error: 'O arquivo físico da DANFE anexada não foi encontrado no servidor.' });
+            }
+            relativePath = existingAttach.filePath;
+            originalName = existingAttach.fileName;
+            fileMime = existingAttach.fileType || '';
         }
 
-        // Salvar novo anexo
-        await dbRun(`INSERT INTO attachments (
-            projectCode, phase, fileName, fileType, filePath, dateAdded
-        ) VALUES (?, 'danfe_venda', ?, ?, ?, ?)`, [
-            code, file.originalname, file.mimetype, relativePath, new Date().toISOString()
-        ]);
-
-        // Extração de texto bruto
+        // Extração de texto bruto via pdf-parse
         let extractedText = '';
-        const fileMime = file.mimetype || '';
-        if (fileMime.includes('pdf') || file.originalname.toLowerCase().endsWith('.pdf')) {
+        if (fileMime.includes('pdf') || originalName.toLowerCase().endsWith('.pdf')) {
             try {
-                const dataBuffer = fs.readFileSync(file.path);
+                const dataBuffer = fs.readFileSync(filePathToParse);
                 const pdfData = await pdfParse(dataBuffer);
                 extractedText = pdfData.text || '';
             } catch (pdfErr) {
@@ -10296,9 +10383,9 @@ app.post('/api/projects/:code/extract-danfe', authenticateToken, upload.single('
         // Preparar multimodal
         let inlinePart = null;
         try {
-            const fileBuffer = fs.readFileSync(file.path);
+            const fileBuffer = fs.readFileSync(filePathToParse);
             let mime = fileMime;
-            const lowerName = file.originalname.toLowerCase();
+            const lowerName = originalName.toLowerCase();
             if (lowerName.endsWith('.pdf') || fileMime.includes('pdf')) {
                 mime = 'application/pdf';
             } else if (lowerName.endsWith('.png')) {
@@ -10402,6 +10489,20 @@ Retorne EXCLUSIVAMENTE um objeto JSON válido no formato:
             }
         }
 
+        // Fallback textual caso IA não retorne ou não haja chave
+        if (!danfeData || !danfeData.danfe_number) {
+            const fallback = extractDanfeFallbackFromText(extractedText, project);
+            if (fallback) {
+                danfeData = {
+                    ...fallback,
+                    ...(danfeData || {})
+                };
+                if (!danfeData.items || danfeData.items.length === 0) {
+                    danfeData.items = fallback.items || [];
+                }
+            }
+        }
+
         if (!danfeData) {
             danfeData = {
                 danfe_number: '',
@@ -10413,6 +10514,17 @@ Retorne EXCLUSIVAMENTE um objeto JSON válido no formato:
                 items: []
             };
         }
+
+        // Padronização e compatibilidade de chaves
+        danfeData.danfe_number = danfeData.danfe_number || danfeData.number || '';
+        danfeData.number = danfeData.danfe_number;
+        danfeData.danfe_date = danfeData.danfe_date || danfeData.date || new Date().toISOString().split('T')[0];
+        danfeData.date = danfeData.danfe_date;
+        danfeData.danfe_value = parseFloat(danfeData.danfe_value || danfeData.total_value || 0);
+        danfeData.total_value = danfeData.danfe_value;
+        danfeData.danfe_access_key = danfeData.danfe_access_key || danfeData.access_key || '';
+        danfeData.access_key = danfeData.danfe_access_key;
+        danfeData.items = Array.isArray(danfeData.items) ? danfeData.items : [];
 
         // Atualizar no banco
         await dbRun(`
@@ -10437,14 +10549,15 @@ Retorne EXCLUSIVAMENTE um objeto JSON válido no formato:
         ]);
 
         const user = req.user ? (req.user.name || req.user.username) : 'Sistema';
-        await recordAuditLog(code, user, `DANFE / Nota Fiscal anexada (${file.originalname}) e lida via IA por ${user}. NF nº ${danfeData.danfe_number || '-'}.`);
+        await recordAuditLog(code, user, `DANFE / Nota Fiscal processada (${originalName}) e itens registrados por ${user}. NF nº ${danfeData.danfe_number || '-'}. Total de itens: ${danfeData.items.length}.`);
 
         res.json({
             success: true,
-            message: 'DANFE / Nota Fiscal anexada e processada com sucesso!',
+            message: 'DANFE / Nota Fiscal processada e itens registrados com sucesso!',
             danfe: danfeData,
+            danfeData: danfeData,
             fileUrl: '/' + relativePath,
-            fileName: file.originalname
+            fileName: originalName
         });
 
     } catch (err) {
