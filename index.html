@@ -15530,6 +15530,9 @@ Atenciosamente,`;
                             projects.forEach(p => {
                                 // Preserva rigorosamente a fase canônica gravada no banco SQLite
                                 p.fase = parseInt(p.fase) || 1;
+                                if (p.setup_specs && typeof p.setup_specs === 'string') {
+                                    try { p.setup_specs = JSON.parse(p.setup_specs); } catch(e) { p.setup_specs = {}; }
+                                }
                             });
                             state.projects = projects;
                         } else {
@@ -17082,11 +17085,11 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
                 lbl.innerText = field.label;
                 col.appendChild(lbl);
 
-                let initialVal = (specs && specs[field.key]) || '';
+                let initialVal = (specs && specs[field.key] !== undefined && specs[field.key] !== null) ? String(specs[field.key]).trim() : '';
                 if (!initialVal && diagParams) {
                     for (const [dk, dv] of Object.entries(diagParams)) {
                         if (slugify(dk) === field.key) {
-                            initialVal = String(dv);
+                            initialVal = String(dv).trim();
                             break;
                         }
                     }
@@ -17105,15 +17108,32 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
                     defOpt.innerText = 'Selecione...';
                     sel.appendChild(defOpt);
 
+                    let selectedDone = false;
+                    const initialValTrim = String(initialVal || '').trim().toLowerCase();
+                    const exactMatch = field.options.find(opt => String(opt).trim().toLowerCase() === initialValTrim);
+
                     field.options.forEach(opt => {
                         const optEl = document.createElement('option');
                         optEl.value = opt;
                         optEl.innerText = opt;
-                        if (initialVal && (initialVal === opt || opt.includes(initialVal) || initialVal.includes(opt))) {
+                        if (exactMatch && String(opt).trim().toLowerCase() === initialValTrim) {
                             optEl.selected = true;
+                            selectedDone = true;
+                        } else if (!exactMatch && initialValTrim && !selectedDone && (opt.toLowerCase().includes(initialValTrim) || initialValTrim.includes(opt.toLowerCase()))) {
+                            optEl.selected = true;
+                            selectedDone = true;
                         }
                         sel.appendChild(optEl);
                     });
+
+                    if (initialVal && !selectedDone) {
+                        const customOpt = document.createElement('option');
+                        customOpt.value = initialVal;
+                        customOpt.innerText = initialVal;
+                        customOpt.selected = true;
+                        sel.appendChild(customOpt);
+                    }
+
                     col.appendChild(sel);
                 } else {
                     const inp = document.createElement('input');
@@ -20467,6 +20487,9 @@ function renderKanban() {
             }
 
             // Carregar estudo de caso persistido, se houver
+            if (project.setup_specs && typeof project.setup_specs === 'string') {
+                try { project.setup_specs = JSON.parse(project.setup_specs); } catch(e) { project.setup_specs = {}; }
+            }
             if (project.setup_specs && project.setup_specs.case_study_md) {
                 currentCaseStudyMD = project.setup_specs.case_study_md;
             } else {
@@ -20615,8 +20638,14 @@ function renderKanban() {
 
             // Carregar setup_specs nos campos de input do modal (mesclando com extração automática do diagnóstico)
             const extracted = extractSpecsFromDiagnostico(project);
-            const savedSpecs = project.setup_specs || {};
+            let savedSpecs = {};
+            try {
+                savedSpecs = project.setup_specs ? (typeof project.setup_specs === 'string' ? JSON.parse(project.setup_specs) : project.setup_specs) : {};
+            } catch(e) {
+                savedSpecs = {};
+            }
             const specs = {
+                ...savedSpecs,
                 frasco_tamanho: savedSpecs.frasco_tamanho || extracted.frasco_tamanho || '',
                 tampa_tamanho: savedSpecs.tampa_tamanho || extracted.tampa_tamanho || '',
                 espaco_disponivel: savedSpecs.espaco_disponivel || extracted.espaco_disponivel || '',
@@ -25799,34 +25828,38 @@ function renderKanban() {
                 let finalFase = calculateProjectPhase({ ...project, checklist: updatedChecklist, machines: updatedMachines });
 
                 // Helper to safe-read DOM elements in case they are missing
-                const getVal = (id) => {
+                const getVal = (id, fallback = '') => {
                     const el = document.getElementById(id);
-                    return el ? el.value.trim() : '';
+                    return el ? el.value.trim() : fallback;
                 };
 
-                const existingSpecs = project.setup_specs || {};
+                let existingSpecs = {};
+                try {
+                    existingSpecs = project.setup_specs ? (typeof project.setup_specs === 'string' ? JSON.parse(project.setup_specs) : project.setup_specs) : {};
+                } catch(e) { existingSpecs = {}; }
+
                 const setupSpecs = {
                     ...existingSpecs,
-                    frasco_tamanho: getVal('modal-spec-frasco') || existingSpecs.frasco_tamanho || '',
-                    tampa_tamanho: getVal('modal-spec-tampa') || existingSpecs.tampa_tamanho || '',
-                    espaco_disponivel: getVal('modal-spec-espaco') || existingSpecs.espaco_disponivel || '',
-                    tensao_eletrica: getVal('modal-spec-tensao') || existingSpecs.tensao_eletrica || '',
-                    ar_comprimido: getVal('modal-spec-ar') || existingSpecs.ar_comprimido || '',
-                    obs_startup: getVal('modal-spec-obs') || existingSpecs.obs_startup || '',
-                    obs_documentacao: getVal('modal-spec-documentacao') || existingSpecs.obs_documentacao || '',
-                    formato_embalagem: getVal('modal-spec-formato') || existingSpecs.formato_embalagem || '',
-                    largura_bobina: getVal('modal-spec-largura') || existingSpecs.largura_bobina || '',
-                    tipo_dosador: getVal('modal-spec-dosador') || existingSpecs.tipo_dosador || '',
-                    bicos_envase: getVal('modal-spec-bicos') || existingSpecs.bicos_envase || '',
-                    higienizacao_cip: getVal('modal-spec-cip') || existingSpecs.higienizacao_cip || '',
-                    produto_fluidez: getVal('modal-spec-fluidez') || existingSpecs.produto_fluidez || '',
-                    produto_densidade: getVal('modal-spec-densidade') || existingSpecs.produto_densidade || '',
-                    aco_grau: getVal('modal-spec-aco') || existingSpecs.aco_grau || '',
-                    polimento_grau: getVal('modal-spec-polimento') || existingSpecs.polimento_grau || '',
-                    eletrica_frequencia: getVal('modal-spec-frequencia') || existingSpecs.eletrica_frequencia || '',
-                    consumo_ar: getVal('modal-spec-consumo-ar') || existingSpecs.consumo_ar || '',
-                    seguranca_nr12: getVal('modal-spec-nr12') || existingSpecs.seguranca_nr12 || '',
-                    portas_seguranca: getVal('modal-spec-portas') || existingSpecs.portas_seguranca || '',
+                    frasco_tamanho: getVal('modal-spec-frasco', existingSpecs.frasco_tamanho),
+                    tampa_tamanho: getVal('modal-spec-tampa', existingSpecs.tampa_tamanho),
+                    espaco_disponivel: getVal('modal-spec-espaco', existingSpecs.espaco_disponivel),
+                    tensao_eletrica: getVal('modal-spec-tensao', existingSpecs.tensao_eletrica),
+                    ar_comprimido: getVal('modal-spec-ar', existingSpecs.ar_comprimido),
+                    obs_startup: getVal('modal-spec-obs', existingSpecs.obs_startup),
+                    obs_documentacao: getVal('modal-spec-documentacao', existingSpecs.obs_documentacao),
+                    formato_embalagem: getVal('modal-spec-formato', existingSpecs.formato_embalagem),
+                    largura_bobina: getVal('modal-spec-largura', existingSpecs.largura_bobina),
+                    tipo_dosador: getVal('modal-spec-dosador', existingSpecs.tipo_dosador),
+                    bicos_envase: getVal('modal-spec-bicos', existingSpecs.bicos_envase),
+                    higienizacao_cip: getVal('modal-spec-cip', existingSpecs.higienizacao_cip),
+                    produto_fluidez: getVal('modal-spec-fluidez', existingSpecs.produto_fluidez),
+                    produto_densidade: getVal('modal-spec-densidade', existingSpecs.produto_densidade),
+                    aco_grau: getVal('modal-spec-aco', existingSpecs.aco_grau),
+                    polimento_grau: getVal('modal-spec-polimento', existingSpecs.polimento_grau),
+                    eletrica_frequencia: getVal('modal-spec-frequencia', existingSpecs.eletrica_frequencia),
+                    consumo_ar: getVal('modal-spec-consumo-ar', existingSpecs.consumo_ar),
+                    seguranca_nr12: getVal('modal-spec-nr12', existingSpecs.seguranca_nr12),
+                    portas_seguranca: getVal('modal-spec-portas', existingSpecs.portas_seguranca),
                     case_study_md: currentCaseStudyMD || existingSpecs.case_study_md || ''
                 };
 

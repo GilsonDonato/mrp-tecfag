@@ -8081,7 +8081,9 @@ app.put('/api/projects/:code', async (req, res) => {
             crm_last_comment_user: crm_last_comment_user !== undefined ? crm_last_comment_user : oldProject.crm_last_comment_user,
             crm_last_interaction_date: crm_last_interaction_date !== undefined ? crm_last_interaction_date : oldProject.crm_last_interaction_date,
             faseEntryDate: newFaseEntryDate,
-            setup_specs: setup_specs ? JSON.stringify(setup_specs) : oldProject.setup_specs,
+            setup_specs: setup_specs !== undefined 
+                ? (typeof setup_specs === 'string' ? setup_specs : JSON.stringify(setup_specs))
+                : oldProject.setup_specs,
             diagnostico: diagnostico !== undefined ? diagnostico : oldProject.diagnostico,
             validation_status: validationStatus,
             project_name: project_name !== undefined ? project_name : oldProject.project_name,
@@ -8268,6 +8270,15 @@ app.put('/api/projects/:code', async (req, res) => {
                 newFase: canonicalFase,
                 user: req.user ? req.user.username : 'Desconhecido'
             });
+        }
+
+        if (updatedProject) {
+            updatedProject.checklist = safeJsonParse(updatedProject.checklist, {});
+            updatedProject.machines = safeJsonParse(updatedProject.machines, []);
+            updatedProject.prazos = safeJsonParse(updatedProject.prazos, {});
+            updatedProject.setup_specs = safeJsonParse(updatedProject.setup_specs, {});
+            updatedProject.spare_parts_recommendations = safeJsonParse(updatedProject.spare_parts_recommendations, []);
+            updatedProject.import_items = safeJsonParse(updatedProject.import_items, []);
         }
 
         res.json({ 
