@@ -3234,7 +3234,7 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
     }
 
     try {
-        const projects = await dbAll('SELECT code, client, pm, sku, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, crm_value, crm_source, crm_lost_reason, crm_last_comment_user, crm_last_interaction_date FROM projects');
+        const projects = await dbAll('SELECT code, client, pm, sku, serial, route, fase, checklist, prazos, faseEntryDate, lastUpdate, motivoPerda, crm_value, crm_source, crm_lost_reason, crm_last_comment_user, crm_last_interaction_date FROM projects');
         
         let totalActive = 0;
         let totalFinished = 0;
@@ -3262,7 +3262,10 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
             const seller = checklistObj.diagnostico_user || 'admin';
             const value = parseFloat(p.crm_value) || 0;
 
-            if (fase === 7) {
+            const isDelivered = (fase === 7 || (fase === 8 && !p.crm_lost_reason && (!p.motivoPerda || p.motivoPerda === '')));
+            const isLost = (fase === 8 && (!!p.crm_lost_reason || !!p.motivoPerda));
+
+            if (isDelivered) {
                 totalFinished++;
                 crmWonValue += value;
                 
@@ -3270,7 +3273,7 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
                 if (!sellersMap[seller]) sellersMap[seller] = { seller, totalValue: 0, count: 0 };
                 sellersMap[seller].totalValue += value;
                 sellersMap[seller].count += 1;
-            } else if (fase === 8) {
+            } else if (isLost) {
                 totalLost++;
             } else {
                 totalActive++;
@@ -3336,12 +3339,15 @@ app.get('/api/metrics', authenticateToken, async (req, res) => {
         });
 
         const sellersRanking = Object.values(sellersMap).sort((a, b) => b.totalValue - a.totalValue);
+        const decided = totalFinished + totalLost;
+        const winRate = decided > 0 ? Math.round((totalFinished / decided) * 100) : 0;
 
         res.json({
             totalActive,
             totalFinished,
             totalLost,
             delayedCount,
+            winRate,
             faseDistribution,
             delayedProjects,
             crmTotalValue,
@@ -3361,11 +3367,24 @@ app.get('/api/metrics/lead-time', authenticateToken, async (req, res) => {
     }
 
     try {
-        // Obter as durações históricas concluídas do histórico
-        const history = await dbAll('SELECT fase, durationDays FROM project_phase_history WHERE durationDays IS NOT NULL');
+        // Obter as durações históricas concluídas do histórico excluindo projetos cancelados/perdidos
+        const history = await dbAll(`
+            SELECT h.fase, h.durationDays 
+            FROM project_phase_history h
+            LEFT JOIN projects p ON h.projectCode = p.code
+            WHERE h.durationDays IS NOT NULL 
+              AND (p.motivoPerda IS NULL OR p.motivoPerda = '')
+              AND (p.crm_lost_reason IS NULL OR p.crm_lost_reason = '')
+        `);
         
-        // Obter projetos ativos para somar o tempo em andamento
-        const activeProjects = await dbAll('SELECT code, fase, faseEntryDate FROM projects WHERE fase NOT IN (6, 7)');
+        // Obter projetos ativos para somar o tempo em andamento (apenas ativos das fases 1 a 6)
+        const activeProjects = await dbAll(`
+            SELECT code, fase, faseEntryDate 
+            FROM projects 
+            WHERE fase BETWEEN 1 AND 6 
+              AND (motivoPerda IS NULL OR motivoPerda = '')
+              AND (crm_lost_reason IS NULL OR crm_lost_reason = '')
+        `);
         
         const phaseNomes = {
             1: 'Viabilidade Técnica (Especiais)',
@@ -3383,18 +3402,23 @@ app.get('/api/metrics/lead-time', authenticateToken, async (req, res) => {
         // Somar tempos das transições passadas finalizadas
         history.forEach(h => {
             if (sums[h.fase] !== undefined) {
-                sums[h.fase] += parseFloat(h.durationDays) || 0;
-                counts[h.fase] += 1;
+                const days = parseFloat(h.durationDays) || 0;
+                if (days >= 0 && days < 365) {
+                    sums[h.fase] += days;
+                    counts[h.fase] += 1;
+                }
             }
         });
 
-        // Somar tempo em andamento das fases dos projetos que estão parados nelas no momento
+        // Somar tempo em andamento das fases dos projetos ativos no momento
         activeProjects.forEach(p => {
             if (sums[p.fase] !== undefined && p.faseEntryDate) {
                 const diffTime = Math.abs(new Date() - new Date(p.faseEntryDate));
                 const partialDays = diffTime / (1000 * 60 * 60 * 24);
-                sums[p.fase] += partialDays;
-                counts[p.fase] += 1;
+                if (partialDays >= 0 && partialDays < 365) {
+                    sums[p.fase] += partialDays;
+                    counts[p.fase] += 1;
+                }
             }
         });
 

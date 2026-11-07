@@ -3195,6 +3195,15 @@
                             <span style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary);" id="metrics-lost">0</span>
                         </div>
                     </div>
+                    <div style="background: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; display: flex; align-items: center; gap: 15px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                        <div style="width: 46px; height: 46px; border-radius: 10px; background: rgba(168, 85, 247, 0.1); display: flex; align-items: center; justify-content: center; color: #a855f7;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                        </div>
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Taxa de Conversão</span>
+                            <span style="font-size: 1.8rem; font-weight: 800; color: #a855f7;" id="metrics-win-rate">0%</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Distribuição Gráfica (Charts) & Detalhes -->
@@ -15798,6 +15807,9 @@ Atenciosamente,`;
                 document.getElementById('metrics-finished').innerText = data.totalFinished;
                 document.getElementById('metrics-delayed-count').innerText = data.delayedCount;
                 document.getElementById('metrics-lost').innerText = data.totalLost;
+                if (document.getElementById('metrics-win-rate')) {
+                    document.getElementById('metrics-win-rate').innerText = (data.winRate !== undefined ? data.winRate : 0) + '%';
+                }
 
                 // Gráfico de Distribuição por Fase (8 Fases)
                 const chartArea = document.getElementById('metrics-fase-chart');
@@ -15810,7 +15822,8 @@ Atenciosamente,`;
                     4: '4. Fabricação Internacional',
                     5: '5. Trânsito Marítimo & EADI',
                     6: '6. Oficina, Setup & SAT',
-                    7: '7. Faturamento & Concluído'
+                    7: '7. Faturamento & Concluído',
+                    8: '8. Cancelados / Histórico'
                 };
 
                 const phaseColors = {
