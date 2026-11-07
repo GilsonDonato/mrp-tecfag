@@ -19235,18 +19235,23 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
         // =========================================================================
         function getProjectPendingIssues(p) {
             const issues = [];
-            const chk = typeof p.checklist === 'string' ? JSON.parse(p.checklist || '{}') : (p.checklist || {});
-            let ss = {};
-            try { ss = p.setup_specs ? (typeof p.setup_specs === 'string' ? JSON.parse(p.setup_specs) : p.setup_specs) : {}; } catch(e){}
+            const manualIssue = p.pending_issue || '';
+
+            // Se o projeto estiver marcado como "Fluxo Normal", NÃO possui nenhum bloqueio
+            if (manualIssue === 'NENHUMA') {
+                return {
+                    hasIssue: false,
+                    primaryIssue: null,
+                    allIssues: []
+                };
+            }
 
             const now = new Date();
             const sinceDate = p.pending_issue_since ? new Date(p.pending_issue_since) : (p.lastUpdate ? new Date(p.lastUpdate) : new Date());
             const diffDays = Math.max(0, Math.floor(Math.abs(now - sinceDate) / (1000 * 60 * 60 * 24)));
             const timeStr = diffDays === 0 ? 'hoje' : (diffDays === 1 ? 'há 1 dia' : `há ${diffDays} dias`);
 
-            // 1. Pendência Explícita / Manual definida pelo usuário
-            const manualIssue = p.pending_issue || 'NENHUMA';
-
+            // 1. Pendência Explícita / Manual definida pelo usuário ou equipe
             if (manualIssue === 'AMOSTRAS_CLIENTE') {
                 issues.push({
                     type: 'AMOSTRAS',
@@ -19327,8 +19332,8 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
                 });
             }
 
-            // 2. Detecções Automáticas de Processo (quando não sobrescrito por pendência manual)
-            if (!issues.some(i => i.type === 'VENDEDOR') && (p.waiting_vendor === 1 || p.waiting_vendor === true)) {
+            // 2. Detecção de "Aguardando Vendedor" registrado via Diário de Bordo se nenhuma pendência manual foi definida
+            if (issues.length === 0 && (p.waiting_vendor === 1 || p.waiting_vendor === true)) {
                 const wSince = p.waiting_vendor_since ? new Date(p.waiting_vendor_since) : new Date();
                 const dWait = Math.max(0, Math.floor(Math.abs(now - wSince) / (1000 * 60 * 60 * 24)));
                 issues.push({
@@ -19342,82 +19347,6 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
                     daysWaiting: dWait,
                     timeText: dWait === 0 ? 'hoje' : `há ${dWait}d`,
                     detail: p.waiting_vendor_reason || 'A Engenharia solicitou dados ao Vendedor'
-                });
-            }
-
-            // Amostras: Se o projeto estiver na Fase 1 ou 6 e as amostras não estiverem recebidas/validadas
-            if (!issues.some(i => i.type === 'AMOSTRAS')) {
-                const amostraOk = Boolean(chk.sat || chk.customizacao || chk.amostras_recebidas === true || chk.amostras_recebidas === 'true');
-                if (!amostraOk && (p.fase === 1 || p.fase === 6)) {
-                    issues.push({
-                        type: 'AMOSTRAS',
-                        label: 'Aguardando Amostras do Cliente',
-                        shortLabel: 'Aguard. Amostras',
-                        icon: '📦',
-                        color: '#f59e0b',
-                        bgColor: 'rgba(245, 158, 11, 0.14)',
-                        borderColor: 'rgba(245, 158, 11, 0.4)',
-                        daysWaiting: diffDays,
-                        timeText: '',
-                        detail: 'Amostras de frascos/tampas necessárias para homologação ou setup'
-                    });
-                }
-            }
-
-            // Tensão Indefinida na Fase 1
-            if (p.fase === 1 && !issues.some(i => i.type === 'DEFINICAO')) {
-                let tensao = ss.tensao_eletrica || '';
-                if (!tensao && p.diagnostico) {
-                    try { const d = JSON.parse(p.diagnostico); if (d.infra && d.infra.tension) tensao = d.infra.tension; } catch(e){}
-                }
-                if (!tensao || tensao.trim() === '') {
-                    issues.push({
-                        type: 'DEFINICAO',
-                        label: 'Tensão Elétrica Indefinida',
-                        shortLabel: 'Tensão Indefinida',
-                        icon: '⚡',
-                        color: '#fbbf24',
-                        bgColor: 'rgba(251, 191, 36, 0.14)',
-                        borderColor: 'rgba(251, 191, 36, 0.4)',
-                        daysWaiting: 0,
-                        timeText: '',
-                        detail: 'Confirmar com o cliente se a fábrica opera em 220V ou 380V'
-                    });
-                }
-            }
-
-            // Proposta/Contrato na Fase 2
-            if (p.fase === 2 && !issues.some(i => i.type === 'CONTRATO')) {
-                const hasProposal = Boolean(p.commercial_proposal_data || chk.proposta || chk.contrato);
-                if (!hasProposal) {
-                    issues.push({
-                        type: 'CONTRATO',
-                        label: 'Pendente Contrato / Proposta',
-                        shortLabel: 'Falta Proposta',
-                        icon: '📝',
-                        color: '#38bdf8',
-                        bgColor: 'rgba(56, 189, 248, 0.14)',
-                        borderColor: 'rgba(56, 189, 248, 0.4)',
-                        daysWaiting: 0,
-                        timeText: '',
-                        detail: 'Anexar Proposta Comercial aceita ou Contrato assinado'
-                    });
-                }
-            }
-
-            // Pendente DANFE na Fase 7
-            if (p.fase === 7 && !p.danfe_number) {
-                issues.push({
-                    type: 'DANFE',
-                    label: 'Pendente Emissão de DANFE',
-                    shortLabel: 'Falta DANFE',
-                    icon: '🧾',
-                    color: '#a855f7',
-                    bgColor: 'rgba(168, 85, 247, 0.14)',
-                    borderColor: 'rgba(168, 85, 247, 0.4)',
-                    daysWaiting: 0,
-                    timeText: '',
-                    detail: 'Máquina concluída aguardando emissão de Nota Fiscal'
                 });
             }
 
@@ -19473,19 +19402,52 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
 
         function handleModalPendingIssueChange(val) {
             const descInput = document.getElementById('modal-project-pending-desc-input');
-            if (!descInput) return;
-            if (val === 'AMOSTRAS_CLIENTE' && !descInput.value) {
-                descInput.value = 'Aguardando envio de frascos / tampas / bobinas pelo cliente';
-            } else if (val === 'DEFINICAO_CLIENTE' && !descInput.value) {
-                descInput.value = 'Aguardando cliente confirmar tensão elétrica (220V/380V) ou layout';
-            } else if (val === 'CONTRATO_PROPOSTA' && !descInput.value) {
-                descInput.value = 'Aguardando Proposta assinada / Contrato ou sinal financeiro';
-            } else if (val === 'INSUMOS_SAT' && !descInput.value) {
-                descInput.value = 'Aguardando produto real do cliente para teste de bancada e SAT na oficina';
-            } else if (val === 'AGUARDANDO_VENDEDOR' && !descInput.value) {
-                descInput.value = 'Aguardando resposta do vendedor comercial';
-            } else if (val === 'NENHUMA') {
-                descInput.value = '';
+            const badge = document.getElementById('modal-pending-issue-time-badge');
+            const icon = document.getElementById('modal-pending-issue-icon');
+            const bar = document.getElementById('modal-project-pending-issue-bar');
+
+            if (descInput) {
+                if (val === 'AMOSTRAS_CLIENTE' && !descInput.value) {
+                    descInput.value = 'Aguardando envio de frascos / tampas / bobinas pelo cliente';
+                } else if (val === 'DEFINICAO_CLIENTE' && !descInput.value) {
+                    descInput.value = 'Aguardando cliente confirmar tensão elétrica (220V/380V) ou layout';
+                } else if (val === 'CONTRATO_PROPOSTA' && !descInput.value) {
+                    descInput.value = 'Aguardando Proposta assinada / Contrato ou sinal financeiro';
+                } else if (val === 'INSUMOS_SAT' && !descInput.value) {
+                    descInput.value = 'Aguardando produto real do cliente para teste de bancada e SAT na oficina';
+                } else if (val === 'AGUARDANDO_VENDEDOR' && !descInput.value) {
+                    descInput.value = 'Aguardando resposta do vendedor comercial';
+                } else if (val === 'NENHUMA') {
+                    descInput.value = '';
+                }
+            }
+
+            if (val === 'NENHUMA') {
+                if (icon) icon.innerText = '🟢';
+                if (badge) {
+                    badge.innerText = 'Fluxo Normal (Sem Bloqueio)';
+                    badge.style.background = 'rgba(16, 185, 129, 0.15)';
+                    badge.style.color = '#34d399';
+                    badge.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+                }
+                if (bar) {
+                    bar.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+                    bar.style.background = 'rgba(15, 23, 42, 0.7)';
+                }
+            } else {
+                const sel = document.getElementById('modal-project-pending-issue-select');
+                const optText = sel ? sel.options[sel.selectedIndex].text : val;
+                if (icon) icon.innerText = '⚠️';
+                if (badge) {
+                    badge.innerText = `${optText.split('(')[0].trim()} (Pendente Salvar)`;
+                    badge.style.background = 'rgba(245, 158, 11, 0.18)';
+                    badge.style.color = '#f59e0b';
+                    badge.style.border = '1px solid rgba(245, 158, 11, 0.5)';
+                }
+                if (bar) {
+                    bar.style.border = '1px solid rgba(245, 158, 11, 0.5)';
+                    bar.style.background = 'rgba(15, 23, 42, 0.85)';
+                }
             }
         }
 
@@ -19514,15 +19476,21 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 };
 
+                const updatePayload = {
+                    pending_issue: val,
+                    pending_issue_desc: desc,
+                    pending_issue_since: since,
+                    lastUpdate: new Date().toISOString()
+                };
+                if (val === 'NENHUMA') {
+                    updatePayload.waiting_vendor = 0;
+                    updatePayload.waiting_vendor_reason = null;
+                }
+
                 const res = await fetch(`/api/projects/${encodeURIComponent(activeProjectCode)}`, {
                     method: 'PUT',
                     headers: authHeaders,
-                    body: JSON.stringify({
-                        pending_issue: val,
-                        pending_issue_desc: desc,
-                        pending_issue_since: since,
-                        lastUpdate: new Date().toISOString()
-                    })
+                    body: JSON.stringify(updatePayload)
                 });
 
                 if (!res.ok) throw new Error('Erro ao salvar status de pendência.');
@@ -19530,6 +19498,10 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
                 project.pending_issue = val;
                 project.pending_issue_desc = desc;
                 project.pending_issue_since = since;
+                if (val === 'NENHUMA') {
+                    project.waiting_vendor = 0;
+                    project.waiting_vendor_reason = null;
+                }
 
                 if (typeof supplyChainState !== 'undefined' && Array.isArray(supplyChainState.orders)) {
                     const matchOrder = supplyChainState.orders.find(o => o.project_code === activeProjectCode || o.id === 'PRJ-' + activeProjectCode);
@@ -19546,7 +19518,7 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
                     renderSupplyChainKanban();
                 }
                 if (typeof showIhmToast === 'function') {
-                    showIhmToast(`✅ Pendência atualizada: ${select.options[select.selectedIndex].text.split('(')[0]}`, 'success');
+                    showIhmToast(`✅ Status atualizado: ${select.options[select.selectedIndex].text.split('(')[0]}`, 'success');
                 } else {
                     alert('✅ Status de pendência atualizado com sucesso!');
                 }
