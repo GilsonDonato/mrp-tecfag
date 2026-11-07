@@ -663,6 +663,13 @@ db.run("UPDATE projects SET import_stage = NULL WHERE (fase IS NULL OR fase <= 2
         db.run("ALTER TABLE stock_orders ADD COLUMN dta_number TEXT", (err) => {});
         db.run("ALTER TABLE stock_orders ADD COLUMN eadi_entry_date TEXT", (err) => {});
         db.run("ALTER TABLE stock_orders ADD COLUMN eadi_da_number TEXT", (err) => {});
+        // Migrações seguras para Modal Courier (FedEx / DHL)
+        db.run("ALTER TABLE stock_orders ADD COLUMN transport_mode TEXT DEFAULT 'MARITIMO'", (err) => {});
+        db.run("ALTER TABLE stock_orders ADD COLUMN courier_service TEXT", (err) => {});
+        db.run("ALTER TABLE stock_orders ADD COLUMN tracking_number TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_transport_mode TEXT DEFAULT 'MARITIMO'", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_courier_service TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_tracking_number TEXT", (err) => {});
     db.run("UPDATE projects SET fase = 3 WHERE code IN (SELECT project_code FROM stock_orders WHERE project_code IS NOT NULL AND stage NOT IN ('DOCA_GALPAO', 'DOCA_TECFAG')) AND fase < 3", () => {});
         db.run("ALTER TABLE stock_order_items ADD COLUMN qty_eadi_admitted INTEGER DEFAULT 0", (err) => {});
         db.run("ALTER TABLE stock_order_items ADD COLUMN ncm TEXT", (err) => {});
@@ -2766,6 +2773,9 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
                 import_total_fob_value: fobVal,
                 import_currency: curr,
                 import_items: importItemsParsed,
+                import_transport_mode: p.import_transport_mode || (linkedOrder ? linkedOrder.transport_mode : 'MARITIMO'),
+                import_courier_service: p.import_courier_service || (linkedOrder ? linkedOrder.courier_service : null),
+                import_tracking_number: p.import_tracking_number || (linkedOrder ? linkedOrder.tracking_number : null),
                 checklist: safeJsonParse(p.checklist, {}),
                 prazos: safeJsonParse(p.prazos, {}),
                 setup_specs: safeJsonParse(p.setup_specs, {}),
@@ -2863,6 +2873,9 @@ app.get('/api/projects/:code', async (req, res) => {
                 if ((!project.import_total_fob_value || parseFloat(project.import_total_fob_value) === 0) && stockOrder.total_fob_value) {
                     project.import_total_fob_value = parseFloat(stockOrder.total_fob_value) || 0;
                 }
+                if (!project.import_transport_mode && stockOrder.transport_mode) project.import_transport_mode = stockOrder.transport_mode;
+                if (!project.import_courier_service && stockOrder.courier_service) project.import_courier_service = stockOrder.courier_service;
+                if (!project.import_tracking_number && stockOrder.tracking_number) project.import_tracking_number = stockOrder.tracking_number;
                 if (!importItemsParsed || importItemsParsed.length === 0) {
                     const orderItems = await dbAll('SELECT sku, description, qty_ordered, unit_price_fob, total_price_fob FROM stock_order_items WHERE order_id = ?', [stockOrder.id]);
                     if (orderItems && orderItems.length > 0) {
@@ -7903,6 +7916,7 @@ app.put('/api/projects/:code', async (req, res) => {
         import_vessel_name, import_bl_number, import_bl_date, import_etd_date, import_eta_port_date,
         import_eta_warehouse_date, import_actual_arrival_date, import_customs_regime, import_dta_number,
         import_eadi_entry_date, import_eadi_da_number, import_notes,
+        import_transport_mode, import_courier_service, import_tracking_number,
         import_cbm, import_gross_weight, import_net_weight, import_packages_count, import_packages_type,
         is_archived, archived_at, delivery_invoice, delivery_date,
         danfe_number, danfe_date, danfe_value, danfe_access_key, danfe_items,
@@ -8108,6 +8122,9 @@ app.put('/api/projects/:code', async (req, res) => {
             import_eadi_entry_date: import_eadi_entry_date !== undefined ? import_eadi_entry_date : oldProject.import_eadi_entry_date,
             import_eadi_da_number: import_eadi_da_number !== undefined ? import_eadi_da_number : oldProject.import_eadi_da_number,
             import_notes: import_notes !== undefined ? import_notes : oldProject.import_notes,
+            import_transport_mode: import_transport_mode !== undefined ? import_transport_mode : (oldProject.import_transport_mode || 'MARITIMO'),
+            import_courier_service: import_courier_service !== undefined ? import_courier_service : (oldProject.import_courier_service || null),
+            import_tracking_number: import_tracking_number !== undefined ? import_tracking_number : (oldProject.import_tracking_number || null),
             import_items: import_items !== undefined ? (typeof import_items === 'string' ? import_items : JSON.stringify(import_items)) : oldProject.import_items,
             import_cbm: import_cbm !== undefined ? parseFloat(import_cbm) : (oldProject.import_cbm || 0),
             import_gross_weight: import_gross_weight !== undefined ? parseFloat(import_gross_weight) : (oldProject.import_gross_weight || 0),
@@ -8186,6 +8203,9 @@ app.put('/api/projects/:code', async (req, res) => {
                 if (updateFields.import_eadi_entry_date) soFields.eadi_entry_date = updateFields.import_eadi_entry_date;
                 if (updateFields.import_eadi_da_number) soFields.eadi_da_number = updateFields.import_eadi_da_number;
                 if (updateFields.import_notes) soFields.notes = updateFields.import_notes;
+                if (updateFields.import_transport_mode !== undefined) soFields.transport_mode = updateFields.import_transport_mode;
+                if (updateFields.import_courier_service !== undefined) soFields.courier_service = updateFields.import_courier_service;
+                if (updateFields.import_tracking_number !== undefined) soFields.tracking_number = updateFields.import_tracking_number;
                 if (updateFields.import_stage) soFields.stage = updateFields.import_stage;
                 if (!linkedStockOrder.project_code) soFields.project_code = code;
                 soFields.updated_at = new Date().toISOString();
@@ -8209,13 +8229,15 @@ app.put('/api/projects/:code', async (req, res) => {
                 const insertResult = await dbRun(`
                     INSERT INTO stock_orders (
                         po_number, project_code, client_name, supplier_name, invoice_number, 
-                        currency, total_fob_value, stage, created_by, created_at, updated_at, notes, customs_regime, container_id
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PO_EMITIDA', ?, ?, ?, ?, ?, ?)
+                        currency, total_fob_value, stage, created_by, created_at, updated_at, notes, customs_regime, container_id,
+                        transport_mode, courier_service, tracking_number
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PO_EMITIDA', ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `, [
                     poNumber, code, oldProject.client, updateFields.import_supplier, updateFields.import_invoice_number,
                     updateFields.import_currency || 'USD', updateFields.import_total_fob_value || 0,
                     req.user ? req.user.username : 'Sistema', now, now, updateFields.import_notes || ('Importação do projeto ' + code),
-                    updateFields.import_customs_regime || 'EADI_BAURU', updateFields.import_container_id || null
+                    updateFields.import_customs_regime || 'EADI_BAURU', updateFields.import_container_id || null,
+                    updateFields.import_transport_mode || 'MARITIMO', updateFields.import_courier_service || null, updateFields.import_tracking_number || null
                 ]);
                 const newOrderId = insertResult.lastID;
 
@@ -11576,6 +11598,9 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
                 existingOrder.fase = p.fase;
                 existingOrder.checklist = p.checklist;
                 existingOrder.history = p.history;
+                if (p.import_transport_mode) existingOrder.transport_mode = p.import_transport_mode;
+                if (p.import_courier_service) existingOrder.courier_service = p.import_courier_service;
+                if (p.import_tracking_number) existingOrder.tracking_number = p.import_tracking_number;
             } else {
                 const stage = canonStage;
                 let daysInEadi = 0;
@@ -11612,6 +11637,9 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
                     eta_warehouse_date: p.import_eta_warehouse_date,
                     actual_arrival_date: p.import_actual_arrival_date,
                     customs_regime: p.import_customs_regime || 'IMPORTACAO_DIRETA',
+                    transport_mode: p.import_transport_mode || 'MARITIMO',
+                    courier_service: p.import_courier_service || null,
+                    tracking_number: p.import_tracking_number || null,
                     dta_number: p.import_dta_number,
                     eadi_entry_date: p.import_eadi_entry_date,
                     eadi_da_number: p.import_eadi_da_number,
@@ -11745,7 +11773,8 @@ app.post('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, s
         po_number, supplier_id, supplier_name, invoice_number, invoice_date, currency,
         stage, fabrication_start_date, fabrication_end_date, container_id, vessel_name,
         bl_number, bl_date, origin_port, destination_port, etd_date, eta_port_date,
-        eta_warehouse_date, payment_terms_type, payment_terms_desc, notes, items
+        eta_warehouse_date, payment_terms_type, payment_terms_desc, notes, items,
+        transport_mode, courier_service, tracking_number
     } = req.body;
 
     if (!po_number || po_number.trim() === '') {
@@ -11813,8 +11842,9 @@ app.post('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, s
             vessel_name, bl_number, bl_date, origin_port, destination_port, etd_date,
             eta_port_date, eta_warehouse_date, payment_terms_type, payment_terms_desc,
             invoice_file_path, packing_list_file_path, bl_file_path, notes, is_rollover_order,
+            transport_mode, courier_service, tracking_number,
             created_by, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`, [
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`, [
             po_number.trim(), supplier ? supplier.id : null, supplier ? supplier.name : supplier_name.trim(),
             invoice_number || null, invoice_date || new Date().toISOString().split('T')[0], currency || 'USD',
             totalFob, stage || 'PO_EMITIDA',
@@ -11825,6 +11855,7 @@ app.post('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, s
             payment_terms_type || (supplier ? supplier.payment_terms_type : '120_DAYS_BL'),
             payment_terms_desc || (supplier ? supplier.payment_terms_desc : ''),
             invoiceFilePath, packingListFilePath, blFilePath, notes || '',
+            transport_mode || 'MARITIMO', courier_service || null, tracking_number || null,
             user, new Date().toISOString(), new Date().toISOString()
         ]);
 
@@ -11888,7 +11919,8 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
         stage, fabrication_start_date, fabrication_end_date, container_id, vessel_name,
         bl_number, bl_date, origin_port, destination_port, etd_date, eta_port_date,
         eta_warehouse_date, actual_arrival_date, payment_terms_type, payment_terms_desc, notes, items,
-        customs_regime, dta_number, eadi_entry_date, eadi_da_number
+        customs_regime, dta_number, eadi_entry_date, eadi_da_number,
+        transport_mode, courier_service, tracking_number
     } = req.body;
 
     try {
@@ -11935,6 +11967,7 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
             payment_terms_type = ?, payment_terms_desc = ?, invoice_file_path = ?,
             packing_list_file_path = ?, bl_file_path = ?, notes = ?,
             customs_regime = ?, dta_number = ?, eadi_entry_date = ?, eadi_da_number = ?,
+            transport_mode = ?, courier_service = ?, tracking_number = ?,
             updated_at = ?
             WHERE id = ?`, [
             po_number || existing.po_number,
@@ -11964,9 +11997,23 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
             dta_number !== undefined ? dta_number : existing.dta_number,
             eadi_entry_date !== undefined ? eadi_entry_date : existing.eadi_entry_date,
             eadi_da_number !== undefined ? eadi_da_number : existing.eadi_da_number,
+            transport_mode !== undefined ? transport_mode : (existing.transport_mode || 'MARITIMO'),
+            courier_service !== undefined ? courier_service : existing.courier_service,
+            tracking_number !== undefined ? tracking_number : existing.tracking_number,
             new Date().toISOString(),
             orderId
         ]);
+
+        if (existing.project_code) {
+            const prjUpdates = {};
+            if (transport_mode !== undefined) prjUpdates.import_transport_mode = transport_mode;
+            if (courier_service !== undefined) prjUpdates.import_courier_service = courier_service;
+            if (tracking_number !== undefined) prjUpdates.import_tracking_number = tracking_number;
+            if (Object.keys(prjUpdates).length > 0) {
+                const { sql, params } = buildDynamicUpdate('projects', prjUpdates, 'code = ?', [existing.project_code]);
+                await dbRun(sql, params);
+            }
+        }
 
         // Se foram enviados itens novos ou modificados
         if (items) {

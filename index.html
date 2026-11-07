@@ -3596,6 +3596,15 @@
                             </select>
                         </div>
 
+                        <!-- Dropdown de Modal de Transporte (Marítimo / Courier FedEx & DHL) -->
+                        <div style="min-width: 200px;">
+                            <select id="sc-kanban-filter-modality" onchange="renderSupplyChainKanban()" class="form-control" style="padding: 8px 12px; font-size: 0.82rem; background: var(--bg-card); border-color: rgba(14, 165, 233, 0.4); color: #f8fafc; font-weight: 600;">
+                                <option value="all">🚢 / ✈️ Todos os Modais</option>
+                                <option value="MARITIMO">🚢 Somente Marítimo (Containers)</option>
+                                <option value="COURIER">✈️ Somente Courier (FedEx / DHL)</option>
+                            </select>
+                        </div>
+
                         <!-- Campo de Busca Livre (Invoice, PO, Container, SKU) -->
                         <div style="flex: 1; min-width: 260px; position: relative;">
                             <input type="text" id="sc-kanban-filter-search" oninput="renderSupplyChainKanban()" class="form-control" placeholder="🔍 Filtrar por Invoice (ex: PI2026), PO, Container ou Modelo..." style="padding: 8px 12px; font-size: 0.82rem; width: 100%;">
@@ -4863,7 +4872,41 @@
                                 </div>
                             </div>
 
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 10px; margin-bottom: 12px;">
+                                <label style="font-size: 0.70rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; display: block; margin-bottom: 6px;">Modal de Transporte Internacional</label>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer; color: #f8fafc;">
+                                        <input type="radio" name="modal-import-transport-mode-radio" id="modal-import-mode-radio-maritimo" value="MARITIMO" checked onchange="toggleProjectImportTransportMode(this.value)">
+                                        <span>🚢 Marítimo (Container)</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer; color: #fbbf24;">
+                                        <input type="radio" name="modal-import-transport-mode-radio" id="modal-import-mode-radio-courier" value="COURIER" onchange="toggleProjectImportTransportMode(this.value)">
+                                        <span>✈️ Courier (FedEx / DHL)</span>
+                                    </label>
+                                </div>
+                                <input type="hidden" id="modal-import-transport-mode" value="MARITIMO">
+                                
+                                <div id="modal-import-courier-wrapper" style="display: none; grid-template-columns: 1fr 2fr; gap: 10px; margin-top: 10px; padding-top: 8px; border-top: 1px dashed rgba(245, 158, 11, 0.3);">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label style="font-size: 0.70rem; font-weight: 700; color: #f59e0b;">Empresa Courier</label>
+                                        <select id="modal-import-courier-service" class="form-control" style="padding: 6px 8px; font-size: 0.80rem; border-color: rgba(245, 158, 11, 0.4);">
+                                            <option value="FEDEX">FedEx Express</option>
+                                            <option value="DHL">DHL Express</option>
+                                            <option value="UPS">UPS Express</option>
+                                            <option value="OUTRO">Outra Linha Aérea</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label style="font-size: 0.70rem; font-weight: 700; color: #f59e0b;">Código de Rastreio / AWB</label>
+                                        <div style="display: flex; gap: 4px;">
+                                            <input type="text" id="modal-import-tracking-number" class="form-control" placeholder="Ex: 771234567890" style="padding: 6px 8px; font-size: 0.80rem; border-color: rgba(245, 158, 11, 0.4); flex: 1;">
+                                            <button type="button" class="btn" onclick="openCurrentProjectCourierTracking()" style="background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; padding: 4px 8px; font-size: 0.72rem; font-weight: bold; border-radius: 4px;" title="Rastrear encomenda ao vivo">🔍</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="modal-import-maritimo-wrapper" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Container ID</label>
                                     <input type="text" id="modal-import-container-id" class="form-control" placeholder="Ex: MSDU9283741" style="padding: 8px; font-size: 0.82rem;">
@@ -7101,6 +7144,41 @@
 
                 <!-- Formulário da Ordem -->
                 <form id="sc-new-order-form" onsubmit="submitNewSupplyOrder(event)">
+                    <!-- Modal de Transporte Internacional -->
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                        <label style="font-size: 0.72rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; display: block; margin-bottom: 6px;">Modal de Envio / Transporte Internacional</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <label id="sc-new-mode-lbl-maritimo" style="display: flex; align-items: center; gap: 8px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.4); padding: 8px 12px; border-radius: 6px; cursor: pointer;">
+                                <input type="radio" name="sc-new-transport-mode" value="MARITIMO" checked onchange="toggleNewOrderTransportMode(this.value)">
+                                <div>
+                                    <strong style="color: #f8fafc; font-size: 0.82rem;">🚢 Marítimo (Container / FCL / LCL)</strong>
+                                    <div style="font-size: 0.68rem; color: #94a3b8;">Máquinas e grandes volumes (35 a 50 dias)</div>
+                                </div>
+                            </label>
+                            <label id="sc-new-mode-lbl-courier" style="display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); padding: 8px 12px; border-radius: 6px; cursor: pointer;">
+                                <input type="radio" name="sc-new-transport-mode" value="COURIER" onchange="toggleNewOrderTransportMode(this.value)">
+                                <div>
+                                    <strong style="color: #f59e0b; font-size: 0.82rem;">✈️ Courier Expresso (FedEx / DHL)</strong>
+                                    <div style="font-size: 0.68rem; color: #94a3b8;">Peças de reposição e componentes urgentes (3 a 7 dias)</div>
+                                </div>
+                            </label>
+                        </div>
+                        <div id="sc-new-courier-fields" style="display: none; grid-template-columns: 1fr 2fr; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(245, 158, 11, 0.25);">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: #f59e0b;">Empresa Courier *</label>
+                                <select id="sc-order-courier-service" class="form-control" style="padding: 8px; font-size: 0.82rem; border-color: rgba(245, 158, 11, 0.4);">
+                                    <option value="FEDEX">FedEx Express</option>
+                                    <option value="DHL">DHL Express</option>
+                                    <option value="UPS">UPS Express</option>
+                                    <option value="OUTRO">Outra Linha Aérea</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: #f59e0b;">Código de Rastreio / AWB *</label>
+                                <input type="text" id="sc-order-tracking-number" class="form-control" placeholder="Ex: 771234567890 (FedEx) ou 1234567890 (DHL)" style="padding: 8px; font-size: 0.82rem; border-color: rgba(245, 158, 11, 0.4);">
+                            </div>
+                        </div>
+                    </div>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
                         <div class="form-group">
                             <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Número da PO / Container *</label>
@@ -7330,7 +7408,48 @@
                         </div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                    <!-- Seletor do Modal de Transporte -->
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                        <label style="font-size: 0.72rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; display: block; margin-bottom: 6px;">Modal de Envio</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <label style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 6px; cursor: pointer;">
+                                <input type="radio" name="sc-det-transport-mode-radio" id="sc-det-mode-radio-maritimo" value="MARITIMO" checked onchange="toggleSupplyDetailsTransportMode(this.value)">
+                                <div>
+                                    <strong style="color: #f8fafc; font-size: 0.82rem;">🚢 Marítimo (Container)</strong>
+                                    <div style="font-size: 0.68rem; color: #94a3b8;">Container marítimo, porto de Santos & EADI</div>
+                                </div>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 6px; cursor: pointer;">
+                                <input type="radio" name="sc-det-transport-mode-radio" id="sc-det-mode-radio-courier" value="COURIER" onchange="toggleSupplyDetailsTransportMode(this.value)">
+                                <div>
+                                    <strong style="color: #f59e0b; font-size: 0.82rem;">✈️ Courier Expresso (FedEx / DHL)</strong>
+                                    <div style="font-size: 0.68rem; color: #94a3b8;">Peças de reposição, AWB e alfândega aérea</div>
+                                </div>
+                            </label>
+                        </div>
+                        <input type="hidden" id="sc-det-transport-mode" value="MARITIMO">
+
+                        <div id="sc-det-courier-wrapper" style="display: none; grid-template-columns: 1fr 2fr; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(245, 158, 11, 0.25);">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: #f59e0b;">Empresa Courier *</label>
+                                <select id="sc-det-courier-service" class="form-control" style="padding: 8px; font-size: 0.82rem; border-color: rgba(245, 158, 11, 0.4);">
+                                    <option value="FEDEX">FedEx Express</option>
+                                    <option value="DHL">DHL Express</option>
+                                    <option value="UPS">UPS Express</option>
+                                    <option value="OUTRO">Outra Linha Aérea</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: #f59e0b;">Código de Rastreio / AWB *</label>
+                                <div style="display: flex; gap: 6px;">
+                                    <input type="text" id="sc-det-tracking-number" class="form-control" placeholder="Ex: 771234567890 (FedEx) ou 1234567890 (DHL)" style="padding: 8px; font-size: 0.82rem; border-color: rgba(245, 158, 11, 0.4); flex: 1;">
+                                    <button type="button" class="btn" onclick="openCurrentOrderCourierTracking()" style="background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; padding: 6px 12px; font-size: 0.75rem; font-weight: bold; border-radius: 5px; white-space: nowrap;" title="Abrir rastreio ao vivo">🔍 Rastrear</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="sc-det-maritimo-wrapper" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
                         <div class="form-group">
                             <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Identificação do Container</label>
                             <input type="text" id="sc-det-container-id" class="form-control" placeholder="Ex: MSCU9283741" style="padding: 8px; font-size: 0.82rem;">
@@ -21511,6 +21630,12 @@ function renderKanban() {
             if (document.getElementById('modal-import-gross-weight')) document.getElementById('modal-import-gross-weight').value = project.import_gross_weight || '';
             if (document.getElementById('modal-import-net-weight')) document.getElementById('modal-import-net-weight').value = project.import_net_weight || '';
             if (document.getElementById('modal-import-packages-count')) document.getElementById('modal-import-packages-count').value = project.import_packages_count || '';
+            const prjImportMode = project.import_transport_mode || 'MARITIMO';
+            if (typeof toggleProjectImportTransportMode === 'function') {
+                toggleProjectImportTransportMode(prjImportMode);
+            }
+            if (document.getElementById('modal-import-courier-service')) document.getElementById('modal-import-courier-service').value = project.import_courier_service || 'FEDEX';
+            if (document.getElementById('modal-import-tracking-number')) document.getElementById('modal-import-tracking-number').value = project.import_tracking_number || '';
 
             // Renderizar itens da Proforma Invoice vinculados ao projeto
             let importItems = [];
@@ -25133,6 +25258,9 @@ function renderKanban() {
                 import_invoice_date: document.getElementById('modal-import-invoice-date')?.value || null,
                 import_currency: document.getElementById('modal-import-currency')?.value || 'USD',
                 import_total_fob_value: parseFloat(document.getElementById('modal-import-total-fob')?.value) || 0,
+                import_transport_mode: document.getElementById('modal-import-transport-mode')?.value || 'MARITIMO',
+                import_courier_service: document.getElementById('modal-import-courier-service')?.value || 'FEDEX',
+                import_tracking_number: document.getElementById('modal-import-tracking-number')?.value?.trim() || '',
                 import_items: (typeof collectProjectImportItems === 'function' ? collectProjectImportItems() : []),
                 import_container_id: document.getElementById('modal-import-container-id')?.value || '',
                 import_vessel_name: document.getElementById('modal-import-vessel-name')?.value || '',
@@ -25176,6 +25304,9 @@ function renderKanban() {
                     project.import_invoice_date = payload.import_invoice_date;
                     project.import_currency = payload.import_currency;
                     project.import_total_fob_value = payload.import_total_fob_value;
+                    project.import_transport_mode = payload.import_transport_mode;
+                    project.import_courier_service = payload.import_courier_service;
+                    project.import_tracking_number = payload.import_tracking_number;
                     project.import_container_id = payload.import_container_id;
                     project.import_vessel_name = payload.import_vessel_name;
                     project.import_bl_number = payload.import_bl_number;
@@ -25902,6 +26033,9 @@ function renderKanban() {
                 const impInvDate = document.getElementById('modal-import-invoice-date')?.value;
                 const impCurrency = document.getElementById('modal-import-currency')?.value;
                 const impTotalFob = document.getElementById('modal-import-total-fob')?.value;
+                const impTransportMode = document.getElementById('modal-import-transport-mode')?.value;
+                const impCourierService = document.getElementById('modal-import-courier-service')?.value;
+                const impTrackingNumber = document.getElementById('modal-import-tracking-number')?.value;
                 const impContainer = document.getElementById('modal-import-container-id')?.value;
                 const impVessel = document.getElementById('modal-import-vessel-name')?.value;
                 const impBlNum = document.getElementById('modal-import-bl-number')?.value;
@@ -25923,6 +26057,9 @@ function renderKanban() {
                 if (impInvDate !== undefined) updateBody.import_invoice_date = impInvDate || null;
                 if (impCurrency !== undefined) updateBody.import_currency = impCurrency;
                 if (impTotalFob !== undefined) updateBody.import_total_fob_value = parseFloat(impTotalFob) || 0;
+                if (impTransportMode !== undefined) updateBody.import_transport_mode = impTransportMode;
+                if (impCourierService !== undefined) updateBody.import_courier_service = impCourierService;
+                if (impTrackingNumber !== undefined) updateBody.import_tracking_number = impTrackingNumber.trim();
 
                 const collectedItems = (typeof collectProjectImportItems === 'function' ? collectProjectImportItems() : []);
                 if (collectedItems && collectedItems.length > 0) {
@@ -25973,6 +26110,9 @@ function renderKanban() {
                 if (updateBody.import_invoice_date !== undefined) project.import_invoice_date = updateBody.import_invoice_date;
                 if (updateBody.import_currency !== undefined) project.import_currency = updateBody.import_currency;
                 if (updateBody.import_total_fob_value !== undefined) project.import_total_fob_value = updateBody.import_total_fob_value;
+                if (updateBody.import_transport_mode !== undefined) project.import_transport_mode = updateBody.import_transport_mode;
+                if (updateBody.import_courier_service !== undefined) project.import_courier_service = updateBody.import_courier_service;
+                if (updateBody.import_tracking_number !== undefined) project.import_tracking_number = updateBody.import_tracking_number;
                 if (updateBody.import_items !== undefined) project.import_items = updateBody.import_items;
                 if (updateBody.import_container_id !== undefined) project.import_container_id = updateBody.import_container_id;
                 if (updateBody.import_vessel_name !== undefined) project.import_vessel_name = updateBody.import_vessel_name;
@@ -29196,6 +29336,117 @@ function renderKanban() {
         }
 
         // =========================================================================
+        // HELPERS LOGÍSTICOS & COURIER EXPRESS (FEDEX / DHL)
+        // =========================================================================
+        function getCourierTrackingUrl(service, tracking) {
+            if (!tracking) return '#';
+            const clean = String(tracking).trim().replace(/[^a-zA-Z0-9]/g, '');
+            const serv = String(service || '').toUpperCase();
+            if (serv.includes('FEDEX')) return `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(clean)}`;
+            if (serv.includes('DHL')) return `https://www.dhl.com/br-pt/home/tracking/tracking-express.html?submit=1&tracking-id=${encodeURIComponent(clean)}`;
+            if (serv.includes('UPS')) return `https://www.ups.com/track?tracknum=${encodeURIComponent(clean)}`;
+            return `https://www.google.com/search?q=${encodeURIComponent(serv + ' tracking ' + clean)}`;
+        }
+
+        function toggleNewOrderTransportMode(mode) {
+            const courierFields = document.getElementById('sc-new-courier-fields');
+            const lblMaritimo = document.getElementById('sc-new-mode-lbl-maritimo');
+            const lblCourier = document.getElementById('sc-new-mode-lbl-courier');
+            const origPort = document.getElementById('sc-order-origin-port');
+            const destPort = document.getElementById('sc-order-dest-port');
+
+            if (mode === 'COURIER') {
+                if (courierFields) courierFields.style.display = 'grid';
+                if (lblCourier) {
+                    lblCourier.style.background = 'rgba(245, 158, 11, 0.12)';
+                    lblCourier.style.borderColor = 'rgba(245, 158, 11, 0.5)';
+                }
+                if (lblMaritimo) {
+                    lblMaritimo.style.background = 'rgba(255, 255, 255, 0.03)';
+                    lblMaritimo.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                }
+                if (origPort && origPort.value === 'Ningbo, China') origPort.value = 'Aeroporto de Origem (China)';
+                if (destPort && destPort.value === 'Santos (SP)') destPort.value = 'Viracopos / GRU (SP)';
+            } else {
+                if (courierFields) courierFields.style.display = 'none';
+                if (lblMaritimo) {
+                    lblMaritimo.style.background = 'rgba(56, 189, 248, 0.08)';
+                    lblMaritimo.style.borderColor = 'rgba(56, 189, 248, 0.4)';
+                }
+                if (lblCourier) {
+                    lblCourier.style.background = 'rgba(255, 255, 255, 0.03)';
+                    lblCourier.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                }
+                if (origPort && origPort.value === 'Aeroporto de Origem (China)') origPort.value = 'Ningbo, China';
+                if (destPort && destPort.value === 'Viracopos / GRU (SP)') destPort.value = 'Santos (SP)';
+            }
+        }
+
+        function toggleSupplyDetailsTransportMode(mode) {
+            const hiddenMode = document.getElementById('sc-det-transport-mode');
+            if (hiddenMode) hiddenMode.value = mode;
+
+            const courierWrapper = document.getElementById('sc-det-courier-wrapper');
+            const maritimoWrapper = document.getElementById('sc-det-maritimo-wrapper');
+            const rMaritimo = document.getElementById('sc-det-mode-radio-maritimo');
+            const rCourier = document.getElementById('sc-det-mode-radio-courier');
+
+            if (rMaritimo) rMaritimo.checked = (mode === 'MARITIMO');
+            if (rCourier) rCourier.checked = (mode === 'COURIER');
+
+            if (mode === 'COURIER') {
+                if (courierWrapper) courierWrapper.style.display = 'grid';
+                if (maritimoWrapper) maritimoWrapper.style.display = 'none';
+            } else {
+                if (courierWrapper) courierWrapper.style.display = 'none';
+                if (maritimoWrapper) maritimoWrapper.style.display = 'grid';
+            }
+        }
+
+        function toggleProjectImportTransportMode(mode) {
+            const hiddenMode = document.getElementById('modal-import-transport-mode');
+            if (hiddenMode) hiddenMode.value = mode;
+
+            const courierWrapper = document.getElementById('modal-import-courier-wrapper');
+            const maritimoWrapper = document.getElementById('modal-import-maritimo-wrapper');
+            const rMaritimo = document.getElementById('modal-import-mode-radio-maritimo');
+            const rCourier = document.getElementById('modal-import-mode-radio-courier');
+
+            if (rMaritimo) rMaritimo.checked = (mode === 'MARITIMO');
+            if (rCourier) rCourier.checked = (mode === 'COURIER');
+
+            if (mode === 'COURIER') {
+                if (courierWrapper) courierWrapper.style.display = 'grid';
+                if (maritimoWrapper) maritimoWrapper.style.display = 'none';
+            } else {
+                if (courierWrapper) courierWrapper.style.display = 'none';
+                if (maritimoWrapper) maritimoWrapper.style.display = 'grid';
+            }
+        }
+
+        function openCurrentOrderCourierTracking() {
+            const service = document.getElementById('sc-det-courier-service')?.value || 'FEDEX';
+            const tracking = document.getElementById('sc-det-tracking-number')?.value.trim();
+            if (!tracking) {
+                alert('Por favor, digite o código de rastreio / AWB primeiro.');
+                return;
+            }
+            const url = getCourierTrackingUrl(service, tracking);
+            window.open(url, '_blank');
+        }
+
+        function openCurrentProjectCourierTracking() {
+            const service = document.getElementById('modal-import-courier-service')?.value || 'FEDEX';
+            const tracking = document.getElementById('modal-import-tracking-number')?.value.trim();
+            if (!tracking) {
+                alert('Por favor, digite o código de rastreio / AWB primeiro.');
+                return;
+            }
+            const url = getCourierTrackingUrl(service, tracking);
+            window.open(url, '_blank');
+        }
+
+        // =========================================================================
         // MOTOR DE MONITORAMENTO DE PRAZOS, ATRASOS E MARCOS LOGÍSTICOS DO COMEX
         // =========================================================================
         function getOrderDelayInfo(order) {
@@ -29204,6 +29455,7 @@ function renderKanban() {
 
             const stage = order.stage || 'PO_EMITIDA';
             const isCompleted = (stage === 'DOCA_GALPAO');
+            const isCourier = (order.transport_mode === 'COURIER' || order.import_transport_mode === 'COURIER');
 
             // Resolver ETA Doca real ou estimado de projeto/ordem
             let rawEtaWh = order.eta_warehouse_date;
@@ -29218,19 +29470,19 @@ function renderKanban() {
             if (rawEtaWh) {
                 etaDate = new Date(rawEtaWh + 'T00:00:00');
             } else if (order.eta_port_date) {
-                // Estima +15 dias após atracação para desembaraço e doca
+                // Estima +15 dias após atracação marítima (ou +2 dias para courier após chegada no aeroporto)
                 const pDate = new Date(order.eta_port_date + 'T00:00:00');
                 if (!isNaN(pDate.getTime())) {
                     etaDate = new Date(pDate);
-                    etaDate.setDate(etaDate.getDate() + 15);
+                    etaDate.setDate(etaDate.getDate() + (isCourier ? 2 : 15));
                     isEstimated = true;
                 }
             } else if (order.etd_date) {
-                // Estima +50 dias após embarque marítimo
+                // Estima +50 dias após embarque marítimo (ou +5 dias para courier aéreo)
                 const eDate = new Date(order.etd_date + 'T00:00:00');
                 if (!isNaN(eDate.getTime())) {
                     etaDate = new Date(eDate);
-                    etaDate.setDate(etaDate.getDate() + 50);
+                    etaDate.setDate(etaDate.getDate() + (isCourier ? 5 : 50));
                     isEstimated = true;
                 }
             }
@@ -29241,11 +29493,11 @@ function renderKanban() {
             }
 
             const isOverdue = (!isCompleted && diffDays !== null && diffDays < 0);
-            const isNearDue = (!isCompleted && diffDays !== null && diffDays >= 0 && diffDays <= 7);
+            const isNearDue = (!isCompleted && diffDays !== null && diffDays >= 0 && diffDays <= (isCourier ? 2 : 7));
             const isToday = (!isCompleted && diffDays === 0);
 
             let statusType = 'NO_DATE';
-            let statusText = 'ETA Doca: A definir';
+            let statusText = isCourier ? 'ETA Entrega: A definir' : 'ETA Doca: A definir';
             let badgeHtml = '';
             let borderHighlight = null;
             let etaDisplayDateStr = etaDate && !isNaN(etaDate.getTime()) ? etaDate.toLocaleDateString('pt-BR') : 'A definir';
@@ -29253,14 +29505,14 @@ function renderKanban() {
 
             if (isCompleted) {
                 statusType = 'COMPLETED';
-                statusText = 'Recebido na Doca';
+                statusText = isCourier ? 'Entregue / Conferido' : 'Recebido na Doca';
             } else if (isOverdue) {
                 statusType = 'OVERDUE';
                 const daysLate = Math.abs(diffDays);
                 statusText = `Atrasado há ${daysLate} dia${daysLate > 1 ? 's' : ''}`;
                 borderHighlight = '#ef4444';
                 badgeHtml = `
-                    <div style="background: rgba(239, 68, 68, 0.18); border: 1px solid rgba(239, 68, 68, 0.6); color: #f87171; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(239, 68, 68, 0.25);" title="Prazo final na Doca vencido há ${daysLate} dias">
+                    <div style="background: rgba(239, 68, 68, 0.18); border: 1px solid rgba(239, 68, 68, 0.6); color: #f87171; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(239, 68, 68, 0.25);" title="Prazo final vencido há ${daysLate} dias">
                         <span>🚨</span> <span>Atrasado há ${daysLate}d</span>
                     </div>
                 `;
@@ -29269,8 +29521,8 @@ function renderKanban() {
                 statusText = 'Previsão de Chegada Hoje';
                 borderHighlight = '#f59e0b';
                 badgeHtml = `
-                    <div style="background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.55); color: #f59e0b; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;" title="Previsão de chegada na Doca hoje">
-                        <span>⚡</span> <span>Chega Hoje na Doca</span>
+                    <div style="background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.55); color: #f59e0b; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;" title="Previsão de chegada hoje">
+                        <span>⚡</span> <span>Chega Hoje</span>
                     </div>
                 `;
             } else if (isNearDue) {
@@ -29278,11 +29530,11 @@ function renderKanban() {
                 statusText = `Chegando em ${diffDays} dias`;
                 borderHighlight = '#fbbf24';
                 badgeHtml = `
-                    <div style="background: rgba(251, 191, 36, 0.16); border: 1px solid rgba(251, 191, 36, 0.45); color: #fbbf24; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;" title="Previsão de chegada na Doca nos próximos dias">
+                    <div style="background: rgba(251, 191, 36, 0.16); border: 1px solid rgba(251, 191, 36, 0.45); color: #fbbf24; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;" title="Previsão de entrega nos próximos dias">
                         <span>⏳</span> <span>Chegando em ${diffDays}d</span>
                     </div>
                 `;
-            } else if (diffDays !== null && diffDays > 7) {
+            } else if (diffDays !== null && diffDays > (isCourier ? 2 : 7)) {
                 statusType = 'ON_TIME';
                 statusText = `${diffDays} dias restantes`;
                 badgeHtml = `
@@ -29295,47 +29547,89 @@ function renderKanban() {
             // Alertas Operacionais Específicos por Etapa
             let stageAlertHtml = '';
             if (!isCompleted) {
-                if (stage === 'NO_PORTO_DESEMBARACO') {
-                    if (order.eta_port_date) {
-                        const portDate = new Date(order.eta_port_date + 'T00:00:00');
-                        if (!isNaN(portDate.getTime())) {
-                            const daysAtPort = Math.round((today - portDate) / (1000 * 60 * 60 * 24));
-                            if (daysAtPort > 7) {
-                                stageAlertHtml = `
-                                    <div style="background: rgba(239, 68, 68, 0.12); border: 1px dashed rgba(239, 68, 68, 0.45); color: #f87171; border-radius: 4px; padding: 3px 6px; font-size: 0.66rem; font-weight: 700; display: flex; align-items: center; gap: 4px; margin-top: 3px;" title="Atenção: Carga há ${daysAtPort} dias no porto. Risco iminente de cobrança de demurrage de container pelo armador.">
-                                        <span>⚓</span> <span>No porto há ${daysAtPort}d • Risco Demurrage</span>
-                                    </div>
-                                `;
+                if (isCourier) {
+                    // ALERTAS ESPECÍFICOS PARA COURIER (FEDEX / DHL)
+                    if (stage === 'NO_PORTO_DESEMBARACO') {
+                        let daysInCustoms = 0;
+                        if (order.eta_port_date) {
+                            const portDate = new Date(order.eta_port_date + 'T00:00:00');
+                            if (!isNaN(portDate.getTime())) {
+                                daysInCustoms = Math.max(0, Math.round((today - portDate) / (1000 * 60 * 60 * 24)));
                             }
                         }
-                    }
-                } else if (stage === 'NO_NAVIO') {
-                    if (order.eta_port_date) {
-                        const portDate = new Date(order.eta_port_date + 'T00:00:00');
-                        if (!isNaN(portDate.getTime())) {
-                            const shipDiff = Math.round((portDate - today) / (1000 * 60 * 60 * 24));
-                            if (shipDiff < 0) {
-                                const shipLate = Math.abs(shipDiff);
-                                stageAlertHtml = `
-                                    <div style="background: rgba(245, 158, 11, 0.12); border: 1px dashed rgba(245, 158, 11, 0.45); color: #fbbf24; border-radius: 4px; padding: 3px 6px; font-size: 0.66rem; font-weight: 700; display: flex; align-items: center; gap: 4px; margin-top: 3px;" title="Atracação em Santos atrasada há ${shipLate} dias (Previsão era: ${new Date(order.eta_port_date + 'T00:00:00').toLocaleDateString('pt-BR')})">
-                                        <span>🚢</span> <span>Atracação atrasada (${shipLate}d)</span>
-                                    </div>
-                                `;
+                        if (daysInCustoms >= 3) {
+                            stageAlertHtml = `
+                                <div style="background: rgba(239, 68, 68, 0.15); border: 1px dashed rgba(239, 68, 68, 0.5); color: #f87171; border-radius: 4px; padding: 3px 6px; font-size: 0.66rem; font-weight: 800; display: flex; align-items: center; gap: 4px; margin-top: 3px;" title="Alerta Crítico: Remessa parada há ${daysInCustoms} dias na alfândega expressa. Risco de exigência fiscal ou retenção aduaneira.">
+                                    <span>🚨</span> <span>Alfândega Courier (${daysInCustoms}d) • Retenção Crítica</span>
+                                </div>
+                            `;
+                        } else if (daysInCustoms >= 2) {
+                            stageAlertHtml = `
+                                <div style="background: rgba(245, 158, 11, 0.15); border: 1px dashed rgba(245, 158, 11, 0.5); color: #fbbf24; border-radius: 4px; padding: 3px 6px; font-size: 0.66rem; font-weight: 700; display: flex; align-items: center; gap: 4px; margin-top: 3px;" title="Atenção: Na alfândega há ${daysInCustoms} dias. Verifique se há impostos/DARF pendentes de pagamento.">
+                                    <span>⚠️</span> <span>Alfândega Courier (${daysInCustoms}d) • Pagar Impostos</span>
+                                </div>
+                            `;
+                        }
+                    } else if (stage === 'NO_NAVIO') {
+                        let flightDays = 0;
+                        if (order.etd_date) {
+                            const etdDate = new Date(order.etd_date + 'T00:00:00');
+                            if (!isNaN(etdDate.getTime())) {
+                                flightDays = Math.max(0, Math.round((today - etdDate) / (1000 * 60 * 60 * 24)));
                             }
                         }
+                        if (flightDays > 6) {
+                            stageAlertHtml = `
+                                <div style="background: rgba(245, 158, 11, 0.15); border: 1px dashed rgba(245, 158, 11, 0.5); color: #fbbf24; border-radius: 4px; padding: 3px 6px; font-size: 0.66rem; font-weight: 700; display: flex; align-items: center; gap: 4px; margin-top: 3px;" title="Voo / Conexão em trânsito há ${flightDays} dias. Verifique o rastreio da transportadora.">
+                                    <span>✈️</span> <span>Voo em trânsito há ${flightDays}d (Atraso)</span>
+                                </div>
+                            `;
+                        }
                     }
-                } else if (stage === 'EM_FABRICACAO') {
-                    if (order.fabrication_end_date) {
-                        const fabDate = new Date(order.fabrication_end_date + 'T00:00:00');
-                        if (!isNaN(fabDate.getTime())) {
-                            const fabDiff = Math.round((fabDate - today) / (1000 * 60 * 60 * 24));
-                            if (fabDiff < 0) {
-                                const fabLate = Math.abs(fabDiff);
-                                stageAlertHtml = `
-                                    <div style="background: rgba(245, 158, 11, 0.12); border: 1px dashed rgba(245, 158, 11, 0.45); color: #fbbf24; border-radius: 4px; padding: 3px 6px; font-size: 0.66rem; font-weight: 700; display: flex; align-items: center; gap: 4px; margin-top: 3px;" title="Prontidão da fábrica atrasada há ${fabLate} dias">
-                                        <span>🏭</span> <span>Produção atrasada na fábrica (${fabLate}d)</span>
-                                    </div>
-                                `;
+                } else {
+                    // ALERTAS NORMAIS PARA MARÍTIMO
+                    if (stage === 'NO_PORTO_DESEMBARACO') {
+                        if (order.eta_port_date) {
+                            const portDate = new Date(order.eta_port_date + 'T00:00:00');
+                            if (!isNaN(portDate.getTime())) {
+                                const daysAtPort = Math.round((today - portDate) / (1000 * 60 * 60 * 24));
+                                if (daysAtPort > 7) {
+                                    stageAlertHtml = `
+                                        <div style="background: rgba(239, 68, 68, 0.12); border: 1px dashed rgba(239, 68, 68, 0.45); color: #f87171; border-radius: 4px; padding: 3px 6px; font-size: 0.66rem; font-weight: 700; display: flex; align-items: center; gap: 4px; margin-top: 3px;" title="Atenção: Carga há ${daysAtPort} dias no porto. Risco iminente de cobrança de demurrage de container pelo armador.">
+                                            <span>⚓</span> <span>No porto há ${daysAtPort}d • Risco Demurrage</span>
+                                        </div>
+                                    `;
+                                }
+                            }
+                        }
+                    } else if (stage === 'NO_NAVIO') {
+                        if (order.eta_port_date) {
+                            const portDate = new Date(order.eta_port_date + 'T00:00:00');
+                            if (!isNaN(portDate.getTime())) {
+                                const shipDiff = Math.round((portDate - today) / (1000 * 60 * 60 * 24));
+                                if (shipDiff < 0) {
+                                    const shipLate = Math.abs(shipDiff);
+                                    stageAlertHtml = `
+                                        <div style="background: rgba(245, 158, 11, 0.12); border: 1px dashed rgba(245, 158, 11, 0.45); color: #fbbf24; border-radius: 4px; padding: 3px 6px; font-size: 0.66rem; font-weight: 700; display: flex; align-items: center; gap: 4px; margin-top: 3px;" title="Atracação em Santos atrasada há ${shipLate} dias (Previsão era: ${new Date(order.eta_port_date + 'T00:00:00').toLocaleDateString('pt-BR')})">
+                                            <span>🚢</span> <span>Atracação atrasada (${shipLate}d)</span>
+                                        </div>
+                                    `;
+                                }
+                            }
+                        }
+                    } else if (stage === 'EM_FABRICACAO') {
+                        if (order.fabrication_end_date) {
+                            const fabDate = new Date(order.fabrication_end_date + 'T00:00:00');
+                            if (!isNaN(fabDate.getTime())) {
+                                const fabDiff = Math.round((fabDate - today) / (1000 * 60 * 60 * 24));
+                                if (fabDiff < 0) {
+                                    const fabLate = Math.abs(fabDiff);
+                                    stageAlertHtml = `
+                                        <div style="background: rgba(245, 158, 11, 0.12); border: 1px dashed rgba(245, 158, 11, 0.45); color: #fbbf24; border-radius: 4px; padding: 3px 6px; font-size: 0.66rem; font-weight: 700; display: flex; align-items: center; gap: 4px; margin-top: 3px;" title="Prontidão da fábrica atrasada há ${fabLate} dias">
+                                            <span>🏭</span> <span>Produção atrasada na fábrica (${fabLate}d)</span>
+                                        </div>
+                                    `;
+                                }
                             }
                         }
                     }
@@ -29368,12 +29662,13 @@ function renderKanban() {
             });
 
             const filterSupplier = document.getElementById('sc-kanban-filter-supplier')?.value || 'ALL';
+            const filterModality = document.getElementById('sc-kanban-filter-modality')?.value || 'all';
             const filterPendency = document.getElementById('sc-kanban-filter-pendency')?.value || 'all';
             const filterSearch = (document.getElementById('sc-kanban-filter-search')?.value || '').trim().toLowerCase();
             const clearBtn = document.getElementById('sc-kanban-clear-filters-btn');
             const summaryEl = document.getElementById('sc-kanban-filter-summary');
 
-            const isFilterActive = filterSupplier !== 'ALL' || filterSearch !== '' || filterPendency !== 'all';
+            const isFilterActive = filterSupplier !== 'ALL' || filterModality !== 'all' || filterSearch !== '' || filterPendency !== 'all';
             if (clearBtn) clearBtn.style.display = isFilterActive ? 'inline-block' : 'none';
 
             const allOrders = supplyChainState.orders || [];
@@ -29394,7 +29689,14 @@ function renderKanban() {
                     }
                 }
 
-                // 2. Filtro por Pendência / Bloqueio / Prazos
+                // 2. Filtro por Modal de Transporte (Marítimo vs Courier)
+                if (filterModality !== 'all') {
+                    const orderMode = (order.transport_mode || order.import_transport_mode || 'MARITIMO').toUpperCase();
+                    if (filterModality === 'courier' && orderMode !== 'COURIER') return false;
+                    if (filterModality === 'maritimo' && orderMode !== 'MARITIMO') return false;
+                }
+
+                // 3. Filtro por Pendência / Bloqueio / Prazos
                 if (filterPendency !== 'all') {
                     if (filterPendency === 'overdue') {
                         if (!delayInfo.isOverdue) return false;
@@ -29437,8 +29739,10 @@ function renderKanban() {
                         (i.detail && i.detail.toLowerCase().includes(filterSearch))
                     );
                     const delayMatch = delayInfo.isOverdue && ('atrasado atraso atrasada'.includes(filterSearch));
+                    const trkMatch = order.tracking_number && order.tracking_number.toLowerCase().includes(filterSearch);
+                    const courierMatch = order.courier_service && order.courier_service.toLowerCase().includes(filterSearch);
 
-                    if (!poMatch && !invMatch && !suppMatch && !contMatch && !vesselMatch && !prjMatch && !clientMatch && !itemMatch && !pendingMatch && !delayMatch) {
+                    if (!poMatch && !invMatch && !suppMatch && !contMatch && !vesselMatch && !prjMatch && !clientMatch && !itemMatch && !pendingMatch && !delayMatch && !trkMatch && !courierMatch) {
                         return false;
                     }
                 }
@@ -29450,9 +29754,9 @@ function renderKanban() {
             if (summaryEl) {
                 const overdueStr = overdueCount > 0 ? ` • <strong style="color: #f87171;">🚨 ${overdueCount} atrasado${overdueCount > 1 ? 's' : ''}</strong>` : '';
                 if (isFilterActive) {
-                    summaryEl.innerHTML = `Exibindo <strong style="color: #38bdf8;">${filteredOrders.length}</strong> de <strong>${allOrders.length}</strong> containers${overdueStr}`;
+                    summaryEl.innerHTML = `Exibindo <strong style="color: #38bdf8;">${filteredOrders.length}</strong> de <strong>${allOrders.length}</strong> ordens/cargas${overdueStr}`;
                 } else {
-                    summaryEl.innerHTML = `Total de <strong style="color: #f8fafc;">${allOrders.length}</strong> containers${overdueStr}`;
+                    summaryEl.innerHTML = `Total de <strong style="color: #f8fafc;">${allOrders.length}</strong> ordens/cargas${overdueStr}`;
                 }
             }
 
@@ -29517,6 +29821,8 @@ function renderKanban() {
                 }
 
                 // Header do Card
+                const isCourier = (order.transport_mode || order.import_transport_mode || '').toUpperCase() === 'COURIER';
+                const courierBadge = isCourier ? `<span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: 800;" title="Courier Expresso (${order.courier_service || 'FEDEX'})">✈️ ${order.courier_service || 'COURIER'}</span>` : '';
                 const isRollover = order.is_rollover_order === 1;
                 const rolloverBadge = isRollover ? `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(245, 158, 11, 0.3);">SALDO REMANESCENTE</span>` : '';
                 const invoiceBadge = order.invoice_number ? `<span style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: bold;" title="Invoice / Proforma">📄 Inv: ${order.invoice_number}</span>` : '';
@@ -29528,9 +29834,19 @@ function renderKanban() {
                 if (delayInfo.isOverdue) etaColor = '#f87171';
                 else if (delayInfo.isNearDue) etaColor = '#fbbf24';
 
-                // Identificação de Navio / Container
+                // Identificação de Navio / Container ou Courier Expresso
                 let logisticsSnippet = '';
-                if (order.container_id || order.vessel_name) {
+                if (isCourier) {
+                    const svc = (order.courier_service || 'COURIER').toUpperCase();
+                    const trk = order.tracking_number ? order.tracking_number.trim() : '';
+                    const trkUrl = getCourierTrackingUrl(svc, trk);
+                    logisticsSnippet = `
+                        <div style="font-size: 0.70rem; color: #fbbf24; display: flex; align-items: center; justify-content: space-between; gap: 4px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); padding: 3px 6px; border-radius: 4px;">
+                            <span style="font-weight: 700;">✈️ ${svc}</span>
+                            ${trk ? `<a href="${trkUrl}" target="_blank" onclick="event.stopPropagation();" style="color: #38bdf8; font-weight: 800; text-decoration: underline; font-family: monospace; display: inline-flex; align-items: center; gap: 2px;" title="Rastrear envio em tempo real">${trk} ↗</a>` : '<span style="color: #94a3b8; font-style: italic;">Sem rastreio</span>'}
+                        </div>
+                    `;
+                } else if (order.container_id || order.vessel_name) {
                     logisticsSnippet = `
                         <div style="font-size: 0.7rem; color: #94a3b8; display: flex; align-items: center; gap: 4px;">
                             <span>🚢</span> <span>${order.vessel_name || ''} ${order.container_id ? '• ' + order.container_id : ''}</span>
@@ -29567,11 +29883,14 @@ function renderKanban() {
                     `;
                 }
 
+                const etaLabel = isCourier ? 'ETA Entrega:' : 'ETA Doca:';
+
                 card.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
                         <div>
                             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                                 <span style="font-weight: 800; color: #f8fafc; font-size: 0.88rem;">${order.po_number}</span>
+                                ${courierBadge}
                                 ${invoiceBadge}
                                 ${projectBadge}
                             </div>
@@ -29588,7 +29907,10 @@ function renderKanban() {
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 0.72rem; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 6px; margin-top: 2px;">
                         <span style="color: #4ade80; font-weight: 700;">${totalFobStr}</span>
                         <div style="display: inline-flex; align-items: center; gap: 4px;">
-                            <span style="color: #94a3b8; font-size: 0.68rem;">ETA Doca:</span>
+                            <span style="color: #94a3b8; font-size: 0.68rem;">${etaLabel}</span>
+                            <strong style="color: ${etaColor}; font-size: 0.72rem;">${delayInfo.etaDisplayDateStr}</strong>
+                        </div>
+                    </div>
                             <strong style="color: ${etaColor}; font-size: 0.72rem;">${delayInfo.etaDisplayDateStr}</strong>
                         </div>
                     </div>
@@ -29845,9 +30167,11 @@ function renderKanban() {
         function clearSupplyKanbanFilters() {
             const suppSelect = document.getElementById('sc-kanban-filter-supplier');
             const pendSelect = document.getElementById('sc-kanban-filter-pendency');
+            const modSelect = document.getElementById('sc-kanban-filter-modality');
             const searchInput = document.getElementById('sc-kanban-filter-search');
             if (suppSelect) suppSelect.value = 'ALL';
             if (pendSelect) pendSelect.value = 'all';
+            if (modSelect) modSelect.value = 'all';
             if (searchInput) searchInput.value = '';
             renderSupplyChainKanban();
         }
@@ -30135,8 +30459,15 @@ function renderKanban() {
                 return;
             }
 
+            const transportMode = document.getElementById('sc-order-transport-mode')?.value || 'MARITIMO';
+            const courierService = document.getElementById('sc-order-courier-service')?.value || 'FEDEX';
+            const trackingNumber = document.getElementById('sc-order-tracking-number')?.value?.trim() || '';
+
             const formData = new FormData();
             formData.append('po_number', po);
+            formData.append('transport_mode', transportMode);
+            formData.append('courier_service', courierService);
+            formData.append('tracking_number', trackingNumber);
             formData.append('supplier_id', suppId);
             formData.append('supplier_name', suppName);
             formData.append('invoice_number', invNo);
@@ -30227,6 +30558,12 @@ function renderKanban() {
 
                 // Preencher campos logísticos e EADI
                 const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+                const orderTransportMode = order.transport_mode || 'MARITIMO';
+                if (typeof toggleSupplyDetailsTransportMode === 'function') {
+                    toggleSupplyDetailsTransportMode(orderTransportMode);
+                }
+                setVal('sc-det-courier-service', order.courier_service || 'FEDEX');
+                setVal('sc-det-tracking-number', order.tracking_number || '');
                 setVal('sc-det-container-id', order.container_id);
                 setVal('sc-det-vessel-name', order.vessel_name);
                 setVal('sc-det-bl-number', order.bl_number);
@@ -30420,6 +30757,9 @@ function renderKanban() {
             const orderId = supplyChainState.currentOrder.id;
 
             const payload = {
+                transport_mode: document.getElementById('sc-det-transport-mode')?.value || 'MARITIMO',
+                courier_service: document.getElementById('sc-det-courier-service')?.value || 'FEDEX',
+                tracking_number: document.getElementById('sc-det-tracking-number')?.value?.trim() || '',
                 container_id: document.getElementById('sc-det-container-id')?.value.trim(),
                 vessel_name: document.getElementById('sc-det-vessel-name')?.value.trim(),
                 bl_number: document.getElementById('sc-det-bl-number')?.value.trim(),
