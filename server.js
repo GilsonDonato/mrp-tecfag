@@ -231,6 +231,9 @@ db.run("ALTER TABLE projects ADD COLUMN danfe_access_key TEXT", () => {});
 db.run("ALTER TABLE projects ADD COLUMN danfe_items TEXT", () => {});
 db.run("ALTER TABLE projects ADD COLUMN commercial_proposal_data TEXT", () => {});
 db.run("ALTER TABLE projects ADD COLUMN commercial_alignment_summary TEXT", () => {});
+db.run("ALTER TABLE projects ADD COLUMN pending_issue TEXT DEFAULT 'NENHUMA'", () => {});
+db.run("ALTER TABLE projects ADD COLUMN pending_issue_desc TEXT", () => {});
+db.run("ALTER TABLE projects ADD COLUMN pending_issue_since TEXT", () => {});
 db.run("UPDATE projects SET import_stage = NULL WHERE (fase IS NULL OR fase <= 2) AND (checklist NOT LIKE '%\"contrato\":true%')", () => {});
 
         // Limpeza automática de comentários órfãos de projetos excluídos
@@ -7903,7 +7906,8 @@ app.put('/api/projects/:code', async (req, res) => {
         import_cbm, import_gross_weight, import_net_weight, import_packages_count, import_packages_type,
         is_archived, archived_at, delivery_invoice, delivery_date,
         danfe_number, danfe_date, danfe_value, danfe_access_key, danfe_items,
-        commercial_proposal_data, commercial_alignment_summary
+        commercial_proposal_data, commercial_alignment_summary,
+        pending_issue, pending_issue_desc, pending_issue_since
     } = req.body;
     const { code } = req.params;
 
@@ -8118,8 +8122,15 @@ app.put('/api/projects/:code', async (req, res) => {
             danfe_access_key: danfe_access_key !== undefined ? danfe_access_key : (oldProject.danfe_access_key || null),
             danfe_items: danfe_items !== undefined ? (typeof danfe_items === 'string' ? danfe_items : JSON.stringify(danfe_items)) : (oldProject.danfe_items || null),
             commercial_proposal_data: commercial_proposal_data !== undefined ? (typeof commercial_proposal_data === 'string' ? commercial_proposal_data : JSON.stringify(commercial_proposal_data)) : (oldProject.commercial_proposal_data || null),
-            commercial_alignment_summary: commercial_alignment_summary !== undefined ? (typeof commercial_alignment_summary === 'string' ? commercial_alignment_summary : JSON.stringify(commercial_alignment_summary)) : (oldProject.commercial_alignment_summary || null)
+            commercial_alignment_summary: commercial_alignment_summary !== undefined ? (typeof commercial_alignment_summary === 'string' ? commercial_alignment_summary : JSON.stringify(commercial_alignment_summary)) : (oldProject.commercial_alignment_summary || null),
+            pending_issue: pending_issue !== undefined ? pending_issue : (oldProject.pending_issue || 'NENHUMA'),
+            pending_issue_desc: pending_issue_desc !== undefined ? pending_issue_desc : (oldProject.pending_issue_desc || null),
+            pending_issue_since: pending_issue_since !== undefined ? pending_issue_since : (oldProject.pending_issue_since || null)
         };
+
+        if (pending_issue !== undefined && pending_issue !== oldProject.pending_issue) {
+            await recordAuditLog(code, auditUser, `Alterou status de pendência de "${oldProject.pending_issue || 'NENHUMA'}" para "${pending_issue}". Detalhe: ${pending_issue_desc || '-'}`);
+        }
 
         if (sku !== undefined) {
             updateFields.sku = sku;

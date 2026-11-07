@@ -2424,8 +2424,15 @@
                         Status:
                     </span>
                     <select id="kanban-status-filter" onchange="applyKanbanFilters()" style="background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; font-weight: bold; cursor: pointer; outline: none; transition: border-color 0.2s;">
-                        <option value="all">📋 Todos os Projetos</option>
-                        <option value="pending">💬 Dúvidas Pendentes</option>
+                        <option value="all">🌐 Todos os Projetos</option>
+                        <option value="with_issues">⚠️ Com Qualquer Pendência</option>
+                        <option value="samples">📦 Aguardando Amostras do Cliente</option>
+                        <option value="waiting_vendor">⏸️ Aguardando Vendedor</option>
+                        <option value="specs">⚡ Aguardando Tensão / Requisitos</option>
+                        <option value="contracts">📝 Pendente Proposta / Contrato</option>
+                        <option value="sat">🧪 Aguardando Insumos p/ SAT</option>
+                        <option value="danfe">🧾 Pendente DANFE</option>
+                        <option value="pending">💬 Dúvidas no Diário de Bordo</option>
                     </select>
                 </div>
 
@@ -3881,6 +3888,38 @@
             </div>
             
             <div class="modal-body">
+                <!-- Barra de Status de Pendência / Bloqueio do Card -->
+                <div id="modal-project-pending-issue-bar" style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 280px;">
+                        <span style="font-size: 1.3rem;" id="modal-pending-issue-icon">🟢</span>
+                        <div style="display: flex; flex-direction: column; gap: 3px; flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 0.74rem; font-weight: 800; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    Status de Pendência / Bloqueio:
+                                </span>
+                                <span id="modal-pending-issue-time-badge" style="font-size: 0.68rem; color: #94a3b8; background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px; font-weight: 700;">
+                                    Fluxo Normal
+                                </span>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                <select id="modal-project-pending-issue-select" onchange="handleModalPendingIssueChange(this.value)" style="background: #0f172a; color: #f8fafc; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 6px; padding: 6px 10px; font-size: 0.82rem; font-weight: 700; outline: none; cursor: pointer;">
+                                    <option value="NENHUMA">🟢 Fluxo Normal (Sem Bloqueio)</option>
+                                    <option value="AMOSTRAS_CLIENTE">📦 Aguardando Amostras do Cliente (Frascos/Tampas/Rótulos)</option>
+                                    <option value="DEFINICAO_CLIENTE">⚡ Aguardando Definição do Cliente (Tensão/Layout/Espaço)</option>
+                                    <option value="CONTRATO_PROPOSTA">📝 Aguardando Proposta / Contrato Assinado / Entrada</option>
+                                    <option value="INSUMOS_SAT">🧪 Aguardando Insumos do Cliente p/ Teste (SAT na Oficina)</option>
+                                    <option value="AGUARDANDO_VENDEDOR">⏸️ Aguardando Retorno do Vendedor</option>
+                                    <option value="OUTRO">⚠️ Outra Pendência Externa / Bloqueio</option>
+                                </select>
+                                <input type="text" id="modal-project-pending-desc-input" placeholder="Detalhe da pendência (ex: Frascos 100ml enviados via Sedex pelo cliente)..." style="flex: 1; min-width: 220px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 6px 12px; font-size: 0.82rem; color: #e2e8f0; outline: none;">
+                                <button type="button" class="btn" onclick="saveProjectPendingIssueQuick()" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; padding: 6px 14px; font-size: 0.80rem; font-weight: 800; border-radius: 6px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(14, 165, 233, 0.3);">
+                                    💾 Salvar Pendência
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Alerta de SLA Pausado / Aguardando Vendedor -->
                 <div id="modal-waiting-vendor-top-alert" style="display: none; background: linear-gradient(90deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.08) 100%); border: 1px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; color: #fbbf24;">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
@@ -14336,13 +14375,27 @@
                 });
             }
 
-            // Filtro de Dúvida Pendente
+            // Filtro de Status e Pendências
             const statusFilter = document.getElementById('kanban-status-filter');
             const statusVal = statusFilter ? statusFilter.value : 'all';
             const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
             const friendlyCurrent = getFriendlyUserName(currentUser).toLowerCase();
 
-            if (statusVal === 'pending') {
+            if (statusVal === 'with_issues') {
+                filteredPrjs = filteredPrjs.filter(p => getProjectPendingIssues(p).hasIssue);
+            } else if (statusVal === 'samples') {
+                filteredPrjs = filteredPrjs.filter(p => getProjectPendingIssues(p).allIssues.some(i => i.type === 'AMOSTRAS'));
+            } else if (statusVal === 'waiting_vendor') {
+                filteredPrjs = filteredPrjs.filter(p => getProjectPendingIssues(p).allIssues.some(i => i.type === 'VENDEDOR'));
+            } else if (statusVal === 'specs') {
+                filteredPrjs = filteredPrjs.filter(p => getProjectPendingIssues(p).allIssues.some(i => i.type === 'DEFINICAO'));
+            } else if (statusVal === 'contracts') {
+                filteredPrjs = filteredPrjs.filter(p => getProjectPendingIssues(p).allIssues.some(i => i.type === 'CONTRATO'));
+            } else if (statusVal === 'sat') {
+                filteredPrjs = filteredPrjs.filter(p => getProjectPendingIssues(p).allIssues.some(i => i.type === 'SAT'));
+            } else if (statusVal === 'danfe') {
+                filteredPrjs = filteredPrjs.filter(p => (p.fase >= 2 && !p.danfe_number) || getProjectPendingIssues(p).allIssues.some(i => i.type === 'DANFE'));
+            } else if (statusVal === 'pending') {
                 filteredPrjs = filteredPrjs.filter(project => {
                     const isCreator = (project.checklist && project.checklist.diagnostico_user === currentUser) ||
                                       (getProjectSeller(project).toLowerCase() === friendlyCurrent);
@@ -14366,8 +14419,8 @@
 
             // Filtro de Cargo / Função (Responsabilidade / Gargalo com Visibilidade Compartilhada)
             if (currentRole && currentRole !== 'ALL' && currentRole !== 'DIRETOR') {
-                // Se o usuário fez busca por texto ou filtrou por dúvidas pendentes, mantém todos os correspondentes visíveis
-                if (!searchQuery && statusVal !== 'pending') {
+                // Se o usuário fez busca por texto ou filtrou por pendências específicas, mantém todos os correspondentes visíveis
+                if (!searchQuery && statusVal === 'all') {
                     filteredPrjs = filteredPrjs.filter(p => {
                         const bottleneck = getBottleneckRole(p);
                         const isCreator = (p.checklist && p.checklist.diagnostico_user === currentUser) ||
@@ -19159,6 +19212,321 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
             return { statusText, statusColor, icon, badgeText };
         }
 
+        // =========================================================================
+        // DETECTOR CENTRALIZADO DE PENDÊNCIAS E BLOQUEIOS DE PROJETOS (MRP TECFAG)
+        // =========================================================================
+        function getProjectPendingIssues(p) {
+            const issues = [];
+            const chk = typeof p.checklist === 'string' ? JSON.parse(p.checklist || '{}') : (p.checklist || {});
+            let ss = {};
+            try { ss = p.setup_specs ? (typeof p.setup_specs === 'string' ? JSON.parse(p.setup_specs) : p.setup_specs) : {}; } catch(e){}
+
+            const now = new Date();
+            const sinceDate = p.pending_issue_since ? new Date(p.pending_issue_since) : (p.lastUpdate ? new Date(p.lastUpdate) : new Date());
+            const diffDays = Math.max(0, Math.floor(Math.abs(now - sinceDate) / (1000 * 60 * 60 * 24)));
+            const timeStr = diffDays === 0 ? 'hoje' : (diffDays === 1 ? 'há 1 dia' : `há ${diffDays} dias`);
+
+            // 1. Pendência Explícita / Manual definida pelo usuário
+            const manualIssue = p.pending_issue || 'NENHUMA';
+
+            if (manualIssue === 'AMOSTRAS_CLIENTE') {
+                issues.push({
+                    type: 'AMOSTRAS',
+                    label: 'Aguardando Amostras do Cliente',
+                    shortLabel: 'Aguard. Amostras',
+                    icon: '📦',
+                    color: '#f59e0b',
+                    bgColor: 'rgba(245, 158, 11, 0.18)',
+                    borderColor: 'rgba(245, 158, 11, 0.5)',
+                    daysWaiting: diffDays,
+                    timeText: timeStr,
+                    detail: p.pending_issue_desc || 'Frascos, potes, tampas ou bobinas para validação/testes'
+                });
+            } else if (manualIssue === 'DEFINICAO_CLIENTE') {
+                issues.push({
+                    type: 'DEFINICAO',
+                    label: 'Aguardando Definição do Cliente',
+                    shortLabel: 'Definição Cliente',
+                    icon: '⚡',
+                    color: '#fbbf24',
+                    bgColor: 'rgba(251, 191, 36, 0.18)',
+                    borderColor: 'rgba(251, 191, 36, 0.5)',
+                    daysWaiting: diffDays,
+                    timeText: timeStr,
+                    detail: p.pending_issue_desc || 'Tensão elétrica (220V/380V), layout físico ou insumo'
+                });
+            } else if (manualIssue === 'CONTRATO_PROPOSTA') {
+                issues.push({
+                    type: 'CONTRATO',
+                    label: 'Aguardando Contrato / Proposta Assinada',
+                    shortLabel: 'Falta Proposta',
+                    icon: '📝',
+                    color: '#38bdf8',
+                    bgColor: 'rgba(56, 189, 248, 0.18)',
+                    borderColor: 'rgba(56, 189, 248, 0.5)',
+                    daysWaiting: diffDays,
+                    timeText: timeStr,
+                    detail: p.pending_issue_desc || 'Proposta assinada, contrato formal ou sinal financeiro'
+                });
+            } else if (manualIssue === 'INSUMOS_SAT') {
+                issues.push({
+                    type: 'SAT',
+                    label: 'Aguardando Insumos p/ Teste (SAT)',
+                    shortLabel: 'Insumos SAT',
+                    icon: '🧪',
+                    color: '#ec4899',
+                    bgColor: 'rgba(236, 72, 153, 0.18)',
+                    borderColor: 'rgba(236, 72, 153, 0.5)',
+                    daysWaiting: diffDays,
+                    timeText: timeStr,
+                    detail: p.pending_issue_desc || 'Insumo real do cliente para teste de bancada e SAT na oficina'
+                });
+            } else if (manualIssue === 'AGUARDANDO_VENDEDOR') {
+                issues.push({
+                    type: 'VENDEDOR',
+                    label: 'Aguardando Retorno do Vendedor',
+                    shortLabel: 'Aguard. Vendedor',
+                    icon: '⏸️',
+                    color: '#f97316',
+                    bgColor: 'rgba(249, 115, 22, 0.18)',
+                    borderColor: 'rgba(249, 115, 22, 0.5)',
+                    daysWaiting: diffDays,
+                    timeText: timeStr,
+                    detail: p.pending_issue_desc || p.waiting_vendor_reason || 'Dúvida técnica pendente com vendedor'
+                });
+            } else if (manualIssue === 'OUTRO') {
+                issues.push({
+                    type: 'OUTRO',
+                    label: p.pending_issue_desc ? `Bloqueio: ${p.pending_issue_desc}` : 'Pendência Técnica / Comercial',
+                    shortLabel: 'Bloqueio',
+                    icon: '⚠️',
+                    color: '#f87171',
+                    bgColor: 'rgba(239, 68, 68, 0.18)',
+                    borderColor: 'rgba(239, 68, 68, 0.5)',
+                    daysWaiting: diffDays,
+                    timeText: timeStr,
+                    detail: p.pending_issue_desc || 'Verifique o Diário de Bordo'
+                });
+            }
+
+            // 2. Detecções Automáticas de Processo (quando não sobrescrito por pendência manual)
+            if (!issues.some(i => i.type === 'VENDEDOR') && (p.waiting_vendor === 1 || p.waiting_vendor === true)) {
+                const wSince = p.waiting_vendor_since ? new Date(p.waiting_vendor_since) : new Date();
+                const dWait = Math.max(0, Math.floor(Math.abs(now - wSince) / (1000 * 60 * 60 * 24)));
+                issues.push({
+                    type: 'VENDEDOR',
+                    label: 'Aguardando Retorno do Vendedor',
+                    shortLabel: 'Aguard. Vendedor',
+                    icon: '⏸️',
+                    color: '#f59e0b',
+                    bgColor: 'rgba(245, 158, 11, 0.15)',
+                    borderColor: 'rgba(245, 158, 11, 0.45)',
+                    daysWaiting: dWait,
+                    timeText: dWait === 0 ? 'hoje' : `há ${dWait}d`,
+                    detail: p.waiting_vendor_reason || 'A Engenharia solicitou dados ao Vendedor'
+                });
+            }
+
+            // Amostras: Se o projeto estiver na Fase 1 ou 6 e as amostras não estiverem recebidas/validadas
+            if (!issues.some(i => i.type === 'AMOSTRAS')) {
+                const amostraOk = Boolean(chk.sat || chk.customizacao || chk.amostras_recebidas === true || chk.amostras_recebidas === 'true');
+                if (!amostraOk && (p.fase === 1 || p.fase === 6)) {
+                    issues.push({
+                        type: 'AMOSTRAS',
+                        label: 'Aguardando Amostras do Cliente',
+                        shortLabel: 'Aguard. Amostras',
+                        icon: '📦',
+                        color: '#f59e0b',
+                        bgColor: 'rgba(245, 158, 11, 0.14)',
+                        borderColor: 'rgba(245, 158, 11, 0.4)',
+                        daysWaiting: diffDays,
+                        timeText: '',
+                        detail: 'Amostras de frascos/tampas necessárias para homologação ou setup'
+                    });
+                }
+            }
+
+            // Tensão Indefinida na Fase 1
+            if (p.fase === 1 && !issues.some(i => i.type === 'DEFINICAO')) {
+                let tensao = ss.tensao_eletrica || '';
+                if (!tensao && p.diagnostico) {
+                    try { const d = JSON.parse(p.diagnostico); if (d.infra && d.infra.tension) tensao = d.infra.tension; } catch(e){}
+                }
+                if (!tensao || tensao.trim() === '') {
+                    issues.push({
+                        type: 'DEFINICAO',
+                        label: 'Tensão Elétrica Indefinida',
+                        shortLabel: 'Tensão Indefinida',
+                        icon: '⚡',
+                        color: '#fbbf24',
+                        bgColor: 'rgba(251, 191, 36, 0.14)',
+                        borderColor: 'rgba(251, 191, 36, 0.4)',
+                        daysWaiting: 0,
+                        timeText: '',
+                        detail: 'Confirmar com o cliente se a fábrica opera em 220V ou 380V'
+                    });
+                }
+            }
+
+            // Proposta/Contrato na Fase 2
+            if (p.fase === 2 && !issues.some(i => i.type === 'CONTRATO')) {
+                const hasProposal = Boolean(p.commercial_proposal_data || chk.proposta || chk.contrato);
+                if (!hasProposal) {
+                    issues.push({
+                        type: 'CONTRATO',
+                        label: 'Pendente Contrato / Proposta',
+                        shortLabel: 'Falta Proposta',
+                        icon: '📝',
+                        color: '#38bdf8',
+                        bgColor: 'rgba(56, 189, 248, 0.14)',
+                        borderColor: 'rgba(56, 189, 248, 0.4)',
+                        daysWaiting: 0,
+                        timeText: '',
+                        detail: 'Anexar Proposta Comercial aceita ou Contrato assinado'
+                    });
+                }
+            }
+
+            // Pendente DANFE na Fase 7
+            if (p.fase === 7 && !p.danfe_number) {
+                issues.push({
+                    type: 'DANFE',
+                    label: 'Pendente Emissão de DANFE',
+                    shortLabel: 'Falta DANFE',
+                    icon: '🧾',
+                    color: '#a855f7',
+                    bgColor: 'rgba(168, 85, 247, 0.14)',
+                    borderColor: 'rgba(168, 85, 247, 0.4)',
+                    daysWaiting: 0,
+                    timeText: '',
+                    detail: 'Máquina concluída aguardando emissão de Nota Fiscal'
+                });
+            }
+
+            return {
+                hasIssue: issues.length > 0,
+                primaryIssue: issues[0] || null,
+                allIssues: issues
+            };
+        }
+
+        // Funções de UI para o Gerenciador de Pendências no Modal
+        function updateModalPendingIssueUi(project) {
+            const sel = document.getElementById('modal-project-pending-issue-select');
+            const descInput = document.getElementById('modal-project-pending-desc-input');
+            const badge = document.getElementById('modal-pending-issue-time-badge');
+            const icon = document.getElementById('modal-pending-issue-icon');
+            const bar = document.getElementById('modal-project-pending-issue-bar');
+
+            if (!sel) return;
+
+            const currentIssue = project.pending_issue || 'NENHUMA';
+            sel.value = currentIssue;
+            if (descInput) descInput.value = project.pending_issue_desc || '';
+
+            const pendingData = getProjectPendingIssues(project);
+            if (pendingData.hasIssue) {
+                const pIss = pendingData.primaryIssue;
+                if (icon) icon.innerText = pIss.icon;
+                if (badge) {
+                    badge.innerText = pIss.timeText ? `${pIss.shortLabel} (${pIss.timeText})` : pIss.label;
+                    badge.style.background = pIss.bgColor;
+                    badge.style.color = pIss.color;
+                    badge.style.border = `1px solid ${pIss.borderColor}`;
+                }
+                if (bar) {
+                    bar.style.border = `1px solid ${pIss.borderColor}`;
+                    bar.style.background = `rgba(15, 23, 42, 0.85)`;
+                }
+            } else {
+                if (icon) icon.innerText = '🟢';
+                if (badge) {
+                    badge.innerText = 'Fluxo Normal (Sem Bloqueio)';
+                    badge.style.background = 'rgba(16, 185, 129, 0.15)';
+                    badge.style.color = '#34d399';
+                    badge.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+                }
+                if (bar) {
+                    bar.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+                    bar.style.background = 'rgba(15, 23, 42, 0.7)';
+                }
+            }
+        }
+
+        function handleModalPendingIssueChange(val) {
+            const descInput = document.getElementById('modal-project-pending-desc-input');
+            if (!descInput) return;
+            if (val === 'AMOSTRAS_CLIENTE' && !descInput.value) {
+                descInput.value = 'Aguardando envio de frascos / tampas / bobinas pelo cliente';
+            } else if (val === 'DEFINICAO_CLIENTE' && !descInput.value) {
+                descInput.value = 'Aguardando cliente confirmar tensão elétrica (220V/380V) ou layout';
+            } else if (val === 'CONTRATO_PROPOSTA' && !descInput.value) {
+                descInput.value = 'Aguardando Proposta assinada / Contrato ou sinal financeiro';
+            } else if (val === 'INSUMOS_SAT' && !descInput.value) {
+                descInput.value = 'Aguardando produto real do cliente para teste de bancada e SAT na oficina';
+            } else if (val === 'AGUARDANDO_VENDEDOR' && !descInput.value) {
+                descInput.value = 'Aguardando resposta do vendedor comercial';
+            } else if (val === 'NENHUMA') {
+                descInput.value = '';
+            }
+        }
+
+        async function saveProjectPendingIssueQuick() {
+            if (!activeProjectCode) return;
+            const project = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === activeProjectCode) : null;
+            if (!project) return;
+
+            const select = document.getElementById('modal-project-pending-issue-select');
+            const input = document.getElementById('modal-project-pending-desc-input');
+            if (!select) return;
+
+            const val = select.value;
+            const desc = input ? input.value.trim() : '';
+            let since = project.pending_issue_since;
+            if (val !== 'NENHUMA' && (!project.pending_issue || project.pending_issue === 'NENHUMA' || val !== project.pending_issue)) {
+                since = new Date().toISOString();
+            } else if (val === 'NENHUMA') {
+                since = null;
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const authHeaders = {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                };
+
+                const res = await fetch(`/api/projects/${encodeURIComponent(activeProjectCode)}`, {
+                    method: 'PUT',
+                    headers: authHeaders,
+                    body: JSON.stringify({
+                        pending_issue: val,
+                        pending_issue_desc: desc,
+                        pending_issue_since: since,
+                        lastUpdate: new Date().toISOString()
+                    })
+                });
+
+                if (!res.ok) throw new Error('Erro ao salvar status de pendência.');
+
+                project.pending_issue = val;
+                project.pending_issue_desc = desc;
+                project.pending_issue_since = since;
+
+                updateModalPendingIssueUi(project);
+                renderKanban();
+                if (typeof showIhmToast === 'function') {
+                    showIhmToast(`✅ Pendência atualizada: ${select.options[select.selectedIndex].text.split('(')[0]}`, 'success');
+                } else {
+                    alert('✅ Status de pendência atualizado com sucesso!');
+                }
+
+            } catch (err) {
+                console.error('Erro ao atualizar pendência:', err);
+                alert('Erro ao atualizar pendência: ' + err.message);
+            }
+        }
+
 function renderKanban() {
             const phasesList = [1, 2, 6, 7];
             phasesList.forEach(i => {
@@ -19357,6 +19725,7 @@ function renderKanban() {
                 const techSummary = extractCardTechnicalSummary(project);
                 const importSummary = extractCardImportSummary(project);
                 const displayName = project.project_name || project.sku || 'Equipamento Sob Encomenda';
+                const pendingData = getProjectPendingIssues(project);
 
                 const card = document.createElement('div');
                 
@@ -19370,7 +19739,25 @@ function renderKanban() {
                 
                 let phaseColorVar = `--color-fase${project.fase}`;
                 card.style.setProperty('--phase-color', `var(${phaseColorVar})`);
+                if (pendingData.hasIssue) {
+                    card.style.borderLeft = `5px solid ${pendingData.primaryIssue.color}`;
+                    card.style.boxShadow = `0 2px 10px rgba(0,0,0,0.3), inset 0 0 0 1px ${pendingData.primaryIssue.borderColor}`;
+                }
                 card.onclick = () => openProjectModal(project.code);
+
+                let pendingBadgeHtml = "";
+                if (pendingData.hasIssue) {
+                    const pIssue = pendingData.primaryIssue;
+                    pendingBadgeHtml = `
+                        <div class="project-card-pending-badge" style="background: ${pIssue.bgColor}; border: 1px solid ${pIssue.borderColor}; color: ${pIssue.color}; font-size: 0.70rem; font-weight: 800; padding: 4px 7px; border-radius: 4px; margin: 3px 0 6px 0; display: flex; align-items: center; justify-content: space-between; gap: 5px; box-shadow: 0 1px 4px rgba(0,0,0,0.25);" title="${escapeProjectHtml(pIssue.detail)}">
+                            <span style="display: inline-flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <span style="font-size: 0.85rem;">${pIssue.icon}</span>
+                                <strong style="overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.2px;">${escapeProjectHtml(pIssue.label)}</strong>
+                            </span>
+                            ${pIssue.timeText ? `<span style="font-size: 0.60rem; background: rgba(0,0,0,0.35); padding: 1px 4px; border-radius: 3px; font-weight: 800; white-space: nowrap;">${pIssue.timeText}</span>` : ''}
+                        </div>
+                    `;
+                }
 
                 card.innerHTML = `
                     ${waitingVendorTopBannerHtml}
@@ -19388,9 +19775,10 @@ function renderKanban() {
                     </div>
 
                     <!-- Modelo da Máquina / SKU -->
-                    <div class="project-name-card" style="font-size: 0.74rem; font-weight: 800; color: #38bdf8; margin: 2px 0 6px 0; background: rgba(56, 189, 248, 0.08); border-left: 3px solid #0ea5e9; padding: 4px 6px; border-radius: 0 4px 4px 0; word-break: break-word; text-transform: uppercase; letter-spacing: 0.2px;">
+                    <div class="project-name-card" style="font-size: 0.74rem; font-weight: 800; color: #38bdf8; margin: 2px 0 4px 0; background: rgba(56, 189, 248, 0.08); border-left: 3px solid #0ea5e9; padding: 4px 6px; border-radius: 0 4px 4px 0; word-break: break-word; text-transform: uppercase; letter-spacing: 0.2px;">
                         📦 ${displayName}
                     </div>
+                    ${pendingBadgeHtml}
 
                     <div class="project-card-body" style="display: flex; flex-direction: column; gap: 6px;">
                         <!-- BLOCO 1: VIABILIDADE TÉCNICA & CONFORMIDADE (100% da necessidade do cliente) -->
@@ -20207,6 +20595,11 @@ function renderKanban() {
 
             if (typeof updateChatControlsForRole === 'function') {
                 updateChatControlsForRole(project);
+            }
+
+            // Atualizar gerenciador de pendência / bloqueio no modal
+            if (typeof updateModalPendingIssueUi === 'function') {
+                updateModalPendingIssueUi(project);
             }
 
             // Gerar imagem do QR Code
@@ -25451,6 +25844,20 @@ function renderKanban() {
                     setup_specs: setupSpecs,
                     spare_parts_recommendations: project.spare_parts_recommendations || []
                 };
+
+                // Sincroniza status de pendência / bloqueio do modal
+                const pendingSelect = document.getElementById('modal-project-pending-issue-select');
+                const pendingDescInput = document.getElementById('modal-project-pending-desc-input');
+                if (pendingSelect) {
+                    const pVal = pendingSelect.value;
+                    updateBody.pending_issue = pVal;
+                    updateBody.pending_issue_desc = pendingDescInput ? pendingDescInput.value.trim() : '';
+                    if (pVal !== 'NENHUMA' && (!project.pending_issue || project.pending_issue === 'NENHUMA' || pVal !== project.pending_issue)) {
+                        updateBody.pending_issue_since = new Date().toISOString();
+                    } else if (pVal === 'NENHUMA') {
+                        updateBody.pending_issue_since = null;
+                    }
+                }
 
                 // Sincroniza campos de importação presentes no modal caso tenham sido alterados ou lidos por IA
                 const impSupplier = document.getElementById('modal-import-supplier')?.value;
