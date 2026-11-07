@@ -3573,9 +3573,24 @@
                 <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                     <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1;">
                         <!-- Dropdown de Fornecedor Internacional -->
-                        <div style="min-width: 240px;">
+                        <div style="min-width: 220px;">
                             <select id="sc-kanban-filter-supplier" onchange="renderSupplyChainKanban()" class="form-control" style="padding: 8px 12px; font-size: 0.82rem; background: var(--bg-card); border-color: rgba(56, 189, 248, 0.4); color: #f8fafc; font-weight: 600;">
                                 <option value="ALL">🏭 Todos os Fornecedores</option>
+                            </select>
+                        </div>
+
+                        <!-- Dropdown de Pendências / Bloqueios -->
+                        <div style="min-width: 220px;">
+                            <select id="sc-kanban-filter-pendency" onchange="renderSupplyChainKanban()" class="form-control" style="padding: 8px 12px; font-size: 0.82rem; background: var(--bg-card); border-color: rgba(245, 158, 11, 0.4); color: #f8fafc; font-weight: 600;">
+                                <option value="all">⚡ Status / Todas as Ordens</option>
+                                <option value="with_issues">⚠️ Com Qualquer Pendência</option>
+                                <option value="samples">📦 Aguardando Amostras do Cliente</option>
+                                <option value="waiting_vendor">⏸️ Aguardando Vendedor</option>
+                                <option value="specs">⚡ Aguardando Tensão / Requisitos</option>
+                                <option value="contracts">📝 Pendente Proposta / Contrato</option>
+                                <option value="sat">🧪 Aguardando Insumos p/ SAT</option>
+                                <option value="danfe">🧾 Pendente DANFE</option>
+                                <option value="pending">💬 Dúvidas no Diário de Bordo</option>
                             </select>
                         </div>
 
@@ -15580,6 +15595,9 @@ Atenciosamente,`;
                     renderKanban();
                     renderProjectsTable();
                     populateTagProjectSelectors();
+                    if (typeof renderSupplyChainKanban === 'function') {
+                        renderSupplyChainKanban();
+                    }
 
                     // Rastreabilidade por QR Code: abrir modal automaticamente se houver parâmetro 'project' na URL
                     const urlParams = new URLSearchParams(window.location.search);
@@ -19513,8 +19531,20 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
                 project.pending_issue_desc = desc;
                 project.pending_issue_since = since;
 
+                if (typeof supplyChainState !== 'undefined' && Array.isArray(supplyChainState.orders)) {
+                    const matchOrder = supplyChainState.orders.find(o => o.project_code === activeProjectCode || o.id === 'PRJ-' + activeProjectCode);
+                    if (matchOrder) {
+                        matchOrder.pending_issue = val;
+                        matchOrder.pending_issue_desc = desc;
+                        matchOrder.pending_issue_since = since;
+                    }
+                }
+
                 updateModalPendingIssueUi(project);
                 renderKanban();
+                if (typeof renderSupplyChainKanban === 'function') {
+                    renderSupplyChainKanban();
+                }
                 if (typeof showIhmToast === 'function') {
                     showIhmToast(`✅ Pendência atualizada: ${select.options[select.selectedIndex].text.split('(')[0]}`, 'success');
                 } else {
@@ -25964,8 +25994,20 @@ function renderKanban() {
                     body: JSON.stringify({ timestamp, color: '#10b981', text: logText })
                 }).catch(e => console.error('Erro ao registrar log de auditoria:', e));
 
+                if (typeof supplyChainState !== 'undefined' && Array.isArray(supplyChainState.orders)) {
+                    const matchOrder = supplyChainState.orders.find(o => o.project_code === project.code || o.id === 'PRJ-' + project.code);
+                    if (matchOrder) {
+                        matchOrder.pending_issue = project.pending_issue;
+                        matchOrder.pending_issue_desc = project.pending_issue_desc;
+                        matchOrder.pending_issue_since = project.pending_issue_since;
+                    }
+                }
+
                 closeProjectModal();
                 loadProjectsDB();
+                if (typeof renderSupplyChainKanban === 'function') {
+                    renderSupplyChainKanban();
+                }
 
                 // AUTOMATED PRINTING ENGINE
                 if (triggerAutoPrint) {
@@ -26123,8 +26165,20 @@ function renderKanban() {
                 }).catch(e => console.error('Erro log cancelamento:', e));
 
                 closeLostReasonModal();
+                if (typeof supplyChainState !== 'undefined' && Array.isArray(supplyChainState.orders)) {
+                    const matchOrder = supplyChainState.orders.find(o => o.project_code === project.code || o.id === 'PRJ-' + project.code);
+                    if (matchOrder) {
+                        matchOrder.pending_issue = project.pending_issue;
+                        matchOrder.pending_issue_desc = project.pending_issue_desc;
+                        matchOrder.pending_issue_since = project.pending_issue_since;
+                    }
+                }
+
                 closeProjectModal();
                 loadProjectsDB();
+                if (typeof renderSupplyChainKanban === 'function') {
+                    renderSupplyChainKanban();
+                }
             })
             .catch(err => {
                 console.error(err);
@@ -27232,8 +27286,20 @@ function renderKanban() {
                     body: JSON.stringify({ timestamp, color: '#3b82f6', text: logText })
                 }).catch(e => console.error('Erro log reativacao:', e));
 
+                if (typeof supplyChainState !== 'undefined' && Array.isArray(supplyChainState.orders)) {
+                    const matchOrder = supplyChainState.orders.find(o => o.project_code === project.code || o.id === 'PRJ-' + project.code);
+                    if (matchOrder) {
+                        matchOrder.pending_issue = project.pending_issue;
+                        matchOrder.pending_issue_desc = project.pending_issue_desc;
+                        matchOrder.pending_issue_since = project.pending_issue_since;
+                    }
+                }
+
                 closeProjectModal();
                 loadProjectsDB();
+                if (typeof renderSupplyChainKanban === 'function') {
+                    renderSupplyChainKanban();
+                }
             })
             .catch(err => {
                 console.error(err);
@@ -29134,16 +29200,23 @@ function renderKanban() {
             });
 
             const filterSupplier = document.getElementById('sc-kanban-filter-supplier')?.value || 'ALL';
+            const filterPendency = document.getElementById('sc-kanban-filter-pendency')?.value || 'all';
             const filterSearch = (document.getElementById('sc-kanban-filter-search')?.value || '').trim().toLowerCase();
             const clearBtn = document.getElementById('sc-kanban-clear-filters-btn');
             const summaryEl = document.getElementById('sc-kanban-filter-summary');
 
-            const isFilterActive = filterSupplier !== 'ALL' || filterSearch !== '';
+            const isFilterActive = filterSupplier !== 'ALL' || filterSearch !== '' || filterPendency !== 'all';
             if (clearBtn) clearBtn.style.display = isFilterActive ? 'inline-block' : 'none';
 
             const allOrders = supplyChainState.orders || [];
 
             const filteredOrders = allOrders.filter(order => {
+                const isProject = !!order.project_code || !!order.is_project;
+                const prjCode = order.project_code || (typeof order.id === 'string' && order.id.startsWith('PRJ-') ? order.id.replace('PRJ-', '') : null);
+                const linkedPrj = (state && Array.isArray(state.projects)) ? state.projects.find(p => p.code === prjCode) : null;
+                const prjData = linkedPrj || order;
+                const pendingData = getProjectPendingIssues(prjData);
+
                 // 1. Filtro por Fornecedor Internacional
                 if (filterSupplier !== 'ALL') {
                     if (String(order.supplier_id) !== String(filterSupplier) &&
@@ -29152,19 +29225,46 @@ function renderKanban() {
                     }
                 }
 
-                // 2. Busca Livre por Invoice, PO, Container ou Modelo (SKU)
+                // 2. Filtro por Pendência / Bloqueio
+                if (filterPendency !== 'all') {
+                    if (filterPendency === 'with_issues') {
+                        if (!pendingData.hasIssue) return false;
+                    } else if (filterPendency === 'samples') {
+                        if (!pendingData.allIssues.some(i => i.type === 'AMOSTRAS')) return false;
+                    } else if (filterPendency === 'waiting_vendor') {
+                        if (!pendingData.allIssues.some(i => i.type === 'WAITING_VENDOR')) return false;
+                    } else if (filterPendency === 'specs') {
+                        if (!pendingData.allIssues.some(i => i.type === 'DEFINICAO')) return false;
+                    } else if (filterPendency === 'contracts') {
+                        if (!pendingData.allIssues.some(i => i.type === 'CONTRATO')) return false;
+                    } else if (filterPendency === 'sat') {
+                        if (!pendingData.allIssues.some(i => i.type === 'INSUMOS_SAT')) return false;
+                    } else if (filterPendency === 'danfe') {
+                        if (!pendingData.allIssues.some(i => i.type === 'DANFE_PENDENTE')) return false;
+                    } else if (filterPendency === 'pending') {
+                        if (!pendingData.allIssues.some(i => i.type === 'LOG_PENDENTE')) return false;
+                    }
+                }
+
+                // 3. Busca Livre por Invoice, PO, Container, SKU ou Pendências
                 if (filterSearch) {
                     const poMatch = order.po_number && order.po_number.toLowerCase().includes(filterSearch);
                     const invMatch = order.invoice_number && order.invoice_number.toLowerCase().includes(filterSearch);
                     const suppMatch = order.supplier_name && order.supplier_name.toLowerCase().includes(filterSearch);
                     const contMatch = order.container_id && order.container_id.toLowerCase().includes(filterSearch);
                     const vesselMatch = order.vessel_name && order.vessel_name.toLowerCase().includes(filterSearch);
+                    const prjMatch = prjCode && prjCode.toLowerCase().includes(filterSearch);
+                    const clientMatch = order.client_name && order.client_name.toLowerCase().includes(filterSearch);
                     const itemMatch = (order.items || []).some(it => 
                         (it.sku && it.sku.toLowerCase().includes(filterSearch)) ||
                         (it.description && it.description.toLowerCase().includes(filterSearch))
                     );
+                    const pendingMatch = pendingData.hasIssue && pendingData.allIssues.some(i => 
+                        (i.label && i.label.toLowerCase().includes(filterSearch)) ||
+                        (i.detail && i.detail.toLowerCase().includes(filterSearch))
+                    );
 
-                    if (!poMatch && !invMatch && !suppMatch && !contMatch && !vesselMatch && !itemMatch) {
+                    if (!poMatch && !invMatch && !suppMatch && !contMatch && !vesselMatch && !prjMatch && !clientMatch && !itemMatch && !pendingMatch) {
                         return false;
                     }
                 }
@@ -29210,6 +29310,30 @@ function renderKanban() {
                 const isProject = !!order.project_code || !!order.is_project;
                 const prjCode = order.project_code || (typeof order.id === 'string' && order.id.startsWith('PRJ-') ? order.id.replace('PRJ-', '') : null);
                 card.onclick = () => { if (isProject && prjCode) { openProjectModal(prjCode, 'logistics'); } else { openSupplyDetailsModal(order.id); } };
+
+                // Gestão de Pendências no Card do Comex
+                const linkedPrj = (state && Array.isArray(state.projects)) ? state.projects.find(p => p.code === prjCode) : null;
+                const prjData = linkedPrj || order;
+                const pendingData = getProjectPendingIssues(prjData);
+
+                if (pendingData.hasIssue) {
+                    card.style.borderLeft = `5px solid ${pendingData.primaryIssue.color}`;
+                    card.style.boxShadow = `0 2px 10px rgba(0,0,0,0.3), inset 0 0 0 1px ${pendingData.primaryIssue.borderColor}`;
+                }
+
+                let pendingBadgeHtml = "";
+                if (pendingData.hasIssue) {
+                    const pIssue = pendingData.primaryIssue;
+                    pendingBadgeHtml = `
+                        <div class="project-card-pending-badge" style="background: ${pIssue.bgColor}; border: 1px solid ${pIssue.borderColor}; color: ${pIssue.color}; font-size: 0.70rem; font-weight: 800; padding: 4px 7px; border-radius: 4px; margin: 3px 0 5px 0; display: flex; align-items: center; justify-content: space-between; gap: 5px; box-shadow: 0 1px 4px rgba(0,0,0,0.25);" title="${escapeProjectHtml(pIssue.detail)}">
+                            <span style="display: inline-flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <span style="font-size: 0.85rem;">${pIssue.icon}</span>
+                                <strong style="overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.2px;">${escapeProjectHtml(pIssue.label)}</strong>
+                            </span>
+                            ${pIssue.timeText ? `<span style="font-size: 0.60rem; background: rgba(0,0,0,0.35); padding: 1px 4px; border-radius: 3px; font-weight: 800; white-space: nowrap;">${pIssue.timeText}</span>` : ''}
+                        </div>
+                    `;
+                }
 
                 // Header do Card
                 const isRollover = order.is_rollover_order === 1;
@@ -29283,6 +29407,8 @@ function renderKanban() {
                         </div>
                         ${rolloverBadge}
                     </div>
+
+                    ${pendingBadgeHtml}
 
                     ${logisticsSnippet}
                     ${eadiProgressSnippet}
@@ -29539,8 +29665,10 @@ function renderKanban() {
 
         function clearSupplyKanbanFilters() {
             const suppSelect = document.getElementById('sc-kanban-filter-supplier');
+            const pendSelect = document.getElementById('sc-kanban-filter-pendency');
             const searchInput = document.getElementById('sc-kanban-filter-search');
             if (suppSelect) suppSelect.value = 'ALL';
+            if (pendSelect) pendSelect.value = 'all';
             if (searchInput) searchInput.value = '';
             renderSupplyChainKanban();
         }

@@ -11559,6 +11559,12 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
                 existingOrder.project_name = p.project_name;
                 existingOrder.project_sku = p.sku;
                 existingOrder.stage = canonStage;
+                existingOrder.pending_issue = p.pending_issue;
+                existingOrder.pending_issue_desc = p.pending_issue_desc;
+                existingOrder.pending_issue_since = p.pending_issue_since;
+                existingOrder.fase = p.fase;
+                existingOrder.checklist = p.checklist;
+                existingOrder.history = p.history;
             } else {
                 const stage = canonStage;
                 let daysInEadi = 0;
@@ -11573,6 +11579,12 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
                     client_name: p.client,
                     project_name: p.project_name,
                     project_sku: p.sku,
+                    pending_issue: p.pending_issue,
+                    pending_issue_desc: p.pending_issue_desc,
+                    pending_issue_since: p.pending_issue_since,
+                    fase: p.fase,
+                    checklist: p.checklist,
+                    history: p.history,
                     po_number: 'PO-' + p.code.replace('PRJTEC000000', 'PRJ'),
                     supplier_name: p.import_supplier || 'Fornecedor Internacional',
                     invoice_number: p.import_invoice_number || ('PI-' + p.code.replace('PRJTEC000000', 'PRJ')),
