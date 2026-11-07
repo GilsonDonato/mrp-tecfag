@@ -1698,14 +1698,14 @@
         }
 
         /* Definição de larguras para as colunas do Banco de Projetos */
-        #projects-table th:nth-child(1), #projects-table td:nth-child(1) { width: 14%; } /* Código */
-        #projects-table th:nth-child(2), #projects-table td:nth-child(2) { width: 15%; } /* Cliente */
-        #projects-table th:nth-child(3), #projects-table td:nth-child(3) { width: 22%; } /* Máquina (SKU) */
-        #projects-table th:nth-child(4), #projects-table td:nth-child(4) { width: 16%; } /* Fase Atual */
-        #projects-table th:nth-child(5), #projects-table td:nth-child(5) { width: 12%; } /* Progresso */
-        #projects-table th:nth-child(6), #projects-table td:nth-child(6) { width: 10%; } /* Responsável Atual */
-        #projects-table th:nth-child(7), #projects-table td:nth-child(7) { width: 9%; }  /* Última Atualização */
-        #projects-table th:nth-child(8), #projects-table td:nth-child(8) { width: 8%; }  /* Ações */
+        #projects-table th:nth-child(1), #projects-table td:nth-child(1) { width: 13%; } /* Código */
+        #projects-table th:nth-child(2), #projects-table td:nth-child(2) { width: 17%; } /* Cliente */
+        #projects-table th:nth-child(3), #projects-table td:nth-child(3) { width: 19%; } /* Máquina (SKU) */
+        #projects-table th:nth-child(4), #projects-table td:nth-child(4) { width: 14%; } /* Fase Atual */
+        #projects-table th:nth-child(5), #projects-table td:nth-child(5) { width: 11%; } /* Progresso */
+        #projects-table th:nth-child(6), #projects-table td:nth-child(6) { width: 11%; } /* Vendedor / Resp. */
+        #projects-table th:nth-child(7), #projects-table td:nth-child(7) { width: 8%; }  /* Última Atualização */
+        #projects-table th:nth-child(8), #projects-table td:nth-child(8) { width: 7%; }  /* Status */
 
         /* Widget de Cotação de Câmbio Lateral */
         .sidebar-exchange-widget {
@@ -2495,42 +2495,83 @@
             </div>
         </div>
 
-        <!-- TAB 2: DETALHES & FILTROS (PROJECT LIST) -->
+        <!-- TAB 2: DETALHES & FILTROS (PROJECT LIST / BANCO DE PROJETOS) -->
         <div id="tab-list" class="tab-content">
-            <div class="project-table-card">
-                <div class="flex-between" style="margin-bottom: 20px;">
+            <div class="project-table-card" style="padding: 24px; border-radius: 12px; background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);">
+                <!-- Top Header: Voltar, Título e Ações Globais -->
+                <div class="flex-between" style="margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
                     <div style="display: flex; align-items: center; gap: 14px;">
-                        <button type="button" class="btn btn-secondary" onclick="switchTab('dash')" style="font-size: 0.76rem; font-weight: 700; padding: 6px 12px; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                            ⬅ Voltar ao Kanban
+                        <button type="button" class="btn btn-secondary" onclick="switchTab('dash')" style="font-size: 0.76rem; font-weight: 700; padding: 7px 14px; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; display: flex; align-items: center; gap: 6px; cursor: pointer; border-radius: 6px; background: rgba(56, 189, 248, 0.08);">
+                            <span>⬅</span> Voltar ao Kanban
                         </button>
-                        <h3 style="margin: 0;">Banco de Projetos Industriais & Pós-Venda</h3>
+                        <div>
+                            <h3 style="margin: 0; font-size: 1.22rem; font-weight: 800; color: #f8fafc; letter-spacing: -0.3px;">
+                                Central de Projetos & Consulta Histórica
+                            </h3>
+                            <p style="margin: 3px 0 0 0; font-size: 0.74rem; color: #94a3b8;">
+                                Visão analítica consolidada, auditoria técnica e histórico permanente de ordens fabris.
+                            </p>
+                        </div>
                     </div>
-                    <div style="display: flex; gap: 12px; align-items: center;">
-                        <input type="search" class="form-control" id="search-prj" name="search_prj_field_custom" autocomplete="new-password" data-lpignore="true" data-form-type="other" readonly onfocus="this.removeAttribute('readonly');" onblur="if(!this.value) this.setAttribute('readonly', 'readonly');" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Buscar projeto, cliente..." oninput="renderProjectsTable()" style="padding: 8px 16px;">
-                        <select class="form-control" id="filter-fase" onchange="renderProjectsTable()" style="padding: 8px 16px;">
-                            <option value="ALL">Fase: Todas</option>
-                            <option value="1">1. Viabilidade Técnica (Apenas Especiais)</option>
-                            <option value="2">2. Pedido Fechado (Venda Ganha no RD)</option>
-                            <option value="6">3. Oficina, Setup & SAT</option>
-                            <option value="7">4. Faturamento & Entrega (Em Andamento)</option>
-                            <option value="8_SUCCESS">🏁 Entregues & Concluídos (Pós-Venda)</option>
-                            <option value="8_LOST">❌ Cancelados / Perdidos</option>
-                        </select>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button type="button" class="btn" onclick="exportProjectsToCsv()" style="font-size: 0.76rem; font-weight: 800; padding: 7px 14px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s;" title="Exportar lista filtrada para planilha Excel (CSV)">
+                            <span>📥</span> Exportar Excel (CSV)
+                        </button>
                     </div>
                 </div>
-                <div class="project-table-responsive">
+
+                <!-- Abas Rápidas de Escopo (Em Andamento vs Concluídos vs Histórico vs Todos) -->
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding: 4px; background: rgba(0, 0, 0, 0.25); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                    <button type="button" id="tab-scope-active" onclick="setProjectsListScope('ACTIVE')" style="padding: 7px 14px; font-size: 0.78rem; font-weight: 800; border-radius: 6px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; background: #0284c7; color: white; transition: all 0.2s;">
+                        <span>🟢 Em Andamento</span>
+                        <span id="badge-scope-active" style="background: rgba(255, 255, 255, 0.2); padding: 1px 6px; border-radius: 10px; font-size: 0.70rem;">0</span>
+                    </button>
+                    <button type="button" id="tab-scope-completed" onclick="setProjectsListScope('COMPLETED')" style="padding: 7px 14px; font-size: 0.78rem; font-weight: 700; border-radius: 6px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; background: transparent; color: #94a3b8; transition: all 0.2s;">
+                        <span>✅ Concluídos & Faturados</span>
+                        <span id="badge-scope-completed" style="background: rgba(255, 255, 255, 0.08); padding: 1px 6px; border-radius: 10px; font-size: 0.70rem;">0</span>
+                    </button>
+                    <button type="button" id="tab-scope-lost" onclick="setProjectsListScope('LOST')" style="padding: 7px 14px; font-size: 0.78rem; font-weight: 700; border-radius: 6px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; background: transparent; color: #94a3b8; transition: all 0.2s;">
+                        <span>🗄️ Histórico / Cancelados</span>
+                        <span id="badge-scope-lost" style="background: rgba(255, 255, 255, 0.08); padding: 1px 6px; border-radius: 10px; font-size: 0.70rem;">0</span>
+                    </button>
+                    <button type="button" id="tab-scope-all" onclick="setProjectsListScope('ALL')" style="padding: 7px 14px; font-size: 0.78rem; font-weight: 700; border-radius: 6px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; background: transparent; color: #94a3b8; transition: all 0.2s;">
+                        <span>🌐 Todos</span>
+                        <span id="badge-scope-all" style="background: rgba(255, 255, 255, 0.08); padding: 1px 6px; border-radius: 10px; font-size: 0.70rem;">0</span>
+                    </button>
+                </div>
+
+                <!-- Barra de Filtros Complementares: Busca Livre, Seletor de Fase e Resumo -->
+                <div style="display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 14px;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex: 1; min-width: 280px;">
+                        <input type="search" class="form-control" id="search-prj" name="search_prj_field_custom" autocomplete="new-password" data-lpignore="true" data-form-type="other" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="🔍 Buscar por código, cliente, máquina, vendedor, NF..." oninput="renderProjectsTable()" style="padding: 8px 14px; font-size: 0.80rem; border-radius: 6px; flex: 1; max-width: 420px; background: rgba(0, 0, 0, 0.35); border-color: rgba(255, 255, 255, 0.12);">
+                        <select class="form-control" id="filter-fase" onchange="renderProjectsTable()" style="padding: 8px 14px; font-size: 0.80rem; border-radius: 6px; width: auto; background: rgba(0, 0, 0, 0.35); border-color: rgba(255, 255, 255, 0.12);">
+                            <option value="ALL">Fase: Todas</option>
+                            <option value="1">1. Viabilidade Técnica</option>
+                            <option value="2">2. Comercial / Contrato</option>
+                            <option value="3">3. Proforma & Comex</option>
+                            <option value="4">4. Fabricação Internacional</option>
+                            <option value="5">5. Trânsito Marítimo & EADI</option>
+                            <option value="6">6. Oficina, Setup & SAT</option>
+                            <option value="7">7. Faturamento & Entrega</option>
+                        </select>
+                    </div>
+                    <div id="projects-table-summary" style="font-size: 0.76rem; color: #94a3b8; font-weight: 600;">
+                        <!-- Injetado por JS (Exibindo X de Y projetos) -->
+                    </div>
+                </div>
+
+                <div class="project-table-responsive" style="margin-top: 6px;">
                     <table id="projects-table">
                         <thead>
                             <tr>
                                 <th>Código</th>
                                 <th>Cliente</th>
-                                <th>Máquina (SKU)</th>
+                                <th>Equipamento (SKU)</th>
                                 <th>Fase Atual</th>
                                 <th>Progresso</th>
-                                <th>Responsável Atual</th>
-                                <th>Última Atualização</th>
-                                <th>Prazo</th>
-                                <th>Ações</th>
+                                <th>Vendedor / Resp.</th>
+                                <th>Atualização</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
                         <tbody id="projects-tbody">
@@ -16370,7 +16411,7 @@ Atenciosamente,`;
 
             const titles = {
                 dash: "Gestão e Controle de Projetos Industriais",
-                list: "Banco de Projetos Industriais",
+                list: "Central de Projetos Industriais & Histórico",
                 cadprj: "Cadastrar Novo Projeto de Automação",
                 tag: "Gerador e Impressor de Etiquetas",
                 metrics: "Painel de Métricas e Gargalos",
@@ -16382,7 +16423,7 @@ Atenciosamente,`;
 
             const subtitles = {
                 dash: "Gestão técnica de engenharia, importação, testes e entrega técnica (FAT/SAT).",
-                list: "Filtre e consulte o status atual das máquinas e responsabilidades.",
+                list: "Visão analítica consolidada, auditoria técnica e histórico permanente de ordens fabris.",
                 cadprj: "Cadastre o projeto, execute o diagnóstico de automação e inicie o fluxo técnico.",
                 tag: "Imprima a etiqueta de identificação física do projeto para rastreamento fabril.",
                 metrics: "Visão analítica dos prazos das fases e gargalos de produtividade por setor.",
@@ -19992,55 +20033,238 @@ function renderKanban() {
             });
         }
 
+        // =========================================================================
+        // CENTRAL DE CONSULTA, TABELA E HISTÓRICO DE PROJETOS (BANCO DE PROJETOS)
+        // =========================================================================
+        let projectsListScope = 'ACTIVE'; // 'ACTIVE' | 'COMPLETED' | 'LOST' | 'ALL'
+
+        function setProjectsListScope(scope) {
+            projectsListScope = scope;
+
+            const scopes = ['active', 'completed', 'lost', 'all'];
+            scopes.forEach(s => {
+                const btn = document.getElementById(`tab-scope-${s}`);
+                if (!btn) return;
+                const isSelected = (s.toUpperCase() === scope.toUpperCase());
+                if (isSelected) {
+                    btn.style.background = '#0284c7';
+                    btn.style.color = '#ffffff';
+                    btn.style.fontWeight = '800';
+                } else {
+                    btn.style.background = 'transparent';
+                    btn.style.color = '#94a3b8';
+                    btn.style.fontWeight = '700';
+                }
+            });
+
+            // Sincroniza as opções do select de fases para o escopo selecionado
+            const selFase = document.getElementById('filter-fase');
+            if (selFase) {
+                if (scope === 'ACTIVE') {
+                    selFase.innerHTML = `
+                        <option value="ALL">Fase: Todas as Ativas</option>
+                        <option value="1">1. Viabilidade Técnica</option>
+                        <option value="2">2. Comercial / Contrato</option>
+                        <option value="3">3. Proforma & Comex</option>
+                        <option value="4">4. Fabricação Internacional</option>
+                        <option value="5">5. Trânsito Marítimo & EADI</option>
+                        <option value="6">6. Oficina, Setup & SAT</option>
+                    `;
+                } else if (scope === 'COMPLETED') {
+                    selFase.innerHTML = `
+                        <option value="ALL">Fase: Todas Concluídas</option>
+                        <option value="7">7. Faturamento & Entrega</option>
+                        <option value="8">8. Entregues & Arquivados</option>
+                    `;
+                } else if (scope === 'LOST') {
+                    selFase.innerHTML = `
+                        <option value="ALL">Fase: Todos Cancelados / Perdidos</option>
+                        <option value="8">8. Cancelados / Perdidos</option>
+                    `;
+                } else {
+                    selFase.innerHTML = `
+                        <option value="ALL">Fase: Todas (1 a 8)</option>
+                        <option value="1">1. Viabilidade Técnica</option>
+                        <option value="2">2. Comercial / Contrato</option>
+                        <option value="3">3. Proforma & Comex</option>
+                        <option value="4">4. Fabricação Internacional</option>
+                        <option value="5">5. Trânsito Marítimo & EADI</option>
+                        <option value="6">6. Oficina, Setup & SAT</option>
+                        <option value="7">7. Faturamento & Entrega</option>
+                        <option value="8">8. Histórico / Cancelado</option>
+                    `;
+                }
+                selFase.value = 'ALL';
+            }
+
+            renderProjectsTable();
+        }
+
+        function getFilteredProjectsList() {
+            if (!state || !Array.isArray(state.projects)) return [];
+
+            const searchVal = (document.getElementById('search-prj')?.value || '').trim().toLowerCase();
+            const filterFase = document.getElementById('filter-fase')?.value || 'ALL';
+
+            return state.projects.filter(p => {
+                const isDelivered = (p.fase === 8 && !p.motivoPerda) || p.is_archived === 1 || p.fase === 7;
+                const isLost = (p.fase === 8 && !!p.motivoPerda);
+                const isActive = (p.fase >= 1 && p.fase <= 6 && !p.motivoPerda && p.is_archived !== 1);
+
+                // 1. Filtro do Escopo das Abas
+                if (projectsListScope === 'ACTIVE' && !isActive) return false;
+                if (projectsListScope === 'COMPLETED' && !isDelivered) return false;
+                if (projectsListScope === 'LOST' && !isLost) return false;
+
+                // 2. Filtro Específico por Fase
+                if (filterFase !== 'ALL') {
+                    if (p.fase !== parseInt(filterFase)) return false;
+                }
+
+                // 3. Busca Livre
+                if (searchVal) {
+                    const sellerStr = (getProjectSeller(p) || p.pm || '').toLowerCase();
+                    const codeStr = (p.code || '').toLowerCase();
+                    const clientStr = (p.client || '').toLowerCase();
+                    const skuStr = (p.sku || '').toLowerCase();
+                    const nfStr = (p.delivery_invoice || '').toLowerCase();
+                    const reasonStr = (p.motivoPerda || '').toLowerCase();
+                    const diagStr = typeof p.diagnostico === 'string' ? p.diagnostico.toLowerCase() : '';
+
+                    const matches = codeStr.includes(searchVal) ||
+                                    clientStr.includes(searchVal) ||
+                                    skuStr.includes(searchVal) ||
+                                    sellerStr.includes(searchVal) ||
+                                    nfStr.includes(searchVal) ||
+                                    reasonStr.includes(searchVal) ||
+                                    diagStr.includes(searchVal);
+                    if (!matches) return false;
+                }
+
+                return true;
+            });
+        }
+
+        function exportProjectsToCsv() {
+            if (!state || !Array.isArray(state.projects) || state.projects.length === 0) {
+                alert('Não há projetos carregados para exportar.');
+                return;
+            }
+
+            const filtered = getFilteredProjectsList();
+            if (filtered.length === 0) {
+                alert('Nenhum projeto encontrado com os filtros atuais para exportar.');
+                return;
+            }
+
+            const faseTextos = {
+                1: '1. Viabilidade Técnica',
+                2: '2. Comercial / Contrato',
+                3: '3. Proforma & Câmbio',
+                4: '4. Fabricação Internacional',
+                5: '5. Trânsito Marítimo & EADI',
+                6: '6. Oficina & SAT',
+                7: '7. Faturamento & Entrega',
+                8: '8. Histórico / Cancelado'
+            };
+
+            const header = ['Código', 'Cliente', 'Equipamento (SKU)', 'Fase', 'Progresso (%)', 'Vendedor / Responsável', 'Última Atualização', 'Status / Prazo', 'Motivo Cancelamento'];
+            const rows = filtered.map(p => {
+                const isDelivered = (p.fase === 8 && !p.motivoPerda) || p.is_archived === 1 || p.fase === 7;
+                const isLost = (p.fase === 8 && !!p.motivoPerda);
+                let faseStr = faseTextos[p.fase] || ('Fase ' + p.fase);
+                if (isDelivered) faseStr = 'Entregue / Concluído';
+                else if (isLost) faseStr = 'Cancelado / Perdido';
+
+                const progress = calculateProjectProgress(p);
+                const seller = getProjectSeller(p) || p.pm || '-';
+                const date = p.lastUpdate ? new Date(p.lastUpdate).toLocaleDateString('pt-BR') : '-';
+                let statusStr = '';
+                if (isLost) {
+                    statusStr = 'Cancelado';
+                } else if (isDelivered) {
+                    statusStr = p.delivery_invoice ? `Concluído (NF ${p.delivery_invoice})` : 'Concluído';
+                } else {
+                    statusStr = 'Em Andamento';
+                }
+
+                const esc = (val) => {
+                    const str = String(val === null || val === undefined ? '' : val).replace(/"/g, '""');
+                    return `"${str}"`;
+                };
+
+                return [
+                    esc(p.code),
+                    esc(p.client),
+                    esc(p.sku),
+                    esc(faseStr),
+                    progress,
+                    esc(seller),
+                    esc(date),
+                    esc(statusStr),
+                    esc(p.motivoPerda || '')
+                ].join(';');
+            });
+
+            const csvContent = '\uFEFF' + [header.map(h => `"${h}"`).join(';'), ...rows].join('\r\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0, 10);
+            a.download = `Projetos_Tecfag_${projectsListScope}_${dateStr}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
         // Projects table list
         function renderProjectsTable() {
             const tbody = document.getElementById('projects-tbody');
+            if (!tbody) return;
             tbody.innerHTML = '';
 
-            const searchVal = document.getElementById('search-prj').value.toLowerCase();
-            const filterFase = document.getElementById('filter-fase').value;
+            const all = (state && Array.isArray(state.projects)) ? state.projects : [];
 
-            const filtered = state.projects.filter(p => {
-                const sellerStr = getProjectSeller(p).toLowerCase();
-                const matchesSearch = p.code.toLowerCase().includes(searchVal) ||
-                                      p.client.toLowerCase().includes(searchVal) ||
-                                      p.pm.toLowerCase().includes(searchVal) ||
-                                      p.diagnostico.toLowerCase().includes(searchVal) ||
-                                      sellerStr.includes(searchVal);
-                
-                const isDelivered = (p.fase === 8 && !p.motivoPerda) || p.is_archived === 1;
+            // 1. Atualizar badges de contagem de cada escopo
+            let cActive = 0, cCompleted = 0, cLost = 0;
+            all.forEach(p => {
+                const isDelivered = (p.fase === 8 && !p.motivoPerda) || p.is_archived === 1 || p.fase === 7;
                 const isLost = (p.fase === 8 && !!p.motivoPerda);
-                const matchesFase = filterFase === 'ALL' || 
-                    (filterFase === '8_SUCCESS' ? isDelivered : 
-                    (filterFase === '8_LOST' ? isLost : 
-                    p.fase === parseInt(filterFase)));
-                
-                let matchesRole = true;
-                if (currentRole && currentRole !== 'ALL' && currentRole !== 'DIRETOR' && !searchVal) {
-                    const bottleneck = getBottleneckRole(p);
-                    const userStr = localStorage.getItem('tecfag_user');
-                    const currentUser = userStr ? JSON.parse(userStr).username : 'admin';
-                    const friendlyCurrent = getFriendlyUserName(currentUser).toLowerCase();
-                    const isCreator = (p.checklist && p.checklist.diagnostico_user === currentUser) ||
-                                      (sellerStr === friendlyCurrent);
-                    const hasChat = !!p.crm_last_comment_user && 
-                                    p.crm_last_comment_user !== 'Sistema' && 
-                                    p.crm_last_comment_user !== 'Sistema Tecfag (IA)';
+                const isActive = (p.fase >= 1 && p.fase <= 6 && !p.motivoPerda && p.is_archived !== 1);
 
-                    if (currentRole === 'VENDAS' || currentRole === 'GERENTE_COMERCIAL') {
-                        matchesRole = bottleneck === 'VENDAS' || (isCreator && (p.fase === 1 || p.fase === 2)) || (isCreator && hasChat);
-                    } else if (currentRole === 'ENGENHARIA') {
-                        matchesRole = bottleneck === 'ENGENHARIA' || p.fase === 1 || p.fase === 2 || hasChat;
-                    } else {
-                        matchesRole = bottleneck === currentRole || hasChat;
-                    }
-                }
-                
-                return matchesSearch && matchesFase && matchesRole;
+                if (isActive) cActive++;
+                else if (isDelivered) cCompleted++;
+                else if (isLost) cLost++;
             });
 
+            const bActive = document.getElementById('badge-scope-active');
+            const bCompleted = document.getElementById('badge-scope-completed');
+            const bLost = document.getElementById('badge-scope-lost');
+            const bAll = document.getElementById('badge-scope-all');
+            if (bActive) bActive.innerText = cActive;
+            if (bCompleted) bCompleted.innerText = cCompleted;
+            if (bLost) bLost.innerText = cLost;
+            if (bAll) bAll.innerText = all.length;
+
+            const filtered = getFilteredProjectsList();
+
+            // 2. Atualizar sumário textual
+            const summaryEl = document.getElementById('projects-table-summary');
+            if (summaryEl) {
+                const scopeNames = {
+                    'ACTIVE': 'em andamento',
+                    'COMPLETED': 'concluídos',
+                    'LOST': 'cancelados/histórico',
+                    'ALL': 'no total'
+                };
+                summaryEl.innerHTML = `Exibindo <strong style="color: #38bdf8;">${filtered.length}</strong> projetos ${scopeNames[projectsListScope] || ''} (de ${all.length})`;
+            }
+
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-secondary);">Nenhum projeto localizado.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 30px;">Nenhum projeto localizado para os filtros selecionados.</td></tr>`;
                 return;
             }
 
@@ -20068,56 +20292,54 @@ function renderKanban() {
 
             filtered.forEach(p => {
                 const progress = calculateProjectProgress(p);
-                const date = p.lastUpdate ? new Date(p.lastUpdate).toLocaleDateString() : '-';
-                const bottleneck = getBottleneckRole(p);
+                const date = p.lastUpdate ? new Date(p.lastUpdate).toLocaleDateString('pt-BR') : '-';
                 const editingUser = state.activeLocks ? state.activeLocks[p.code] : null;
 
-                // Detecta se é projeto especial pendente de aprovação técnica
-                let isEspecial = false;
-                if (p.diagnostico) {
-                    try {
-                        const parsed = typeof p.diagnostico === 'string' ? JSON.parse(p.diagnostico) : p.diagnostico;
-                        if (parsed && parsed.segment === 'PROJETOS_ESPECIAIS') {
-                            isEspecial = true;
-                        }
-                    } catch(e) {}
-                }
-                
-                let isApprovedByEng = false;
-                if (p.checklist) {
-                    try {
-                        const parsedChecklist = typeof p.checklist === 'string' ? JSON.parse(p.checklist) : p.checklist;
-                        if (parsedChecklist && parsedChecklist.aprovacao === true) {
-                            isApprovedByEng = true;
-                        }
-                    } catch(e) {}
-                }
+                const isDelivered = (p.fase === 8 && !p.motivoPerda) || p.is_archived === 1 || p.fase === 7;
+                const isLost = (p.fase === 8 && !!p.motivoPerda);
+                const isActive = (p.fase >= 1 && p.fase <= 6 && !p.motivoPerda && p.is_archived !== 1);
 
+                // Badge da Fase
                 let badgeHtml = `
-                    <span class="badge-fase" style="background-color: ${faseClasses[p.fase]}20; color: ${faseClasses[p.fase]}; border: 1px solid ${faseClasses[p.fase]}40;">
+                    <span class="badge-fase" style="background-color: ${faseClasses[p.fase] || '#64748b'}20; color: ${faseClasses[p.fase] || '#94a3b8'}; border: 1px solid ${faseClasses[p.fase] || '#64748b'}40;">
                         ${faseTextos[p.fase] || 'Fase ' + p.fase}
                     </span>
                 `;
                 
-                if ((p.fase === 8 && !p.motivoPerda) || p.is_archived === 1) {
+                if (isDelivered) {
                     badgeHtml = `
                         <span class="badge-fase" style="background-color: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 800;">
                             🎉 Entregue (Pós-Venda)
                         </span>
                     `;
-                } else if (isEspecial && !isApprovedByEng) {
+                } else if (isLost) {
                     badgeHtml = `
-                        <span class="badge-fase" style="background-color: rgba(249, 115, 22, 0.15); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.30); font-weight: bold;">
-                            Análise Técnica Pendente
+                        <span class="badge-fase" style="background-color: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); font-weight: bold;">
+                            ❌ Cancelado (Histórico)
                         </span>
                     `;
                 }
 
-                // Cálculo do Prazo
-                let deadlineHtml = '<span style="color: var(--text-secondary); font-weight: 500;">-</span>';
-                if (p.fase >= 1 && p.fase <= 6) {
+                // Vendedor / Responsável Real (Sem "PERDIDO")
+                const seller = getProjectSeller(p) || p.pm || 'Tecfag';
+                let respHtml = `<div style="font-weight: 700; color: #f8fafc; font-size: 0.80rem;">${escapeProjectHtml(seller)}</div>`;
+                if (isActive) {
+                    const bottleneck = getBottleneckRole(p);
+                    if (bottleneck && bottleneck !== 'PERDIDO' && bottleneck !== 'CONCLUIDO') {
+                        respHtml += `<div style="font-size: 0.65rem; color: #94a3b8; margin-top: 2px;">Gargalo: <strong style="color: #38bdf8;">${bottleneck}</strong></div>`;
+                    }
+                }
+
+                // Cálculo do Prazo / Status
+                let statusHtml = '<span style="color: var(--text-secondary); font-weight: 500;">-</span>';
+                if (isLost) {
+                    const reason = p.motivoPerda ? escapeProjectHtml(p.motivoPerda) : 'Perdido';
+                    statusHtml = `<span style="background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); padding: 3px 6px; border-radius: 4px; font-weight: 700; font-size: 0.70rem;" title="${reason}">❌ Cancelado</span>`;
+                } else if (isDelivered) {
+                    statusHtml = `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 700; font-size: 0.70rem;">${p.delivery_invoice ? 'NF: ' + p.delivery_invoice : '✅ Concluído'}</span>`;
+                } else if (p.fase >= 1 && p.fase <= 6) {
                     const defaults = { 1: 3, 2: 5, 3: 5, 4: 55, 5: 55, 6: 10 };
-                    let deadlineDays = defaults[p.fase];
+                    let deadlineDays = defaults[p.fase] || 5;
                     if (p.prazos) {
                         try {
                             const parsedPrazos = typeof p.prazos === 'string' ? JSON.parse(p.prazos) : p.prazos;
@@ -20131,54 +20353,49 @@ function renderKanban() {
                     const remaining = deadlineDays - daysInPhase;
                     
                     if (remaining < 0) {
-                        deadlineHtml = `<span style="background: rgba(239, 68, 68, 0.15); color: #f87171; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(239, 68, 68, 0.25); font-weight: bold; font-size: 0.72rem;">⚠️ Atrasado ${Math.abs(remaining)}d</span>`;
+                        statusHtml = `<span style="background: rgba(239, 68, 68, 0.15); color: #f87171; padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(239, 68, 68, 0.25); font-weight: bold; font-size: 0.70rem;">⚠️ Atrasado ${Math.abs(remaining)}d</span>`;
                     } else {
-                        deadlineHtml = `<span style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.25); font-weight: bold; font-size: 0.72rem;">${remaining}d restantes</span>`;
-                    }
-                } else if (p.fase === 7) {
-                    deadlineHtml = `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.25); font-weight: bold; font-size: 0.72rem;">Concluído</span>`;
-                } else if (p.fase === 8) {
-                    if (!p.motivoPerda || p.is_archived === 1) {
-                        deadlineHtml = `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 700; font-size: 0.72rem;">NF: ${p.delivery_invoice || 'Concluído'}</span>`;
-                    } else {
-                        deadlineHtml = `<span style="background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); font-weight: 500; font-size: 0.72rem;">Cancelado</span>`;
+                        statusHtml = `<span style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.25); font-weight: bold; font-size: 0.70rem;">${remaining}d restantes</span>`;
                     }
                 }
 
                 const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                tr.onclick = (e) => {
+                    if (!e.target.closest('button') && !e.target.closest('a')) {
+                        openProjectModal(p.code);
+                    }
+                };
+
                 tr.innerHTML = `
                     <td style="font-weight: 700; color: var(--primary);">
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <span>${p.code}</span>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                            <span style="font-family: monospace; font-size: 0.82rem; color: #38bdf8; font-weight: 800;">${p.code}</span>
                             ${editingUser ? `
                                 <span style="background-color: #ef4444; color: white; display: inline-flex; align-items: center; gap: 3.5px; border: 1px solid rgba(239, 68, 68, 0.4); padding: 1px 5px; font-size: 0.6rem; border-radius: 4px; font-weight: bold; text-transform: capitalize; line-height: 1;" title="Edição bloqueada por: ${editingUser}">
                                     <svg viewBox="0 0 24 24" width="8" height="8" fill="none" stroke="currentColor" stroke-width="3" style="flex-shrink: 0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                                     <span>${editingUser.split('@')[0].split('.')[0]}</span>
                                 </span>
                             ` : ''}
+                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openProjectModal('${p.code}')" style="padding: 3px 7px; font-size: 0.68rem; font-weight: 700; border-radius: 4px; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); color: #38bdf8;" title="Abrir Ficha Técnica">
+                                👁️
+                            </button>
                         </div>
                     </td>
-                    <td style="font-weight: 600;">${p.client}</td>
-                    <td><code>${p.sku}</code></td>
-                    <td>
-                        ${badgeHtml}
-                    </td>
+                    <td style="font-weight: 600; color: #f8fafc;">${escapeProjectHtml(p.client || '')}</td>
+                    <td><code style="color: #cbd5e1; font-weight: 600;">${escapeProjectHtml(p.sku || '-')}</code></td>
+                    <td>${badgeHtml}</td>
                     <td>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <div class="progress-bar-bg" style="width: 80px;">
+                            <div class="progress-bar-bg" style="width: 70px;">
                                 <div class="progress-bar-fill" style="width: ${progress}%"></div>
                             </div>
-                            <strong>${progress}%</strong>
+                            <strong style="font-size: 0.75rem; color: #f8fafc;">${progress}%</strong>
                         </div>
                     </td>
-                    <td style="font-weight: 600; color: var(--primary);">${bottleneck}</td>
-                    <td>${date}</td>
-                    <td>${deadlineHtml}</td>
-                    <td>
-                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="openProjectModal('${p.code}')">
-                            Editar Controles
-                        </button>
-                    </td>
+                    <td>${respHtml}</td>
+                    <td style="font-size: 0.74rem; color: #94a3b8;">${date}</td>
+                    <td>${statusHtml}</td>
                 `;
                 tbody.appendChild(tr);
             });
