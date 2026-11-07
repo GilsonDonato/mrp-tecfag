@@ -29455,6 +29455,7 @@ function renderKanban() {
 
             const stage = order.stage || 'PO_EMITIDA';
             const isCompleted = (stage === 'DOCA_GALPAO');
+            const isEadi = (stage === 'ENTREPOSTADO_EADI');
             const isCourier = (order.transport_mode === 'COURIER' || order.import_transport_mode === 'COURIER');
 
             // Resolver ETA Doca real ou estimado de projeto/ordem
@@ -29492,20 +29493,94 @@ function renderKanban() {
                 diffDays = Math.round((etaDate - today) / (1000 * 60 * 60 * 24));
             }
 
-            const isOverdue = (!isCompleted && diffDays !== null && diffDays < 0);
-            const isNearDue = (!isCompleted && diffDays !== null && diffDays >= 0 && diffDays <= (isCourier ? 2 : 7));
-            const isToday = (!isCompleted && diffDays === 0);
+            let daysInEadi = order.days_in_eadi || 0;
+            if (!daysInEadi && order.eadi_entry_date) {
+                const ent = new Date(order.eadi_entry_date + 'T00:00:00');
+                if (!isNaN(ent.getTime())) {
+                    daysInEadi = Math.max(0, Math.floor((today - ent) / (1000 * 60 * 60 * 24)));
+                }
+            }
+
+            let isOverdue = false;
+            let isNearDue = false;
+            let isToday = false;
+
+            if (isCompleted) {
+                // Concluído (DOCA_GALPAO)
+            } else if (isEadi) {
+                // REGIME DE ENTREPOSTO ADUANEIRO (EADI BAURU):
+                // Carga já descarregada e admitida com suspensão tributária para desova fracionada.
+                // Não há atraso de trânsito. O semáforo monitora o limite aduaneiro de permanência (360 dias)
+                if (daysInEadi >= 360) {
+                    isOverdue = true;
+                } else if (daysInEadi >= 270) {
+                    isNearDue = true;
+                }
+            } else {
+                isOverdue = (diffDays !== null && diffDays < 0);
+                isNearDue = (diffDays !== null && diffDays >= 0 && diffDays <= (isCourier ? 2 : 7));
+                isToday = (diffDays === 0);
+            }
 
             let statusType = 'NO_DATE';
             let statusText = isCourier ? 'ETA Entrega: A definir' : 'ETA Doca: A definir';
             let badgeHtml = '';
             let borderHighlight = null;
-            let etaDisplayDateStr = etaDate && !isNaN(etaDate.getTime()) ? etaDate.toLocaleDateString('pt-BR') : 'A definir';
-            if (isEstimated && etaDisplayDateStr !== 'A definir') etaDisplayDateStr += ' (est.)';
+
+            let etaDisplayDateStr = 'A definir';
+            if (isEadi) {
+                if (order.eadi_entry_date) {
+                    const eDate = new Date(order.eadi_entry_date + 'T00:00:00');
+                    etaDisplayDateStr = !isNaN(eDate.getTime()) ? eDate.toLocaleDateString('pt-BR') : 'Armazenado';
+                } else {
+                    etaDisplayDateStr = 'Armazenado';
+                }
+            } else {
+                etaDisplayDateStr = etaDate && !isNaN(etaDate.getTime()) ? etaDate.toLocaleDateString('pt-BR') : 'A definir';
+                if (isEstimated && etaDisplayDateStr !== 'A definir') etaDisplayDateStr += ' (est.)';
+            }
 
             if (isCompleted) {
                 statusType = 'COMPLETED';
                 statusText = isCourier ? 'Entregue / Conferido' : 'Recebido na Doca';
+            } else if (isEadi) {
+                if (daysInEadi >= 360) {
+                    statusType = 'OVERDUE';
+                    statusText = `Vencimento DA (>360d no EADI)`;
+                    borderHighlight = '#ef4444';
+                    badgeHtml = `
+                        <div style="background: rgba(239, 68, 68, 0.18); border: 1px solid rgba(239, 68, 68, 0.6); color: #f87171; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(239, 68, 68, 0.25);" title="Alerta Crítico: Carga há mais de 360 dias no EADI. Risco de perdimento aduaneiro ou exigência da Receita Federal.">
+                            <span>🚨</span> <span>Vencimento EADI (${daysInEadi}d)</span>
+                        </div>
+                    `;
+                } else if (daysInEadi >= 270) {
+                    statusType = 'NEAR_DUE';
+                    statusText = `Prazo EADI Próximo (${daysInEadi}d)`;
+                    borderHighlight = '#f59e0b';
+                    badgeHtml = `
+                        <div style="background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.55); color: #f59e0b; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;" title="Atenção: Carga há ${daysInEadi} dias no EADI. Planejar prorrogação de DA ou nacionalização.">
+                            <span>⚠️</span> <span>Vencimento Próximo (${daysInEadi}d)</span>
+                        </div>
+                    `;
+                } else if (daysInEadi >= 180) {
+                    statusType = 'SLOW_ROTATION';
+                    statusText = `Armazenagem Prolongada (${daysInEadi}d)`;
+                    borderHighlight = null;
+                    badgeHtml = `
+                        <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); color: #fbbf24; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Carga armazenada há mais de 180 dias no Porto Seco">
+                            <span>⏱️</span> <span>Giro Lento (${daysInEadi}d)</span>
+                        </div>
+                    `;
+                } else {
+                    statusType = 'IN_EADI';
+                    statusText = `${daysInEadi}d em armazenagem`;
+                    borderHighlight = null;
+                    badgeHtml = `
+                        <div style="background: rgba(14, 165, 233, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Carga estocada no EADI com suspensão tributária regular">
+                            <span>🏢</span> <span>${daysInEadi}d Armazenado</span>
+                        </div>
+                    `;
+                }
             } else if (isOverdue) {
                 statusType = 'OVERDUE';
                 const daysLate = Math.abs(diffDays);
@@ -29883,7 +29958,10 @@ function renderKanban() {
                     `;
                 }
 
+                const isEadi = (stage === 'ENTREPOSTADO_EADI');
                 const etaLabel = isCourier ? 'ETA Entrega:' : 'ETA Doca:';
+                const dateLabel = isEadi ? 'Entrada EADI:' : etaLabel;
+                const dateColor = isEadi ? '#38bdf8' : etaColor;
 
                 card.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
@@ -29907,11 +29985,8 @@ function renderKanban() {
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 0.72rem; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 6px; margin-top: 2px;">
                         <span style="color: #4ade80; font-weight: 700;">${totalFobStr}</span>
                         <div style="display: inline-flex; align-items: center; gap: 4px;">
-                            <span style="color: #94a3b8; font-size: 0.68rem;">${etaLabel}</span>
-                            <strong style="color: ${etaColor}; font-size: 0.72rem;">${delayInfo.etaDisplayDateStr}</strong>
-                        </div>
-                    </div>
-                            <strong style="color: ${etaColor}; font-size: 0.72rem;">${delayInfo.etaDisplayDateStr}</strong>
+                            <span style="color: #94a3b8; font-size: 0.68rem;">${dateLabel}</span>
+                            <strong style="color: ${dateColor}; font-size: 0.72rem;">${delayInfo.etaDisplayDateStr}</strong>
                         </div>
                     </div>
 
