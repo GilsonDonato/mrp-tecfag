@@ -7590,6 +7590,35 @@
                         </div>
                     </div>
 
+                    <!-- Seção Fiscal (NF-e de Entrada / Doca Tecfag) -->
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                        <div style="font-size: 0.75rem; font-weight: 800; color: #10b981; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                            <span>📄 Documentos Fiscais & Entrada na Doca Tecfag</span>
+                            <span id="sc-det-nfe-badge-status" style="font-size: 0.68rem; font-weight: bold;"></span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: #10b981;">Nº da NF-e de Entrada:</label>
+                                <input type="text" id="sc-det-nfe-number" class="form-control" placeholder="Ex: 4821" style="padding: 6px 8px; font-size: 0.8rem; border-color: rgba(16, 185, 129, 0.4);">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Data da NF-e:</label>
+                                <input type="date" id="sc-det-nfe-date" class="form-control" style="padding: 6px 8px; font-size: 0.8rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Nº da D.I. / DUIMP:</label>
+                                <input type="text" id="sc-det-di-number" class="form-control" placeholder="Ex: 26/1849102-0" style="padding: 6px 8px; font-size: 0.8rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Arquivo da NF-e (PDF/XML):</label>
+                                <div id="sc-det-nfe-file-container" style="display: flex; gap: 6px; align-items: center;">
+                                    <input type="file" id="sc-det-nfe-file" class="form-control" accept=".pdf,.xml" style="padding: 4px; font-size: 0.72rem;">
+                                    <a id="sc-det-nfe-view-link" href="#" target="_blank" style="display: none; padding: 4px 8px; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; border-radius: 4px; font-size: 0.72rem; font-weight: bold; text-decoration: none; white-space: nowrap;">📄 Ver NF-e</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Abas internas dos Detalhes: Itens | Parcelas | EADI Clearances -->
                     <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
                         <div style="display: flex; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; flex-wrap: wrap;">
@@ -7612,8 +7641,9 @@
                                 <table class="table" style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
                                     <thead>
                                         <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left;">
-                                            <th style="padding: 6px;">SKU</th>
+                                            <th style="padding: 6px;">SKU Fornecedor</th>
                                             <th style="padding: 6px;">Descrição</th>
+                                            <th style="padding: 6px;">Código Tecfag (De-Para)</th>
                                             <th style="padding: 6px; text-align: center;">Qtd Solicitada</th>
                                             <th style="padding: 6px; text-align: center;">Qtd Embarcada</th>
                                             <th style="padding: 6px; text-align: center;">Saldo Salvo</th>
@@ -7693,6 +7723,108 @@
                                 Salvar Alterações
                             </button>
                         </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TRAVA DE DOCA TECFAG & DE-PARA DE SKUS -->
+    <div class="modal-overlay" id="modal-supply-chain-doca-gate" style="z-index: 1280; display: none;">
+        <div class="modal" style="max-width: 840px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(16, 185, 129, 0.3);">
+                <div>
+                    <h3 style="margin: 0; color: #10b981; display: flex; align-items: center; gap: 8px;">
+                        <span>🔒</span> Trava de Doca Tecfag - Conferência Fiscal & De-Para
+                    </h3>
+                    <p style="margin: 4px 0 0 0; font-size: 0.75rem; color: var(--text-secondary);" id="sc-doca-gate-subtitle">
+                        Container / PO: <strong id="sc-doca-gate-po-badge" style="color: #38bdf8;"></strong> • Fornecedor: <strong id="sc-doca-gate-supp-badge" style="color: #f8fafc;"></strong>
+                    </p>
+                </div>
+                <button class="btn-icon" onclick="closeDocaArrivalGateModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
+                <div id="sc-doca-gate-eadi-alert" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 0.8rem; color: #fbbf24;">
+                    <strong>⚠️ Carga Entrepostada no EADI Bauru:</strong> Este container possui saldo no Porto Seco. Ao avançar para a Doca Tecfag, as máquinas serão formalmente nacionalizadas e transferidas para o galpão da Tecfag sob a NF-e informada abaixo.
+                </div>
+
+                <form id="sc-doca-gate-form" onsubmit="submitDocaArrivalGate(event)">
+                    <input type="hidden" id="sc-doca-gate-order-id">
+
+                    <!-- SEÇÃO 1: DADOS FISCAIS OBRIGATÓRIOS -->
+                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div style="font-size: 0.78rem; font-weight: 800; color: #10b981; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                            <span>📄</span> 1. Comprovação Fiscal Obrigatória (NF-e de Entrada)
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: #f8fafc;">Número da NF-e de Entrada *</label>
+                                <input type="text" id="sc-doca-gate-nfe-number" class="form-control" required placeholder="Ex: 4821" style="padding: 8px; font-size: 0.85rem; border-color: rgba(16, 185, 129, 0.5); font-weight: bold; color: #10b981;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Data de Emissão da NF-e *</label>
+                                <input type="date" id="sc-doca-gate-nfe-date" class="form-control" required style="padding: 8px; font-size: 0.85rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Nº da D.I. / DUIMP</label>
+                                <input type="text" id="sc-doca-gate-di-number" class="form-control" placeholder="Ex: 26/1849102-0" style="padding: 8px; font-size: 0.85rem;">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 10px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Chave de Acesso da NF-e (44 dígitos)</label>
+                                <input type="text" id="sc-doca-gate-nfe-key" maxlength="44" class="form-control" placeholder="Ex: 352611... (opcional)" style="padding: 8px; font-size: 0.82rem; font-family: monospace;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Data Chegada Efetiva</label>
+                                <input type="date" id="sc-doca-gate-arrival-date" class="form-control" style="padding: 8px; font-size: 0.85rem;">
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: #10b981;">Arquivo da NF-e / DANFE (PDF ou XML) *</label>
+                            <input type="file" id="sc-doca-gate-nfe-file" class="form-control" accept=".pdf,.xml" style="padding: 6px; font-size: 0.82rem; background: rgba(0,0,0,0.3);">
+                            <div id="sc-doca-gate-file-attached-info" style="display: none; font-size: 0.72rem; color: #34d399; margin-top: 4px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- SEÇÃO 2: CONFERÊNCIA DE CÓDIGOS & DE-PARA -->
+                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                            <div style="font-size: 0.78rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; display: flex; align-items: center; gap: 6px;">
+                                <span>🔄</span> 2. Conferência de Códigos & "De-Para" (Fornecedor ➔ Tecfag)
+                            </div>
+                            <span style="font-size: 0.70rem; color: #94a3b8;">O sistema memoriza os vínculos para próximas importações</span>
+                        </div>
+
+                        <div style="overflow-x: auto;">
+                            <table class="table" style="width: 100%; font-size: 0.80rem; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left;">
+                                        <th style="padding: 6px;">Código Fornecedor (Invoice)</th>
+                                        <th style="padding: 6px;">Descrição</th>
+                                        <th style="padding: 6px; text-align: center; width: 60px;">Qtd</th>
+                                        <th style="padding: 6px; width: 340px;">Código Interno Tecfag (De-Para)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sc-doca-gate-items-tbody">
+                                    <!-- Populated dynamically via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- FOOTER AÇÕES -->
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 15px;">
+                        <button type="button" class="btn btn-secondary" onclick="closeDocaArrivalGateModal()" style="padding: 8px 16px;">Cancelar</button>
+                        <button type="submit" id="sc-doca-gate-btn-submit" class="btn" style="background: #10b981; color: white; font-weight: bold; padding: 8px 24px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4);">
+                            <span>✅</span> Validar NF-e & Dar Entrada na Doca Tecfag
+                        </button>
                     </div>
                 </form>
             </div>
@@ -30390,6 +30522,15 @@ function renderKanban() {
                 return;
             }
 
+            // TRAVA DE DOCA TECFAG:
+            // Se a etapa de destino for DOCA_GALPAO (seja direta ou na sequência do Porto/EADI),
+            // exige comprovação da NF-e de entrada e conferência De-Para de SKUs
+            const isGoingToDoca = targetStage === 'DOCA_GALPAO' || (!targetStage && (order && (order.stage === 'ENTREPOSTADO_EADI' || (order.stage === 'NO_PORTO_DESEMBARACO' && order.customs_regime !== 'EADI_BAURU'))));
+            if (isGoingToDoca) {
+                openDocaArrivalGateModal(orderId);
+                return;
+            }
+
             // Se estiver no EADI e ainda tiver saldo de máquinas, confirmar encerramento
             if (order && order.stage === 'ENTREPOSTADO_EADI' && !targetStage) {
                 const bal = order.eadi_balance !== undefined ? order.eadi_balance : 0;
@@ -30980,6 +31121,31 @@ function renderKanban() {
                     auditBtn.style.display = isEadiActive ? 'inline-flex' : 'none';
                 }
 
+                // Preencher campos fiscais (NF-e de Entrada / Doca)
+                setVal('sc-det-nfe-number', order.nfe_number);
+                setVal('sc-det-nfe-date', order.nfe_date);
+                setVal('sc-det-di-number', order.di_number);
+                const nfeBadge = document.getElementById('sc-det-nfe-badge-status');
+                const nfeLink = document.getElementById('sc-det-nfe-view-link');
+                if (order.nfe_number) {
+                    if (nfeBadge) {
+                        nfeBadge.innerText = '✅ NF-e Vinculada (' + order.nfe_number + ')';
+                        nfeBadge.style.color = '#34d399';
+                    }
+                    if (nfeLink && order.nfe_file_path) {
+                        nfeLink.href = '/' + order.nfe_file_path;
+                        nfeLink.style.display = 'inline-flex';
+                    } else if (nfeLink) {
+                        nfeLink.style.display = 'none';
+                    }
+                } else {
+                    if (nfeBadge) {
+                        nfeBadge.innerText = '⚠️ NF-e Não Vinculada';
+                        nfeBadge.style.color = '#f59e0b';
+                    }
+                    if (nfeLink) nfeLink.style.display = 'none';
+                }
+
                 // Renderizar itens, parcelas e baixas EADI
                 renderDetailsItems(order.items || []);
                 renderDetailsPayments(order.payments || []);
@@ -31192,10 +31358,14 @@ function renderKanban() {
                 const qtyShipped = it.qty_shipped || 0;
                 const backorder = it.qty_backorder || 0;
                 const backorderBadge = backorder > 0 ? `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${backorder} un (Rollover)</span>` : '-';
+                const tecfagSkuBadge = it.tecfag_sku 
+                    ? `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;" title="Código Interno Tecfag">${it.tecfag_sku}</span>`
+                    : `<span style="color: #64748b; font-size: 0.70rem; font-style: italic;">Pendente</span>`;
 
                 tr.innerHTML = `
                     <td style="padding: 6px; font-weight: bold; color: #38bdf8;">${it.sku}</td>
                     <td style="padding: 6px;">${it.description || '-'}</td>
+                    <td style="padding: 6px;">${tecfagSkuBadge}</td>
                     <td style="padding: 6px; text-align: center;">${it.qty_ordered}</td>
                     <td style="padding: 6px; text-align: center; font-weight: bold; color: #4ade80;">${qtyShipped}</td>
                     <td style="padding: 6px; text-align: center;">${backorderBadge}</td>
@@ -31261,7 +31431,10 @@ function renderKanban() {
                 customs_regime: document.getElementById('sc-det-customs-regime')?.value || 'DIRETO_SANTOS',
                 dta_number: document.getElementById('sc-det-dta-number')?.value.trim() || null,
                 eadi_entry_date: document.getElementById('sc-det-eadi-entry-date')?.value || null,
-                eadi_da_number: document.getElementById('sc-det-eadi-da-number')?.value.trim() || null
+                eadi_da_number: document.getElementById('sc-det-eadi-da-number')?.value.trim() || null,
+                nfe_number: document.getElementById('sc-det-nfe-number')?.value.trim() || null,
+                nfe_date: document.getElementById('sc-det-nfe-date')?.value || null,
+                di_number: document.getElementById('sc-det-di-number')?.value.trim() || null
             };
 
             const suppSelect = document.getElementById('sc-det-supplier-select');
@@ -31300,6 +31473,11 @@ function renderKanban() {
 
         async function advanceCurrentOrderStage() {
             if (!supplyChainState.currentOrder) return;
+            const order = supplyChainState.currentOrder;
+            if (order.stage === 'ENTREPOSTADO_EADI' || (order.stage === 'NO_PORTO_DESEMBARACO' && order.customs_regime !== 'EADI_BAURU')) {
+                openDocaArrivalGateModal(order.id);
+                return;
+            }
             await quickAdvanceOrderStage(supplyChainState.currentOrder.id);
             await openSupplyDetailsModal(supplyChainState.currentOrder.id);
         }
@@ -31337,6 +31515,15 @@ function renderKanban() {
             const order = supplyChainState.currentOrder;
             if (order.stage === targetStage) return;
 
+            // TRAVA DE DOCA TECFAG:
+            // Se o usuário selecionar diretamente a Etapa 7 (Doca), aciona a trava com NF-e e De-Para
+            if (targetStage === 'DOCA_GALPAO') {
+                openDocaArrivalGateModal(order.id);
+                const stageSelect = document.getElementById('sc-det-stage-select');
+                if (stageSelect) stageSelect.value = order.stage;
+                return;
+            }
+
             const stageLabels = {
                 'PO_EMITIDA': '1. PROFORMA',
                 'EM_FABRICACAO': '2. EM FABRICAÇÃO NO EXTERIOR',
@@ -31365,6 +31552,213 @@ function renderKanban() {
 
             await quickAdvanceOrderStage(order.id, targetStage);
             await openSupplyDetailsModal(order.id);
+        }
+
+        // ==========================================
+        // TRAVA FISCAL DE DOCA & DE-PARA DE SKUS
+        // ==========================================
+
+        let activeDocaGateOrder = null;
+
+        async function openDocaArrivalGateModal(orderId) {
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                // Buscar dados completos da ordem
+                const res = await fetch(`/api/supply-chain/orders/${orderId}`, { headers });
+                if (!res.ok) {
+                    alert('Erro ao carregar dados do container para conferência de Doca.');
+                    return;
+                }
+                const order = await res.json();
+                activeDocaGateOrder = order;
+
+                // Buscar mapeamentos De-Para existentes
+                let existingMappings = [];
+                try {
+                    const mapRes = await fetch('/api/supply-chain/sku-mappings', { headers });
+                    if (mapRes.ok) existingMappings = await mapRes.json();
+                } catch(e) {}
+
+                const modal = document.getElementById('modal-supply-chain-doca-gate');
+                const poBadge = document.getElementById('sc-doca-gate-po-badge');
+                const suppBadge = document.getElementById('sc-doca-gate-supp-badge');
+                const orderIdInput = document.getElementById('sc-doca-gate-order-id');
+                const nfeNumInput = document.getElementById('sc-doca-gate-nfe-number');
+                const nfeDateInput = document.getElementById('sc-doca-gate-nfe-date');
+                const diNumInput = document.getElementById('sc-doca-gate-di-number');
+                const nfeKeyInput = document.getElementById('sc-doca-gate-nfe-key');
+                const arrivalDateInput = document.getElementById('sc-doca-gate-arrival-date');
+                const fileInfo = document.getElementById('sc-doca-gate-file-attached-info');
+                const eadiAlert = document.getElementById('sc-doca-gate-eadi-alert');
+                const tbody = document.getElementById('sc-doca-gate-items-tbody');
+
+                if (poBadge) poBadge.innerText = order.po_number;
+                if (suppBadge) suppBadge.innerText = order.supplier_name;
+                if (orderIdInput) orderIdInput.value = order.id;
+
+                const todayIso = new Date().toISOString().split('T')[0];
+                if (nfeNumInput) nfeNumInput.value = order.nfe_number || '';
+                if (nfeDateInput) nfeDateInput.value = order.nfe_date || todayIso;
+                if (diNumInput) diNumInput.value = order.di_number || '';
+                if (nfeKeyInput) nfeKeyInput.value = order.nfe_access_key || '';
+                if (arrivalDateInput) arrivalDateInput.value = order.actual_arrival_date || todayIso;
+
+                if (fileInfo) {
+                    if (order.nfe_file_path) {
+                        const fileName = order.nfe_file_path.split('/').pop();
+                        fileInfo.innerHTML = `📄 Arquivo já anexado anteriormente: <strong>${fileName}</strong> (caso queira substituir, selecione um novo arquivo acima)`;
+                        fileInfo.style.display = 'block';
+                    } else {
+                        fileInfo.style.display = 'none';
+                    }
+                }
+
+                if (eadiAlert) {
+                    const isEadi = order.stage === 'ENTREPOSTADO_EADI' || (order.eadi_balance !== undefined && order.eadi_balance > 0);
+                    eadiAlert.style.display = isEadi ? 'block' : 'none';
+                }
+
+                // Renderizar tabela de conferência De-Para
+                if (tbody) {
+                    tbody.innerHTML = '';
+                    const items = order.items || [];
+                    if (items.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 15px;">Nenhum item cadastrado nesta ordem.</td></tr>';
+                    } else {
+                        items.forEach(it => {
+                            // Buscar sugestão de código Tecfag
+                            let suggestedSku = it.tecfag_sku || '';
+                            if (!suggestedSku && it.sku) {
+                                const cleanSuppSku = it.sku.trim().toUpperCase();
+                                // 1) Da tabela de De-Para persistida
+                                const savedMap = existingMappings.find(m => (m.supplier_sku || '').toUpperCase() === cleanSuppSku);
+                                if (savedMap) {
+                                    suggestedSku = savedMap.tecfag_sku;
+                                }
+                                // 2) Do catálogo geral
+                                if (!suggestedSku && Array.isArray(state.productsCatalog)) {
+                                    const prodMatch = state.productsCatalog.find(p => 
+                                        (p.vendorCode && p.vendorCode.trim().toUpperCase() === cleanSuppSku) ||
+                                        (p.sku && p.sku.trim().toUpperCase() === cleanSuppSku)
+                                    );
+                                    if (prodMatch) suggestedSku = prodMatch.sku;
+                                }
+                            }
+
+                            const qtyVal = (it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered) || 1;
+                            const tr = document.createElement('tr');
+                            tr.style.borderBottom = '1px solid rgba(255,255,255,0.06)';
+                            tr.innerHTML = `
+                                <td style="padding: 8px 6px;">
+                                    <span style="font-weight: 800; color: #38bdf8; font-size: 0.85rem;">${it.sku}</span>
+                                </td>
+                                <td style="padding: 8px 6px; font-size: 0.78rem; color: #cbd5e1;">${it.description || '-'}</td>
+                                <td style="padding: 8px 6px; text-align: center; font-weight: bold; color: #f8fafc;">${qtyVal}</td>
+                                <td style="padding: 8px 6px;">
+                                    <input list="products-sku-list" class="form-control doca-gate-sku-input" data-item-id="${it.id}" value="${suggestedSku}" placeholder="Código Tecfag (De-Para)..." style="padding: 6px 10px; font-size: 0.82rem; font-weight: bold; color: #34d399; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(52, 211, 153, 0.4); border-radius: 6px; width: 100%;">
+                                </td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                    }
+                }
+
+                if (modal) modal.style.display = 'flex';
+            } catch (err) {
+                console.error('Erro ao abrir modal de trava da doca:', err);
+                alert('Erro ao carregar dados para a trava da doca: ' + err.message);
+            }
+        }
+
+        function closeDocaArrivalGateModal() {
+            const modal = document.getElementById('modal-supply-chain-doca-gate');
+            if (modal) modal.style.display = 'none';
+            activeDocaGateOrder = null;
+        }
+
+        async function submitDocaArrivalGate(e) {
+            e.preventDefault();
+            if (!activeDocaGateOrder) return;
+            const orderId = activeDocaGateOrder.id;
+
+            const nfeNumber = document.getElementById('sc-doca-gate-nfe-number')?.value?.trim();
+            const nfeDate = document.getElementById('sc-doca-gate-nfe-date')?.value;
+            const diNumber = document.getElementById('sc-doca-gate-di-number')?.value?.trim();
+            const nfeKey = document.getElementById('sc-doca-gate-nfe-key')?.value?.trim();
+            const arrivalDate = document.getElementById('sc-doca-gate-arrival-date')?.value;
+            const fileInput = document.getElementById('sc-doca-gate-nfe-file');
+
+            if (!nfeNumber) {
+                alert('Por favor, informe o número da NF-e de entrada.');
+                return;
+            }
+
+            const hasNewFile = fileInput && fileInput.files && fileInput.files.length > 0;
+            if (!hasNewFile && !activeDocaGateOrder.nfe_file_path) {
+                alert('Por favor, anexe o arquivo PDF ou XML da NF-e de entrada para comprovação fiscal.');
+                return;
+            }
+
+            // Coletar mapeamentos de itens
+            const itemsMapping = [];
+            document.querySelectorAll('.doca-gate-sku-input').forEach(inp => {
+                const itemId = parseInt(inp.getAttribute('data-item-id'));
+                const tecfagSku = inp.value.trim();
+                if (itemId) {
+                    itemsMapping.push({ id: itemId, tecfag_sku: tecfagSku });
+                }
+            });
+
+            const formData = new FormData();
+            formData.append('nfe_number', nfeNumber);
+            if (nfeDate) formData.append('nfe_date', nfeDate);
+            if (diNumber) formData.append('di_number', diNumber);
+            if (nfeKey) formData.append('nfe_access_key', nfeKey);
+            if (arrivalDate) formData.append('actual_arrival_date', arrivalDate);
+            formData.append('items_mapping', JSON.stringify(itemsMapping));
+
+            if (hasNewFile) {
+                formData.append('nfe_file', fileInput.files[0]);
+            }
+
+            const btnSubmit = document.getElementById('sc-doca-gate-btn-submit');
+            try {
+                if (btnSubmit) {
+                    btnSubmit.disabled = true;
+                    btnSubmit.innerHTML = '⏳ Validando NF-e & Estoque...';
+                }
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/supply-chain/orders/${orderId}/advance-doca`, {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+
+                if (res.ok) {
+                    closeDocaArrivalGateModal();
+                    await loadSupplyChainData();
+                    if (supplyChainState.currentOrder && supplyChainState.currentOrder.id === orderId) {
+                        await openSupplyDetailsModal(orderId);
+                    }
+                    alert(`✅ Entrada na Doca Tecfag liberada com sucesso sob a NF-e nº ${nfeNumber}!\n\nAs máquinas foram registradas no estoque e os códigos De-Para foram memorizados.`);
+                } else {
+                    const data = await res.json();
+                    alert('Erro ao validar entrada na doca: ' + (data.error || 'Erro desconhecido.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao processar entrada na doca.');
+            } finally {
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = '<span>✅</span> Validar NF-e & Dar Entrada na Doca Tecfag';
+                }
+            }
         }
 
         async function quickDeleteSupplyOrder(orderId, poNumber) {

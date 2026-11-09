@@ -675,6 +675,28 @@ db.run("UPDATE projects SET import_stage = NULL WHERE (fase IS NULL OR fase <= 2
         db.run("ALTER TABLE stock_order_items ADD COLUMN ncm TEXT", (err) => {});
         db.run("ALTER TABLE stock_eadi_clearances ADD COLUMN di_file_path TEXT", (err) => {});
 
+        // Migrações seguras para Trava Fiscal de Doca (NF-e & De-Para de SKUs)
+        db.run("ALTER TABLE stock_orders ADD COLUMN nfe_number TEXT", (err) => {});
+        db.run("ALTER TABLE stock_orders ADD COLUMN nfe_date TEXT", (err) => {});
+        db.run("ALTER TABLE stock_orders ADD COLUMN nfe_access_key TEXT", (err) => {});
+        db.run("ALTER TABLE stock_orders ADD COLUMN nfe_file_path TEXT", (err) => {});
+        db.run("ALTER TABLE stock_orders ADD COLUMN di_number TEXT", (err) => {});
+        db.run("ALTER TABLE stock_orders ADD COLUMN di_date TEXT", (err) => {});
+        db.run("ALTER TABLE stock_orders ADD COLUMN di_file_path TEXT", (err) => {});
+        db.run("ALTER TABLE stock_order_items ADD COLUMN tecfag_sku TEXT", (err) => {});
+
+        db.run(`CREATE TABLE IF NOT EXISTS supplier_sku_mappings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            supplier_id INTEGER,
+            supplier_name TEXT,
+            supplier_sku TEXT NOT NULL,
+            tecfag_sku TEXT NOT NULL,
+            description TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(supplier_sku, tecfag_sku)
+        )`, (err) => {});
+
         // Executar importação assíncrona se necessário
         setTimeout(importClientsCsvIfEmpty, 1000);
         setTimeout(syncImportProjectsToStockOrders, 1500);
@@ -12164,6 +12186,21 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
             }
         }
 
+        // TRAVA DE INTEGRIDADE FISCAL DA DOCA TECFAG:
+        // Bloqueia qualquer avanço para a Doca (Etapa 7) sem a comprovação da NF-e de Entrada
+        if (nextStage === 'DOCA_GALPAO') {
+            const hasExistingNfe = order.nfe_number && order.nfe_number.trim();
+            const reqNfeNumber = (req.body && req.body.nfe_number) ? req.body.nfe_number.trim() : null;
+            if (!hasExistingNfe && !reqNfeNumber) {
+                return res.status(400).json({
+                    error: 'Trava de Integridade Fiscal: Não é permitido liberar a carga na Doca Tecfag sem comprovação e anexo da NF-e de Entrada.',
+                    requires_nfe_gate: true,
+                    order_id: order.id,
+                    po_number: order.po_number
+                });
+            }
+        }
+
         let actualArrival = order.actual_arrival_date;
         if (nextStage === 'DOCA_GALPAO') {
             if (!actualArrival) {
@@ -12241,6 +12278,133 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
         res.json({ success: true, order: updated });
     } catch (err) {
         res.status(500).json({ error: 'Erro ao avançar etapa: ' + err.message });
+    }
+});
+
+// POST /api/supply-chain/orders/:id/advance-doca - Trava de Doca: Entrada Física com NF-e e De-Para de SKUs
+app.post('/api/supply-chain/orders/:id/advance-doca', authenticateToken, restrictToSupplyChain, supplyChainUpload.single('nfe_file'), async (req, res) => {
+    const orderId = req.params.id;
+    const user = req.user ? req.user.username : 'Sistema';
+    const {
+        nfe_number,
+        nfe_date,
+        nfe_access_key,
+        di_number,
+        items_mapping,
+        actual_arrival_date
+    } = req.body;
+
+    if (!nfe_number || !nfe_number.trim()) {
+        return res.status(400).json({ error: 'O número da NF-e de entrada é obrigatório para liberar a entrada na Doca Tecfag.' });
+    }
+
+    try {
+        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        if (!order) {
+            return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
+        }
+
+        const nfeFilePath = req.file ? ('uploads/' + req.file.filename) : (order.nfe_file_path || null);
+        const arrivalDate = actual_arrival_date || new Date().toISOString().split('T')[0];
+        const nfeDateVal = nfe_date || new Date().toISOString().split('T')[0];
+
+        // Atualizar itens com o código interno Tecfag (De-Para) e registrar na tabela permanente de mapeamento
+        let parsedMappings = [];
+        if (items_mapping) {
+            try {
+                parsedMappings = typeof items_mapping === 'string' ? JSON.parse(items_mapping) : items_mapping;
+            } catch (e) {
+                console.warn('[ADVANCE-DOCA] Erro ao parsear items_mapping:', e);
+            }
+        }
+
+        if (Array.isArray(parsedMappings) && parsedMappings.length > 0) {
+            for (const mapItem of parsedMappings) {
+                if (mapItem.id && mapItem.tecfag_sku) {
+                    const cleanTecfagSku = mapItem.tecfag_sku.trim().toUpperCase();
+                    await dbRun('UPDATE stock_order_items SET tecfag_sku = ? WHERE id = ? AND order_id = ?', [
+                        cleanTecfagSku, mapItem.id, orderId
+                    ]);
+
+                    // Salvar na memória permanente de De-Para (supplier_sku_mappings)
+                    const itRow = await dbGet('SELECT sku, description FROM stock_order_items WHERE id = ?', [mapItem.id]);
+                    if (itRow && itRow.sku) {
+                        const now = new Date().toISOString();
+                        await dbRun(`INSERT INTO supplier_sku_mappings (
+                            supplier_id, supplier_name, supplier_sku, tecfag_sku, description, created_at, updated_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(supplier_sku, tecfag_sku) DO UPDATE SET updated_at = excluded.updated_at, description = excluded.description`, [
+                            order.supplier_id || null,
+                            order.supplier_name || null,
+                            itRow.sku.trim().toUpperCase(),
+                            cleanTecfagSku,
+                            itRow.description || null,
+                            now,
+                            now
+                        ]).catch(e => console.warn('[SKU MAPPING INSERT]', e.message));
+                    }
+                }
+            }
+        }
+
+        // Atualizar ordem para DOCA_GALPAO com os dados fiscais e data de chegada na doca
+        await dbRun(`UPDATE stock_orders SET 
+            stage = 'DOCA_GALPAO',
+            actual_arrival_date = ?,
+            nfe_number = ?,
+            nfe_date = ?,
+            nfe_access_key = ?,
+            nfe_file_path = ?,
+            di_number = COALESCE(?, di_number),
+            updated_at = ?
+            WHERE id = ?`, [
+            arrivalDate,
+            nfe_number.trim(),
+            nfeDateVal,
+            nfe_access_key ? nfe_access_key.trim() : null,
+            nfeFilePath,
+            di_number ? di_number.trim() : null,
+            new Date().toISOString(),
+            orderId
+        ]);
+
+        // Se houver projeto vinculado, avança para Fase 6 (Oficina, Setup & SAT)
+        if (order.project_code) {
+            const nowIso = new Date().toISOString();
+            const prjRow = await dbGet("SELECT checklist FROM projects WHERE code = ?", [order.project_code]);
+            let chk = {};
+            try { chk = JSON.parse(prjRow ? prjRow.checklist : '{}'); } catch(e) {}
+            ['producao', 'embarque', 'pagamento', 'fedex', 'transporte_maritimo', 'desembaraco', 'chegada_tecfag'].forEach(k => {
+                chk[k] = true;
+            });
+            await dbRun("UPDATE projects SET fase = 6, checklist = ?, danfe_number = ?, faseEntryDate = ?, lastUpdate = ? WHERE code = ?", [
+                JSON.stringify(chk), nfe_number.trim(), nowIso, nowIso, order.project_code
+            ]);
+            await recordAuditLog(order.project_code, user, `Entrada fiscal validada na Doca Tecfag via NF-e nº ${nfe_number.trim()}. Projeto direcionado para Fase 6 (Oficina, Setup & SAT).`);
+        }
+
+        // Registrar no log geral do sistema
+        await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
+            new Date().toISOString(),
+            '#10b981',
+            `<strong>[DOCA TECFAG]</strong> Container/PO <strong>${order.po_number}</strong> liberado na Doca Tecfag sob a <strong>NF-e nº ${nfe_number.trim()}</strong> (por ${user}).`
+        ]);
+
+        const updated = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        res.json({ success: true, order: updated });
+    } catch (err) {
+        console.error('[ADVANCE DOCA ERROR]', err);
+        res.status(500).json({ error: 'Erro ao validar entrada na doca: ' + err.message });
+    }
+});
+
+// GET /api/supply-chain/sku-mappings - Retorna catálogo de equivalência De-Para de SKUs
+app.get('/api/supply-chain/sku-mappings', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    try {
+        const mappings = await dbAll('SELECT * FROM supplier_sku_mappings ORDER BY supplier_sku ASC');
+        res.json(mappings);
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao listar mapeamentos De-Para: ' + err.message });
     }
 });
 
