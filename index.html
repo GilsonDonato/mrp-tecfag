@@ -3331,6 +3331,12 @@
                         <button class="btn btn-danger" onclick="clearAuditLogs()">Limpar Histórico</button>
                     </div>
                 </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
+                    <input type="text" id="log-search-filter" class="form-control" placeholder="🔍 Filtrar por PO, container, fatura, projeto ou usuário..." oninput="filterLogs(this.value)" style="flex: 1; max-width: 480px; padding: 8px 14px; font-size: 0.85rem; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); border-radius: 6px;">
+                    <button type="button" class="btn btn-secondary" onclick="loadLogsFromAPI()" style="font-weight: bold; display: inline-flex; align-items: center; gap: 5px; padding: 8px 14px; font-size: 0.82rem;">
+                        🔄 Atualizar Logs
+                    </button>
+                </div>
                 <div class="log-container">
                     <div class="log-list" id="log-list-area">
                         <!-- Logs dinamicos -->
@@ -7596,6 +7602,9 @@
                             <button type="button" id="sc-det-tab-btn-clearances" onclick="switchDetailsSubTab('clearances')" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.75rem; font-weight: bold; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;">
                                 📜 Nacionalizações EADI (DIs)
                             </button>
+                            <button type="button" id="sc-det-tab-btn-history" onclick="switchDetailsSubTab('history')" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.75rem; font-weight: bold; border-color: rgba(168, 85, 247, 0.4); color: #c084fc;">
+                                🕒 Histórico & Auditoria
+                            </button>
                         </div>
 
                         <div id="sc-det-subtab-items" style="display: block;">
@@ -7663,6 +7672,13 @@
                                         <!-- Populated via JS -->
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+
+                        <!-- Subaba 4: Histórico & Auditoria deste Container -->
+                        <div id="sc-det-subtab-history" style="display: none;">
+                            <div id="sc-det-history-content" style="padding: 6px;">
+                                <div style="text-align: center; color: var(--text-secondary); padding: 30px;">Carregando histórico do container...</div>
                             </div>
                         </div>
                     </div>
@@ -16041,15 +16057,45 @@ Atenciosamente,`;
         function loadLogsFromAPI() {
             const token = localStorage.getItem('tecfag_session_token');
             const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const logList = document.getElementById('log-list-area');
+            if (logList && (!state.logs || state.logs.length === 0)) {
+                logList.innerHTML = '<div style="text-align: center; color: #38bdf8; padding-top: 60px;"><span style="font-size: 1.5rem;">⏳</span><br>Carregando histórico de auditoria do servidor...</div>';
+            }
             fetch('/api/logs', { headers })
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
                 .then(logs => {
                     if (Array.isArray(logs)) {
                         state.logs = logs;
-                        renderLogs();
+                        const filterVal = document.getElementById('log-search-filter')?.value;
+                        if (filterVal) {
+                            filterLogs(filterVal);
+                        } else {
+                            renderLogs();
+                        }
+                    } else if (logs && logs.error) {
+                        if (logList) logList.innerHTML = `<div style="text-align: center; color: #ef4444; padding-top: 60px;">Aviso do servidor: ${logs.error}</div>`;
                     }
                 })
-                .catch(err => console.error('Erro ao carregar logs do servidor:', err));
+                .catch(err => {
+                    console.error('Erro ao carregar logs do servidor:', err);
+                    if (logList) logList.innerHTML = `<div style="text-align: center; color: #ef4444; padding-top: 60px;">Erro ao carregar registros: ${err.message}.</div>`;
+                });
+        }
+
+        function filterLogs(query) {
+            if (!query || !query.trim()) {
+                renderLogs();
+                return;
+            }
+            const q = query.trim().toLowerCase();
+            const filtered = (state.logs || []).filter(l => 
+                (l.text && l.text.toLowerCase().includes(q)) || 
+                (l.timestamp && l.timestamp.toLowerCase().includes(q))
+            );
+            renderLogs(filtered);
         }
 
         // Triggers visual updates and updates local state variables
@@ -16477,6 +16523,8 @@ Atenciosamente,`;
                     if (typeof loadProjectsDB === 'function') loadProjectsDB();
                 }
                 loadSupplyChainData();
+            } else if (tabId === 'log') {
+                loadLogsFromAPI();
             }
         }
 
@@ -27791,16 +27839,19 @@ function renderKanban() {
         }
 
         // Render logs
-        function renderLogs() {
+        function renderLogs(customLogs) {
             const logList = document.getElementById('log-list-area');
+            if (!logList) return;
             logList.innerHTML = '';
 
-            if (state.logs.length === 0) {
-                logList.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding-top: 100px;">Nenhum registro até o momento.</div>`;
+            const listToRender = customLogs !== undefined ? customLogs : state.logs;
+
+            if (!listToRender || listToRender.length === 0) {
+                logList.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding-top: 100px;">Nenhum registro encontrado.</div>`;
                 return;
             }
 
-            state.logs.forEach(log => {
+            listToRender.forEach(log => {
                 const item = document.createElement('div');
                 item.className = 'log-item';
                 item.style.setProperty('--log-color', log.color);
@@ -30977,14 +31028,17 @@ function renderKanban() {
             const btnItems = document.getElementById('sc-det-tab-btn-items');
             const btnPay = document.getElementById('sc-det-tab-btn-payments');
             const btnClear = document.getElementById('sc-det-tab-btn-clearances');
+            const btnHist = document.getElementById('sc-det-tab-btn-history');
             const viewItems = document.getElementById('sc-det-subtab-items');
             const viewPay = document.getElementById('sc-det-subtab-payments');
             const viewClear = document.getElementById('sc-det-subtab-clearances');
+            const viewHist = document.getElementById('sc-det-subtab-history');
 
             [
                 { btn: btnItems, view: viewItems, id: 'items', color: '#38bdf8' },
                 { btn: btnPay, view: viewPay, id: 'payments', color: '#38bdf8' },
-                { btn: btnClear, view: viewClear, id: 'clearances', color: '#f59e0b' }
+                { btn: btnClear, view: viewClear, id: 'clearances', color: '#f59e0b' },
+                { btn: btnHist, view: viewHist, id: 'history', color: '#c084fc' }
             ].forEach(t => {
                 if (t.btn && t.view) {
                     if (t.id === tab) {
@@ -30993,11 +31047,102 @@ function renderKanban() {
                         t.view.style.display = 'block';
                     } else {
                         t.btn.style.background = 'transparent';
-                        t.btn.style.color = (t.id === 'clearances' ? '#f59e0b' : '#cbd5e1');
+                        t.btn.style.color = (t.id === 'clearances' ? '#f59e0b' : (t.id === 'history' ? '#c084fc' : '#cbd5e1'));
                         t.view.style.display = 'none';
                     }
                 }
             });
+
+            if (tab === 'history') {
+                loadCurrentOrderHistory();
+            }
+        }
+
+        async function loadCurrentOrderHistory() {
+            if (!supplyChainState.currentOrder) return;
+            const container = document.getElementById('sc-det-history-content');
+            if (!container) return;
+            container.innerHTML = '<div style="text-align: center; color: #c084fc; padding: 25px;"><span style="font-size: 1.3rem;">⏳</span><br>Buscando histórico e auditoria deste container...</div>';
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const res = await fetch(`/api/supply-chain/orders/${supplyChainState.currentOrder.id}/logs`, { headers });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                let html = `
+                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(192, 132, 252, 0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <span style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Container / Ordem:</span>
+                                <div style="font-size: 1.05rem; font-weight: 800; color: #f8fafc;">${data.po_number}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-size: 0.72rem; color: #94a3b8;">Cadastrado no sistema por:</span>
+                                <div style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;">${data.created_by || 'Sistema'}</div>
+                                <div style="font-size: 0.70rem; color: #64748b;">${data.created_at ? new Date(data.created_at).toLocaleString('pt-BR') : '-'}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const allLogs = data.logs || [];
+                if (allLogs.length === 0) {
+                    html += `
+                        <div style="text-align: center; color: var(--text-secondary); padding: 30px; background: rgba(0,0,0,0.15); border-radius: 8px;">
+                            Nenhum registro específico de alteração foi encontrado nos logs para este container.
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div style="font-size: 0.75rem; font-weight: 800; color: #c084fc; text-transform: uppercase; margin-bottom: 10px;">
+                            Histórico de Ações & Movimentações de Etapa:
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                    `;
+                    allLogs.forEach(l => {
+                        const dateStr = l.timestamp ? (l.timestamp.includes('T') ? new Date(l.timestamp).toLocaleString('pt-BR') : l.timestamp) : '-';
+                        html += `
+                            <div style="background: rgba(15, 23, 42, 0.6); border-left: 4px solid ${l.color || '#a855f7'}; border-radius: 4px; padding: 10px 14px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 600;">🕒 ${dateStr}</span>
+                                </div>
+                                <div style="font-size: 0.82rem; color: #e2e8f0; line-height: 1.4;">${l.text}</div>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+
+                if (data.projectAudit && data.projectAudit.length > 0) {
+                    html += `
+                        <div style="margin-top: 16px;">
+                            <div style="font-size: 0.75rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px;">
+                                Auditoria do Projeto Vinculado (${supplyChainState.currentOrder.project_code || ''})
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                    `;
+                    data.projectAudit.forEach(pa => {
+                        const dStr = pa.timestamp ? (pa.timestamp.includes('T') ? new Date(pa.timestamp).toLocaleString('pt-BR') : pa.timestamp) : '-';
+                        html += `
+                            <div style="background: rgba(15, 23, 42, 0.4); border-left: 3px solid #38bdf8; border-radius: 4px; padding: 8px 12px; font-size: 0.78rem;">
+                                <div style="display: flex; justify-content: space-between; color: #94a3b8; font-size: 0.70rem; margin-bottom: 2px;">
+                                    <span>${dStr}</span>
+                                    <strong style="color: #38bdf8;">${pa.user || 'Sistema'}</strong>
+                                </div>
+                                <div>${pa.message}</div>
+                            </div>
+                        `;
+                    });
+                    html += `</div></div>`;
+                }
+
+                container.innerHTML = html;
+            } catch (err) {
+                console.error('Erro ao carregar histórico:', err);
+                container.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 25px;">Erro ao carregar histórico: ${err.message}</div>`;
+            }
         }
 
         function renderDetailsClearances(clearances) {

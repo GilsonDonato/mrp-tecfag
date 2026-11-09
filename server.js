@@ -11786,6 +11786,47 @@ app.get('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
     }
 });
 
+// GET /api/supply-chain/orders/:id/logs - Histórico de auditoria e movimentações específicas deste container
+app.get('/api/supply-chain/orders/:id/logs', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    try {
+        const orderId = req.params.id;
+        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        if (!order) {
+            return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
+        }
+
+        const terms = [order.po_number, order.invoice_number, order.container_id].filter(Boolean);
+        let whereClauses = [];
+        let params = [];
+        terms.forEach(t => {
+            whereClauses.push('text LIKE ?');
+            params.push(`%${t}%`);
+        });
+
+        let orderLogs = [];
+        if (whereClauses.length > 0) {
+            orderLogs = await dbAll(`SELECT * FROM logs WHERE ${whereClauses.join(' OR ')} ORDER BY id DESC`, params);
+        }
+
+        let projectAudit = [];
+        if (order.project_code) {
+            projectAudit = await dbAll('SELECT * FROM project_audit_trail WHERE project_code = ? ORDER BY id DESC', [order.project_code]);
+        }
+
+        res.json({
+            order_id: order.id,
+            po_number: order.po_number,
+            created_by: order.created_by || 'Sistema',
+            created_at: order.created_at,
+            updated_at: order.updated_at,
+            logs: orderLogs,
+            projectAudit
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao buscar histórico da ordem: ' + err.message });
+    }
+});
+
 // POST /api/supply-chain/orders - Cria nova ordem de importação / Container
 app.post('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, supplyChainUpload.fields([
     { name: 'invoice_file', maxCount: 1 },
