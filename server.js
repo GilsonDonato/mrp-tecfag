@@ -12124,8 +12124,13 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
         }
 
         let actualArrival = order.actual_arrival_date;
-        if (nextStage === 'DOCA_GALPAO' && !actualArrival) {
-            actualArrival = new Date().toISOString().split('T')[0];
+        if (nextStage === 'DOCA_GALPAO') {
+            if (!actualArrival) {
+                actualArrival = new Date().toISOString().split('T')[0];
+            }
+        } else {
+            // Se saiu da Doca Tecfag (ex: retornando para o EADI ou porto), zera a data de chegada na doca
+            actualArrival = null;
         }
 
         // Se a ordem avançou para DOCA_GALPAO (Chegada Tecfag / Liberado) e possui projeto vinculado:
@@ -12143,6 +12148,20 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
             ]);
             await recordAuditLog(order.project_code, user, `Máquina liberada e entregue na Doca Tecfag. Projeto retornado ao Quadro de Projetos (Fase 6: Oficina, Setup & SAT).`);
             console.log(`[SUPPLY CHAIN -> PROJETOS] Projeto ${order.project_code} retornado ao Quadro de Projetos na Fase 6 (Oficina).`);
+        } else if (order.stage === 'DOCA_GALPAO' && nextStage !== 'DOCA_GALPAO' && order.project_code) {
+            // Se estava na DOCA_GALPAO e foi revertida para etapa anterior (ex: EADI Bauru), atualiza o projeto para Fase 5
+            const nowIso = new Date().toISOString();
+            const prjRow = await dbGet("SELECT checklist, fase FROM projects WHERE code = ?", [order.project_code]);
+            if (prjRow) {
+                let chk = {};
+                try { chk = JSON.parse(prjRow.checklist || '{}'); } catch(e) {}
+                chk.chegada_tecfag = false;
+                const newFase = prjRow.fase === 6 ? 5 : prjRow.fase;
+                await dbRun("UPDATE projects SET fase = ?, checklist = ?, lastUpdate = ? WHERE code = ?", [
+                    newFase, JSON.stringify(chk), nowIso, order.project_code
+                ]);
+                await recordAuditLog(order.project_code, user, `Status de chegada retificado: container retornado para a etapa ${stageLabels[nextStage] || nextStage}. Projeto retornado à Fase 5.`);
+            }
         }
 
         let eadiEntry = order.eadi_entry_date;
@@ -12167,11 +12186,14 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
             nextStage, actualArrival, eadiEntry, customsRegime, new Date().toISOString(), orderId
         ]);
 
+        const currentIndex = stages.indexOf(order.stage);
+        const targetIndex = stages.indexOf(nextStage);
+        const actionVerb = (targetIndex < currentIndex) ? 'retornou para a etapa' : 'avançou para a etapa';
         const badgeColor = nextStage === 'ENTREPOSTADO_EADI' ? '#f59e0b' : (nextStage === 'DOCA_GALPAO' ? '#10b981' : '#a855f7');
         await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
             new Date().toISOString(),
             badgeColor,
-            `<strong>[SUPPLY CHAIN]</strong> Container/PO <strong>${order.po_number}</strong> avançou para a etapa <strong>${stageLabels[nextStage] || nextStage}</strong> (por ${user}).`
+            `<strong>[SUPPLY CHAIN]</strong> Container/PO <strong>${order.po_number}</strong> ${actionVerb} <strong>${stageLabels[nextStage] || nextStage}</strong> (por ${user}).`
         ]);
 
         const updated = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);

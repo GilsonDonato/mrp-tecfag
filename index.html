@@ -7421,16 +7421,29 @@
             <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
                 <!-- Status & Pipeline Progress -->
                 <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
-                        <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 12px;">
+                        <div style="flex: 1; min-width: 250px;">
                             <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Etapa Atual do Container:</span>
-                            <div style="font-size: 1.1rem; font-weight: 800; color: #38bdf8; margin-top: 2px;" id="sc-details-stage-badge">1. PROFORMA</div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                                <select id="sc-det-stage-select" class="form-control" onchange="changeSupplyOrderStageDirect(this.value)" style="padding: 7px 12px; font-size: 0.90rem; font-weight: 800; color: #38bdf8; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; cursor: pointer; max-width: 320px;">
+                                    <option value="PO_EMITIDA">1. PROFORMA</option>
+                                    <option value="EM_FABRICACAO">2. EM FABRICAÇÃO NO EXTERIOR</option>
+                                    <option value="PACKING_LIST_EMBARQUE">3. PACKING LIST & CARGA PRONTA</option>
+                                    <option value="NO_NAVIO">4. NO NAVIO (TRÂNSITO MARÍTIMO)</option>
+                                    <option value="NO_PORTO_DESEMBARACO">5. NO PORTO / DESEMBARAÇO</option>
+                                    <option value="ENTREPOSTADO_EADI">6. NO PORTO SECO (EADI BAURU)</option>
+                                    <option value="DOCA_GALPAO">7. ENTREGUE NA DOCA TECFAG</option>
+                                </select>
+                            </div>
                         </div>
-                        <div style="display: flex; gap: 8px;">
-                            <button type="button" class="btn" id="sc-details-btn-advance" onclick="advanceCurrentOrderStage()" style="background: #a855f7; color: white; font-weight: bold; padding: 8px 16px; font-size: 0.78rem;">
-                                ➡️ Avançar Próxima Etapa
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-secondary" id="sc-details-btn-revert" onclick="revertCurrentOrderStage()" style="border-color: rgba(245, 158, 11, 0.5); color: #fbbf24; font-weight: bold; padding: 8px 14px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 5px;">
+                                ⬅️ Voltar Etapa
                             </button>
-                            <button type="button" class="btn btn-secondary" onclick="openReconcileModalForCurrentOrder()" style="border-color: #ec4899; color: #ec4899; font-weight: bold; padding: 8px 16px; font-size: 0.78rem;">
+                            <button type="button" class="btn" id="sc-details-btn-advance" onclick="advanceCurrentOrderStage()" style="background: #a855f7; color: white; font-weight: bold; padding: 8px 14px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 5px;">
+                                ➡️ Avançar Etapa
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="openReconcileModalForCurrentOrder()" style="border-color: #ec4899; color: #ec4899; font-weight: bold; padding: 8px 14px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 5px;">
                                 📦 Conciliar Packing List
                             </button>
                         </div>
@@ -30922,6 +30935,32 @@ function renderKanban() {
                 renderDetailsClearances(order.clearances || []);
                 switchDetailsSubTab('items');
 
+                // Sincronizar seletor de etapa e botões Voltar/Avançar
+                const stageSelect = document.getElementById('sc-det-stage-select');
+                if (stageSelect) {
+                    stageSelect.value = order.stage;
+                }
+                const btnAdvance = document.getElementById('sc-details-btn-advance');
+                const btnRevert = document.getElementById('sc-details-btn-revert');
+                if (btnAdvance) {
+                    btnAdvance.style.display = (order.stage === 'DOCA_GALPAO') ? 'none' : 'inline-flex';
+                }
+                if (btnRevert) {
+                    if (order.stage === 'PO_EMITIDA') {
+                        btnRevert.style.display = 'none';
+                    } else {
+                        btnRevert.style.display = 'inline-flex';
+                        if (order.stage === 'DOCA_GALPAO') {
+                            const wasEadi = (order.customs_regime === 'EADI_BAURU') || !!order.eadi_entry_date;
+                            btnRevert.innerHTML = wasEadi ? '⬅️ Voltar para o EADI (Etapa 6)' : '⬅️ Voltar para Etapa 5';
+                        } else if (order.stage === 'ENTREPOSTADO_EADI') {
+                            btnRevert.innerHTML = '⬅️ Voltar para Porto (Etapa 5)';
+                        } else {
+                            btnRevert.innerHTML = '⬅️ Voltar Etapa';
+                        }
+                    }
+                }
+
                 if (modal) modal.style.display = 'flex';
             } catch (err) {
                 console.error(err);
@@ -31118,6 +31157,69 @@ function renderKanban() {
             if (!supplyChainState.currentOrder) return;
             await quickAdvanceOrderStage(supplyChainState.currentOrder.id);
             await openSupplyDetailsModal(supplyChainState.currentOrder.id);
+        }
+
+        async function revertCurrentOrderStage() {
+            if (!supplyChainState.currentOrder) return;
+            const order = supplyChainState.currentOrder;
+            let prevStage = null;
+
+            if (order.stage === 'DOCA_GALPAO') {
+                const wasEadi = (order.customs_regime === 'EADI_BAURU') || !!order.eadi_entry_date;
+                prevStage = wasEadi ? 'ENTREPOSTADO_EADI' : 'NO_PORTO_DESEMBARACO';
+            } else if (order.stage === 'ENTREPOSTADO_EADI') {
+                prevStage = 'NO_PORTO_DESEMBARACO';
+            } else if (order.stage === 'NO_PORTO_DESEMBARACO') {
+                prevStage = 'NO_NAVIO';
+            } else if (order.stage === 'NO_NAVIO') {
+                prevStage = 'PACKING_LIST_EMBARQUE';
+            } else if (order.stage === 'PACKING_LIST_EMBARQUE') {
+                prevStage = 'EM_FABRICACAO';
+            } else if (order.stage === 'EM_FABRICACAO') {
+                prevStage = 'PO_EMITIDA';
+            }
+
+            if (!prevStage) {
+                alert('Este container já está na primeira etapa.');
+                return;
+            }
+
+            await changeSupplyOrderStageDirect(prevStage);
+        }
+
+        async function changeSupplyOrderStageDirect(targetStage) {
+            if (!supplyChainState.currentOrder) return;
+            const order = supplyChainState.currentOrder;
+            if (order.stage === targetStage) return;
+
+            const stageLabels = {
+                'PO_EMITIDA': '1. PROFORMA',
+                'EM_FABRICACAO': '2. EM FABRICAÇÃO NO EXTERIOR',
+                'PACKING_LIST_EMBARQUE': '3. PACKING LIST & CARGA PRONTA',
+                'NO_NAVIO': '4. NO NAVIO (TRÂNSITO MARÍTIMO)',
+                'NO_PORTO_DESEMBARACO': '5. NO PORTO / DESEMBARAÇO',
+                'ENTREPOSTADO_EADI': '6. NO PORTO SECO (EADI BAURU)',
+                'DOCA_GALPAO': '7. ENTREGUE NA DOCA TECFAG'
+            };
+
+            const targetLabel = stageLabels[targetStage] || targetStage;
+            const stages = ['PO_EMITIDA', 'EM_FABRICACAO', 'PACKING_LIST_EMBARQUE', 'NO_NAVIO', 'NO_PORTO_DESEMBARACO', 'ENTREPOSTADO_EADI', 'DOCA_GALPAO'];
+            const isRevert = stages.indexOf(targetStage) < stages.indexOf(order.stage);
+
+            let msg = `Deseja alterar a etapa do container ${order.po_number} para "${targetLabel}"?`;
+            if (isRevert && order.stage === 'DOCA_GALPAO') {
+                msg = `Atenção: Ao retornar este container da Doca Tecfag para "${targetLabel}", a data de chegada na Doca será redefinida e o saldo/histórico de armazenagem será reativado.\n\nDeseja confirmar o retorno para a etapa 6?`;
+            }
+
+            if (!confirm(msg)) {
+                // Restaura o select para a etapa original caso o usuário cancele
+                const stageSelect = document.getElementById('sc-det-stage-select');
+                if (stageSelect) stageSelect.value = order.stage;
+                return;
+            }
+
+            await quickAdvanceOrderStage(order.id, targetStage);
+            await openSupplyDetailsModal(order.id);
         }
 
         async function quickDeleteSupplyOrder(orderId, poNumber) {
