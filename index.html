@@ -29927,6 +29927,102 @@ function renderKanban() {
                 }
             }
 
+            // =========================================================================
+            // CÁLCULO DO SLA INDIVIDUAL DA ETAPA ATUAL (EM DIAS CORRIDOS)
+            // =========================================================================
+            function parseSafeDate(dStr) {
+                if (!dStr) return null;
+                if (typeof dStr !== 'string') {
+                    const d = new Date(dStr);
+                    return isNaN(d.getTime()) ? null : d;
+                }
+                const clean = dStr.split('T')[0];
+                const parts = clean.split('-');
+                if (parts.length === 3) {
+                    const y = parseInt(parts[0], 10);
+                    const m = parseInt(parts[1], 10) - 1;
+                    const d = parseInt(parts[2], 10);
+                    const dt = new Date(y, m, d);
+                    return isNaN(dt.getTime()) ? null : dt;
+                }
+                const dt = new Date(dStr);
+                return isNaN(dt.getTime()) ? null : dt;
+            }
+
+            let stageDeadline = null;
+            let stageSlaLabel = '';
+            let stageDiffDays = null;
+
+            if (isCompleted) {
+                // Etapa 7: DOCA_GALPAO (Entregue na Doca)
+                stageSlaLabel = 'Doca';
+            } else if (isEadi) {
+                // Etapa 6: ENTREPOSTADO_EADI (Regime fiscal especial com teto de 360d)
+                stageSlaLabel = 'EADI';
+            } else if (stage === 'PO_EMITIDA') {
+                // Etapa 1: PROFORMA (SLA Estrito: 5 dias corridos para aprovação e câmbio de entrada)
+                const start = parseSafeDate(order.stage_entry_date) || 
+                              parseSafeDate(order.invoice_date) || 
+                              parseSafeDate(order.created_at) || 
+                              today;
+                stageDeadline = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 5);
+                stageSlaLabel = 'Proforma';
+            } else if (stage === 'EM_FABRICACAO') {
+                // Etapa 2: EM FABRICAÇÃO (SLA: Data acordada com fabricante ou 50 dias corridos padrão)
+                if (order.fabrication_end_date) {
+                    stageDeadline = parseSafeDate(order.fabrication_end_date);
+                } else {
+                    const start = parseSafeDate(order.fabrication_start_date) || 
+                                  parseSafeDate(order.stage_entry_date) || 
+                                  parseSafeDate(order.created_at) || 
+                                  today;
+                    stageDeadline = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 50);
+                }
+                stageSlaLabel = 'Fabricação';
+            } else if (stage === 'PACKING_LIST_EMBARQUE') {
+                // Etapa 3: PACKING LIST & EMBARQUE (SLA: Data ETD ou 7 dias corridos mar / 3 dias courier)
+                if (order.etd_date) {
+                    stageDeadline = parseSafeDate(order.etd_date);
+                } else {
+                    const start = parseSafeDate(order.stage_entry_date) || 
+                                  parseSafeDate(order.fabrication_end_date) || 
+                                  parseSafeDate(order.updated_at) || 
+                                  parseSafeDate(order.created_at) || 
+                                  today;
+                    const days = isCourier ? 3 : 7;
+                    stageDeadline = new Date(start.getFullYear(), start.getMonth(), start.getDate() + days);
+                }
+                stageSlaLabel = 'Embarque';
+            } else if (stage === 'NO_NAVIO') {
+                // Etapa 4: NO NAVIO / TRÂNSITO (SLA: Data de atracação ETA Porto ou +50d mar / +5d courier)
+                if (order.eta_port_date) {
+                    stageDeadline = parseSafeDate(order.eta_port_date);
+                } else {
+                    const start = parseSafeDate(order.etd_date) || 
+                                  parseSafeDate(order.stage_entry_date) || 
+                                  parseSafeDate(order.created_at) || 
+                                  today;
+                    const days = isCourier ? 5 : 50;
+                    stageDeadline = new Date(start.getFullYear(), start.getMonth(), start.getDate() + days);
+                }
+                stageSlaLabel = isCourier ? 'Voo' : 'Navio';
+            } else if (stage === 'NO_PORTO_DESEMBARACO') {
+                // Etapa 5: PORTO & DESEMBARAÇO (SLA: 15 dias corridos mar / 2 dias courier após atracação)
+                const start = parseSafeDate(order.eta_port_date) || 
+                              parseSafeDate(order.stage_entry_date) || 
+                              parseSafeDate(order.updated_at) || 
+                              parseSafeDate(order.created_at) || 
+                              today;
+                const days = isCourier ? 2 : 15;
+                stageDeadline = new Date(start.getFullYear(), start.getMonth(), start.getDate() + days);
+                stageSlaLabel = 'Desembaraço';
+            }
+
+            if (stageDeadline && !isNaN(stageDeadline.getTime())) {
+                const deadlineMidnight = new Date(stageDeadline.getFullYear(), stageDeadline.getMonth(), stageDeadline.getDate());
+                stageDiffDays = Math.round((deadlineMidnight - today) / (1000 * 60 * 60 * 24));
+            }
+
             let isOverdue = false;
             let isNearDue = false;
             let isToday = false;
@@ -29935,17 +30031,17 @@ function renderKanban() {
                 // Concluído (DOCA_GALPAO)
             } else if (isEadi) {
                 // REGIME DE ENTREPOSTO ADUANEIRO (EADI BAURU):
-                // Carga já descarregada e admitida com suspensão tributária para desova fracionada.
-                // Não há atraso de trânsito. O semáforo monitora o limite aduaneiro de permanência (360 dias)
+                // Limite aduaneiro de permanência (360 dias)
                 if (daysInEadi >= 360) {
                     isOverdue = true;
                 } else if (daysInEadi >= 270) {
                     isNearDue = true;
                 }
-            } else {
-                isOverdue = (diffDays !== null && diffDays < 0);
-                isNearDue = (diffDays !== null && diffDays >= 0 && diffDays <= (isCourier ? 2 : 7));
-                isToday = (diffDays === 0);
+            } else if (stageDiffDays !== null) {
+                isOverdue = (stageDiffDays < 0);
+                isToday = (stageDiffDays === 0);
+                const warnThreshold = (stage === 'PO_EMITIDA') ? 2 : ((stage === 'PACKING_LIST_EMBARQUE' || isCourier) ? 2 : 5);
+                isNearDue = (stageDiffDays > 0 && stageDiffDays <= warnThreshold);
             }
 
             let statusType = 'NO_DATE';
@@ -29969,6 +30065,12 @@ function renderKanban() {
             if (isCompleted) {
                 statusType = 'COMPLETED';
                 statusText = isCourier ? 'Entregue / Conferido' : 'Recebido na Doca';
+                borderHighlight = '#10b981';
+                badgeHtml = `
+                    <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                        <span>✅</span> <span>${statusText}</span>
+                    </div>
+                `;
             } else if (isEadi) {
                 if (daysInEadi >= 360) {
                     statusType = 'OVERDUE';
@@ -30009,38 +30111,39 @@ function renderKanban() {
                 }
             } else if (isOverdue) {
                 statusType = 'OVERDUE';
-                const daysLate = Math.abs(diffDays);
-                statusText = `Atrasado há ${daysLate} dia${daysLate > 1 ? 's' : ''}`;
+                const daysLate = Math.abs(stageDiffDays);
+                statusText = `Atrasado há ${daysLate}d (${stageSlaLabel})`;
                 borderHighlight = '#ef4444';
                 badgeHtml = `
-                    <div style="background: rgba(239, 68, 68, 0.18); border: 1px solid rgba(239, 68, 68, 0.6); color: #f87171; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(239, 68, 68, 0.25);" title="Prazo final vencido há ${daysLate} dias">
-                        <span>🚨</span> <span>Atrasado há ${daysLate}d</span>
+                    <div style="background: rgba(239, 68, 68, 0.18); border: 1px solid rgba(239, 68, 68, 0.6); color: #f87171; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(239, 68, 68, 0.25);" title="Etapa ${stageSlaLabel} ultrapassou o prazo estipulado há ${daysLate} dias corridos">
+                        <span>🚨</span> <span>Atrasado há ${daysLate}d (${stageSlaLabel})</span>
                     </div>
                 `;
             } else if (isToday) {
                 statusType = 'TODAY';
-                statusText = 'Previsão de Chegada Hoje';
+                statusText = `Vence Hoje (${stageSlaLabel})`;
                 borderHighlight = '#f59e0b';
                 badgeHtml = `
-                    <div style="background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.55); color: #f59e0b; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;" title="Previsão de chegada hoje">
-                        <span>⚡</span> <span>Chega Hoje</span>
+                    <div style="background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.55); color: #f59e0b; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;" title="Prazo da etapa ${stageSlaLabel} vence hoje!">
+                        <span>⚡</span> <span>Vence Hoje (${stageSlaLabel})</span>
                     </div>
                 `;
             } else if (isNearDue) {
                 statusType = 'NEAR_DUE';
-                statusText = `Chegando em ${diffDays} dias`;
+                statusText = `${stageDiffDays}d restantes (${stageSlaLabel})`;
                 borderHighlight = '#fbbf24';
                 badgeHtml = `
-                    <div style="background: rgba(251, 191, 36, 0.16); border: 1px solid rgba(251, 191, 36, 0.45); color: #fbbf24; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;" title="Previsão de entrega nos próximos dias">
-                        <span>⏳</span> <span>Chegando em ${diffDays}d</span>
+                    <div style="background: rgba(251, 191, 36, 0.16); border: 1px solid rgba(251, 191, 36, 0.45); color: #fbbf24; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;" title="Atenção: Restam apenas ${stageDiffDays} dias corridos para concluir a etapa ${stageSlaLabel}">
+                        <span>⏳</span> <span>${stageDiffDays}d restantes (${stageSlaLabel})</span>
                     </div>
                 `;
-            } else if (diffDays !== null && diffDays > (isCourier ? 2 : 7)) {
+            } else if (stageDiffDays !== null) {
                 statusType = 'ON_TIME';
-                statusText = `${diffDays} dias restantes`;
+                statusText = `${stageDiffDays}d restantes (${stageSlaLabel})`;
+                borderHighlight = '#10b981';
                 badgeHtml = `
-                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
-                        <span>⏱️</span> <span>${diffDays}d restantes</span>
+                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; border-radius: 5px; padding: 2px 6px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="No prazo: Restam ${stageDiffDays} dias corridos na etapa ${stageSlaLabel}">
+                        <span>⏱️</span> <span>${stageDiffDays}d restantes (${stageSlaLabel})</span>
                     </div>
                 `;
             }
@@ -30141,7 +30244,9 @@ function renderKanban() {
                 isOverdue,
                 isNearDue,
                 isToday,
-                diffDays,
+                diffDays: (stageDiffDays !== null ? stageDiffDays : diffDays),
+                stageDiffDays,
+                macroDiffDays: diffDays,
                 statusType,
                 statusText,
                 badgeHtml,
@@ -30332,9 +30437,8 @@ function renderKanban() {
 
                 // Datas formatadas e Cores do Semáforo
                 const totalFobStr = (order.currency || 'USD') + ' ' + (order.total_fob_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                let etaColor = '#f8fafc';
-                if (delayInfo.isOverdue) etaColor = '#f87171';
-                else if (delayInfo.isNearDue) etaColor = '#fbbf24';
+                let etaColor = '#cbd5e1';
+                if (delayInfo.macroDiffDays !== null && delayInfo.macroDiffDays < 0) etaColor = '#f87171';
 
                 // Identificação de Navio / Container ou Courier Expresso
                 let logisticsSnippet = '';

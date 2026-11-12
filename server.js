@@ -684,6 +684,9 @@ db.run("UPDATE projects SET import_stage = NULL WHERE (fase IS NULL OR fase <= 2
         db.run("ALTER TABLE stock_orders ADD COLUMN di_date TEXT", (err) => {});
         db.run("ALTER TABLE stock_orders ADD COLUMN di_file_path TEXT", (err) => {});
         db.run("ALTER TABLE stock_order_items ADD COLUMN tecfag_sku TEXT", (err) => {});
+        db.run("ALTER TABLE stock_orders ADD COLUMN stage_entry_date TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN import_stage_entry_date TEXT", (err) => {});
+        db.run("UPDATE stock_orders SET stage_entry_date = COALESCE(invoice_date, created_at) WHERE stage_entry_date IS NULL", () => {});
 
         db.run(`CREATE TABLE IF NOT EXISTS supplier_sku_mappings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -11930,8 +11933,8 @@ app.post('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, s
             eta_port_date, eta_warehouse_date, payment_terms_type, payment_terms_desc,
             invoice_file_path, packing_list_file_path, bl_file_path, notes, is_rollover_order,
             transport_mode, courier_service, tracking_number,
-            created_by, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`, [
+            stage_entry_date, created_by, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)`, [
             po_number.trim(), supplier ? supplier.id : null, supplier ? supplier.name : supplier_name.trim(),
             invoice_number || null, invoice_date || new Date().toISOString().split('T')[0], currency || 'USD',
             totalFob, stage || 'PO_EMITIDA',
@@ -11943,7 +11946,7 @@ app.post('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, s
             payment_terms_desc || (supplier ? supplier.payment_terms_desc : ''),
             invoiceFilePath, packingListFilePath, blFilePath, notes || '',
             transport_mode || 'MARITIMO', courier_service || null, tracking_number || null,
-            user, new Date().toISOString(), new Date().toISOString()
+            new Date().toISOString(), user, new Date().toISOString(), new Date().toISOString()
         ]);
 
         const orderId = runResult.lastID;
@@ -12044,6 +12047,10 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
         if (updatedStage === 'DOCA_GALPAO' && !actualArrival) {
             actualArrival = new Date().toISOString().split('T')[0];
         }
+        let stageEntry = existing.stage_entry_date || existing.created_at;
+        if (updatedStage !== existing.stage) {
+            stageEntry = new Date().toISOString();
+        }
 
         await dbRun(`UPDATE stock_orders SET 
             po_number = ?, supplier_id = ?, supplier_name = ?, invoice_number = ?,
@@ -12055,7 +12062,7 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
             packing_list_file_path = ?, bl_file_path = ?, notes = ?,
             customs_regime = ?, dta_number = ?, eadi_entry_date = ?, eadi_da_number = ?,
             transport_mode = ?, courier_service = ?, tracking_number = ?,
-            updated_at = ?
+            stage_entry_date = ?, updated_at = ?
             WHERE id = ?`, [
             po_number || existing.po_number,
             supplier_id !== undefined ? supplier_id : existing.supplier_id,
@@ -12087,6 +12094,7 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
             transport_mode !== undefined ? transport_mode : (existing.transport_mode || 'MARITIMO'),
             courier_service !== undefined ? courier_service : existing.courier_service,
             tracking_number !== undefined ? tracking_number : existing.tracking_number,
+            stageEntry,
             new Date().toISOString(),
             orderId
         ]);
@@ -12258,10 +12266,11 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
             }
         }
 
+        const nowIso = new Date().toISOString();
         await dbRun(`UPDATE stock_orders SET 
-            stage = ?, actual_arrival_date = ?, eadi_entry_date = ?, customs_regime = ?, updated_at = ? 
+            stage = ?, actual_arrival_date = ?, eadi_entry_date = ?, customs_regime = ?, stage_entry_date = ?, updated_at = ? 
             WHERE id = ?`, [
-            nextStage, actualArrival, eadiEntry, customsRegime, new Date().toISOString(), orderId
+            nextStage, actualArrival, eadiEntry, customsRegime, nowIso, nowIso, orderId
         ]);
 
         const currentIndex = stages.indexOf(order.stage);
@@ -12356,6 +12365,7 @@ app.post('/api/supply-chain/orders/:id/advance-doca', authenticateToken, restric
             nfe_access_key = ?,
             nfe_file_path = ?,
             di_number = COALESCE(?, di_number),
+            stage_entry_date = ?,
             updated_at = ?
             WHERE id = ?`, [
             arrivalDate,
@@ -12364,7 +12374,8 @@ app.post('/api/supply-chain/orders/:id/advance-doca', authenticateToken, restric
             nfe_access_key ? nfe_access_key.trim() : null,
             nfeFilePath,
             di_number ? di_number.trim() : null,
-            new Date().toISOString(),
+            now,
+            now,
             orderId
         ]);
 
