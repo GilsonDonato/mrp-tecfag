@@ -5303,7 +5303,7 @@
                             </div>
 
                             <!-- Formulário de Disparo -->
-                            <form id="form-copilot-send-email" onsubmit="handleSendCopilotEmail(event)" style="display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0;">
+                            <form id="form-copilot-send-email" onsubmit="handleSendCopilotEmail(event)" oninput="saveCurrentEmailDraft()" style="display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0;">
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                                     <div class="form-group" style="margin-bottom: 0;">
                                         <label style="font-size: 0.70rem; font-weight: 700; color: #94a3b8;">Para (Destinatário)*</label>
@@ -15095,23 +15095,62 @@
             }
         }
 
+        const projectEmailDrafts = {};
+
+        function saveCurrentEmailDraft() {
+            if (!activeProjectCode) return;
+            const to = document.getElementById('copilot-mail-to')?.value || '';
+            const cc = document.getElementById('copilot-mail-cc')?.value || '';
+            const subject = document.getElementById('copilot-mail-subject')?.value || '';
+            const body = document.getElementById('copilot-mail-body')?.value || '';
+            if (to || subject || body) {
+                projectEmailDrafts[activeProjectCode] = { to, cc, subject, body };
+            } else {
+                delete projectEmailDrafts[activeProjectCode];
+            }
+        }
+
         async function loadProjectCopilotHub(code) {
             if (!code) return;
             const historyContainer = document.getElementById('copilot-chat-history');
             const sentContainer = document.getElementById('copilot-sent-emails-list');
             const sentBadge = document.getElementById('copilot-sent-count-badge');
             const toInput = document.getElementById('copilot-mail-to');
+            const ccInput = document.getElementById('copilot-mail-cc');
             const subjectInput = document.getElementById('copilot-mail-subject');
+            const bodyInput = document.getElementById('copilot-mail-body');
+            const plFileInput = document.getElementById('copilot-mail-packing-list-file');
+            const plLabel = document.getElementById('copilot-mail-packing-list-label');
 
             const project = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === code) : null;
-            if (project) {
-                if (toInput && !toInput.value) {
-                    toInput.value = project.contact_email || '';
+            
+            // ISOLAMENTO ESTRITO POR CARD: Restaura o rascunho específico DESTE projeto ou inicia limpo
+            const draft = projectEmailDrafts[code];
+            if (draft && (draft.body || draft.subject || draft.to)) {
+                if (toInput) toInput.value = draft.to || '';
+                if (ccInput) ccInput.value = draft.cc || 'admin@tecfag.com.br, gilson@tecfag.com.br';
+                if (subjectInput) subjectInput.value = draft.subject || '';
+                if (bodyInput) bodyInput.value = draft.body || '';
+            } else {
+                if (toInput) toInput.value = (project && project.contact_email) ? project.contact_email : '';
+                if (ccInput) ccInput.value = 'admin@tecfag.com.br, gilson@tecfag.com.br';
+                if (subjectInput) {
+                    subjectInput.value = project 
+                        ? `Order / Project Inquiry - ${project.sku || 'Machine'} [${project.code}]`
+                        : '';
                 }
-                if (subjectInput && !subjectInput.value) {
-                    subjectInput.value = `Order / Project Inquiry - ${project.sku || 'Machine'} [${project.code}]`;
-                }
+                if (bodyInput) bodyInput.value = '';
             }
+
+            if (plFileInput) plFileInput.value = '';
+            if (plLabel) {
+                plLabel.style.color = '#94a3b8';
+                plLabel.style.fontWeight = 'normal';
+                plLabel.innerText = 'Nenhum Packing List selecionado';
+                plLabel.style.display = 'none';
+            }
+            copilotMailSelectedFiles = [];
+            renderCopilotMailExtraFilesPreview();
 
             try {
                 const token = localStorage.getItem('tecfag_session_token');
@@ -15500,6 +15539,7 @@
                 bodyInput.style.borderColor = '#a855f7';
                 setTimeout(() => { bodyInput.style.borderColor = ''; }, 1500);
             }
+            saveCurrentEmailDraft();
         }
 
         function handleCopilotPackingListSelected(input) {
@@ -15800,6 +15840,7 @@ Atenciosamente,`;
                 if (res.ok) {
                     const data = await res.json();
                     alert(`✅ ${data.message || 'E-mail enviado com sucesso!'}`);
+                    if (activeProjectCode) delete projectEmailDrafts[activeProjectCode];
                     document.getElementById('copilot-mail-body').value = '';
                     if (plFileInput) plFileInput.value = '';
                     const plLabel = document.getElementById('copilot-mail-packing-list-label');
@@ -25905,6 +25946,37 @@ function renderKanban() {
             clearModalChatAttachment();
             const respInput = document.getElementById('modal-vendor-response-input');
             if (respInput) respInput.value = '';
+
+            // Limpa formulário de e-mail e chat do Copilot para evitar vazamento visual entre cards
+            const copilotTo = document.getElementById('copilot-mail-to');
+            if (copilotTo) copilotTo.value = '';
+            const copilotCc = document.getElementById('copilot-mail-cc');
+            if (copilotCc) copilotCc.value = '';
+            const copilotSubj = document.getElementById('copilot-mail-subject');
+            if (copilotSubj) copilotSubj.value = '';
+            const copilotBody = document.getElementById('copilot-mail-body');
+            if (copilotBody) copilotBody.value = '';
+            const copilotChatInput = document.getElementById('copilot-chat-input');
+            if (copilotChatInput) copilotChatInput.value = '';
+            const copilotHistory = document.getElementById('copilot-chat-history');
+            if (copilotHistory) copilotHistory.innerHTML = '';
+            const copilotSentList = document.getElementById('copilot-sent-emails-list');
+            if (copilotSentList) copilotSentList.innerHTML = '';
+            const copilotExtraInput = document.getElementById('copilot-mail-extra-files-input');
+            if (copilotExtraInput) copilotExtraInput.value = '';
+            const copilotExtraPreview = document.getElementById('copilot-mail-extra-files-preview');
+            if (copilotExtraPreview) {
+                copilotExtraPreview.style.display = 'none';
+                copilotExtraPreview.innerHTML = '';
+            }
+            const plFile = document.getElementById('copilot-mail-packing-list-file');
+            if (plFile) plFile.value = '';
+            const plLbl = document.getElementById('copilot-mail-packing-list-label');
+            if (plLbl) {
+                plLbl.style.display = 'none';
+                plLbl.innerText = '';
+            }
+            copilotMailSelectedFiles = [];
 
             document.getElementById('project-detail-modal').classList.remove('active');
             activeProjectCode = null;
