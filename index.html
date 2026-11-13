@@ -4768,6 +4768,34 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Painel de Multi-Fornecedores e Ordens deste Projeto -->
+                    <div id="project-multi-orders-wrapper" style="margin-bottom: 20px; background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 14px 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px;">
+                            <div>
+                                <h4 style="margin: 0; color: #38bdf8; font-size: 0.90rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                                    <span>🏭</span> Fornecedores & Ordens de Compra (Multi-PO)
+                                </h4>
+                                <p style="margin: 2px 0 0 0; font-size: 0.70rem; color: #94a3b8;">
+                                    Gerencie múltiplos fabricantes da linha e contêineres mistos (itens de projeto + itens de prateleira).
+                                </p>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button type="button" class="btn" onclick="openAddProjectSupplierOrderModal()" style="background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 800; padding: 6px 14px; font-size: 0.74rem; border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3); display: flex; align-items: center; gap: 6px;">
+                                    <span>➕</span> Adicionar Outro Fornecedor / PO
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Resumo de Convergência da Linha (Quantos fornecedores já chegaram na Doca) -->
+                        <div id="project-orders-convergence-bar" style="display: none; margin-bottom: 12px; background: rgba(0,0,0,0.3); border: 1px dashed rgba(255,255,255,0.12); border-radius: 6px; padding: 8px 12px; font-size: 0.74rem;"></div>
+
+                        <!-- Lista Dinâmica de Ordens de Compra / Fornecedores -->
+                        <div id="project-orders-list-container" style="display: flex; flex-direction: column; gap: 10px;">
+                            <div style="color: #64748b; font-size: 0.75rem; text-align: center; padding: 10px;">Carregando ordens de fornecedores...</div>
+                        </div>
+                    </div>
+
                     <!-- Checklists Visuais das Etapas 11 a 17 (Fases 4 e 5) -->
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 20px;">
                         <!-- Coluna 1: Fase 4: Fabricação Internacional & Embarque -->
@@ -8610,6 +8638,141 @@
                         <span>📊 Baixar Planilha Excel (.xlsx)</span>
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. MODAL ADICIONAR ORDEM DE FORNECEDOR / SUB-PO AO PROJETO -->
+    <div class="modal-overlay" id="modal-add-project-supplier-order" style="z-index: 1280; display: none;">
+        <div class="modal" style="max-width: 780px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(30, 41, 59, 0.95) 100%); border-bottom: 1px solid rgba(56, 189, 248, 0.3); padding: 16px 20px;">
+                <div>
+                    <h3 style="margin: 0; color: #38bdf8; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                        <span>🏭</span> Adicionar Fornecedor / PO ao Projeto
+                    </h3>
+                    <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #94a3b8;" id="modal-add-supp-project-subtitle">
+                        Vincular uma nova ordem de compra internacional com invoice e itens específicos.
+                    </p>
+                </div>
+                <button class="btn-icon" onclick="closeAddProjectSupplierOrderModal()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div class="modal-body" style="padding: 20px; overflow-y: auto; flex: 1;">
+                <form id="form-add-project-supplier-order" onsubmit="submitAddProjectSupplierOrder(event)">
+                    <!-- Dados do Fornecedor e Fatura -->
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <h4 style="margin: 0 0 12px 0; color: #38bdf8; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                            1. Dados do Fabricante & Proforma Invoice
+                        </h4>
+                        
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 12px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: #f59e0b;">Nome do Fabricante / Fornecedor *</label>
+                                <input type="text" id="add-supp-name" class="form-control" required placeholder="Ex: Brother Machinery, Wuhan Xiantong, etc." style="padding: 8px; font-size: 0.85rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Modal de Transporte *</label>
+                                <select id="add-supp-transport-mode" class="form-control" style="padding: 8px; font-size: 0.85rem;" onchange="toggleAddSupplierModalFields(this.value)">
+                                    <option value="MARITIMO">🚢 Marítimo (Container / Navio)</option>
+                                    <option value="COURIER">✈️ Courier Aéreo Expresso (FedEx / DHL)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Nº da Proforma / Invoice</label>
+                                <input type="text" id="add-supp-invoice-num" class="form-control" placeholder="Ex: PI-2026-99" style="padding: 8px; font-size: 0.82rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Data da Invoice</label>
+                                <input type="date" id="add-supp-invoice-date" class="form-control" style="padding: 8px; font-size: 0.82rem;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Moeda</label>
+                                <select id="add-supp-currency" class="form-control" style="padding: 8px; font-size: 0.82rem; font-weight: bold;">
+                                    <option value="USD">USD ($)</option>
+                                    <option value="EUR">EUR (€)</option>
+                                    <option value="CNY">CNY (¥)</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: #4ade80;">Valor Total FOB *</label>
+                                <input type="number" step="0.01" id="add-supp-fob-val" class="form-control" placeholder="0.00" required style="padding: 8px; font-size: 0.82rem; font-weight: bold; color: #4ade80;">
+                            </div>
+                        </div>
+
+                        <!-- Campos Específicos para Courier / Aéreo -->
+                        <div id="add-supp-courier-wrapper" style="display: none; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 12px; padding: 10px; background: rgba(245, 158, 11, 0.08); border: 1px dashed rgba(245, 158, 11, 0.3); border-radius: 6px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.70rem; font-weight: 700; color: #fbbf24;">Transportadora Courier</label>
+                                <select id="add-supp-courier-service" class="form-control" style="padding: 6px 8px; font-size: 0.80rem;">
+                                    <option value="FEDEX">FEDEX</option>
+                                    <option value="DHL">DHL EXPRESS</option>
+                                    <option value="UPS">UPS</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.70rem; font-weight: 700; color: #fbbf24;">Código de Rastreio (Tracking)</label>
+                                <input type="text" id="add-supp-tracking-number" class="form-control" placeholder="Ex: 771234567890" style="padding: 6px 8px; font-size: 0.80rem;">
+                            </div>
+                        </div>
+
+                        <!-- Upload do arquivo da Invoice -->
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.72rem; font-weight: 700; color: #38bdf8;">Anexar Arquivo da Proforma / Invoice deste Fornecedor (PDF ou Imagem)</label>
+                            <input type="file" id="add-supp-invoice-file" class="form-control" accept=".pdf,image/*" style="padding: 6px 10px; font-size: 0.80rem;">
+                        </div>
+                    </div>
+
+                    <!-- Tabela Dinâmica de Itens (Suporte a Contêiner Misto: Projeto + Prateleira) -->
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div>
+                                <h4 style="margin: 0; color: #38bdf8; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    2. Itens da Ordem (Máquinas do Projeto vs. Estoque de Prateleira)
+                                </h4>
+                                <span style="font-size: 0.68rem; color: #94a3b8;">
+                                    Você pode trazer máquinas de prateleira no mesmo frete marcando a opção correspondente.
+                                </span>
+                            </div>
+                            <button type="button" class="btn" onclick="addProjectSupplierOrderItemRow()" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; padding: 4px 10px; font-size: 0.70rem; font-weight: 800; border-radius: 5px; cursor: pointer;">
+                                ➕ + Adicionar Linha de Máquina
+                            </button>
+                        </div>
+
+                        <div style="overflow-x: auto;">
+                            <table class="table" style="width: 100%; font-size: 0.76rem; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="color: var(--text-secondary); border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left;">
+                                        <th style="padding: 6px; width: 140px;">SKU / Modelo</th>
+                                        <th style="padding: 6px;">Descrição da Máquina</th>
+                                        <th style="padding: 6px; width: 60px; text-align: center;">Qtd</th>
+                                        <th style="padding: 6px; width: 110px; text-align: right;">Preço FOB Unit.</th>
+                                        <th style="padding: 6px; width: 170px; text-align: center;">Destino da Carga</th>
+                                        <th style="padding: 6px; width: 40px; text-align: center;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="add-supp-items-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Observações -->
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Observações Logísticas / Instruções de Comex</label>
+                        <textarea id="add-supp-notes" class="form-control" rows="2" placeholder="Instruções para despachante, detalhes de estufagem ou câmbio..." style="padding: 8px; font-size: 0.80rem;"></textarea>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button type="button" class="btn btn-secondary" onclick="closeAddProjectSupplierOrderModal()">Cancelar</button>
+                        <button type="submit" id="add-supp-btn-submit" class="btn" style="background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 800; padding: 10px 20px; font-size: 0.82rem; border: none; border-radius: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3); cursor: pointer;">
+                            💾 Salvar e Criar Ordem do Fornecedor
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -16749,6 +16912,10 @@ Atenciosamente,`;
                 populateHandoverTab();
             } else if (tabKey === 'audit') {
                 loadModalAuditTrail();
+            } else if (tabKey === 'logistics') {
+                if (typeof loadProjectMultiOrders === 'function' && activeProjectCode) {
+                    loadProjectMultiOrders(activeProjectCode);
+                }
             }
         }
 
@@ -22125,6 +22292,9 @@ function renderKanban() {
             if (typeof loadProjectCopilotHub === 'function') {
                 loadProjectCopilotHub(code);
             }
+            if (typeof loadProjectMultiOrders === 'function') {
+                loadProjectMultiOrders(code);
+            }
             document.getElementById('project-detail-modal').classList.add('active');
         }
 
@@ -24912,6 +25082,419 @@ function renderKanban() {
             } catch (err) {
                 console.error('Erro ao deletar invoice:', err);
                 alert('Erro ao excluir invoice: ' + err.message);
+            }
+        }
+
+        // =========================================================================
+        // MULTI-FORNECEDOR & CONTÊINER MISTO (SUB-ORDENS DE IMPORTAÇÃO)
+        // =========================================================================
+        async function loadProjectMultiOrders(projectCode) {
+            const code = projectCode || activeProjectCode;
+            if (!code) return;
+
+            const container = document.getElementById('project-orders-list-container');
+            const convBar = document.getElementById('project-orders-convergence-bar');
+            if (!container) return;
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const res = await fetch(`/api/projects/${encodeURIComponent(code)}/import-orders`, { headers });
+                if (!res.ok) throw new Error('Falha ao consultar ordens de compra do projeto');
+                const data = await res.json();
+                const orders = data.orders || [];
+
+                const stageLabels = {
+                    'PO_EMITIDA': { label: '1. PO Emitida / Pró-forma', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)' },
+                    'EM_FABRICACAO': { label: '2. Em Fabricação', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)' },
+                    'PACKING_LIST_EMBARQUE': { label: '3. Packing List & Pronto', color: '#f97316', bg: 'rgba(249, 115, 22, 0.15)' },
+                    'NO_NAVIO': { label: '4. No Navio / Em Trânsito', color: '#818cf8', bg: 'rgba(129, 140, 248, 0.15)' },
+                    'NO_PORTO_DESEMBARACO': { label: '5. Porto / Desembaraço', color: '#c084fc', bg: 'rgba(192, 132, 252, 0.15)' },
+                    'ENTREPOSTADO_EADI': { label: '6. Entreposto EADI', color: '#e879f9', bg: 'rgba(232, 121, 249, 0.15)' },
+                    'DOCA_GALPAO': { label: '7. Entregue na Doca Tecfag', color: '#34d399', bg: 'rgba(52, 211, 153, 0.15)' }
+                };
+
+                if (orders.length === 0) {
+                    if (convBar) convBar.style.display = 'none';
+                    container.innerHTML = `
+                        <div style="background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.12); border-radius: 6px; padding: 14px; text-align: center;">
+                            <div style="font-size: 0.82rem; color: #94a3b8; font-weight: 600; margin-bottom: 4px;">
+                                📦 Ordem de Compra Padrão (Fornecedor Único)
+                            </div>
+                            <p style="font-size: 0.72rem; color: #64748b; margin: 0 auto; max-width: 520px;">
+                                Este projeto utiliza o fluxo padrão de importação única. Se esta linha de máquinas for composta por mais de um fabricante internacional (ex: esteira de um fornecedor, envasadora de outro e datador de um terceiro), clique em <strong>[➕ Adicionar Outro Fornecedor / PO]</strong> acima para vincular os outros fornecedores e controlar prazos e faturas separadas.
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Resumo de Convergência da Linha (Quantos fornecedores já chegaram na Doca)
+                const totalCount = orders.length;
+                const docaCount = orders.filter(o => o.stage === 'DOCA_GALPAO').length;
+                if (convBar) {
+                    convBar.style.display = 'block';
+                    if (docaCount === totalCount) {
+                        convBar.innerHTML = `
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: #34d399;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 1.2rem;">🎉</span>
+                                    <div>
+                                        <strong style="font-size: 0.80rem;">Linha Completa Recebida na Doca Tecfag (${docaCount} de ${totalCount} fornecedores entregues)</strong>
+                                        <div style="font-size: 0.68rem; color: #a7f3d0;">Todos os equipamentos dos múltiplos fabricantes chegaram e o projeto está liberado para montagem na Oficina (Fase 6).</div>
+                                    </div>
+                                </div>
+                                <span style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; font-weight: 800; font-size: 0.70rem; padding: 3px 8px; border-radius: 4px;">
+                                    CONVERGÊNCIA 100%
+                                </span>
+                            </div>
+                        `;
+                    } else {
+                        convBar.innerHTML = `
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: #fbbf24;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 1.2rem;">⏳</span>
+                                    <div>
+                                        <strong style="font-size: 0.80rem;">Convergência em Andamento: ${docaCount} de ${totalCount} fornecedor(es) recebidos na Doca</strong>
+                                        <div style="font-size: 0.68rem; color: #fde68a;">A Oficina (Fase 6) aguarda a chegada de todos os fornecedores para montagem da linha completa sem componentes faltantes.</div>
+                                    </div>
+                                </div>
+                                <span style="background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #fbbf24; font-weight: 800; font-size: 0.70rem; padding: 3px 8px; border-radius: 4px;">
+                                    AGUARDANDO CHEGADA (${docaCount}/${totalCount})
+                                </span>
+                            </div>
+                        `;
+                    }
+                }
+
+                // Renderizar cartões de cada ordem / fornecedor
+                let html = '';
+                orders.forEach(ord => {
+                    const stInfo = stageLabels[ord.stage] || { label: ord.stage || 'PO Emitida', color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.15)' };
+                    const isCourier = (ord.transport_mode === 'COURIER');
+                    const fobStr = parseFloat(ord.total_fob_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                    const isSub = (ord.is_sub_order === 1 || ord.is_sub_order === true);
+
+                    html += `
+                        <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.08); border-left: 4px solid ${stInfo.color}; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+                            <!-- Topo do Card -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 0.92rem; font-weight: 800; color: #fff;">${ord.po_number || 'PO'}</span>
+                                    <span style="background: ${isSub ? 'rgba(168, 85, 247, 0.2)' : 'rgba(56, 189, 248, 0.2)'}; color: ${isSub ? '#c084fc' : '#38bdf8'}; border: 1px solid ${isSub ? 'rgba(168, 85, 247, 0.4)' : 'rgba(56, 189, 248, 0.4)'}; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700;">
+                                        ${isSub ? 'Fornecedor Adicional' : 'Fornecedor Principal'}
+                                    </span>
+                                    <span style="background: rgba(255, 255, 255, 0.05); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem;">
+                                        ${isCourier ? `✈️ Courier (${ord.courier_service || 'FEDEX'})` : '🚢 Marítimo'}
+                                    </span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="background: ${stInfo.bg}; color: ${stInfo.color}; border: 1px solid ${stInfo.color}; padding: 2px 8px; border-radius: 4px; font-size: 0.70rem; font-weight: 800;">
+                                        ${stInfo.label}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Grade de Metadados -->
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; font-size: 0.74rem; background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 5px;">
+                                <div>
+                                    <span style="color: #94a3b8;">Fabricante:</span>
+                                    <strong style="color: #f1f5f9; display: block;">${ord.supplier_name || 'Não informado'}</strong>
+                                </div>
+                                <div>
+                                    <span style="color: #94a3b8;">Invoice / Pró-forma:</span>
+                                    <strong style="color: #f1f5f9; display: block;">${ord.invoice_number || '-'} ${ord.invoice_date ? '(' + ord.invoice_date + ')' : ''}</strong>
+                                </div>
+                                <div>
+                                    <span style="color: #94a3b8;">Valor Total FOB:</span>
+                                    <strong style="color: #34d399; display: block;">${ord.currency || 'USD'} ${fobStr}</strong>
+                                </div>
+                                <div>
+                                    <span style="color: #94a3b8;">Documento Anexo:</span>
+                                    <div style="margin-top: 2px;">
+                                        ${ord.invoice_file_path ? `
+                                            <a href="/${ord.invoice_file_path}" target="_blank" style="color: #38bdf8; text-decoration: underline; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                                                <span>📄</span> Ver Proforma Invoice
+                                            </a>
+                                        ` : '<span style="color: #64748b;">Nenhum anexo</span>'}
+                                    </div>
+                                </div>
+                            </div>
+                    `;
+
+                    if (isCourier && ord.tracking_number) {
+                        html += `
+                            <div style="font-size: 0.72rem; color: #fbbf24; background: rgba(245, 158, 11, 0.08); border: 1px dashed rgba(245, 158, 11, 0.3); border-radius: 4px; padding: 4px 8px; display: flex; align-items: center; gap: 6px;">
+                                <span>📦</span> <strong>Rastreio ${ord.courier_service || 'Courier'}:</strong> <code>${ord.tracking_number}</code>
+                            </div>
+                        `;
+                    }
+
+                    if (ord.notes) {
+                        html += `
+                            <div style="font-size: 0.70rem; color: #94a3b8; font-style: italic;">
+                                <strong>Obs:</strong> ${ord.notes}
+                            </div>
+                        `;
+                    }
+
+                    // Tabela de Itens (Contêiner Misto: Projeto vs Prateleira)
+                    if (Array.isArray(ord.items) && ord.items.length > 0) {
+                        html += `
+                            <div style="margin-top: 2px;">
+                                <div style="font-size: 0.68rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                                    <span>Itens da Ordem (${ord.items.length})</span>
+                                    <span style="color: #64748b;">🎯 Escopo Cliente | 📦 Prateleira</span>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                        `;
+
+                        ord.items.forEach(it => {
+                            const isProjItem = (it.is_project_item === 1 || it.is_project_item === true || it.is_project_item === undefined);
+                            const itemPrice = parseFloat(it.unit_price_fob || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                            html += `
+                                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 4px; padding: 4px 8px; font-size: 0.72rem;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <strong style="color: #f8fafc;">${it.sku || 'ITEM'}</strong>
+                                        <span style="color: #cbd5e1;">${it.description || ''}</span>
+                                        <span style="color: #94a3b8; font-size: 0.68rem;">(Qtd: ${it.qty_ordered || 1})</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="color: #94a3b8; font-size: 0.68rem;">${ord.currency || 'USD'} ${itemPrice}</span>
+                                        <span style="background: ${isProjItem ? 'rgba(56, 189, 248, 0.15)' : 'rgba(245, 158, 11, 0.15)'}; color: ${isProjItem ? '#38bdf8' : '#fbbf24'}; border: 1px solid ${isProjItem ? 'rgba(56, 189, 248, 0.3)' : 'rgba(245, 158, 11, 0.3)'}; padding: 1px 6px; border-radius: 4px; font-size: 0.64rem; font-weight: 700;">
+                                            ${isProjItem ? '🎯 Escopo do Cliente' : '📦 Prateleira Tecfag'}
+                                        </span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        html += `
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // Ações da Ordem
+                    html += `
+                            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; margin-top: 4px;">
+                                <button type="button" class="btn btn-secondary" onclick="openSupplyDetailsModal('${ord.id}')" style="padding: 4px 10px; font-size: 0.70rem; font-weight: 700; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.3);">
+                                    <span>🔍</span> Abrir Painel Comex Detalhado
+                                </button>
+                                ${ord.stage !== 'DOCA_GALPAO' ? `
+                                    <button type="button" class="btn" onclick="quickAdvanceOrderStage('${ord.id}')" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; padding: 4px 10px; font-size: 0.70rem; font-weight: 700; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                                        <span>➡️</span> Avançar Etapa
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            } catch (err) {
+                console.error('[MULTI-ORDERS] Erro ao carregar ordens do projeto:', err);
+                container.innerHTML = `<div style="color: #ef4444; font-size: 0.75rem; text-align: center; padding: 10px;">Erro ao carregar ordens de fornecedores: ${err.message}</div>`;
+            }
+        }
+
+        function openAddProjectSupplierOrderModal() {
+            if (!activeProjectCode) {
+                alert('Abra a ficha de um projeto primeiro para vincular uma nova ordem.');
+                return;
+            }
+            const project = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === activeProjectCode) : null;
+            const clientName = project ? project.client : '';
+
+            const subEl = document.getElementById('modal-add-supp-project-subtitle');
+            if (subEl) {
+                subEl.innerText = `Projeto: ${activeProjectCode} — Cliente: ${clientName || 'Tecfag'}`;
+            }
+
+            const nameInput = document.getElementById('add-supp-name');
+            if (nameInput) nameInput.value = '';
+            const modeSelect = document.getElementById('add-supp-transport-mode');
+            if (modeSelect) modeSelect.value = 'MARITIMO';
+            toggleAddSupplierModalFields('MARITIMO');
+
+            const invNumInput = document.getElementById('add-supp-invoice-num');
+            if (invNumInput) invNumInput.value = '';
+            const invDateInput = document.getElementById('add-supp-invoice-date');
+            if (invDateInput) invDateInput.value = new Date().toISOString().split('T')[0];
+            const currSelect = document.getElementById('add-supp-currency');
+            if (currSelect) currSelect.value = 'USD';
+            const fobInput = document.getElementById('add-supp-fob-val');
+            if (fobInput) fobInput.value = '';
+            const srvSelect = document.getElementById('add-supp-courier-service');
+            if (srvSelect) srvSelect.value = 'FEDEX';
+            const trackInput = document.getElementById('add-supp-tracking-number');
+            if (trackInput) trackInput.value = '';
+            const fileInput = document.getElementById('add-supp-invoice-file');
+            if (fileInput) fileInput.value = '';
+            const notesInput = document.getElementById('add-supp-notes');
+            if (notesInput) notesInput.value = '';
+
+            const tbody = document.getElementById('add-supp-items-tbody');
+            if (tbody) tbody.innerHTML = '';
+            addProjectSupplierOrderItemRow(project?.sku || '', project?.title || '', 1, 0, true);
+
+            const modal = document.getElementById('modal-add-project-supplier-order');
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeAddProjectSupplierOrderModal() {
+            const modal = document.getElementById('modal-add-project-supplier-order');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function toggleAddSupplierModalFields(mode) {
+            const courierWrap = document.getElementById('add-supp-courier-wrapper');
+            if (courierWrap) {
+                courierWrap.style.display = (mode === 'COURIER') ? 'grid' : 'none';
+            }
+        }
+
+        function addProjectSupplierOrderItemRow(sku = '', desc = '', qty = 1, price = 0, isProject = true) {
+            const tbody = document.getElementById('add-supp-items-tbody');
+            if (!tbody) return;
+            const tr = document.createElement('tr');
+            tr.className = 'add-supp-item-row';
+            tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+            tr.innerHTML = `
+                <td style="padding: 6px;">
+                    <input type="text" class="supp-item-sku form-control" value="${sku}" placeholder="Ex: ROT-01" style="padding: 4px 6px; font-size: 0.74rem;">
+                </td>
+                <td style="padding: 6px;">
+                    <input type="text" class="supp-item-desc form-control" value="${desc}" placeholder="Descrição da máquina ou acessório" style="padding: 4px 6px; font-size: 0.74rem;">
+                </td>
+                <td style="padding: 6px; text-align: center;">
+                    <input type="number" min="1" class="supp-item-qty form-control" value="${qty || 1}" style="padding: 4px 6px; font-size: 0.74rem; text-align: center; width: 55px; margin: 0 auto;">
+                </td>
+                <td style="padding: 6px; text-align: right;">
+                    <input type="number" step="0.01" min="0" class="supp-item-price form-control" value="${price || ''}" placeholder="0.00" style="padding: 4px 6px; font-size: 0.74rem; text-align: right; width: 95px; margin-left: auto;">
+                </td>
+                <td style="padding: 6px; text-align: center;">
+                    <select class="supp-item-dest form-control" style="padding: 4px 6px; font-size: 0.70rem; font-weight: 700;">
+                        <option value="1" ${isProject ? 'selected' : ''}>🎯 Escopo do Cliente</option>
+                        <option value="0" ${!isProject ? 'selected' : ''}>📦 Prateleira Tecfag</option>
+                    </select>
+                </td>
+                <td style="padding: 6px; text-align: center;">
+                    <button type="button" class="btn-icon" onclick="removeProjectSupplierOrderItemRow(this)" style="color: #ef4444; padding: 2px;" title="Remover linha">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        function removeProjectSupplierOrderItemRow(btn) {
+            const row = btn.closest('tr');
+            if (row) row.remove();
+        }
+
+        async function submitAddProjectSupplierOrder(event) {
+            event.preventDefault();
+            if (!activeProjectCode) {
+                alert('Nenhum projeto ativo selecionado.');
+                return;
+            }
+
+            const supplierName = document.getElementById('add-supp-name')?.value?.trim();
+            if (!supplierName) {
+                alert('Informe o nome do fornecedor/fabricante.');
+                return;
+            }
+
+            const transportMode = document.getElementById('add-supp-transport-mode')?.value || 'MARITIMO';
+            const invoiceNumber = document.getElementById('add-supp-invoice-num')?.value?.trim();
+            const invoiceDate = document.getElementById('add-supp-invoice-date')?.value;
+            const currency = document.getElementById('add-supp-currency')?.value || 'USD';
+            const totalFob = parseFloat(document.getElementById('add-supp-fob-val')?.value) || 0;
+            const courierService = document.getElementById('add-supp-courier-service')?.value || 'FEDEX';
+            const trackingNumber = document.getElementById('add-supp-tracking-number')?.value?.trim();
+            const notes = document.getElementById('add-supp-notes')?.value?.trim();
+            const fileInput = document.getElementById('add-supp-invoice-file');
+
+            const rows = document.querySelectorAll('#add-supp-items-tbody tr.add-supp-item-row');
+            const items = [];
+            rows.forEach(tr => {
+                const sku = tr.querySelector('.supp-item-sku')?.value?.trim() || '';
+                const description = tr.querySelector('.supp-item-desc')?.value?.trim() || '';
+                const qty = parseInt(tr.querySelector('.supp-item-qty')?.value) || 1;
+                const unitPrice = parseFloat(tr.querySelector('.supp-item-price')?.value) || 0;
+                const dest = tr.querySelector('.supp-item-dest')?.value;
+                const isProject = (dest === '1');
+
+                if (sku || description) {
+                    items.push({
+                        sku,
+                        description,
+                        qty,
+                        unit_price: unitPrice,
+                        is_project_item: isProject
+                    });
+                }
+            });
+
+            const submitBtn = document.getElementById('add-supp-btn-submit');
+            try {
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerText = '⏳ Criando Ordem de Fornecedor...';
+                }
+
+                const formData = new FormData();
+                formData.append('supplier_name', supplierName);
+                formData.append('transport_mode', transportMode);
+                formData.append('invoice_number', invoiceNumber);
+                formData.append('invoice_date', invoiceDate);
+                formData.append('currency', currency);
+                formData.append('total_fob_value', totalFob);
+                if (transportMode === 'COURIER') {
+                    formData.append('courier_service', courierService);
+                    formData.append('tracking_number', trackingNumber);
+                }
+                formData.append('notes', notes);
+                formData.append('items_json', JSON.stringify(items));
+                if (fileInput && fileInput.files && fileInput.files[0]) {
+                    formData.append('invoice_file', fileInput.files[0]);
+                }
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/projects/${encodeURIComponent(activeProjectCode)}/import-orders`, {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    alert('Erro ao criar ordem de fornecedor: ' + (data.error || 'Erro desconhecido.'));
+                    return;
+                }
+
+                alert(`✅ ${data.message || 'Ordem de fornecedor criada com sucesso!'}`);
+                closeAddProjectSupplierOrderModal();
+
+                await loadProjectMultiOrders(activeProjectCode);
+
+                if (typeof loadSupplyChainData === 'function') {
+                    await loadSupplyChainData();
+                }
+                if (typeof loadProjectsDB === 'function') {
+                    await loadProjectsDB();
+                }
+            } catch (err) {
+                console.error('[SUBMIT MULTI ORDER] Erro:', err);
+                alert('Erro ao criar ordem: ' + err.message);
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = '💾 Salvar e Criar Ordem do Fornecedor';
+                }
             }
         }
 

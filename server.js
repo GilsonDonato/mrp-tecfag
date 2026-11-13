@@ -686,6 +686,8 @@ db.run("UPDATE projects SET import_stage = NULL WHERE (fase IS NULL OR fase <= 2
         db.run("ALTER TABLE stock_order_items ADD COLUMN tecfag_sku TEXT", (err) => {});
         db.run("ALTER TABLE stock_orders ADD COLUMN stage_entry_date TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN import_stage_entry_date TEXT", (err) => {});
+        db.run("ALTER TABLE stock_order_items ADD COLUMN is_project_item INTEGER DEFAULT 1", (err) => {});
+        db.run("ALTER TABLE stock_orders ADD COLUMN is_sub_order INTEGER DEFAULT 0", (err) => {});
         db.run("UPDATE stock_orders SET stage_entry_date = COALESCE(invoice_date, created_at) WHERE stage_entry_date IS NULL", () => {});
 
         db.run(`CREATE TABLE IF NOT EXISTS supplier_sku_mappings (
@@ -10123,6 +10125,143 @@ app.delete('/api/projects/:code/invoice', authenticateToken, async (req, res) =>
     }
 });
 
+// GET /api/projects/:code/import-orders - Retorna todas as ordens de fornecedores vinculadas a este projeto
+app.get('/api/projects/:code/import-orders', authenticateToken, async (req, res) => {
+    const { code } = req.params;
+    try {
+        const shortCode = code.replace(/^PRJTEC0+/, 'PRJ');
+        const orders = await dbAll(
+            'SELECT * FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number = ? OR po_number LIKE ? ORDER BY id ASC',
+            [code, shortCode, `PO-${shortCode}`, `PO-${shortCode}-%`]
+        );
+        for (const ord of orders) {
+            const items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [ord.id]);
+            ord.items = items || [];
+        }
+        res.json({ success: true, orders: orders || [] });
+    } catch (err) {
+        console.error('[GET PROJECT IMPORT ORDERS ERROR]', err);
+        res.status(500).json({ error: 'Erro ao listar ordens do projeto: ' + err.message });
+    }
+});
+
+// POST /api/projects/:code/import-orders - Cria uma nova ordem/fornecedor adicional para o projeto (Multi-Fornecedor & Contêiner Misto)
+app.post('/api/projects/:code/import-orders', authenticateToken, restrictToSupplyChain, upload.single('invoice_file'), async (req, res) => {
+    const { code } = req.params;
+    const user = req.user ? req.user.username : 'Sistema';
+    
+    try {
+        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        if (!project) return res.status(404).json({ error: 'Projeto não encontrado.' });
+
+        const {
+            supplier_name,
+            invoice_number,
+            invoice_date,
+            currency,
+            total_fob_value,
+            transport_mode,
+            courier_service,
+            tracking_number,
+            container_id,
+            vessel_name,
+            notes,
+            items_json
+        } = req.body;
+
+        if (!supplier_name || !supplier_name.trim()) {
+            return res.status(400).json({ error: 'O nome do fornecedor é obrigatório.' });
+        }
+
+        // Determinar o próximo código de PO
+        const existingOrders = await dbAll('SELECT po_number FROM stock_orders WHERE project_code = ?', [code]);
+        const count = existingOrders.length;
+        const basePo = 'PO-' + code.replace('PRJTEC000000', 'PRJ');
+        let poNumber = count === 0 ? basePo : `${basePo}-${String.fromCharCode(65 + count)}`; // PO-PRJ22-B, PO-PRJ22-C, etc.
+        
+        // Se já existir esse exato poNumber no banco geral, incrementa sufixo numérico
+        const checkExists = await dbGet('SELECT id FROM stock_orders WHERE po_number = ?', [poNumber]);
+        if (checkExists) {
+            poNumber = `${basePo}-${count + 1}`;
+        }
+
+        const now = new Date().toISOString();
+        let invoiceFilePath = null;
+        if (req.file) {
+            invoiceFilePath = 'uploads/' + req.file.filename;
+        }
+
+        const isCourier = (transport_mode || 'MARITIMO').toUpperCase() === 'COURIER';
+        const fobVal = parseFloat(total_fob_value) || 0;
+
+        const resInsert = await dbRun(`
+            INSERT INTO stock_orders (
+                po_number, project_code, client_name, supplier_name, invoice_number,
+                invoice_date, currency, total_fob_value, stage, transport_mode,
+                courier_service, tracking_number, container_id, vessel_name,
+                invoice_file_path, notes, is_sub_order, stage_entry_date, created_by, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PO_EMITIDA', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+            poNumber, code, project.client, supplier_name.trim(), invoice_number || `PI-${poNumber}`,
+            invoice_date || now.split('T')[0], currency || 'USD', fobVal,
+            isCourier ? 'COURIER' : 'MARITIMO',
+            isCourier ? (courier_service || 'FEDEX') : null,
+            isCourier ? (tracking_number || null) : null,
+            container_id || null, vessel_name || null,
+            invoiceFilePath, notes || `Ordem de fornecedor para projeto ${code}`,
+            count > 0 ? 1 : 0, now, user, now, now
+        ]);
+
+        const orderId = resInsert.lastID;
+
+        // Inserir itens da ordem (separando escopo do cliente vs máquinas de prateleira)
+        let parsedItems = [];
+        try {
+            if (items_json) parsedItems = JSON.parse(items_json);
+        } catch(e) {}
+
+        if (Array.isArray(parsedItems) && parsedItems.length > 0) {
+            for (const it of parsedItems) {
+                const qty = parseInt(it.qty) || 1;
+                const unitPrice = parseFloat(it.unit_price) || 0;
+                const totalItem = qty * unitPrice;
+                const isProject = it.is_project_item !== undefined ? (it.is_project_item ? 1 : 0) : 1;
+                await dbRun(`
+                    INSERT INTO stock_order_items (
+                        order_id, sku, description, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, is_project_item, status, created_at
+                    ) VALUES (?, ?, ?, ?, 0, ?, ?, ?, 'ORDERED', ?)
+                `, [
+                    orderId, (it.sku || 'MAQ-ESPECIAL').trim().toUpperCase(), it.description || '',
+                    qty, unitPrice, totalItem, isProject, now
+                ]);
+            }
+        } else {
+            // Item padrão baseado no escopo do projeto
+            await dbRun(`
+                INSERT INTO stock_order_items (
+                    order_id, sku, description, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, is_project_item, status, created_at
+                ) VALUES (?, ?, ?, 1, 0, ?, ?, 1, 'ORDERED', ?)
+            `, [
+                orderId, project.sku || 'MAQ-ESPECIAL', `${supplier_name.trim()} - Equipamento para ${project.client}`,
+                fobVal, fobVal, now
+            ]);
+        }
+
+        // Marcar que o projeto tem ordem de importação ativa
+        await dbRun('UPDATE projects SET has_import_order = 1, lastUpdate = ? WHERE code = ?', [now, code]);
+        await recordAuditLog(code, user, `Nova ordem de fornecedor criada: ${poNumber} (${supplier_name.trim()}) no valor de ${currency || 'USD'} ${fobVal.toFixed(2)}.`);
+
+        const createdOrder = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        const items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [orderId]);
+        createdOrder.items = items || [];
+
+        res.json({ success: true, order: createdOrder, message: `Ordem ${poNumber} criada com sucesso para o fornecedor ${supplier_name.trim()}!` });
+    } catch (err) {
+        console.error('[POST PROJECT IMPORT ORDER ERROR]', err);
+        res.status(500).json({ error: 'Erro ao criar ordem de fornecedor: ' + err.message });
+    }
+});
+
 // =========================================================================
 // MÓDULO COMERCIAL & FISCAL: PROPOSTA COMERCIAL & DANFE (FASE 2)
 // =========================================================================
@@ -12220,20 +12359,29 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
         }
 
         // Se a ordem avançou para DOCA_GALPAO (Chegada Tecfag / Liberado) e possui projeto vinculado:
-        // Retorna o projeto automaticamente ao Quadro de Projetos (Fase 6: Oficina, Setup & SAT)!
+        // Verifica se TODOS os fornecedores deste projeto já chegaram na Doca antes de avançar para Fase 6!
         if (nextStage === 'DOCA_GALPAO' && order.project_code) {
-            const nowIso = new Date().toISOString();
-            const prjRow = await dbGet("SELECT checklist FROM projects WHERE code = ?", [order.project_code]);
-            let chk = {};
-            try { chk = JSON.parse(prjRow ? prjRow.checklist : '{}'); } catch(e) {}
-            ['producao', 'embarque', 'pagamento', 'fedex', 'transporte_maritimo', 'desembaraco', 'chegada_tecfag'].forEach(k => {
-                chk[k] = true;
-            });
-            await dbRun("UPDATE projects SET fase = 6, checklist = ?, faseEntryDate = ?, lastUpdate = ? WHERE code = ?", [
-                JSON.stringify(chk), nowIso, nowIso, order.project_code
-            ]);
-            await recordAuditLog(order.project_code, user, `Máquina liberada e entregue na Doca Tecfag. Projeto retornado ao Quadro de Projetos (Fase 6: Oficina, Setup & SAT).`);
-            console.log(`[SUPPLY CHAIN -> PROJETOS] Projeto ${order.project_code} retornado ao Quadro de Projetos na Fase 6 (Oficina).`);
+            const allLinked = await dbAll("SELECT id, po_number, supplier_name, stage FROM stock_orders WHERE project_code = ?", [order.project_code]);
+            const pendingOrders = allLinked.filter(o => o.id !== parseInt(orderId) && o.stage !== 'DOCA_GALPAO');
+
+            if (pendingOrders.length === 0) {
+                const nowIso = new Date().toISOString();
+                const prjRow = await dbGet("SELECT checklist FROM projects WHERE code = ?", [order.project_code]);
+                let chk = {};
+                try { chk = JSON.parse(prjRow ? prjRow.checklist : '{}'); } catch(e) {}
+                ['producao', 'embarque', 'pagamento', 'fedex', 'transporte_maritimo', 'desembaraco', 'chegada_tecfag'].forEach(k => {
+                    chk[k] = true;
+                });
+                await dbRun("UPDATE projects SET fase = 6, checklist = ?, faseEntryDate = ?, lastUpdate = ? WHERE code = ?", [
+                    JSON.stringify(chk), nowIso, nowIso, order.project_code
+                ]);
+                await recordAuditLog(order.project_code, user, `Todos os equipamentos da linha (${allLinked.length}/${allLinked.length}) foram entregues na Doca Tecfag. Projeto avançado para Fase 6 (Oficina, Setup & SAT).`);
+                console.log(`[SUPPLY CHAIN -> PROJETOS] Todas as ${allLinked.length} ordens do projeto ${order.project_code} na Doca. Avançado para Fase 6.`);
+            } else {
+                const pendingNames = pendingOrders.map(o => `${o.po_number} (${o.supplier_name})`).join(', ');
+                await recordAuditLog(order.project_code, user, `Equipamento da ordem ${order.po_number} (${order.supplier_name}) recebido na Doca Tecfag. Aguardando chegada de ${pendingOrders.length} ordem(ns): ${pendingNames} para liberar a montagem na Oficina.`);
+                console.log(`[SUPPLY CHAIN GATING] Projeto ${order.project_code}: ${allLinked.length - pendingOrders.length}/${allLinked.length} ordens na Doca. Aguardando: ${pendingNames}.`);
+            }
         } else if (order.stage === 'DOCA_GALPAO' && nextStage !== 'DOCA_GALPAO' && order.project_code) {
             // Se estava na DOCA_GALPAO e foi revertida para etapa anterior (ex: EADI Bauru), atualiza o projeto para Fase 5
             const nowIso = new Date().toISOString();
@@ -12379,19 +12527,29 @@ app.post('/api/supply-chain/orders/:id/advance-doca', authenticateToken, restric
             orderId
         ]);
 
-        // Se houver projeto vinculado, avança para Fase 6 (Oficina, Setup & SAT)
+        // Se houver projeto vinculado, verifica convergência de todos os fornecedores antes de avançar para Fase 6
         if (order.project_code) {
-            const nowIso = new Date().toISOString();
-            const prjRow = await dbGet("SELECT checklist FROM projects WHERE code = ?", [order.project_code]);
-            let chk = {};
-            try { chk = JSON.parse(prjRow ? prjRow.checklist : '{}'); } catch(e) {}
-            ['producao', 'embarque', 'pagamento', 'fedex', 'transporte_maritimo', 'desembaraco', 'chegada_tecfag'].forEach(k => {
-                chk[k] = true;
-            });
-            await dbRun("UPDATE projects SET fase = 6, checklist = ?, danfe_number = ?, faseEntryDate = ?, lastUpdate = ? WHERE code = ?", [
-                JSON.stringify(chk), nfe_number.trim(), nowIso, nowIso, order.project_code
-            ]);
-            await recordAuditLog(order.project_code, user, `Entrada fiscal validada na Doca Tecfag via NF-e nº ${nfe_number.trim()}. Projeto direcionado para Fase 6 (Oficina, Setup & SAT).`);
+            const allLinked = await dbAll("SELECT id, po_number, supplier_name, stage FROM stock_orders WHERE project_code = ?", [order.project_code]);
+            const pendingOrders = allLinked.filter(o => o.id !== parseInt(orderId) && o.stage !== 'DOCA_GALPAO');
+
+            if (pendingOrders.length === 0) {
+                const nowIso = new Date().toISOString();
+                const prjRow = await dbGet("SELECT checklist FROM projects WHERE code = ?", [order.project_code]);
+                let chk = {};
+                try { chk = JSON.parse(prjRow ? prjRow.checklist : '{}'); } catch(e) {}
+                ['producao', 'embarque', 'pagamento', 'fedex', 'transporte_maritimo', 'desembaraco', 'chegada_tecfag'].forEach(k => {
+                    chk[k] = true;
+                });
+                await dbRun("UPDATE projects SET fase = 6, checklist = ?, danfe_number = ?, faseEntryDate = ?, lastUpdate = ? WHERE code = ?", [
+                    JSON.stringify(chk), nfe_number.trim(), nowIso, nowIso, order.project_code
+                ]);
+                await recordAuditLog(order.project_code, user, `Entrada fiscal validada na Doca Tecfag via NF-e nº ${nfe_number.trim()}. Todos os equipamentos da linha (${allLinked.length}/${allLinked.length}) estão na Doca. Projeto liberado para Fase 6 (Oficina, Setup & SAT).`);
+                console.log(`[DOCA GATING] Todos os ${allLinked.length} fornecedores do projeto ${order.project_code} na Doca. Projeto liberado para Oficina.`);
+            } else {
+                const pendingNames = pendingOrders.map(o => `${o.po_number} (${o.supplier_name})`).join(', ');
+                await recordAuditLog(order.project_code, user, `Entrada fiscal da ordem ${order.po_number} (${order.supplier_name}) validada na Doca via NF-e nº ${nfe_number.trim()}. Aguardando chegada de ${pendingOrders.length} ordem(ns): ${pendingNames} para liberar a montagem na Oficina.`);
+                console.log(`[DOCA GATING] Projeto ${order.project_code}: ${allLinked.length - pendingOrders.length}/${allLinked.length} ordens na Doca. Aguardando: ${pendingNames}.`);
+            }
         }
 
         // Registrar no log geral do sistema
