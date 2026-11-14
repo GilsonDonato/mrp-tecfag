@@ -10138,11 +10138,59 @@ app.get('/api/projects/:code/import-orders', authenticateToken, async (req, res)
         for (const ord of orders) {
             const items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [ord.id]);
             ord.items = items || [];
+
+            // Se a ordem não tiver invoice_file_path preenchido, busca nos anexos do projeto (Fase proforma/invoice)
+            if (!ord.invoice_file_path) {
+                const attach = await dbGet(`
+                    SELECT filePath FROM attachments 
+                    WHERE (projectCode = ? OR projectCode = ?) 
+                      AND (phase = 'proforma' OR phase = 'invoice' OR LOWER(fileName) LIKE '%invoice%' OR LOWER(fileName) LIKE '%proforma%')
+                    ORDER BY id DESC LIMIT 1
+                `, [code, shortCode]);
+                if (attach && attach.filePath) {
+                    ord.invoice_file_path = attach.filePath;
+                    try {
+                        await dbRun('UPDATE stock_orders SET invoice_file_path = ? WHERE id = ?', [attach.filePath, ord.id]);
+                    } catch (e) {}
+                }
+            }
         }
         res.json({ success: true, orders: orders || [] });
     } catch (err) {
         console.error('[GET PROJECT IMPORT ORDERS ERROR]', err);
         res.status(500).json({ error: 'Erro ao listar ordens do projeto: ' + err.message });
+    }
+});
+
+// POST /api/supply-chain/orders/:id/attach-invoice - Anexa ou atualiza a Proforma Invoice de uma ordem
+app.post('/api/supply-chain/orders/:id/attach-invoice', authenticateToken, restrictToSupplyChain, upload.single('invoice_file'), async (req, res) => {
+    const { id } = req.params;
+    const user = req.user ? req.user.username : 'Sistema';
+    try {
+        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [id]);
+        if (!order) return res.status(404).json({ error: 'Ordem não encontrada.' });
+
+        if (!req.file) {
+            return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+        }
+
+        const invoiceFilePath = 'uploads/' + req.file.filename;
+        const now = new Date().toISOString();
+
+        await dbRun('UPDATE stock_orders SET invoice_file_path = ?, updated_at = ? WHERE id = ?', [invoiceFilePath, now, id]);
+
+        if (order.project_code) {
+            await dbRun(`
+                INSERT INTO attachments (projectCode, phase, fileName, fileType, filePath, dateAdded)
+                VALUES (?, 'proforma', ?, ?, ?, ?)
+            `, [order.project_code, req.file.originalname, req.file.mimetype, invoiceFilePath, now]);
+            await recordAuditLog(order.project_code, user, `Proforma Invoice anexada para a ordem ${order.po_number}: ${req.file.originalname}`);
+        }
+
+        res.json({ success: true, invoice_file_path: invoiceFilePath, message: 'Proforma Invoice anexada com sucesso!' });
+    } catch (err) {
+        console.error('[ATTACH INVOICE ERROR]', err);
+        res.status(500).json({ error: 'Erro ao anexar fatura: ' + err.message });
     }
 });
 
