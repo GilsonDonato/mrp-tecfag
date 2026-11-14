@@ -7439,7 +7439,7 @@
     <!-- 3. MODAL DETALHES DA ORDEM / CONTAINER (LOGÍSTICA & RASTREIO) -->
     <div class="modal-overlay" id="modal-supply-chain-details" style="z-index: 1260; display: none;">
         <div class="modal" style="max-width: 950px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
-            <div class="modal-header" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(30, 41, 59, 0.8) 100%); border-bottom: 1px solid rgba(168, 85, 247, 0.2);">
+            <div class="modal-header" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(30, 41, 59, 0.8) 100%); border-bottom: 1px solid rgba(168, 85, 247, 0.2); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: 1.5rem;">🚢</span>
                     <div>
@@ -7447,9 +7447,14 @@
                         <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #94a3b8;" id="sc-details-subtitle">Rastreamento logístico internacional e controle de prazos.</p>
                     </div>
                 </div>
-                <button class="btn-icon" onclick="closeSupplyDetailsModal()">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button type="button" id="sc-details-btn-goto-project" class="btn" style="display: none; background: rgba(168, 85, 247, 0.25); border: 1px solid #c084fc; color: #e9d5ff; font-weight: 800; font-size: 0.76rem; padding: 6px 14px; border-radius: 6px; cursor: pointer; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);">
+                        <span>📐</span> Abrir Ficha do Projeto & Copiloto IA ➔
+                    </button>
+                    <button class="btn-icon" onclick="closeSupplyDetailsModal()">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
             </div>
 
             <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
@@ -7745,7 +7750,10 @@
                         <button type="button" class="btn btn-secondary" onclick="deleteCurrentSupplyOrder()" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">
                             🗑️ Excluir Ordem
                         </button>
-                        <div style="display: flex; gap: 10px;">
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button type="button" id="sc-details-footer-goto-project" class="btn" style="display: none; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; font-weight: 700; padding: 8px 14px; font-size: 0.78rem;">
+                                📐 Abrir Ficha do Projeto & Copilot IA
+                            </button>
                             <button type="button" class="btn btn-secondary" onclick="closeSupplyDetailsModal()">Fechar</button>
                             <button type="submit" class="btn" style="background: #38bdf8; color: black; font-weight: bold; padding: 8px 20px;">
                                 Salvar Alterações
@@ -32053,6 +32061,34 @@ function renderKanban() {
                 if (title) title.innerText = `Container / PO: ${order.po_number} - ${order.supplier_name}`;
                 if (subtitle) subtitle.innerText = `Fatura: ${order.invoice_number || 'S/N'} • Condição: ${order.payment_terms_desc || order.payment_terms_type}`;
                 if (badge) badge.innerText = stageLabels[order.stage] || order.stage;
+
+                // Botão de retorno à Ficha do Projeto & Copiloto IA
+                const prjCode = order.project_code || (typeof order.id === 'string' && order.id.startsWith('PRJ-') ? order.id.replace('PRJ-', '') : null);
+                const btnGotoProjectHeader = document.getElementById('sc-details-btn-goto-project');
+                const btnGotoProjectFooter = document.getElementById('sc-details-footer-goto-project');
+
+                if (prjCode) {
+                    if (btnGotoProjectHeader) {
+                        btnGotoProjectHeader.style.display = 'inline-flex';
+                        btnGotoProjectHeader.innerHTML = `<span>📐</span> Abrir Ficha do Projeto & Copiloto IA (${prjCode}) ➔`;
+                        btnGotoProjectHeader.onclick = (e) => {
+                            e.preventDefault();
+                            closeSupplyDetailsModal();
+                            openProjectModal(prjCode, 'logistics');
+                        };
+                    }
+                    if (btnGotoProjectFooter) {
+                        btnGotoProjectFooter.style.display = 'inline-flex';
+                        btnGotoProjectFooter.onclick = (e) => {
+                            e.preventDefault();
+                            closeSupplyDetailsModal();
+                            openProjectModal(prjCode, 'logistics');
+                        };
+                    }
+                } else {
+                    if (btnGotoProjectHeader) btnGotoProjectHeader.style.display = 'none';
+                    if (btnGotoProjectFooter) btnGotoProjectFooter.style.display = 'none';
+                }
 
                 // Preencher campos logísticos e EADI
                 const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
