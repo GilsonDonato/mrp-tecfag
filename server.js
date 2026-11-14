@@ -13617,8 +13617,9 @@ app.delete('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyCh
             return res.status(404).json({ error: 'Ordem não encontrada.' });
         }
 
-        // Se a ordem estiver vinculada a um projeto, marcar no checklist do projeto para não recriar na rotina de sync
-        if (order.project_code) {
+        // Se a ordem for a principal do projeto, marca no checklist para não recriar na rotina de sync
+        // Se for sub-ordem (fornecedor adicional), apenas remove sem afetar a esteira do projeto
+        if (order.project_code && !order.is_sub_order) {
             const project = await dbGet('SELECT checklist FROM projects WHERE code = ?', [order.project_code]);
             if (project) {
                 let chk = {};
@@ -13631,7 +13632,9 @@ app.delete('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyCh
                     order.project_code
                 ]);
             }
-            await recordAuditLog(order.project_code, user, "Ordem de importação " + order.po_number + " foi excluída/desvinculada pelo usuário " + user + ".");
+            await recordAuditLog(order.project_code, user, "Ordem de importação principal " + order.po_number + " foi excluída/desvinculada pelo usuário " + user + ".");
+        } else if (order.project_code && order.is_sub_order) {
+            await recordAuditLog(order.project_code, user, `Ordem de fornecedor adicional ${order.po_number} (${order.supplier_name}) foi excluída.`);
         }
 
         // Excluir dependências em cascata
