@@ -11873,24 +11873,30 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
         `);
 
         for (const p of importProjects) {
-            const existingOrder = orders.find(o => o.project_code === p.code || o.po_number === 'PO-' + p.code.replace('PRJTEC000000', 'PRJ'));
-            const canonStage = computeCanonicalImportStage(p) || p.import_stage || 'PO_EMITIDA';
-            if (existingOrder) {
-                existingOrder.is_project = true;
-                existingOrder.client_name = p.client;
-                existingOrder.project_name = p.project_name;
-                existingOrder.project_sku = p.sku;
-                existingOrder.stage = canonStage;
-                existingOrder.pending_issue = p.pending_issue;
-                existingOrder.pending_issue_desc = p.pending_issue_desc;
-                existingOrder.pending_issue_since = p.pending_issue_since;
-                existingOrder.fase = p.fase;
-                existingOrder.checklist = p.checklist;
-                existingOrder.history = p.history;
-                if (p.import_transport_mode) existingOrder.transport_mode = p.import_transport_mode;
-                if (p.import_courier_service) existingOrder.courier_service = p.import_courier_service;
-                if (p.import_tracking_number) existingOrder.tracking_number = p.import_tracking_number;
+            const shortCode = p.code.replace(/^PRJTEC0+/, 'PRJ');
+            const matchedOrders = orders.filter(o => o.project_code === p.code || o.project_code === shortCode || o.po_number === `PO-${shortCode}` || (o.po_number && o.po_number.startsWith(`PO-${shortCode}-`)));
+
+            if (matchedOrders.length > 0) {
+                // Para ordens existentes em stock_orders, a verdade da etapa é a própria ordem (cada fornecedor tem seu estágio real)
+                for (const existingOrder of matchedOrders) {
+                    existingOrder.is_project = true;
+                    existingOrder.client_name = p.client;
+                    existingOrder.project_name = p.project_name;
+                    existingOrder.project_sku = p.sku;
+                    // Preserva existingOrder.stage intacto conforme o avanço real do card no Comex
+                    existingOrder.pending_issue = p.pending_issue;
+                    existingOrder.pending_issue_desc = p.pending_issue_desc;
+                    existingOrder.pending_issue_since = p.pending_issue_since;
+                    existingOrder.fase = p.fase;
+                    existingOrder.checklist = p.checklist;
+                    existingOrder.history = p.history;
+                    if (p.import_transport_mode && !existingOrder.transport_mode) existingOrder.transport_mode = p.import_transport_mode;
+                    if (p.import_courier_service && !existingOrder.courier_service) existingOrder.courier_service = p.import_courier_service;
+                    if (p.import_tracking_number && !existingOrder.tracking_number) existingOrder.tracking_number = p.import_tracking_number;
+                }
             } else {
+                // Apenas se o projeto NÃO tiver nenhuma ordem em stock_orders, gera um card virtual temporário
+                const canonStage = computeCanonicalImportStage(p) || p.import_stage || 'PO_EMITIDA';
                 const stage = canonStage;
                 let daysInEadi = 0;
                 if (p.import_eadi_entry_date) {
@@ -11904,6 +11910,7 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
                     client_name: p.client,
                     project_name: p.project_name,
                     project_sku: p.sku,
+                    stage: canonStage,
                     pending_issue: p.pending_issue,
                     pending_issue_desc: p.pending_issue_desc,
                     pending_issue_since: p.pending_issue_since,
@@ -12414,7 +12421,27 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
     };
 
     try {
-        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        let order;
+        if (typeof orderId === 'string' && orderId.startsWith('PRJ-')) {
+            const pCode = orderId.replace('PRJ-', '');
+            order = await dbGet('SELECT * FROM stock_orders WHERE project_code = ?', [pCode]);
+            if (!order) {
+                const p = await dbGet('SELECT * FROM projects WHERE code = ?', [pCode]);
+                if (!p) {
+                    return res.status(404).json({ error: 'Projeto não encontrado.' });
+                }
+                const shortCode = p.code.replace(/^PRJTEC0+/, 'PRJ');
+                const poNumber = `PO-${shortCode}`;
+                const insertRes = await dbRun(
+                    `INSERT INTO stock_orders (po_number, supplier_name, stage, project_code, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    [poNumber, p.supplier || 'Fornecedor Principal', p.import_stage || 'PO_EMITIDA', p.code, user, new Date().toISOString(), new Date().toISOString()]
+                );
+                order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [insertRes.lastID]);
+            }
+        } else {
+            order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        }
+
         if (!order) {
             return res.status(404).json({ error: 'Ordem não encontrada.' });
         }
@@ -12496,6 +12523,24 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
                     newFase, JSON.stringify(chk), nowIso, order.project_code
                 ]);
                 await recordAuditLog(order.project_code, user, `Status de chegada retificado: container retornado para a etapa ${stageLabels[nextStage] || nextStage}. Projeto retornado à Fase 5.`);
+            }
+        }
+
+        // Sincronização Automática: quando uma ordem avança no Comex, atualiza os marcos do projeto sem exigir cliques manuais no Copiloto
+        if (order.project_code && nextStage !== 'DOCA_GALPAO') {
+            const nowIso = new Date().toISOString();
+            const prjRow = await dbGet("SELECT checklist, fase FROM projects WHERE code = ?", [order.project_code]);
+            if (prjRow) {
+                let chk = {};
+                try { chk = JSON.parse(prjRow.checklist || '{}'); } catch(e) {}
+                let changed = false;
+                if (nextStage === 'EM_FABRICACAO' && !chk.producao) { chk.producao = true; changed = true; }
+                if (nextStage === 'PACKING_LIST_EMBARQUE' && !chk.embarque) { chk.embarque = true; changed = true; }
+                if (nextStage === 'NO_NAVIO' && !chk.transporte_maritimo) { chk.transporte_maritimo = true; changed = true; }
+                if ((nextStage === 'NO_PORTO_DESEMBARACO' || nextStage === 'ENTREPOSTADO_EADI') && !chk.desembaraco) { chk.desembaraco = true; changed = true; }
+                if (changed) {
+                    await dbRun("UPDATE projects SET checklist = ?, lastUpdate = ? WHERE code = ?", [JSON.stringify(chk), nowIso, order.project_code]);
+                }
             }
         }
 

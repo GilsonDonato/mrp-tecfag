@@ -31017,10 +31017,29 @@ function renderKanban() {
             const counts = {};
             stages.forEach(s => counts[s] = 0);
 
-            // Limpar colunas
+            // Limpar colunas e registrar drag/drop
             stages.forEach(s => {
                 const container = document.getElementById(`sc-cards-${s}`);
-                if (container) container.innerHTML = '';
+                if (container) {
+                    container.innerHTML = '';
+                    container.ondragover = (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        container.style.background = 'rgba(56, 189, 248, 0.08)';
+                        container.style.borderRadius = '8px';
+                    };
+                    container.ondragleave = (e) => {
+                        container.style.background = '';
+                    };
+                    container.ondrop = async (e) => {
+                        e.preventDefault();
+                        container.style.background = '';
+                        const droppedOrderId = e.dataTransfer.getData('text/plain');
+                        if (droppedOrderId) {
+                            await quickAdvanceOrderStage(droppedOrderId, s);
+                        }
+                    };
+                }
             });
 
             const filterSupplier = document.getElementById('sc-kanban-filter-supplier')?.value || 'ALL';
@@ -31147,6 +31166,18 @@ function renderKanban() {
                     min-width: 0;
                     overflow: hidden;
                 `;
+                card.draggable = true;
+                card.style.cursor = 'grab';
+                card.ondragstart = (e) => {
+                    e.dataTransfer.setData('text/plain', String(order.id));
+                    e.dataTransfer.effectAllowed = 'move';
+                    card.style.opacity = '0.5';
+                    card.style.cursor = 'grabbing';
+                };
+                card.ondragend = () => {
+                    card.style.opacity = '1';
+                    card.style.cursor = 'grab';
+                };
                 card.onmouseenter = () => { card.style.borderColor = 'rgba(56, 189, 248, 0.4)'; card.style.transform = 'translateY(-2px)'; };
                 card.onmouseleave = () => { card.style.borderColor = 'rgba(255, 255, 255, 0.08)'; card.style.transform = 'none'; };
                 const isProject = !!order.project_code || !!order.is_project;
@@ -31379,7 +31410,10 @@ function renderKanban() {
         }
 
         async function quickAdvanceOrderStage(orderId, targetStage) {
-            const order = (supplyChainState.orders || []).find(o => o.id === orderId);
+            const order = (supplyChainState.orders || []).find(o => String(o.id) === String(orderId));
+            if (order && targetStage && order.stage === targetStage) {
+                return;
+            }
             
             // Se estiver no porto e o destino não foi especificado, abrir escolha de rota Santos vs EADI Bauru
             if (order && order.stage === 'NO_PORTO_DESEMBARACO' && !targetStage) {
@@ -31408,7 +31442,7 @@ function renderKanban() {
 
             try {
                 const token = localStorage.getItem('tecfag_session_token');
-                const headers = token ? { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+                const headers = token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
 
                 const body = targetStage ? JSON.stringify({ target_stage: targetStage }) : JSON.stringify({});
 
@@ -31422,6 +31456,12 @@ function renderKanban() {
                     await loadSupplyChainData();
                     if (supplyChainState.activeSubTab === 'eadi') {
                         loadEadiInventory();
+                    }
+                    if (typeof activeProjectCode !== 'undefined' && activeProjectCode) {
+                        await loadProjectMultiOrders(activeProjectCode);
+                    }
+                    if (typeof supplyChainState !== 'undefined' && supplyChainState.currentOrder && String(supplyChainState.currentOrder.id) === String(orderId)) {
+                        await openSupplyDetailsModal(orderId);
                     }
                 } else {
                     const data = await res.json();
