@@ -10139,8 +10139,9 @@ app.get('/api/projects/:code/import-orders', authenticateToken, async (req, res)
             const items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [ord.id]);
             ord.items = items || [];
 
-            // Se a ordem não tiver invoice_file_path preenchido, busca nos anexos do projeto (Fase proforma/invoice)
-            if (!ord.invoice_file_path) {
+            // Apenas para o fornecedor principal (não sub-ordem), se não tiver arquivos preenchidos, busca nos anexos gerais do projeto
+            const isSub = (ord.is_sub_order === 1 || ord.is_sub_order === true);
+            if (!ord.invoice_file_path && !isSub) {
                 const attach = await dbGet(`
                     SELECT filePath FROM attachments 
                     WHERE (projectCode = ? OR projectCode = ?) 
@@ -10151,6 +10152,21 @@ app.get('/api/projects/:code/import-orders', authenticateToken, async (req, res)
                     ord.invoice_file_path = attach.filePath;
                     try {
                         await dbRun('UPDATE stock_orders SET invoice_file_path = ? WHERE id = ?', [attach.filePath, ord.id]);
+                    } catch (e) {}
+                }
+            }
+
+            if (!ord.packing_list_file_path && !isSub) {
+                const attachPL = await dbGet(`
+                    SELECT filePath FROM attachments 
+                    WHERE (projectCode = ? OR projectCode = ?) 
+                      AND (phase = 'packing_list' OR LOWER(fileName) LIKE '%packing%' OR LOWER(fileName) LIKE '%romaneio%')
+                    ORDER BY id DESC LIMIT 1
+                `, [code, shortCode]);
+                if (attachPL && attachPL.filePath) {
+                    ord.packing_list_file_path = attachPL.filePath;
+                    try {
+                        await dbRun('UPDATE stock_orders SET packing_list_file_path = ? WHERE id = ?', [attachPL.filePath, ord.id]);
                     } catch (e) {}
                 }
             }
@@ -10183,7 +10199,7 @@ app.post('/api/supply-chain/orders/:id/attach-invoice', authenticateToken, restr
             await dbRun(`
                 INSERT INTO attachments (projectCode, phase, fileName, fileType, filePath, dateAdded)
                 VALUES (?, 'proforma', ?, ?, ?, ?)
-            `, [order.project_code, req.file.originalname, req.file.mimetype, invoiceFilePath, now]);
+            `, [order.project_code, `[${order.po_number}] ${req.file.originalname}`, req.file.mimetype, invoiceFilePath, now]);
             await recordAuditLog(order.project_code, user, `Proforma Invoice anexada para a ordem ${order.po_number}: ${req.file.originalname}`);
         }
 
@@ -10191,6 +10207,38 @@ app.post('/api/supply-chain/orders/:id/attach-invoice', authenticateToken, restr
     } catch (err) {
         console.error('[ATTACH INVOICE ERROR]', err);
         res.status(500).json({ error: 'Erro ao anexar fatura: ' + err.message });
+    }
+});
+
+// POST /api/supply-chain/orders/:id/attach-packing-list - Anexa ou atualiza o Packing List de uma ordem específica
+app.post('/api/supply-chain/orders/:id/attach-packing-list', authenticateToken, restrictToSupplyChain, upload.single('packing_list_file'), async (req, res) => {
+    const { id } = req.params;
+    const user = req.user ? req.user.username : 'Sistema';
+    try {
+        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [id]);
+        if (!order) return res.status(404).json({ error: 'Ordem não encontrada.' });
+
+        if (!req.file) {
+            return res.status(400).json({ error: 'Nenhum arquivo de Packing List enviado.' });
+        }
+
+        const packingListFilePath = 'uploads/' + req.file.filename;
+        const now = new Date().toISOString();
+
+        await dbRun('UPDATE stock_orders SET packing_list_file_path = ?, updated_at = ? WHERE id = ?', [packingListFilePath, now, id]);
+
+        if (order.project_code) {
+            await dbRun(`
+                INSERT INTO attachments (projectCode, phase, fileName, fileType, filePath, dateAdded)
+                VALUES (?, 'packing_list', ?, ?, ?, ?)
+            `, [order.project_code, `[${order.po_number}] ${req.file.originalname}`, req.file.mimetype, packingListFilePath, now]);
+            await recordAuditLog(order.project_code, user, `Packing List anexado para a ordem ${order.po_number}: ${req.file.originalname}`);
+        }
+
+        res.json({ success: true, packing_list_file_path: packingListFilePath, message: 'Packing List anexado com sucesso!' });
+    } catch (err) {
+        console.error('[ATTACH PACKING LIST ERROR]', err);
+        res.status(500).json({ error: 'Erro ao anexar Packing List: ' + err.message });
     }
 });
 

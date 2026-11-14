@@ -4857,6 +4857,9 @@
                     </div>
 
                     <!-- Central de Documentos Oficiais da Importação: Invoice vs Packing List -->
+                    <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 0.72rem; color: #94a3b8; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                        <span>🏢 <strong>Documentos do Fornecedor Principal:</strong> Os cartões abaixo registram os documentos da importação padrão / fabricante primário. Para projetos multi-fornecedores, utilize a seção acima <em>(🏭 Fornecedores & Ordens de Compra)</em> para visualizar e anexar os documentos individuais de cada fábrica.</span>
+                    </div>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 20px;">
                         
                         <!-- CARD 1: Commercial / Proforma Invoice (Fase 1 / 2) -->
@@ -7506,6 +7509,37 @@
                             <div class="form-group" style="margin-bottom: 0;">
                                 <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Número da Invoice</label>
                                 <input type="text" id="sc-det-invoice-number" class="form-control" style="padding: 8px; font-size: 0.82rem;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Documentos Oficiais desta Ordem / Fornecedor (Proforma Invoice e Packing List) -->
+                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div style="font-size: 0.75rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+                            <span>📂 Documentos Oficiais Desta Ordem / Fornecedor</span>
+                            <span style="font-size: 0.68rem; color: #94a3b8; font-weight: normal;">Cada fabricante possui sua própria Fatura e Packing List</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px;">
+                            <!-- Proforma / Commercial Invoice -->
+                            <div style="background: rgba(0,0,0,0.25); border: 1px dashed rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 10px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                    <span style="font-size: 0.72rem; font-weight: 700; color: #38bdf8;">📄 Proforma / Commercial Invoice</span>
+                                    <span id="sc-det-invoice-status-badge" style="font-size: 0.65rem; font-weight: bold;"></span>
+                                </div>
+                                <div id="sc-det-invoice-file-controls" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <!-- Injetado via openSupplyDetailsModal -->
+                                </div>
+                            </div>
+
+                            <!-- Packing List Oficial -->
+                            <div style="background: rgba(0,0,0,0.25); border: 1px dashed rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 10px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                    <span style="font-size: 0.72rem; font-weight: 700; color: #f59e0b;">📦 Packing List Oficial (Romaneio)</span>
+                                    <span id="sc-det-packing-status-badge" style="font-size: 0.65rem; font-weight: bold;"></span>
+                                </div>
+                                <div id="sc-det-packing-file-controls" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <!-- Injetado via openSupplyDetailsModal -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -25224,17 +25258,42 @@ function renderKanban() {
                                     <strong style="color: #34d399; display: block;">${ord.currency || 'USD'} ${fobStr}</strong>
                                 </div>
                                 <div>
-                                    <span style="color: #94a3b8;">Documento Anexo:</span>
+                                    <span style="color: #94a3b8;">📄 Proforma / Invoice:</span>
                                     <div style="margin-top: 2px;">
                                         ${ord.invoice_file_path ? `
-                                            <a href="/${ord.invoice_file_path.replace(/^\//, '')}" target="_blank" style="color: #38bdf8; text-decoration: underline; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
-                                                <span>📄</span> Ver Proforma Invoice
-                                            </a>
+                                            <div style="display: inline-flex; align-items: center; gap: 4px;">
+                                                <a href="/${ord.invoice_file_path.replace(/^\//, '')}" target="_blank" style="color: #38bdf8; text-decoration: underline; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                                                    <span>📄</span> Ver Proforma
+                                                </a>
+                                                <input type="file" id="attach-invoice-input-${ord.id}" accept=".pdf,image/*" style="display: none;" onchange="uploadOrderInvoiceFile('${ord.id}', this)">
+                                                <button type="button" onclick="document.getElementById('attach-invoice-input-${ord.id}').click();" style="background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 0.68rem;" title="Substituir fatura">🔄</button>
+                                            </div>
                                         ` : `
                                             <div style="display: inline-flex; align-items: center; gap: 6px;">
                                                 <input type="file" id="attach-invoice-input-${ord.id}" accept=".pdf,image/*" style="display: none;" onchange="uploadOrderInvoiceFile('${ord.id}', this)">
-                                                <button type="button" class="btn" onclick="document.getElementById('attach-invoice-input-${ord.id}').click();" style="background: rgba(56, 189, 248, 0.12); border: 1px dashed rgba(56, 189, 248, 0.4); color: #38bdf8; padding: 2px 8px; font-size: 0.68rem; font-weight: 700; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Clique para anexar o PDF ou imagem da fatura deste fornecedor">
+                                                <button type="button" class="btn" onclick="document.getElementById('attach-invoice-input-${ord.id}').click();" style="background: rgba(56, 189, 248, 0.12); border: 1px dashed rgba(56, 189, 248, 0.4); color: #38bdf8; padding: 2px 8px; font-size: 0.68rem; font-weight: 700; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Clique para anexar o PDF da Proforma deste fornecedor">
                                                     <span>➕</span> Anexar Proforma
+                                                </button>
+                                            </div>
+                                        `}
+                                    </div>
+                                </div>
+                                <div>
+                                    <span style="color: #94a3b8;">📦 Packing List Oficial:</span>
+                                    <div style="margin-top: 2px;">
+                                        ${ord.packing_list_file_path ? `
+                                            <div style="display: inline-flex; align-items: center; gap: 4px;">
+                                                <a href="/${ord.packing_list_file_path.replace(/^\//, '')}" target="_blank" style="color: #f59e0b; text-decoration: underline; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                                                    <span>📦</span> Ver Packing List
+                                                </a>
+                                                <input type="file" id="attach-packing-input-${ord.id}" accept=".pdf,.xls,.xlsx,image/*" style="display: none;" onchange="uploadOrderPackingListFile('${ord.id}', this)">
+                                                <button type="button" onclick="document.getElementById('attach-packing-input-${ord.id}').click();" style="background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 0.68rem;" title="Substituir packing list">🔄</button>
+                                            </div>
+                                        ` : `
+                                            <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                                <input type="file" id="attach-packing-input-${ord.id}" accept=".pdf,.xls,.xlsx,image/*" style="display: none;" onchange="uploadOrderPackingListFile('${ord.id}', this)">
+                                                <button type="button" class="btn" onclick="document.getElementById('attach-packing-input-${ord.id}').click();" style="background: rgba(245, 158, 11, 0.12); border: 1px dashed rgba(245, 158, 11, 0.4); color: #f59e0b; padding: 2px 8px; font-size: 0.68rem; font-weight: 700; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Clique para anexar o Romaneio de Carga (Packing List) deste fornecedor">
+                                                    <span>➕</span> Anexar Romaneio
                                                 </button>
                                             </div>
                                         `}
@@ -25345,6 +25404,9 @@ function renderKanban() {
                             checkProjectAttachedInvoice(activeProjectCode);
                         }
                     }
+                    if (typeof supplyChainState !== 'undefined' && supplyChainState.currentOrder && String(supplyChainState.currentOrder.id) === String(orderId)) {
+                        await openSupplyDetailsModal(orderId);
+                    }
                     if (typeof loadSupplyChainData === 'function') {
                         loadSupplyChainData();
                     }
@@ -25355,6 +25417,45 @@ function renderKanban() {
             } catch (err) {
                 console.error('[UPLOAD INVOICE FILE ERROR]', err);
                 alert('Erro ao enviar arquivo de fatura: ' + err.message);
+            }
+        }
+
+        async function uploadOrderPackingListFile(orderId, input) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+
+            try {
+                const formData = new FormData();
+                formData.append('packing_list_file', file);
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/supply-chain/orders/${orderId}/attach-packing-list`, {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    alert(`✅ ${data.message || 'Packing List anexado com sucesso!'}`);
+                    if (activeProjectCode) {
+                        await loadProjectMultiOrders(activeProjectCode);
+                    }
+                    if (typeof supplyChainState !== 'undefined' && supplyChainState.currentOrder && String(supplyChainState.currentOrder.id) === String(orderId)) {
+                        await openSupplyDetailsModal(orderId);
+                    }
+                    if (typeof loadSupplyChainData === 'function') {
+                        loadSupplyChainData();
+                    }
+                } else {
+                    const errData = await res.json().catch(() => ({}));
+                    alert('Erro ao anexar Packing List: ' + (errData.error || 'Falha no servidor.'));
+                }
+            } catch (err) {
+                console.error('[UPLOAD PACKING LIST FILE ERROR]', err);
+                alert('Erro ao enviar arquivo de Packing List: ' + err.message);
             }
         }
 
@@ -31319,7 +31420,8 @@ function renderKanban() {
                 const courierBadge = isCourier ? `<span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: 800;" title="Courier Expresso (${order.courier_service || 'FEDEX'})">✈️ ${order.courier_service || 'COURIER'}</span>` : '';
                 const isRollover = order.is_rollover_order === 1;
                 const rolloverBadge = isRollover ? `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(245, 158, 11, 0.3);">SALDO REMANESCENTE</span>` : '';
-                const invoiceBadge = order.invoice_number ? `<span style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: bold;" title="Invoice / Proforma">📄 Inv: ${order.invoice_number}</span>` : '';
+                const invoiceBadge = order.invoice_number ? (order.invoice_file_path ? `<a href="/${order.invoice_file_path.replace(/^\//, '')}" target="_blank" onclick="event.stopPropagation();" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;" title="Ver Fatura Proforma (${order.invoice_number})">📄 ${order.invoice_number} ↗</a>` : `<span style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: bold;" title="Invoice / Proforma">📄 ${order.invoice_number}</span>`) : '';
+                const packingBadge = order.packing_list_file_path ? `<a href="/${order.packing_list_file_path.replace(/^\//, '')}" target="_blank" onclick="event.stopPropagation();" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;" title="Ver Romaneio / Packing List Oficial">📦 P.List ↗</a>` : '';
                 const clientLabel = (order.client_name && order.client_name.trim()) ? order.client_name.trim() : order.project_code;
                 const projectBadge = order.project_code ? `<span style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: 800;" title="Projeto Especial vinculado: ${order.project_code} • ${order.client_name || ''}">🎯 ${clientLabel}</span>` : '';
 
@@ -31389,6 +31491,7 @@ function renderKanban() {
                                 <span style="font-weight: 800; color: #f8fafc; font-size: 0.88rem;">${order.po_number}</span>
                                 ${courierBadge}
                                 ${invoiceBadge}
+                                ${packingBadge}
                                 ${projectBadge}
                             </div>
                             <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 600; margin-top: 2px;">🏭 ${order.supplier_name}</div>
@@ -32129,6 +32232,76 @@ function renderKanban() {
                     }
                 }
                 setVal('sc-det-invoice-number', order.invoice_number);
+
+                // Renderizar controles de Proforma Invoice no modal de Comex
+                const invControls = document.getElementById('sc-det-invoice-file-controls');
+                const invBadge = document.getElementById('sc-det-invoice-status-badge');
+                if (invControls) {
+                    if (order.invoice_file_path) {
+                        if (invBadge) {
+                            invBadge.innerText = '✅ Anexada';
+                            invBadge.style.color = '#38bdf8';
+                        }
+                        invControls.innerHTML = `
+                            <a href="/${order.invoice_file_path.replace(/^\//, '')}" target="_blank" style="padding: 5px 10px; background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #38bdf8; border-radius: 4px; font-size: 0.74rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">
+                                <span>📄</span> Ver Proforma Invoice
+                            </a>
+                            <input type="file" id="sc-det-upload-invoice-input" accept=".pdf,image/*" style="display: none;" onchange="uploadOrderInvoiceFile('${order.id}', this)">
+                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('sc-det-upload-invoice-input').click()" style="padding: 4px 8px; font-size: 0.70rem; border-radius: 4px; color: #94a3b8;" title="Substituir arquivo de fatura">
+                                🔄 Trocar
+                            </button>
+                        `;
+                    } else {
+                        if (invBadge) {
+                            invBadge.innerText = '⚠️ Pendente';
+                            invBadge.style.color = '#f59e0b';
+                        }
+                        invControls.innerHTML = `
+                            <input type="file" id="sc-det-upload-invoice-input" accept=".pdf,image/*" style="display: none;" onchange="uploadOrderInvoiceFile('${order.id}', this)">
+                            <button type="button" class="btn" onclick="document.getElementById('sc-det-upload-invoice-input').click()" style="background: rgba(56, 189, 248, 0.15); border: 1px dashed #38bdf8; color: #38bdf8; padding: 5px 12px; font-size: 0.72rem; font-weight: 700; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                <span>➕</span> Anexar Proforma Invoice (PDF)
+                            </button>
+                        `;
+                    }
+                }
+
+                // Renderizar controles de Packing List no modal de Comex
+                const plControls = document.getElementById('sc-det-packing-file-controls');
+                const plBadge = document.getElementById('sc-det-packing-status-badge');
+                if (plControls) {
+                    if (order.packing_list_file_path) {
+                        if (plBadge) {
+                            plBadge.innerText = '✅ Anexado';
+                            plBadge.style.color = '#f59e0b';
+                        }
+                        plControls.innerHTML = `
+                            <a href="/${order.packing_list_file_path.replace(/^\//, '')}" target="_blank" style="padding: 5px 10px; background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #f59e0b; border-radius: 4px; font-size: 0.74rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">
+                                <span>📦</span> Ver Packing List
+                            </a>
+                            <input type="file" id="sc-det-upload-packing-input" accept=".pdf,.xls,.xlsx,image/*" style="display: none;" onchange="uploadOrderPackingListFile('${order.id}', this)">
+                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('sc-det-upload-packing-input').click()" style="padding: 4px 8px; font-size: 0.70rem; border-radius: 4px; color: #94a3b8;" title="Substituir arquivo de packing list">
+                                🔄 Trocar
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="openReconcileModalForCurrentOrder()" style="padding: 4px 8px; font-size: 0.70rem; border-color: #ec4899; color: #ec4899; font-weight: 700; border-radius: 4px;" title="Conferir volumes e backorders">
+                                ⚡ Conciliar
+                            </button>
+                        `;
+                    } else {
+                        if (plBadge) {
+                            plBadge.innerText = '⚠️ Pendente';
+                            plBadge.style.color = '#64748b';
+                        }
+                        plControls.innerHTML = `
+                            <input type="file" id="sc-det-upload-packing-input" accept=".pdf,.xls,.xlsx,image/*" style="display: none;" onchange="uploadOrderPackingListFile('${order.id}', this)">
+                            <button type="button" class="btn" onclick="document.getElementById('sc-det-upload-packing-input').click()" style="background: rgba(245, 158, 11, 0.15); border: 1px dashed #f59e0b; color: #f59e0b; padding: 5px 12px; font-size: 0.72rem; font-weight: 700; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                <span>➕</span> Anexar Packing List (PDF)
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="openReconcileModalForCurrentOrder()" style="padding: 4px 8px; font-size: 0.70rem; border-color: rgba(236, 72, 153, 0.4); color: #ec4899; font-weight: 700; border-radius: 4px;">
+                                📦 Conciliar
+                            </button>
+                        `;
+                    }
+                }
 
                 const balanceBadge = document.getElementById('sc-det-eadi-balance-badge');
                 const auditBtn = document.getElementById('sc-det-eadi-audit-btn');
