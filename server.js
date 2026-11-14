@@ -686,6 +686,7 @@ db.run("UPDATE projects SET import_stage = NULL WHERE (fase IS NULL OR fase <= 2
         db.run("ALTER TABLE stock_order_items ADD COLUMN tecfag_sku TEXT", (err) => {});
         db.run("ALTER TABLE stock_orders ADD COLUMN stage_entry_date TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN import_stage_entry_date TEXT", (err) => {});
+        db.run("ALTER TABLE projects ADD COLUMN has_import_order INTEGER DEFAULT 0", (err) => {});
         db.run("ALTER TABLE stock_order_items ADD COLUMN is_project_item INTEGER DEFAULT 1", (err) => {});
         db.run("ALTER TABLE stock_orders ADD COLUMN is_sub_order INTEGER DEFAULT 0", (err) => {});
         db.run("UPDATE stock_orders SET stage_entry_date = COALESCE(invoice_date, created_at) WHERE stage_entry_date IS NULL", () => {});
@@ -10248,7 +10249,11 @@ app.post('/api/projects/:code/import-orders', authenticateToken, restrictToSuppl
         }
 
         // Marcar que o projeto tem ordem de importação ativa
-        await dbRun('UPDATE projects SET has_import_order = 1, lastUpdate = ? WHERE code = ?', [now, code]);
+        try {
+            await dbRun('UPDATE projects SET has_import_order = 1, lastUpdate = ? WHERE code = ?', [now, code]);
+        } catch (colErr) {
+            console.warn('[POST IMPORT ORDER] Aviso ao atualizar has_import_order no projeto:', colErr.message);
+        }
         await recordAuditLog(code, user, `Nova ordem de fornecedor criada: ${poNumber} (${supplier_name.trim()}) no valor de ${currency || 'USD'} ${fobVal.toFixed(2)}.`);
 
         const createdOrder = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);

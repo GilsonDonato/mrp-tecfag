@@ -8722,8 +8722,14 @@
 
                         <!-- Upload do arquivo da Invoice -->
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label style="font-size: 0.72rem; font-weight: 700; color: #38bdf8;">Anexar Arquivo da Proforma / Invoice deste Fornecedor (PDF ou Imagem)</label>
-                            <input type="file" id="add-supp-invoice-file" class="form-control" accept=".pdf,image/*" style="padding: 6px 10px; font-size: 0.80rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: #38bdf8; margin: 0;">Anexar Arquivo da Proforma / Invoice deste Fornecedor (PDF ou Imagem)</label>
+                                <button type="button" id="add-supp-btn-extract-ai" class="btn" onclick="extractSupplierInvoiceWithAI()" style="display: none; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; font-weight: 800; font-size: 0.72rem; padding: 4px 10px; border-radius: 5px; border: none; align-items: center; gap: 5px; cursor: pointer; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);">
+                                    <span>🤖</span> Reanalisar com IA
+                                </button>
+                            </div>
+                            <input type="file" id="add-supp-invoice-file" class="form-control" accept=".pdf,image/*" style="padding: 6px 10px; font-size: 0.80rem;" onchange="handleSupplierInvoiceFileSelected(this)">
+                            <div id="add-supp-ocr-status" style="display: none; font-size: 0.72rem; margin-top: 6px; padding: 6px 10px; border-radius: 4px; font-weight: 600;"></div>
                         </div>
                     </div>
 
@@ -25334,6 +25340,18 @@ function renderKanban() {
             const notesInput = document.getElementById('add-supp-notes');
             if (notesInput) notesInput.value = '';
 
+            const btnAi = document.getElementById('add-supp-btn-extract-ai');
+            if (btnAi) {
+                btnAi.style.display = 'none';
+                btnAi.disabled = false;
+                btnAi.innerHTML = '<span>🤖</span> Reanalisar com IA';
+            }
+            const ocrStatus = document.getElementById('add-supp-ocr-status');
+            if (ocrStatus) {
+                ocrStatus.style.display = 'none';
+                ocrStatus.innerText = '';
+            }
+
             const tbody = document.getElementById('add-supp-items-tbody');
             if (tbody) tbody.innerHTML = '';
             addProjectSupplierOrderItemRow(project?.sku || '', project?.title || '', 1, 0, true);
@@ -25351,6 +25369,167 @@ function renderKanban() {
             const courierWrap = document.getElementById('add-supp-courier-wrapper');
             if (courierWrap) {
                 courierWrap.style.display = (mode === 'COURIER') ? 'grid' : 'none';
+            }
+        }
+
+        function handleSupplierInvoiceFileSelected(input) {
+            const btnAi = document.getElementById('add-supp-btn-extract-ai');
+            const status = document.getElementById('add-supp-ocr-status');
+
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                if (btnAi) btnAi.style.display = 'inline-flex';
+                if (status) {
+                    status.style.display = 'block';
+                    status.style.background = 'rgba(56, 189, 248, 0.12)';
+                    status.style.color = '#38bdf8';
+                    status.innerHTML = `📄 <strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB) selecionado. Analisando automaticamente com IA...`;
+                }
+                extractSupplierInvoiceWithAI(file);
+            } else {
+                if (btnAi) btnAi.style.display = 'none';
+                if (status) status.style.display = 'none';
+            }
+        }
+
+        async function extractSupplierInvoiceWithAI(passedFile) {
+            let file = passedFile;
+            if (!file) {
+                const fileInput = document.getElementById('add-supp-invoice-file');
+                if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                    alert('Selecione um arquivo de fatura (PDF ou Imagem) primeiro.');
+                    return;
+                }
+                file = fileInput.files[0];
+            }
+
+            const btnAi = document.getElementById('add-supp-btn-extract-ai');
+            const status = document.getElementById('add-supp-ocr-status');
+
+            try {
+                if (btnAi) {
+                    btnAi.disabled = true;
+                    btnAi.innerHTML = `<span>⏳</span> Analisando com Gemini IA...`;
+                }
+                if (status) {
+                    status.style.display = 'block';
+                    status.style.background = 'rgba(56, 189, 248, 0.15)';
+                    status.style.color = '#38bdf8';
+                    status.innerHTML = `🤖 Lendo e estruturando dados da Proforma Invoice via Gemini IA... Aguarde alguns instantes.`;
+                }
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch('/api/supply-chain/extract-invoice', {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const ext = data.extracted || {};
+
+                    // 1. Fabricante
+                    if (ext.supplier_name) {
+                        const suppInput = document.getElementById('add-supp-name');
+                        if (suppInput) suppInput.value = ext.supplier_name;
+                    }
+
+                    // 2. Número da Proforma
+                    if (ext.invoice_number) {
+                        const invInput = document.getElementById('add-supp-invoice-num');
+                        if (invInput) invInput.value = ext.invoice_number;
+                    }
+
+                    // 3. Data da Invoice
+                    if (ext.invoice_date) {
+                        const dateInput = document.getElementById('add-supp-invoice-date');
+                        const isoDate = normalizeToISODate(ext.invoice_date);
+                        if (dateInput && isoDate) dateInput.value = isoDate;
+                    }
+
+                    // 4. Moeda
+                    if (ext.currency) {
+                        const currSelect = document.getElementById('add-supp-currency');
+                        if (currSelect) {
+                            const upperCurr = ext.currency.toUpperCase();
+                            if (['USD', 'EUR', 'CNY'].includes(upperCurr)) {
+                                currSelect.value = upperCurr;
+                            } else {
+                                currSelect.value = 'USD';
+                            }
+                        }
+                    }
+
+                    // 5. Total FOB e Itens
+                    let totalFob = parseFloat(ext.total_fob_value) || 0;
+                    let itemsCount = 0;
+
+                    if (Array.isArray(ext.items) && ext.items.length > 0) {
+                        const tbody = document.getElementById('add-supp-items-tbody');
+                        if (tbody) tbody.innerHTML = '';
+                        let calculatedTotal = 0;
+
+                        ext.items.forEach(it => {
+                            const unitPrice = parseFloat(it.unit_price_fob) || 0;
+                            const qty = parseInt(it.qty_ordered) || 1;
+                            const lineTotal = parseFloat(it.total_price_fob) > 0 ? parseFloat(it.total_price_fob) : (qty * unitPrice);
+                            calculatedTotal += lineTotal;
+                            itemsCount++;
+
+                            addProjectSupplierOrderItemRow(
+                                it.sku || '',
+                                it.description || '',
+                                qty,
+                                unitPrice,
+                                true
+                            );
+                        });
+
+                        if (totalFob <= 0 && calculatedTotal > 0) {
+                            totalFob = calculatedTotal;
+                        }
+                    }
+
+                    // 6. Preencher valor Total FOB
+                    if (totalFob > 0) {
+                        const fobInput = document.getElementById('add-supp-fob-val');
+                        if (fobInput) fobInput.value = totalFob.toFixed(2);
+                    }
+
+                    if (status) {
+                        status.style.display = 'block';
+                        status.style.background = 'rgba(16, 185, 129, 0.15)';
+                        status.style.color = '#34d399';
+                        status.innerHTML = `✅ <strong>Leitura concluída com sucesso via IA!</strong> Fabricante: <em>${ext.supplier_name || 'Detectado'}</em> | FOB: <em>${ext.currency || 'USD'} ${totalFob > 0 ? totalFob.toFixed(2) : '0.00'}</em> | <em>${itemsCount}</em> máquina(s) preenchida(s). Revise e clique em salvar.`;
+                    }
+                } else {
+                    const errData = await res.json().catch(() => ({}));
+                    if (status) {
+                        status.style.display = 'block';
+                        status.style.background = 'rgba(239, 68, 68, 0.15)';
+                        status.style.color = '#f87171';
+                        status.innerHTML = `⚠️ Falha ao ler fatura via IA: ${errData.error || 'Erro no servidor'}. Você pode preencher os campos manualmente.`;
+                    }
+                }
+            } catch (err) {
+                console.error('[AI INVOICE OCR MODAL]', err);
+                if (status) {
+                    status.style.display = 'block';
+                    status.style.background = 'rgba(239, 68, 68, 0.15)';
+                    status.style.color = '#f87171';
+                    status.innerHTML = `⚠️ Erro de comunicação com o serviço de IA: ${err.message}.`;
+                }
+            } finally {
+                if (btnAi) {
+                    btnAi.disabled = false;
+                    btnAi.innerHTML = `<span>🤖</span> Reanalisar com IA`;
+                }
             }
         }
 
