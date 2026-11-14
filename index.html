@@ -4871,220 +4871,35 @@
                         <button type="button" id="modal-project-btn-extract-packing-ai"></button>
                     </div>
 
-                    <!-- Formulário Unificado de Importação & Comex -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 18px;">
-                        <!-- Coluna 1: Fabricante, Invoice, Valores e Carga -->
-                        <div class="detail-card">
-                            <h4 style="margin-bottom: 14px; color: #38bdf8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
-                                <span>🏭</span> Fabricante, Fatura & Valores
-                            </h4>
-                            
-                            <div class="form-group" style="margin-bottom: 12px;">
-                                <label style="font-size: 0.72rem; font-weight: 700; color: #f59e0b;">Fornecedor Internacional (Fabricante) *</label>
-                                <input type="text" id="modal-import-supplier" class="form-control" placeholder="Ex: Amy Machinery, Brother, etc." style="padding: 8px; font-size: 0.82rem;">
-                            </div>
-
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Nº Proforma / Invoice</label>
-                                    <input type="text" id="modal-import-invoice-number" class="form-control" placeholder="Ex: PI-2026-08" style="padding: 8px; font-size: 0.82rem;">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Data da Invoice</label>
-                                    <input type="date" id="modal-import-invoice-date" class="form-control" style="padding: 8px; font-size: 0.82rem;">
-                                </div>
-                            </div>
-
-                            <div style="display: grid; grid-template-columns: 80px 1fr; gap: 10px; margin-bottom: 12px;">
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Moeda</label>
-                                    <select id="modal-import-currency" class="form-control" style="padding: 8px; font-size: 0.82rem; font-weight: bold;">
-                                        <option value="USD">USD ($)</option>
-                                        <option value="EUR">EUR (€)</option>
-                                        <option value="CNY">CNY (¥)</option>
-                                        <option value="BRL">BRL (R$)</option>
-                                    </select>
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.72rem; font-weight: 700; color: #4ade80;">Valor Total FOB</label>
-                                    <input type="number" step="0.01" id="modal-import-total-fob" class="form-control" placeholder="0.00" style="padding: 8px; font-size: 0.82rem; font-weight: bold; color: #4ade80;">
-                                </div>
-                            </div>
-
-                            <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 10px; margin-bottom: 12px;">
-                                <label style="font-size: 0.70rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; display: block; margin-bottom: 6px;">Modal de Transporte Internacional</label>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer; color: #f8fafc;">
-                                        <input type="radio" name="modal-import-transport-mode-radio" id="modal-import-mode-radio-maritimo" value="MARITIMO" checked onchange="toggleProjectImportTransportMode(this.value)">
-                                        <span>🚢 Marítimo (Container)</span>
-                                    </label>
-                                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; cursor: pointer; color: #fbbf24;">
-                                        <input type="radio" name="modal-import-transport-mode-radio" id="modal-import-mode-radio-courier" value="COURIER" onchange="toggleProjectImportTransportMode(this.value)">
-                                        <span>✈️ Courier (FedEx / DHL)</span>
-                                    </label>
-                                </div>
-                                <input type="hidden" id="modal-import-transport-mode" value="MARITIMO">
-                                
-                                <div id="modal-import-courier-wrapper" style="display: none; grid-template-columns: 1fr 2fr; gap: 10px; margin-top: 10px; padding-top: 8px; border-top: 1px dashed rgba(245, 158, 11, 0.3);">
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label style="font-size: 0.70rem; font-weight: 700; color: #f59e0b;">Empresa Courier</label>
-                                        <select id="modal-import-courier-service" class="form-control" style="padding: 6px 8px; font-size: 0.80rem; border-color: rgba(245, 158, 11, 0.4);">
-                                            <option value="FEDEX">FedEx Express</option>
-                                            <option value="DHL">DHL Express</option>
-                                            <option value="UPS">UPS Express</option>
-                                            <option value="OUTRO">Outra Linha Aérea</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label style="font-size: 0.70rem; font-weight: 700; color: #f59e0b;">Código de Rastreio / AWB</label>
-                                        <div style="display: flex; gap: 4px;">
-                                            <input type="text" id="modal-import-tracking-number" class="form-control" placeholder="Ex: 771234567890" style="padding: 6px 8px; font-size: 0.80rem; border-color: rgba(245, 158, 11, 0.4); flex: 1;">
-                                            <button type="button" class="btn" onclick="openCurrentProjectCourierTracking()" style="background: rgba(56, 189, 248, 0.15); border: 1px solid #38bdf8; color: #38bdf8; padding: 4px 8px; font-size: 0.72rem; font-weight: bold; border-radius: 4px;" title="Rastrear encomenda ao vivo">🔍</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div id="modal-import-maritimo-wrapper" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Container ID</label>
-                                    <input type="text" id="modal-import-container-id" class="form-control" placeholder="Ex: MSDU9283741" style="padding: 8px; font-size: 0.82rem;">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Navio / Viagem</label>
-                                    <input type="text" id="modal-import-vessel-name" class="form-control" placeholder="Ex: MSC ALESIA" style="padding: 8px; font-size: 0.82rem;">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Coluna 2: Embarque, Prazos & Regime Aduaneiro -->
-                        <div class="detail-card">
-                            <h4 style="margin-bottom: 14px; color: #38bdf8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
-                                <span>🚢</span> Logística, B/L & Desembaraço
-                            </h4>
-
-                            <!-- Medidas Físicas da Carga (Extraídas do Packing List) -->
-                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; background: rgba(15, 23, 42, 0.4); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.68rem; font-weight: 700; color: #38bdf8;">Cubagem (CBM)</label>
-                                    <input type="number" step="0.001" id="modal-import-cbm" class="form-control" placeholder="0.000" style="padding: 6px; font-size: 0.78rem; font-weight: bold; color: #38bdf8;">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.68rem; font-weight: 700; color: #f59e0b;">Peso Bruto (GW kg)</label>
-                                    <input type="number" step="0.1" id="modal-import-gross-weight" class="form-control" placeholder="0.0" style="padding: 6px; font-size: 0.78rem; font-weight: bold; color: #f59e0b;">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Peso Líq. (NW kg)</label>
-                                    <input type="number" step="0.1" id="modal-import-net-weight" class="form-control" placeholder="0.0" style="padding: 6px; font-size: 0.78rem;">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.68rem; font-weight: 700; color: var(--text-secondary);">Volumes / Caixas</label>
-                                    <input type="number" min="1" step="1" id="modal-import-packages-count" class="form-control" placeholder="0" style="padding: 6px; font-size: 0.78rem;">
-                                </div>
-                            </div>
-
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Número B/L</label>
-                                    <input type="text" id="modal-import-bl-number" class="form-control" placeholder="Ex: MEDUST123456" style="padding: 8px; font-size: 0.82rem;">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.72rem; font-weight: 700; color: #f59e0b;">Data Emissão B/L</label>
-                                    <input type="date" id="modal-import-bl-date" class="form-control" style="padding: 8px; font-size: 0.82rem;">
-                                </div>
-                            </div>
-
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">ETD (Embarque)</label>
-                                    <input type="date" id="modal-import-etd-date" class="form-control" style="padding: 8px; font-size: 0.82rem;">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">ETA Santos (Porto)</label>
-                                    <input type="date" id="modal-import-eta-port-date" class="form-control" style="padding: 8px; font-size: 0.82rem;">
-                                </div>
-                            </div>
-
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.72rem; font-weight: 700; color: #38bdf8;">ETA Doca Tecfag</label>
-                                    <input type="date" id="modal-import-eta-warehouse-date" class="form-control" style="padding: 8px; font-size: 0.82rem;">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Regime Aduaneiro</label>
-                                    <select id="modal-import-customs-regime" class="form-control" style="padding: 8px; font-size: 0.82rem;">
-                                        <option value="IMPORTACAO_DIRETA">Importação Direta (Santos)</option>
-                                        <option value="EADI_BAURU">Porto Seco (EADI Bauru)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Nº DTA / D.A.</label>
-                                    <input type="text" id="modal-import-dta-number" class="form-control" placeholder="DTA / D.A." style="padding: 8px; font-size: 0.82rem;">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Data Entrada EADI</label>
-                                    <input type="date" id="modal-import-eadi-entry-date" class="form-control" style="padding: 8px; font-size: 0.82rem;">
-                                </div>
-                            </div>
-
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Observações de Importação</label>
-                                <textarea id="modal-import-notes" class="form-control" rows="2" placeholder="Notas sobre despachante, câmbio, prazos..." style="padding: 8px; font-size: 0.80rem;"></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tabela de Máquinas e Equipamentos da Proforma Invoice -->
-                    <div class="detail-card" style="margin-bottom: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                            <div>
-                                <h4 style="margin: 0; color: #38bdf8; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
-                                    <span>📋</span> Máquinas e Equipamentos da Proforma Invoice
-                                </h4>
-                                <div style="font-size: 0.73rem; color: #94a3b8; margin-top: 2px;">Itens extraídos automaticamente do documento pelo Gemini IA ou adicionados manualmente</div>
-                            </div>
-                            <button type="button" class="btn btn-secondary" onclick="addProjectImportItemRow()" style="padding: 6px 14px; font-size: 0.76rem; font-weight: bold; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;">
-                                + Adicionar Modelo / Item
-                            </button>
-                        </div>
-
-                        <div style="overflow-x: auto;">
-                            <table class="table" style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
-                                <thead>
-                                    <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left; background: rgba(15, 23, 42, 0.5);">
-                                        <th style="padding: 8px; width: 45px; text-align: center;">Item #</th>
-                                        <th style="padding: 8px; width: 160px;">Modelo / SKU *</th>
-                                        <th style="padding: 8px;">Descrição do Equipamento</th>
-                                        <th style="padding: 8px; width: 125px;">NCM / HS Code</th>
-                                        <th style="padding: 8px; width: 85px; text-align: center;">Qtd (un) *</th>
-                                        <th style="padding: 8px; width: 110px;">Unit. FOB ($) *</th>
-                                        <th style="padding: 8px; width: 110px;">Total FOB ($)</th>
-                                        <th style="padding: 8px; width: 60px; text-align: center;">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="modal-project-items-tbody">
-                                    <!-- Preenchido dinamicamente -->
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-color); flex-wrap: wrap; gap: 10px;">
-                            <span id="modal-project-items-count-label" style="font-size: 0.78rem; color: #94a3b8;">Nenhum item adicionado</span>
-                            <div style="display: flex; gap: 16px; align-items: center;">
-                                <span style="font-size: 0.82rem; color: var(--text-secondary); font-weight: 600;">Soma dos Itens FOB:</span>
-                                <span style="font-size: 1.15rem; font-weight: 800; color: #4ade80;" id="modal-project-items-total-fob">$ 0.00</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Botão de Salvar Alterações de Importação -->
-                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 20px;">
-                        <button type="button" class="btn" onclick="saveProjectImportData()" style="background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 800; padding: 10px 22px; font-size: 0.82rem; border-radius: 6px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">
-                            💾 Salvar Dados de Importação
-                        </button>
+                    <!-- Formulário Unificado de Importação & Comex Legado (Preservado oculto para compatibilidade com scripts legados de salvamento) -->
+                    <div id="legacy-project-import-form-wrapper" style="display: none;">
+                        <input type="text" id="modal-import-supplier">
+                        <input type="text" id="modal-import-invoice-number">
+                        <input type="date" id="modal-import-invoice-date">
+                        <select id="modal-import-currency"><option value="USD">USD</option></select>
+                        <input type="number" id="modal-import-total-fob">
+                        <input type="hidden" id="modal-import-transport-mode" value="MARITIMO">
+                        <select id="modal-import-courier-service"><option value="FEDEX">FEDEX</option></select>
+                        <input type="text" id="modal-import-tracking-number">
+                        <input type="text" id="modal-import-container-id">
+                        <input type="text" id="modal-import-vessel-name">
+                        <input type="number" id="modal-import-cbm">
+                        <input type="number" id="modal-import-gross-weight">
+                        <input type="number" id="modal-import-net-weight">
+                        <input type="number" id="modal-import-packages-count">
+                        <input type="text" id="modal-import-bl-number">
+                        <input type="date" id="modal-import-bl-date">
+                        <input type="date" id="modal-import-etd-date">
+                        <input type="date" id="modal-import-eta-port-date">
+                        <input type="date" id="modal-import-eta-warehouse-date">
+                        <select id="modal-import-customs-regime"><option value="IMPORTACAO_DIRETA">IMPORTACAO_DIRETA</option></select>
+                        <input type="text" id="modal-import-dta-number">
+                        <input type="date" id="modal-import-eadi-entry-date">
+                        <textarea id="modal-import-notes"></textarea>
+                        <table><tbody id="modal-project-items-tbody"></tbody></table>
+                        <span id="modal-project-items-count-label"></span>
+                        <span id="modal-project-items-total-fob"></span>
+                        <button type="button" onclick="saveProjectImportData()"></button>
                     </div>
 
                     <!-- Coluna de Rastreabilidade e Máquinas Vinculadas -->
