@@ -31275,7 +31275,7 @@ function renderKanban() {
                 card.onmouseleave = () => { card.style.borderColor = 'rgba(255, 255, 255, 0.08)'; card.style.transform = 'none'; };
                 const isProject = !!order.project_code || !!order.is_project;
                 const prjCode = order.project_code || (typeof order.id === 'string' && order.id.startsWith('PRJ-') ? order.id.replace('PRJ-', '') : null);
-                card.onclick = () => { if (isProject && prjCode) { openProjectModal(prjCode, 'logistics'); } else { openSupplyDetailsModal(order.id); } };
+                card.onclick = () => { openSupplyDetailsModal(order.id); };
 
                 // Gestão de Pendências e Atrasos no Card do Comex
                 const linkedPrj = (state && Array.isArray(state.projects)) ? state.projects.find(p => p.code === prjCode) : null;
@@ -31427,14 +31427,17 @@ function renderKanban() {
                     <!-- Barra de Navegação e Gestão da Ordem -->
                     <div style="display: flex; gap: 5px; align-items: center; margin-top: 5px; width: 100%; box-sizing: border-box;">
                         ${isProject && prjCode ? `
-                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openProjectModal('${prjCode}', 'logistics')" style="flex: 1; min-width: 0; padding: 5px 6px; font-size: 0.72rem; font-weight: 800; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" title="Abrir Ficha Técnica e Controle de Importação">
-                                📐 Detalhes & Projeto
+                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openSupplyDetailsModal(${order.id})" style="flex: 1; min-width: 0; padding: 5px 4px; font-size: 0.70rem; font-weight: 700; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.35); color: #38bdf8;" title="Ver Detalhes de Comex e Rastreio desta PO">
+                                🔍 Comex
                             </button>
-                            <button type="button" class="btn" onclick="event.stopPropagation(); quickCancelProjectImport('${prjCode}', '${order.po_number}', ${typeof order.id === 'number' ? order.id : `'${order.id}'`})" style="padding: 5px 7px; font-size: 0.72rem; font-weight: bold; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 5px; flex-shrink: 0;" title="Gerenciar / Excluir / Cancelar Importação">
+                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openProjectModal('${prjCode}', 'logistics')" style="padding: 5px 6px; font-size: 0.70rem; font-weight: 700; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 3px; white-space: nowrap; background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" title="Abrir Ficha Geral do Projeto">
+                                📐 Projeto
+                            </button>
+                            <button type="button" class="btn" onclick="event.stopPropagation(); ${order.is_sub_order ? `quickDeleteSupplyOrder(${order.id}, '${order.po_number}')` : `quickCancelProjectImport('${prjCode}', '${order.po_number}', ${typeof order.id === 'number' ? order.id : `'${order.id}'`})`}" style="padding: 5px 7px; font-size: 0.72rem; font-weight: bold; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 5px; flex-shrink: 0;" title="${order.is_sub_order ? 'Excluir esta Ordem Adicional' : 'Gerenciar / Desvincular Importação'}">
                                 🗑️
                             </button>
                             ${stage !== 'DOCA_GALPAO' ? `
-                                <button type="button" class="btn" onclick="event.stopPropagation(); quickAdvanceProjectImportStage('${prjCode}')" style="padding: 5px 9px; font-size: 0.72rem; font-weight: bold; background: #0ea5e9; border: 1px solid #38bdf8; color: white; border-radius: 5px; flex-shrink: 0; box-shadow: 0 1px 4px rgba(14, 165, 233, 0.3);" title="Avançar Etapa">
+                                <button type="button" class="btn" onclick="event.stopPropagation(); quickAdvanceOrderStage(${order.id})" style="padding: 5px 9px; font-size: 0.72rem; font-weight: bold; background: #0ea5e9; border: 1px solid #38bdf8; color: white; border-radius: 5px; flex-shrink: 0; box-shadow: 0 1px 4px rgba(14, 165, 233, 0.3);" title="Avançar Etapa Desta Ordem">
                                     ➡️
                                 </button>
                             ` : ''}
