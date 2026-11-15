@@ -7449,7 +7449,7 @@
                             <span>📄 Documentos Fiscais & Entrada na Doca Tecfag</span>
                             <span id="sc-det-nfe-badge-status" style="font-size: 0.68rem; font-weight: bold;"></span>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 10px;">
                             <div class="form-group" style="margin-bottom: 0;">
                                 <label style="font-size: 0.72rem; font-weight: 700; color: #10b981;">Nº da NF-e de Entrada:</label>
                                 <input type="text" id="sc-det-nfe-number" class="form-control" placeholder="Ex: 4821" style="padding: 6px 8px; font-size: 0.8rem; border-color: rgba(16, 185, 129, 0.4);">
@@ -7468,6 +7468,24 @@
                                     <input type="file" id="sc-det-nfe-file" class="form-control" accept=".pdf,.xml" style="padding: 4px; font-size: 0.72rem;">
                                     <a id="sc-det-nfe-view-link" href="#" target="_blank" style="display: none; padding: 4px 8px; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; border-radius: 4px; font-size: 0.72rem; font-weight: bold; text-decoration: none; white-space: nowrap;">📄 Ver NF-e</a>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- LISTA DE DANFES E ADIÇÕES VINCULADAS -->
+                        <div style="border-top: 1px dashed rgba(16, 185, 129, 0.25); padding-top: 10px; margin-top: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="font-size: 0.73rem; font-weight: bold; color: #cbd5e1; display: flex; align-items: center; gap: 6px;">
+                                    <span>📑</span> DANFEs de Entrada & Adições Vinculadas a este Container:
+                                </span>
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    <input type="file" id="sc-det-add-nfe-input" accept=".pdf,.xml" style="display: none;" onchange="handleDetailsAddNfeFile(this)">
+                                    <button type="button" class="btn" onclick="document.getElementById('sc-det-add-nfe-input').click()" style="padding: 4px 10px; font-size: 0.70rem; font-weight: bold; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                                        ➕ Anexar Outra DANFE / Adição
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="sc-det-nfes-list-container" style="display: flex; flex-direction: column; gap: 6px;">
+                                <!-- Rendered dynamically -->
                             </div>
                         </div>
                     </div>
@@ -7642,10 +7660,35 @@
                             </div>
                         </div>
 
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label style="font-size: 0.72rem; font-weight: 700; color: #10b981;">Arquivo da NF-e / DANFE (PDF ou XML) *</label>
-                            <input type="file" id="sc-doca-gate-nfe-file" class="form-control" accept=".pdf,.xml" style="padding: 6px; font-size: 0.82rem; background: rgba(0,0,0,0.3);">
+                        <div class="form-group" style="margin-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <label style="font-size: 0.72rem; font-weight: 700; color: #10b981;">Arquivo da NF-e / DANFE (PDF ou XML) *</label>
+                                <span style="font-size: 0.68rem; color: #38bdf8; display: inline-flex; align-items: center; gap: 4px; font-weight: bold;">
+                                    <span>✨</span> Leitura Automática por IA (PDF / XML)
+                                </span>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="file" id="sc-doca-gate-nfe-file" class="form-control" accept=".pdf,.xml" onchange="handleDocaNfeFileSelected(this)" style="padding: 6px; font-size: 0.82rem; background: rgba(0,0,0,0.3); flex: 1;">
+                                <button type="button" class="btn" onclick="document.getElementById('sc-doca-gate-nfe-file').click()" style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; font-size: 0.75rem; font-weight: bold; padding: 6px 12px; white-space: nowrap; cursor: pointer;">
+                                    ➕ Anexar DANFE / Adição
+                                </button>
+                            </div>
+                            <div id="sc-doca-gate-ai-loading" style="display: none; font-size: 0.75rem; color: #38bdf8; margin-top: 6px; padding: 6px 10px; background: rgba(56, 189, 248, 0.1); border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.3);">
+                                <span class="spinner" style="display: inline-block; width: 12px; height: 12px; border: 2px solid #38bdf8; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; vertical-align: middle; margin-right: 6px;"></span>
+                                Lendo DANFE via IA... extraindo número da nota, data, chave, D.I. e itens...
+                            </div>
                             <div id="sc-doca-gate-file-attached-info" style="display: none; font-size: 0.72rem; color: #34d399; margin-top: 4px;"></div>
+                        </div>
+
+                        <!-- LISTA DE DANFES / ADIÇÕES ANEXADAS -->
+                        <div style="margin-top: 10px; border-top: 1px dashed rgba(16, 185, 129, 0.3); padding-top: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span style="font-size: 0.72rem; font-weight: bold; color: #cbd5e1;">📋 DANFEs / Adições Vinculadas a este Despacho (<span id="sc-doca-gate-nfes-count">0</span>):</span>
+                                <span style="font-size: 0.65rem; color: #94a3b8;">Suporte a múltiplas adições e DANFEs</span>
+                            </div>
+                            <div id="sc-doca-gate-nfes-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto;">
+                                <!-- Renderizado dinamicamente -->
+                            </div>
                         </div>
                     </div>
 
@@ -32404,7 +32447,8 @@ function renderKanban() {
                 const nfeLink = document.getElementById('sc-det-nfe-view-link');
                 if (order.nfe_number) {
                     if (nfeBadge) {
-                        nfeBadge.innerText = '✅ NF-e Vinculada (' + order.nfe_number + ')';
+                        const totalNfes = (order.nfes && order.nfes.length > 0) ? order.nfes.length : 1;
+                        nfeBadge.innerText = `✅ ${totalNfes} NF-e(s) Vinculada(s) (${order.nfe_number})`;
                         nfeBadge.style.color = '#34d399';
                     }
                     if (nfeLink && order.nfe_file_path) {
@@ -32420,6 +32464,9 @@ function renderKanban() {
                     }
                     if (nfeLink) nfeLink.style.display = 'none';
                 }
+
+                // Renderizar lista completa de DANFEs/Adições vinculadas
+                renderDetailsNfesList(order);
 
                 // Renderizar itens, parcelas e baixas EADI
                 renderDetailsItems(order.items || []);
@@ -32836,6 +32883,7 @@ function renderKanban() {
         // ==========================================
 
         let activeDocaGateOrder = null;
+        let activeDocaGateAttachedNfes = [];
 
         async function openDocaArrivalGateModal(orderId) {
             try {
@@ -32850,6 +32898,37 @@ function renderKanban() {
                 }
                 const order = await res.json();
                 activeDocaGateOrder = order;
+
+                // Inicializar lista de DANFEs/Adições vinculadas
+                activeDocaGateAttachedNfes = [];
+                if (order.nfes && Array.isArray(order.nfes) && order.nfes.length > 0) {
+                    activeDocaGateAttachedNfes = order.nfes.map(n => ({
+                        id: n.id,
+                        nfe_number: n.nfe_number,
+                        nfe_series: n.nfe_series || '1',
+                        nfe_date: n.nfe_date,
+                        nfe_access_key: n.nfe_access_key,
+                        di_number: n.di_number,
+                        addition_number: n.addition_number,
+                        total_value: n.total_value || 0,
+                        file_path: n.file_path,
+                        file_name: n.file_name || (n.file_path ? n.file_path.split('/').pop() : 'DANFE'),
+                        items: n.items_json ? JSON.parse(n.items_json) : []
+                    }));
+                } else if (order.nfe_number) {
+                    activeDocaGateAttachedNfes.push({
+                        id: null,
+                        nfe_number: order.nfe_number,
+                        nfe_series: '1',
+                        nfe_date: order.nfe_date,
+                        nfe_access_key: order.nfe_access_key,
+                        di_number: order.di_number,
+                        addition_number: '1',
+                        total_value: 0,
+                        file_path: order.nfe_file_path,
+                        file_name: order.nfe_file_path ? order.nfe_file_path.split('/').pop() : 'DANFE'
+                    });
+                }
 
                 // Buscar mapeamentos De-Para existentes
                 let existingMappings = [];
@@ -32885,7 +32964,7 @@ function renderKanban() {
                 if (fileInfo) {
                     if (order.nfe_file_path) {
                         const fileName = order.nfe_file_path.split('/').pop();
-                        fileInfo.innerHTML = `📄 Arquivo já anexado anteriormente: <strong>${fileName}</strong> (caso queira substituir, selecione um novo arquivo acima)`;
+                        fileInfo.innerHTML = `📄 Arquivo principal cadastrado: <strong>${fileName}</strong> (para anexar mais DANFEs de outras adições, use o botão acima)`;
                         fileInfo.style.display = 'block';
                     } else {
                         fileInfo.style.display = 'none';
@@ -32897,6 +32976,9 @@ function renderKanban() {
                     eadiAlert.style.display = isEadi ? 'block' : 'none';
                 }
 
+                // Renderizar lista de DANFEs/Adições vinculadas
+                renderDocaGateNfesList();
+
                 // Renderizar tabela de conferência De-Para
                 if (tbody) {
                     tbody.innerHTML = '';
@@ -32905,16 +32987,13 @@ function renderKanban() {
                         tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 15px;">Nenhum item cadastrado nesta ordem.</td></tr>';
                     } else {
                         items.forEach(it => {
-                            // Buscar sugestão de código Tecfag
                             let suggestedSku = it.tecfag_sku || '';
                             if (!suggestedSku && it.sku) {
                                 const cleanSuppSku = it.sku.trim().toUpperCase();
-                                // 1) Da tabela de De-Para persistida
                                 const savedMap = existingMappings.find(m => (m.supplier_sku || '').toUpperCase() === cleanSuppSku);
                                 if (savedMap) {
                                     suggestedSku = savedMap.tecfag_sku;
                                 }
-                                // 2) Do catálogo geral
                                 if (!suggestedSku && Array.isArray(state.productsCatalog)) {
                                     const prodMatch = state.productsCatalog.find(p => 
                                         (p.vendorCode && p.vendorCode.trim().toUpperCase() === cleanSuppSku) ||
@@ -32929,12 +33008,12 @@ function renderKanban() {
                             tr.style.borderBottom = '1px solid rgba(255,255,255,0.06)';
                             tr.innerHTML = `
                                 <td style="padding: 8px 6px;">
-                                    <span style="font-weight: 800; color: #38bdf8; font-size: 0.85rem;">${it.sku}</span>
+                                    <span style="font-weight: 800; color: #38bdf8; font-size: 0.85rem;">${escapeProjectHtml(it.sku)}</span>
                                 </td>
-                                <td style="padding: 8px 6px; font-size: 0.78rem; color: #cbd5e1;">${it.description || '-'}</td>
+                                <td style="padding: 8px 6px; font-size: 0.78rem; color: #cbd5e1;">${escapeProjectHtml(it.description || '-')}</td>
                                 <td style="padding: 8px 6px; text-align: center; font-weight: bold; color: #f8fafc;">${qtyVal}</td>
                                 <td style="padding: 8px 6px;">
-                                    <input list="products-sku-list" class="form-control doca-gate-sku-input" data-item-id="${it.id}" value="${suggestedSku}" placeholder="Código Tecfag (De-Para)..." style="padding: 6px 10px; font-size: 0.82rem; font-weight: bold; color: #34d399; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(52, 211, 153, 0.4); border-radius: 6px; width: 100%;">
+                                    <input list="products-sku-list" class="form-control doca-gate-sku-input" data-item-id="${it.id}" value="${escapeProjectHtml(suggestedSku)}" placeholder="Código Tecfag (De-Para)..." style="padding: 6px 10px; font-size: 0.82rem; font-weight: bold; color: #34d399; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(52, 211, 153, 0.4); border-radius: 6px; width: 100%;">
                                 </td>
                             `;
                             tbody.appendChild(tr);
@@ -32953,6 +33032,148 @@ function renderKanban() {
             const modal = document.getElementById('modal-supply-chain-doca-gate');
             if (modal) modal.style.display = 'none';
             activeDocaGateOrder = null;
+            activeDocaGateAttachedNfes = [];
+        }
+
+        function renderDocaGateNfesList() {
+            const listEl = document.getElementById('sc-doca-gate-nfes-list');
+            const countEl = document.getElementById('sc-doca-gate-nfes-count');
+            if (!listEl) return;
+
+            if (countEl) countEl.innerText = activeDocaGateAttachedNfes.length;
+
+            if (activeDocaGateAttachedNfes.length === 0) {
+                listEl.innerHTML = `
+                    <div style="font-size: 0.73rem; color: #94a3b8; font-style: italic; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; text-align: center;">
+                        Nenhuma DANFE anexada ainda. Selecione ou arraste o arquivo PDF ou XML acima para que a IA extraia os dados fiscais e produtos automaticamente.
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = activeDocaGateAttachedNfes.map((nfe, idx) => `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; padding: 6px 10px; gap: 8px;">
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <div style="font-size: 0.78rem; font-weight: bold; color: #34d399; display: flex; align-items: center; gap: 8px;">
+                            <span>🧾 DANFE Nº: <strong>${escapeProjectHtml(nfe.nfe_number || '-')}</strong></span>
+                            ${nfe.addition_number ? `<span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 4px; padding: 1px 5px; font-size: 0.65rem;">Adição: ${escapeProjectHtml(nfe.addition_number)}</span>` : ''}
+                            ${nfe.total_value ? `<span style="color: #cbd5e1; font-size: 0.70rem;">R$ ${Number(nfe.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>` : ''}
+                        </div>
+                        <div style="font-size: 0.68rem; color: #94a3b8; display: flex; gap: 10px; flex-wrap: wrap;">
+                            <span>Emissão: <strong>${nfe.nfe_date ? (nfe.nfe_date.split('-').reverse().join('/')) : '-'}</strong></span>
+                            <span>DI: <strong>${escapeProjectHtml(nfe.di_number || '-')}</strong></span>
+                            ${nfe.file_path ? `<a href="/${nfe.file_path}" target="_blank" style="color: #38bdf8; text-decoration: underline;">📄 ${escapeProjectHtml(nfe.file_name || 'Ver Arquivo')}</a>` : ''}
+                        </div>
+                    </div>
+                    <button type="button" class="btn-icon" onclick="removeDocaGateNfeItem(${idx})" title="Remover esta DANFE" style="color: #ef4444; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; padding: 3px 6px; cursor: pointer;">
+                        🗑️
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        async function handleDocaNfeFileSelected(input) {
+            if (!input || !input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            const loadingEl = document.getElementById('sc-doca-gate-ai-loading');
+            
+            try {
+                if (loadingEl) loadingEl.style.display = 'block';
+
+                const formData = new FormData();
+                formData.append('file', file);
+                if (activeDocaGateOrder && activeDocaGateOrder.id) {
+                    formData.append('order_id', activeDocaGateOrder.id);
+                }
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch('/api/supply-chain/extract-nfe-doca', {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Erro na extração da DANFE');
+                }
+
+                const data = await res.json();
+                const extracted = data.extracted;
+
+                if (extracted) {
+                    const nfeNumInput = document.getElementById('sc-doca-gate-nfe-number');
+                    const nfeDateInput = document.getElementById('sc-doca-gate-nfe-date');
+                    const diNumInput = document.getElementById('sc-doca-gate-di-number');
+                    const nfeKeyInput = document.getElementById('sc-doca-gate-nfe-key');
+
+                    // Adicionar à lista de DANFEs/adições vinculadas
+                    const newNfeItem = {
+                        nfe_number: extracted.nfe_number || '',
+                        nfe_series: extracted.nfe_series || '1',
+                        nfe_date: extracted.nfe_date || (nfeDateInput ? nfeDateInput.value : ''),
+                        nfe_access_key: extracted.nfe_access_key || (nfeKeyInput ? nfeKeyInput.value : ''),
+                        di_number: extracted.di_number || (diNumInput ? diNumInput.value : ''),
+                        addition_number: extracted.addition_number || `00${activeDocaGateAttachedNfes.length + 1}`,
+                        total_value: extracted.total_value || 0,
+                        file_path: extracted.file_path,
+                        file_name: extracted.file_name,
+                        items: extracted.items || []
+                    };
+                    activeDocaGateAttachedNfes.push(newNfeItem);
+                    renderDocaGateNfesList();
+
+                    // Atualizar campos do formulário com consolidação
+                    if (nfeNumInput) {
+                        const allNumbers = activeDocaGateAttachedNfes.map(n => n.nfe_number).filter(Boolean);
+                        nfeNumInput.value = [...new Set(allNumbers)].join(', ');
+                    }
+                    if (nfeDateInput && extracted.nfe_date) {
+                        nfeDateInput.value = extracted.nfe_date;
+                    }
+                    if (diNumInput && extracted.di_number) {
+                        diNumInput.value = extracted.di_number;
+                    }
+                    if (nfeKeyInput && extracted.nfe_access_key && (!nfeKeyInput.value || nfeKeyInput.value.trim() === '')) {
+                        nfeKeyInput.value = extracted.nfe_access_key;
+                    }
+
+                    // Preencher sugestões de De-Para automaticamente se a IA encontrou equivalências
+                    if (extracted.suggestions && typeof extracted.suggestions === 'object') {
+                        Object.keys(extracted.suggestions).forEach(itemId => {
+                            const inp = document.querySelector(`.doca-gate-sku-input[data-item-id="${itemId}"]`);
+                            if (inp && (!inp.value || inp.value.trim() === '')) {
+                                inp.value = extracted.suggestions[itemId];
+                                inp.style.borderColor = '#10b981';
+                                inp.style.boxShadow = '0 0 8px rgba(16, 185, 129, 0.4)';
+                            }
+                        });
+                    }
+
+                    alert(`✨ DANFE nº ${extracted.nfe_number || ''} lida com sucesso via IA!\n\n${extracted.addition_number ? 'Adição: ' + extracted.addition_number + '\n' : ''}Data: ${extracted.nfe_date || '-'}\nDI/DUIMP: ${extracted.di_number || '-'}\nItens na NF: ${(extracted.items || []).length}\n\nDados preenchidos. Se houver outras adições com outras DANFEs, você pode anexá-las clicando em "➕ Anexar DANFE / Adição".`);
+                }
+            } catch (e) {
+                console.error('Erro ao ler DANFE:', e);
+                alert('Aviso na leitura automática da DANFE: ' + e.message + '\n\nVocê ainda pode preencher os campos manualmente.');
+            } finally {
+                if (loadingEl) loadingEl.style.display = 'none';
+                input.value = '';
+            }
+        }
+
+        function removeDocaGateNfeItem(index) {
+            if (index >= 0 && index < activeDocaGateAttachedNfes.length) {
+                activeDocaGateAttachedNfes.splice(index, 1);
+                renderDocaGateNfesList();
+
+                const nfeNumInput = document.getElementById('sc-doca-gate-nfe-number');
+                if (nfeNumInput) {
+                    const allNumbers = activeDocaGateAttachedNfes.map(n => n.nfe_number).filter(Boolean);
+                    nfeNumInput.value = [...new Set(allNumbers)].join(', ');
+                }
+            }
         }
 
         async function submitDocaArrivalGate(e) {
@@ -32973,7 +33194,7 @@ function renderKanban() {
             }
 
             const hasNewFile = fileInput && fileInput.files && fileInput.files.length > 0;
-            if (!hasNewFile && !activeDocaGateOrder.nfe_file_path) {
+            if (activeDocaGateAttachedNfes.length === 0 && !hasNewFile && !activeDocaGateOrder.nfe_file_path) {
                 alert('Por favor, anexe o arquivo PDF ou XML da NF-e de entrada para comprovação fiscal.');
                 return;
             }
@@ -32995,6 +33216,10 @@ function renderKanban() {
             if (nfeKey) formData.append('nfe_access_key', nfeKey);
             if (arrivalDate) formData.append('actual_arrival_date', arrivalDate);
             formData.append('items_mapping', JSON.stringify(itemsMapping));
+
+            if (activeDocaGateAttachedNfes.length > 0) {
+                formData.append('nfes_json', JSON.stringify(activeDocaGateAttachedNfes));
+            }
 
             if (hasNewFile) {
                 formData.append('nfe_file', fileInput.files[0]);
@@ -33035,6 +33260,137 @@ function renderKanban() {
                     btnSubmit.disabled = false;
                     btnSubmit.innerHTML = '<span>✅</span> Validar NF-e & Dar Entrada na Doca Tecfag';
                 }
+            }
+        }
+
+        // Funções de Suporte a Multi-DANFE no Modal de Detalhes
+        function renderDetailsNfesList(order) {
+            const container = document.getElementById('sc-det-nfes-list-container');
+            if (!container) return;
+
+            const nfes = order.nfes || [];
+            if (nfes.length === 0) {
+                container.innerHTML = `
+                    <div style="font-size: 0.73rem; color: #94a3b8; font-style: italic; padding: 4px;">
+                        Nenhuma DANFE ou Adição adicional cadastrada nesta ordem.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = nfes.map(nfe => `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 6px 10px; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span style="font-size: 0.78rem; font-weight: bold; color: #34d399;">🧾 NF-e ${escapeProjectHtml(nfe.nfe_number || '-')}</span>
+                        ${nfe.addition_number ? `<span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 4px; padding: 1px 5px; font-size: 0.65rem;">Adição: ${escapeProjectHtml(nfe.addition_number)}</span>` : ''}
+                        <span style="font-size: 0.70rem; color: #94a3b8;">Data: <strong>${nfe.nfe_date ? nfe.nfe_date.split('-').reverse().join('/') : '-'}</strong></span>
+                        ${nfe.di_number ? `<span style="font-size: 0.70rem; color: #94a3b8;">DI: <strong>${escapeProjectHtml(nfe.di_number)}</strong></span>` : ''}
+                        ${nfe.total_value ? `<span style="font-size: 0.70rem; color: #cbd5e1;">R$ ${Number(nfe.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>` : ''}
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        ${nfe.file_path ? `<a href="/${nfe.file_path}" target="_blank" style="padding: 2px 6px; background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #38bdf8; border-radius: 4px; font-size: 0.68rem; text-decoration: none; font-weight: bold;">📄 Ver DANFE</a>` : ''}
+                        ${nfe.id ? `<button type="button" onclick="deleteSupplyOrderNfe(${order.id}, ${nfe.id}, '${escapeProjectHtml(nfe.nfe_number)}')" title="Excluir DANFE" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; border-radius: 4px; font-size: 0.68rem; padding: 2px 6px; cursor: pointer;">🗑️</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function handleDetailsAddNfeFile(input) {
+            if (!supplyChainState.currentOrder || !input.files || input.files.length === 0) return;
+            const orderId = supplyChainState.currentOrder.id;
+            const file = input.files[0];
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                // 1. Extrair dados via IA
+                const extractForm = new FormData();
+                extractForm.append('file', file);
+                extractForm.append('order_id', orderId);
+
+                let extracted = null;
+                try {
+                    const extRes = await fetch('/api/supply-chain/extract-nfe-doca', {
+                        method: 'POST',
+                        headers,
+                        body: extractForm
+                    });
+                    if (extRes.ok) {
+                        const extData = await extRes.json();
+                        extracted = extData.extracted;
+                    }
+                } catch(extErr) {
+                    console.warn('[ADD-NFE EXTRACT WARN]', extErr);
+                }
+
+                const promptNfe = prompt('Confirme ou informe o número da NF-e para esta Adição:', extracted ? (extracted.nfe_number || '') : '');
+                if (!promptNfe || !promptNfe.trim()) {
+                    input.value = '';
+                    return;
+                }
+
+                const promptAddition = prompt('Informe o número da Adição (ex: 001, 002):', extracted ? (extracted.addition_number || '') : '');
+
+                // 2. Salvar na ordem via /api/supply-chain/orders/:id/add-nfe
+                const addForm = new FormData();
+                addForm.append('nfe_file', file);
+                addForm.append('nfe_number', promptNfe.trim());
+                addForm.append('nfe_series', extracted ? (extracted.nfe_series || '1') : '1');
+                addForm.append('nfe_date', extracted ? (extracted.nfe_date || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0]);
+                if (extracted && extracted.nfe_access_key) addForm.append('nfe_access_key', extracted.nfe_access_key);
+                if (extracted && extracted.di_number) addForm.append('di_number', extracted.di_number);
+                if (promptAddition) addForm.append('addition_number', promptAddition.trim());
+                if (extracted && extracted.total_value) addForm.append('total_value', extracted.total_value);
+                if (extracted && extracted.items) addForm.append('items_json', JSON.stringify(extracted.items));
+
+                const saveRes = await fetch(`/api/supply-chain/orders/${orderId}/add-nfe`, {
+                    method: 'POST',
+                    headers,
+                    body: addForm
+                });
+
+                if (!saveRes.ok) {
+                    const err = await saveRes.json();
+                    throw new Error(err.error || 'Erro ao vincular NF-e');
+                }
+
+                alert(`✅ DANFE nº ${promptNfe.trim()} vinculada com sucesso à ordem!`);
+                await openSupplyDetailsModal(orderId);
+                await loadSupplyChainData();
+            } catch (e) {
+                console.error('Erro ao adicionar NF-e adicional:', e);
+                alert('Erro ao anexar DANFE adicional: ' + e.message);
+            } finally {
+                input.value = '';
+            }
+        }
+
+        async function deleteSupplyOrderNfe(orderId, nfeId, nfeNum) {
+            if (!confirm(`Deseja realmente desvincular a DANFE nº ${nfeNum} desta ordem?`)) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/supply-chain/orders/${orderId}/nfe/${nfeId}`, {
+                    method: 'DELETE',
+                    headers
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Erro ao remover DANFE');
+                }
+
+                alert(`✅ DANFE nº ${nfeNum} desvinculada com sucesso.`);
+                await openSupplyDetailsModal(orderId);
+                await loadSupplyChainData();
+            } catch (e) {
+                console.error('Erro ao excluir DANFE:', e);
+                alert('Erro ao desvincular DANFE: ' + e.message);
             }
         }
 

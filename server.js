@@ -658,6 +658,24 @@ db.run("UPDATE projects SET import_stage = NULL WHERE (fase IS NULL OR fase <= 2
         )`);
         db.run(`CREATE INDEX IF NOT EXISTS idx_prj_comm_code ON project_communications(project_code)`);
 
+        // Tabela de NF-es / DANFEs de Entrada Vinculadas (Multi-DANFE / Múltiplas Adições de Importação)
+        db.run(`CREATE TABLE IF NOT EXISTS stock_order_nfes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER NOT NULL,
+            nfe_number TEXT NOT NULL,
+            nfe_series TEXT,
+            nfe_date TEXT,
+            nfe_access_key TEXT,
+            di_number TEXT,
+            addition_number TEXT,
+            total_value REAL DEFAULT 0.0,
+            file_path TEXT,
+            file_name TEXT,
+            items_json TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(order_id) REFERENCES stock_orders(id) ON DELETE CASCADE
+        )`);
+
         // Migrações seguras de colunas para EADI
         db.run("ALTER TABLE stock_orders ADD COLUMN customs_regime TEXT DEFAULT 'DIRETO_SANTOS'", (err) => {});
         db.run("ALTER TABLE stock_orders ADD COLUMN dta_number TEXT", (err) => {});
@@ -12566,6 +12584,24 @@ app.get('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
             order.linked_orders = [];
         }
 
+        // Carregar NF-es / DANFEs vinculadas (Multi-DANFE / Múltiplas Adições)
+        order.nfes = await dbAll('SELECT * FROM stock_order_nfes WHERE order_id = ? ORDER BY id ASC', [order.id]);
+        if ((!order.nfes || order.nfes.length === 0) && order.nfe_number) {
+            order.nfes = [{
+                id: null,
+                order_id: order.id,
+                nfe_number: order.nfe_number,
+                nfe_series: '1',
+                nfe_date: order.nfe_date,
+                nfe_access_key: order.nfe_access_key,
+                di_number: order.di_number,
+                addition_number: '1',
+                total_value: 0,
+                file_path: order.nfe_file_path,
+                file_name: order.nfe_file_path ? order.nfe_file_path.split('/').pop() : null
+            }];
+        }
+
         res.json(order);
     } catch (err) {
         res.status(500).json({ error: 'Erro ao buscar detalhes da ordem: ' + err.message });
@@ -13098,14 +13134,68 @@ app.post('/api/supply-chain/orders/:id/advance-doca', authenticateToken, restric
     }
 
     try {
+        const now = new Date().toISOString();
         const order = await resolveOrMaterializeStockOrder(orderId, user);
         if (!order) {
             return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
         }
 
         const nfeFilePath = req.file ? ('uploads/' + req.file.filename) : (order.nfe_file_path || null);
-        const arrivalDate = actual_arrival_date || new Date().toISOString().split('T')[0];
-        const nfeDateVal = nfe_date || new Date().toISOString().split('T')[0];
+        const arrivalDate = actual_arrival_date || now.split('T')[0];
+        const nfeDateVal = nfe_date || now.split('T')[0];
+
+        // Processar múltiplas DANFEs (Multi-DANFE / Múltiplas Adições de Importação)
+        let parsedNfes = [];
+        if (req.body.nfes_json) {
+            try {
+                parsedNfes = typeof req.body.nfes_json === 'string' ? JSON.parse(req.body.nfes_json) : req.body.nfes_json;
+            } catch (e) {
+                console.warn('[ADVANCE-DOCA] Erro ao parsear nfes_json:', e);
+            }
+        }
+
+        if (Array.isArray(parsedNfes) && parsedNfes.length > 0) {
+            for (const n of parsedNfes) {
+                if (n.nfe_number) {
+                    await dbRun(`INSERT INTO stock_order_nfes (
+                        order_id, nfe_number, nfe_series, nfe_date, nfe_access_key, di_number, addition_number, total_value, file_path, file_name, items_json, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                        order.id,
+                        String(n.nfe_number).trim(),
+                        n.nfe_series || '1',
+                        n.nfe_date || nfeDateVal,
+                        n.nfe_access_key ? String(n.nfe_access_key).trim() : null,
+                        n.di_number ? String(n.di_number).trim() : (di_number ? di_number.trim() : null),
+                        n.addition_number ? String(n.addition_number).trim() : null,
+                        parseFloat(n.total_value) || 0.0,
+                        n.file_path || nfeFilePath,
+                        n.file_name || (req.file ? req.file.originalname : null),
+                        n.items ? JSON.stringify(n.items) : null,
+                        now
+                    ]);
+                }
+            }
+        } else if (nfe_number && nfe_number.trim()) {
+            await dbRun(`INSERT INTO stock_order_nfes (
+                order_id, nfe_number, nfe_series, nfe_date, nfe_access_key, di_number, addition_number, total_value, file_path, file_name, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                order.id,
+                nfe_number.trim(),
+                req.body.nfe_series || '1',
+                nfeDateVal,
+                nfe_access_key ? nfe_access_key.trim() : null,
+                di_number ? di_number.trim() : null,
+                req.body.addition_number || null,
+                parseFloat(req.body.total_value) || 0.0,
+                nfeFilePath,
+                req.file ? req.file.originalname : null,
+                now
+            ]);
+        }
+
+        // Consolidar número das NF-es vinculadas para exibição no card
+        const allNfes = await dbAll('SELECT DISTINCT nfe_number FROM stock_order_nfes WHERE order_id = ? ORDER BY id ASC', [order.id]);
+        const consolidatedNfeNumbers = allNfes.length > 0 ? allNfes.map(x => x.nfe_number).join(', ') : nfe_number.trim();
 
         // Atualizar itens com o código interno Tecfag (De-Para) e registrar na tabela permanente de mapeamento
         let parsedMappings = [];
@@ -13128,7 +13218,6 @@ app.post('/api/supply-chain/orders/:id/advance-doca', authenticateToken, restric
                     // Salvar na memória permanente de De-Para (supplier_sku_mappings)
                     const itRow = await dbGet('SELECT sku, description FROM stock_order_items WHERE id = ?', [mapItem.id]);
                     if (itRow && itRow.sku) {
-                        const now = new Date().toISOString();
                         await dbRun(`INSERT INTO supplier_sku_mappings (
                             supplier_id, supplier_name, supplier_sku, tecfag_sku, description, created_at, updated_at
                         ) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -13159,7 +13248,7 @@ app.post('/api/supply-chain/orders/:id/advance-doca', authenticateToken, restric
             updated_at = ?
             WHERE id = ?`, [
             arrivalDate,
-            nfe_number.trim(),
+            consolidatedNfeNumbers,
             nfeDateVal,
             nfe_access_key ? nfe_access_key.trim() : null,
             nfeFilePath,
@@ -13183,22 +13272,22 @@ app.post('/api/supply-chain/orders/:id/advance-doca', authenticateToken, restric
                     chk[k] = true;
                 });
                 await dbRun("UPDATE projects SET fase = 6, checklist = ?, danfe_number = ?, faseEntryDate = ?, lastUpdate = ? WHERE code = ?", [
-                    JSON.stringify(chk), nfe_number.trim(), nowIso, nowIso, order.project_code
+                    JSON.stringify(chk), consolidatedNfeNumbers, nowIso, nowIso, order.project_code
                 ]);
-                await recordAuditLog(order.project_code, user, `Entrada fiscal validada na Doca Tecfag via NF-e nº ${nfe_number.trim()}. Todos os equipamentos da linha (${allLinked.length}/${allLinked.length}) estão na Doca. Projeto liberado para Fase 6 (Oficina, Setup & SAT).`);
+                await recordAuditLog(order.project_code, user, `Entrada fiscal validada na Doca Tecfag via NF-e(s) nº ${consolidatedNfeNumbers}. Todos os equipamentos da linha (${allLinked.length}/${allLinked.length}) estão na Doca. Projeto liberado para Fase 6 (Oficina, Setup & SAT).`);
                 console.log(`[DOCA GATING] Todos os ${allLinked.length} fornecedores do projeto ${order.project_code} na Doca. Projeto liberado para Oficina.`);
             } else {
                 const pendingNames = pendingOrders.map(o => `${o.po_number} (${o.supplier_name})`).join(', ');
-                await recordAuditLog(order.project_code, user, `Entrada fiscal da ordem ${order.po_number} (${order.supplier_name}) validada na Doca via NF-e nº ${nfe_number.trim()}. Aguardando chegada de ${pendingOrders.length} ordem(ns): ${pendingNames} para liberar a montagem na Oficina.`);
+                await recordAuditLog(order.project_code, user, `Entrada fiscal da ordem ${order.po_number} (${order.supplier_name}) validada na Doca via NF-e nº ${consolidatedNfeNumbers}. Aguardando chegada de ${pendingOrders.length} ordem(ns): ${pendingNames} para liberar a montagem na Oficina.`);
                 console.log(`[DOCA GATING] Projeto ${order.project_code}: ${allLinked.length - pendingOrders.length}/${allLinked.length} ordens na Doca. Aguardando: ${pendingNames}.`);
             }
         }
 
         // Registrar no log geral do sistema
         await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
-            new Date().toISOString(),
+            now,
             '#10b981',
-            `<strong>[DOCA TECFAG]</strong> Container/PO <strong>${order.po_number}</strong> liberado na Doca Tecfag sob a <strong>NF-e nº ${nfe_number.trim()}</strong> (por ${user}).`
+            `<strong>[DOCA TECFAG]</strong> Container/PO <strong>${order.po_number}</strong> liberado na Doca Tecfag sob a <strong>NF-e nº ${consolidatedNfeNumbers}</strong> (por ${user}).`
         ]);
 
         const updated = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
@@ -15141,6 +15230,507 @@ function parseDiTextHeuristically(text, orderItems = []) {
         items: items
     };
 }
+
+// Helper seguro para converter strings monetárias (brasileiras ou americanas) em float
+function parseDecimalSafely(val) {
+    if (typeof val === 'number') return val;
+    if (!val) return 0.0;
+    const str = String(val).trim();
+    if (str.includes(',') && str.includes('.')) {
+        if (str.indexOf('.') < str.indexOf(',')) {
+            return parseFloat(str.replace(/\./g, '').replace(',', '.')) || 0.0;
+        } else {
+            return parseFloat(str.replace(/,/g, '')) || 0.0;
+        }
+    } else if (str.includes(',')) {
+        return parseFloat(str.replace(',', '.')) || 0.0;
+    }
+    const n = parseFloat(str);
+    return isNaN(n) ? 0.0 : n;
+}
+
+// Fallback robusto via Regex para extração de DANFE (PDF ou texto)
+function fallbackExtractDanfeFromText(extractedText, partialData = {}) {
+    const text = extractedText || '';
+    
+    // Nº da NF
+    let nfeNumber = partialData && partialData.nfe_number ? String(partialData.nfe_number).trim() : '';
+    if (!nfeNumber) {
+        const m = text.match(/(?:Nº|N[ºo°]|Número|NF-e\s*N[ºo°]?)\s*[:.]?\s*0*([1-9]\d{0,8})/i)
+               || text.match(/DANFE[\s\S]{0,100}?N[ºo°]\s*0*([1-9]\d{0,8})/i);
+        if (m) nfeNumber = m[1];
+    }
+
+    // Chave de acesso (44 dígitos numéricos)
+    let nfeAccessKey = partialData && partialData.nfe_access_key ? String(partialData.nfe_access_key).replace(/\s+/g, '') : '';
+    if (!nfeAccessKey) {
+        const mKey = text.match(/\b(\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4}\s*\d{4})\b/);
+        if (mKey) {
+            nfeAccessKey = mKey[1].replace(/\s+/g, '');
+        } else {
+            const mRaw = text.match(/\b(\d{44})\b/);
+            if (mRaw) nfeAccessKey = mRaw[1];
+        }
+    }
+
+    // Data de emissão (formato DD/MM/AAAA -> YYYY-MM-DD)
+    let nfeDate = partialData && partialData.nfe_date ? partialData.nfe_date : '';
+    if (!nfeDate) {
+        const mDate = text.match(/(?:DATA\s+DE\s+EMISS[ÃA]O|EMISS[ÃA]O)\s*[:.]?\s*(\d{2})[\/\.](\d{2})[\/\.](\d{4})/i)
+                   || text.match(/\b(\d{2})[\/\.](\d{2})[\/\.](\d{4})\b/);
+        if (mDate) {
+            nfeDate = `${mDate[3]}-${mDate[2]}-${mDate[1]}`;
+        }
+    }
+
+    // DI / DUIMP (Declaração de Importação)
+    let diNumber = partialData && partialData.di_number ? partialData.di_number : '';
+    if (!diNumber) {
+        const mDi = text.match(/\b(\d{2}\/\d{7}-\d|\d{2}BR\d{7,12})\b/i)
+                 || text.match(/(?:D\.?I\.?|DECLARAÇÃO DE IMPORTAÇÃO|DECLARACAO DE IMPORTACAO)\s*[:.]?\s*([0-9\/\-]+)/i);
+        if (mDi) diNumber = mDi[1].trim();
+    }
+
+    // Adição (ex: Adição 001, Adição 1, Adição nº 002)
+    let additionNumber = partialData && partialData.addition_number ? String(partialData.addition_number).trim() : '';
+    if (!additionNumber) {
+        const mAd = text.match(/(?:ADIÇÃO|ADICAO|ADIÇÃO Nº|ADICAO Nº)\s*[:.]?\s*0*([1-9]\d{0,3})/i);
+        if (mAd) additionNumber = mAd[1].trim();
+    }
+
+    // Valor Total da NF
+    let totalValue = partialData && partialData.total_value ? parseFloat(partialData.total_value) : 0;
+    if (!totalValue) {
+        const mVal = text.match(/(?:VALOR\s+TOTAL\s+DA\s+NOTA|VLR\s+TOTAL)\s*[:.]?\s*(?:R\$\s*)?([\d.,]+)/i);
+        if (mVal) {
+            totalValue = parseDecimalSafely(mVal[1]) || 0;
+        }
+    }
+
+    return {
+        nfe_number: nfeNumber || '',
+        nfe_series: partialData && partialData.nfe_series ? partialData.nfe_series : '1',
+        nfe_date: nfeDate || '',
+        nfe_access_key: nfeAccessKey || '',
+        di_number: diNumber || '',
+        addition_number: additionNumber || '',
+        total_value: totalValue || 0,
+        items: (partialData && Array.isArray(partialData.items)) ? partialData.items : []
+    };
+}
+
+// Extração Inteligente de DANFE (XML ou PDF) via IA Multimodal e Parsers Especializados
+async function extractDocaDanfeData(filePath, originalName = 'danfe.pdf', fileMime = 'application/pdf', orderId = null) {
+    if (!fs.existsSync(filePath)) {
+        throw new Error('Arquivo não encontrado no servidor.');
+    }
+
+    const lowerName = (originalName || '').toLowerCase();
+    const isXml = lowerName.endsWith('.xml') || (fileMime && fileMime.includes('xml'));
+    let fileContent = '';
+
+    // 1. SE FOR XML: Extração nativa, instantânea e 100% precisa dos campos NF-e 4.00
+    if (isXml) {
+        try {
+            fileContent = fs.readFileSync(filePath, 'utf8');
+        } catch (e) {
+            fileContent = '';
+        }
+    }
+
+    if (fileContent && (fileContent.includes('<nfeProc') || fileContent.includes('<NFe') || fileContent.includes('<infNFe'))) {
+        const nfeMatch = fileContent.match(/<nNF>(\d+)<\/nNF>/);
+        const serieMatch = fileContent.match(/<serie>(\d+)<\/serie>/);
+        const dhEmiMatch = fileContent.match(/<(?:dhEmi|dEmi)>([^<]+)<\/(?:dhEmi|dEmi)>/);
+        const chNfeMatch = fileContent.match(/Id="NFe(\d{44})"/i) || fileContent.match(/<chNFe>(\d{44})<\/chNFe>/i);
+        const diMatch = fileContent.match(/<nDI>([^<]+)<\/nDI>/);
+        const adicaoMatch = fileContent.match(/<nAdicao>([^<]+)<\/nAdicao>/);
+        const vNFMatch = fileContent.match(/<vNF>([^<]+)<\/vNF>/);
+
+        const items = [];
+        const detRegex = /<det[\s\S]*?<\/det>/g;
+        let detMatch;
+        let idx = 1;
+        while ((detMatch = detRegex.exec(fileContent)) !== null) {
+            const detChunk = detMatch[0];
+            const cProd = (detChunk.match(/<cProd>([^<]+)<\/cProd>/) || [])[1] || '';
+            const xProd = (detChunk.match(/<xProd>([^<]+)<\/xProd>/) || [])[1] || '';
+            const ncm = (detChunk.match(/<NCM>([^<]+)<\/NCM>/) || [])[1] || '';
+            const cfop = (detChunk.match(/<CFOP>([^<]+)<\/CFOP>/) || [])[1] || '';
+            const qCom = parseFloat((detChunk.match(/<qCom>([^<]+)<\/qCom>/) || [])[1] || '1');
+            const vUnCom = parseFloat((detChunk.match(/<vUnCom>([^<]+)<\/vUnCom>/) || [])[1] || '0');
+            const vProd = parseFloat((detChunk.match(/<vProd>([^<]+)<\/vProd>/) || [])[1] || '0');
+            const nDI = (detChunk.match(/<nDI>([^<]+)<\/nDI>/) || [])[1] || '';
+            const nAdicao = (detChunk.match(/<nAdicao>([^<]+)<\/nAdicao>/) || [])[1] || '';
+            items.push({
+                item_no: idx++,
+                code: cProd,
+                description: xProd,
+                ncm: ncm,
+                cfop: cfop,
+                qty: isNaN(qCom) ? 1 : qCom,
+                unit_price: isNaN(vUnCom) ? 0 : vUnCom,
+                total_price: isNaN(vProd) ? 0 : vProd,
+                di_number: nDI || (diMatch ? diMatch[1] : ''),
+                addition_number: nAdicao || (adicaoMatch ? adicaoMatch[1] : '')
+            });
+        }
+
+        let dateVal = '';
+        if (dhEmiMatch && dhEmiMatch[1]) {
+            dateVal = dhEmiMatch[1].split('T')[0];
+        }
+
+        return {
+            nfe_number: nfeMatch ? nfeMatch[1] : '',
+            nfe_series: serieMatch ? serieMatch[1] : '1',
+            nfe_date: dateVal,
+            nfe_access_key: chNfeMatch ? chNfeMatch[1] : '',
+            di_number: diMatch ? diMatch[1] : '',
+            addition_number: adicaoMatch ? adicaoMatch[1] : '',
+            total_value: vNFMatch ? parseFloat(vNFMatch[1]) : 0,
+            items: items
+        };
+    }
+
+    // 2. SE FOR PDF: Extrai texto e prepara multimodal nativo
+    let extractedText = '';
+    const isPdf = lowerName.endsWith('.pdf') || (fileMime && fileMime.includes('pdf'));
+    if (isPdf) {
+        try {
+            const dataBuffer = fs.readFileSync(filePath);
+            const pdfData = await pdfParse(dataBuffer);
+            extractedText = pdfData.text || '';
+        } catch (pdfErr) {
+            console.warn('[DANFE OCR] Falha ao extrair texto com pdf-parse:', pdfErr.message);
+        }
+    }
+
+    let inlinePart = null;
+    try {
+        const fileBuffer = fs.readFileSync(filePath);
+        let mime = fileMime || 'application/pdf';
+        if (lowerName.endsWith('.pdf') || (fileMime && fileMime.includes('pdf'))) {
+            mime = 'application/pdf';
+        } else if (lowerName.endsWith('.png')) {
+            mime = 'image/png';
+        } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+            mime = 'image/jpeg';
+        }
+
+        if (mime === 'application/pdf' || mime.startsWith('image/')) {
+            inlinePart = {
+                inlineData: {
+                    mimeType: mime,
+                    data: fileBuffer.toString('base64')
+                }
+            };
+        }
+    } catch (bufErr) {
+        console.warn('[DANFE OCR] Falha ao codificar buffer para inlineData:', bufErr.message);
+    }
+
+    let targetOrder = null;
+    let targetItems = [];
+    if (orderId) {
+        targetOrder = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        targetItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [orderId]);
+    }
+
+    let danfeData = null;
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (apiKey && apiKey.trim() !== '') {
+        try {
+            const prompt = `
+Você é o Auditor Fiscal e de Entrada de Importação da Tecfag.
+Sua missão é extrair com precisão cirúrgica de 100% todos os dados da NOTA FISCAL ELETRÔNICA DE ENTRADA / IMPORTAÇÃO (DANFE) anexada.
+
+${targetOrder ? `ORDEM DE IMPORTAÇÃO: Container/PO: "${targetOrder.po_number}" | Fornecedor: "${targetOrder.supplier_name}"` : ''}
+${targetItems.length > 0 ? `ITENS ESPERADOS NO CONTAINER:\n${targetItems.map(i => `* ID ${i.id}: SKU "${i.sku}" - "${i.description}" (Qtd: ${i.qty_shipped || i.qty_ordered})`).join('\n')}` : ''}
+
+Texto Bruto Extraído do Documento:
+"""
+${extractedText.substring(0, 45000)}
+"""
+
+=======================================================
+REGRAS OBRIGATÓRIAS DE EXTRAÇÃO:
+=======================================================
+1. "nfe_number": Número da NF-e (apenas números, remover zeros à esquerda se não fizerem parte do número oficial, ex: "000.052.926" -> "52926").
+2. "nfe_series": Série da NF-e (ex: "1").
+3. "nfe_date": Data de emissão da NF-e no formato YYYY-MM-DD.
+4. "nfe_access_key": Chave de acesso de 44 dígitos numéricos (sem espaços ou traços).
+5. "di_number": Número da Declaração de Importação (D.I.) ou DUIMP, frequentemente impresso nas Informações Complementares, Dados Adicionais ou no corpo dos itens (ex: 26/1849102-0, 24/0987654-3, 26BR0001...).
+6. "addition_number": Número da Adição de importação correspondente a esta DANFE (se especificado, ex: "001", "1", "002").
+7. "total_value": Valor total da NF-e (R$).
+8. "items": Lista completa dos produtos faturados nesta DANFE:
+   - "code": Código do produto na NF.
+   - "description": Descrição da mercadoria na NF.
+   - "ncm": Código NCM (8 dígitos).
+   - "cfop": CFOP (ex: 3102, 3101, 1102).
+   - "qty": Quantidade faturada.
+   - "unit_price": Valor unitário em R$.
+   - "total_price": Valor total em R$.
+   - "di_number": Número da D.I. se especificado na linha.
+   - "addition_number": Adição se especificada na linha.
+
+Retorne EXCLUSIVAMENTE um objeto JSON válido no formato:
+{
+  "nfe_number": "52926",
+  "nfe_series": "1",
+  "nfe_date": "YYYY-MM-DD",
+  "nfe_access_key": "44 digitos",
+  "di_number": "26/1849102-0",
+  "addition_number": "001",
+  "total_value": 0.0,
+  "items": [
+    {
+      "code": "PROD01",
+      "description": "Descricao da maquina",
+      "ncm": "8422.30.29",
+      "cfop": "3102",
+      "qty": 1,
+      "unit_price": 0.0,
+      "total_price": 0.0,
+      "di_number": "26/1849102-0",
+      "addition_number": "001"
+    }
+  ]
+}
+`;
+
+            const contentsParts = [];
+            if (inlinePart) contentsParts.push(inlinePart);
+            contentsParts.push({ text: prompt });
+
+            const candidateModels = [
+                process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+                'gemini-flash-latest',
+                'gemini-2.0-flash'
+            ];
+
+            for (const modelName of candidateModels) {
+                try {
+                    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                    const payload = {
+                        contents: [{ parts: contentsParts }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    };
+
+                    const aiRes = await fetch(geminiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (aiRes.ok) {
+                        const aiData = await aiRes.json();
+                        if (aiData.candidates && aiData.candidates[0] && aiData.candidates[0].content && aiData.candidates[0].content.parts[0]) {
+                            const rawText = aiData.candidates[0].content.parts[0].text;
+                            let parsed = null;
+                            try {
+                                const firstBrace = rawText.indexOf('{');
+                                const lastBrace = rawText.lastIndexOf('}');
+                                if (firstBrace !== -1 && lastBrace !== -1) {
+                                    parsed = JSON.parse(rawText.substring(firstBrace, lastBrace + 1));
+                                } else {
+                                    parsed = cleanAndParseJSON(rawText);
+                                }
+                            } catch (e) {
+                                parsed = null;
+                            }
+                            if (parsed && (parsed.nfe_number || parsed.nfe_access_key || parsed.di_number)) {
+                                danfeData = parsed;
+                                break;
+                            }
+                        }
+                    }
+                } catch (mErr) {
+                    console.warn(`[DANFE OCR] Modelo ${modelName} falhou:`, mErr.message);
+                }
+            }
+        } catch (apiErr) {
+            console.warn('[DANFE OCR] Erro geral na chamada Gemini:', apiErr.message);
+        }
+    }
+
+    if (!danfeData || !danfeData.nfe_number) {
+        danfeData = fallbackExtractDanfeFromText(extractedText, danfeData);
+    }
+
+    return danfeData;
+}
+
+// POST /api/supply-chain/extract-nfe-doca - Extração Inteligente de DANFE (PDF/XML) via IA
+app.post('/api/supply-chain/extract-nfe-doca', authenticateToken, restrictToSupplyChain, supplyChainUpload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'Nenhum arquivo de DANFE (PDF ou XML) enviado.' });
+    }
+
+    const filePath = req.file.path;
+    const fileMime = req.file.mimetype;
+    const orderIdParam = req.body.order_id ? parseInt(req.body.order_id) : null;
+
+    try {
+        const extracted = await extractDocaDanfeData(filePath, req.file.originalname, fileMime, orderIdParam);
+        
+        extracted.file_path = 'uploads/' + req.file.filename;
+        extracted.file_name = req.file.originalname;
+
+        // Se houver order_id, cruzar dados com os itens cadastrados no container para sugerir De-Para
+        let suggestions = {};
+        if (orderIdParam) {
+            const orderItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [orderIdParam]);
+            const mappings = await dbAll('SELECT * FROM supplier_sku_mappings');
+            
+            for (const it of orderItems) {
+                let suggestedSku = it.tecfag_sku || '';
+                const cleanSuppSku = (it.sku || '').trim().toUpperCase();
+                
+                // 1. Procurar em supplier_sku_mappings
+                if (!suggestedSku && cleanSuppSku) {
+                    const foundMap = mappings.find(m => (m.supplier_sku || '').toUpperCase() === cleanSuppSku);
+                    if (foundMap) suggestedSku = foundMap.tecfag_sku;
+                }
+
+                // 2. Procurar nos itens extraídos da DANFE
+                if (!suggestedSku && extracted.items && extracted.items.length > 0) {
+                    for (const danfeIt of extracted.items) {
+                        const danfeCode = (danfeIt.code || '').trim().toUpperCase();
+                        const danfeDesc = (danfeIt.description || '').toUpperCase();
+                        if (danfeCode && cleanSuppSku && (danfeCode === cleanSuppSku || danfeDesc.includes(cleanSuppSku) || cleanSuppSku.includes(danfeCode))) {
+                            suggestedSku = danfeCode;
+                            break;
+                        }
+                    }
+                }
+
+                if (suggestedSku) {
+                    suggestions[it.id] = suggestedSku;
+                }
+            }
+        }
+        extracted.suggestions = suggestions;
+
+        res.json({
+            success: true,
+            extracted: extracted
+        });
+    } catch (err) {
+        console.error('[EXTRACT-DANFE ERROR]', err);
+        res.status(500).json({ error: 'Erro ao processar arquivo da DANFE: ' + err.message });
+    }
+});
+
+// POST /api/supply-chain/orders/:id/add-nfe - Adiciona uma nova DANFE / Adição a uma ordem existente
+app.post('/api/supply-chain/orders/:id/add-nfe', authenticateToken, restrictToSupplyChain, supplyChainUpload.single('nfe_file'), async (req, res) => {
+    const orderId = req.params.id;
+    const user = req.user ? req.user.username : 'Sistema';
+    const {
+        nfe_number,
+        nfe_series,
+        nfe_date,
+        nfe_access_key,
+        di_number,
+        addition_number,
+        total_value,
+        items_json
+    } = req.body;
+
+    if (!nfe_number || !nfe_number.trim()) {
+        return res.status(400).json({ error: 'O número da NF-e é obrigatório.' });
+    }
+
+    try {
+        const order = await resolveOrMaterializeStockOrder(orderId, user);
+        if (!order) {
+            return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
+        }
+
+        const now = new Date().toISOString();
+        const nfeFilePath = req.file ? ('uploads/' + req.file.filename) : (req.body.file_path || null);
+        const fileName = req.file ? req.file.originalname : (req.body.file_name || null);
+
+        await dbRun(`INSERT INTO stock_order_nfes (
+            order_id, nfe_number, nfe_series, nfe_date, nfe_access_key, di_number, addition_number, total_value, file_path, file_name, items_json, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+            order.id,
+            nfe_number.trim(),
+            nfe_series || '1',
+            nfe_date || now.split('T')[0],
+            nfe_access_key ? nfe_access_key.trim() : null,
+            di_number ? di_number.trim() : (order.di_number || null),
+            addition_number ? addition_number.trim() : null,
+            parseFloat(total_value) || 0.0,
+            nfeFilePath,
+            fileName,
+            items_json || null,
+            now
+        ]);
+
+        // Recalcular lista consolidada de NF-es no card da ordem
+        const allNfes = await dbAll('SELECT DISTINCT nfe_number FROM stock_order_nfes WHERE order_id = ? ORDER BY id ASC', [order.id]);
+        const consolidatedNfeNumbers = allNfes.map(x => x.nfe_number).join(', ');
+
+        await dbRun('UPDATE stock_orders SET nfe_number = ?, updated_at = ? WHERE id = ?', [
+            consolidatedNfeNumbers, now, order.id
+        ]);
+
+        await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
+            now,
+            '#10b981',
+            `<strong>[DOCA TECFAG]</strong> Adicionada DANFE nº <strong>${nfe_number.trim()}</strong> (Adição: ${addition_number || '1'}) ao container/PO <strong>${order.po_number}</strong> (por ${user}).`
+        ]);
+
+        const updatedNfes = await dbAll('SELECT * FROM stock_order_nfes WHERE order_id = ? ORDER BY id ASC', [order.id]);
+        res.json({ success: true, nfes: updatedNfes, consolidated_nfe_number: consolidatedNfeNumbers });
+    } catch (err) {
+        console.error('[ADD-NFE ERROR]', err);
+        res.status(500).json({ error: 'Erro ao anexar NF-e adicional: ' + err.message });
+    }
+});
+
+// DELETE /api/supply-chain/orders/:id/nfe/:nfeId - Remove uma DANFE / Adição vinculada
+app.delete('/api/supply-chain/orders/:id/nfe/:nfeId', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const { id: orderId, nfeId } = req.params;
+    const user = req.user ? req.user.username : 'Sistema';
+
+    try {
+        const order = await resolveOrMaterializeStockOrder(orderId, user);
+        if (!order) {
+            return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
+        }
+
+        const nfeRow = await dbGet('SELECT * FROM stock_order_nfes WHERE id = ? AND order_id = ?', [nfeId, order.id]);
+        if (!nfeRow) {
+            return res.status(404).json({ error: 'DANFE não encontrada nesta ordem.' });
+        }
+
+        await dbRun('DELETE FROM stock_order_nfes WHERE id = ?', [nfeId]);
+
+        // Recalcular lista consolidada
+        const remainingNfes = await dbAll('SELECT DISTINCT nfe_number FROM stock_order_nfes WHERE order_id = ? ORDER BY id ASC', [order.id]);
+        const consolidatedNfeNumbers = remainingNfes.length > 0 ? remainingNfes.map(x => x.nfe_number).join(', ') : null;
+
+        const now = new Date().toISOString();
+        await dbRun('UPDATE stock_orders SET nfe_number = ?, updated_at = ? WHERE id = ?', [
+            consolidatedNfeNumbers, now, order.id
+        ]);
+
+        await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
+            now,
+            '#ef4444',
+            `<strong>[DOCA TECFAG]</strong> Removida DANFE nº <strong>${nfeRow.nfe_number}</strong> do container/PO <strong>${order.po_number}</strong> (por ${user}).`
+        ]);
+
+        const updatedNfes = await dbAll('SELECT * FROM stock_order_nfes WHERE order_id = ? ORDER BY id ASC', [order.id]);
+        res.json({ success: true, nfes: updatedNfes, consolidated_nfe_number: consolidatedNfeNumbers });
+    } catch (err) {
+        console.error('[DELETE-NFE ERROR]', err);
+        res.status(500).json({ error: 'Erro ao desvincular DANFE: ' + err.message });
+    }
+});
 
 // Helper para cálculo inteligente da Fase do Projeto (Delega à Máquina Canônica)
 function calculateProjectPhase(project) {
