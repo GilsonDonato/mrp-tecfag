@@ -21704,9 +21704,9 @@ function renderKanban() {
                             `;
                             
                             if (isImg) {
-                                html += `<img src="${att.filePath}" style="width: 100%; max-height: 120px; object-fit: cover; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);" />`;
+                                html += `<img src="${att.filePath}" style="width: 100%; max-height: 120px; object-fit: cover; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);" onerror="this.onerror=null; if(this.parentElement) this.parentElement.style.borderColor='rgba(239,68,68,0.3)'; this.outerHTML='<div style=\\\'padding: 10px; background: rgba(239,68,68,0.08); border-radius: 4px; text-align: center; color: #ef4444; font-size: 0.65rem; line-height: 1.4;\\\'><span style=\\\'font-size: 1.1rem; display: block; margin-bottom: 2px;\\\'>⚠️</span><strong>Imagem indisponível</strong><br><span style=\\\'color: #94a3b8; font-size: 0.60rem;\\\'>Arquivo físico não encontrado no servidor. Reenvie na aba Amostras/Diagnóstico.</span></div>';" />`;
                             } else if (isVideo) {
-                                html += `<video src="${att.filePath}" controls style="width: 100%; max-height: 120px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);"></video>`;
+                                html += `<video src="${att.filePath}" controls style="width: 100%; max-height: 120px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);" onerror="this.onerror=null; this.outerHTML='<div style=\\\'padding: 10px; background: rgba(239,68,68,0.08); border-radius: 4px; text-align: center; color: #ef4444; font-size: 0.65rem;\\\'>⚠️ Vídeo indisponível no servidor</div>';"></video>`;
                             }
                             
                             html += `

@@ -52,19 +52,40 @@ function safeJsonParse(str, fallback = {}) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Garantir que as pastas de uploads e banco de dados existam
-const UPLOADS_DIR = process.env.UPLOADS_PATH || path.join(__dirname, 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) {
-    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
-
-// Configuração do SQLite
+// Configuração do SQLite e diretórios de dados persistentes
 const DB_DIR = process.env.DATABASE_PATH ? path.dirname(process.env.DATABASE_PATH) : path.join(__dirname, 'data');
 if (!fs.existsSync(DB_DIR)) {
-    fs.mkdirSync(DB_DIR, { recursive: true });
+    try { fs.mkdirSync(DB_DIR, { recursive: true }); } catch (e) {}
 }
 const dbPath = process.env.DATABASE_PATH || path.join(DB_DIR, 'tecfag_mrp.db');
 const BACKUPS_DIR = path.join(DB_DIR, 'backups');
+
+// Garantir que a pasta de uploads utilize o disco persistente quando em produção (ex: Render /data/uploads)
+const UPLOADS_DIR = process.env.UPLOADS_PATH || (process.env.DATABASE_PATH ? path.join(DB_DIR, 'uploads') : path.join(__dirname, 'uploads'));
+if (!fs.existsSync(UPLOADS_DIR)) {
+    try { fs.mkdirSync(UPLOADS_DIR, { recursive: true }); } catch (e) {}
+}
+
+// Resolução inteligente de caminho absoluto para arquivos de upload (busca em disco persistente e legado)
+function getAbsoluteUploadPath(relOrAbsPath) {
+    if (!relOrAbsPath) return null;
+    if (path.isAbsolute(relOrAbsPath) && fs.existsSync(relOrAbsPath)) {
+        return relOrAbsPath;
+    }
+    const clean = String(relOrAbsPath).replace(/^\/?(uploads\/)?/, '');
+    const candidateDirs = [
+        UPLOADS_DIR,
+        process.env.DATABASE_PATH ? path.join(DB_DIR, 'uploads') : null,
+        path.join(__dirname, 'uploads'),
+        path.join(__dirname, String(relOrAbsPath).startsWith('/') ? String(relOrAbsPath).slice(1) : String(relOrAbsPath))
+    ].filter(Boolean);
+
+    for (const dir of candidateDirs) {
+        const full = path.join(dir, clean);
+        if (fs.existsSync(full)) return full;
+    }
+    return path.join(UPLOADS_DIR, clean);
+}
 
 function getDirectorySize(dirPath) {
     let size = 0;
@@ -2287,8 +2308,34 @@ app.use('/api/projects', authenticateToken);
 app.use('/api/logs', authenticateToken);
 app.use('/api/attachments', authenticateToken);
 
-// Rota estática para downloads físicos
+// Rotas estáticas para downloads físicos (busca no disco persistente e pasta local)
+if (process.env.DATABASE_PATH) {
+    const persistentUploads = path.join(DB_DIR, 'uploads');
+    if (persistentUploads !== UPLOADS_DIR && fs.existsSync(persistentUploads)) {
+        app.use('/uploads', express.static(persistentUploads));
+    }
+}
 app.use('/uploads', express.static(UPLOADS_DIR));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Fallback amigável caso um arquivo de upload tenha sido apagado em redeploy antigo
+app.get('/uploads/:filename', (req, res) => {
+    res.status(404).send(`
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"><title>Arquivo não encontrado - MRP Tecfag</title></head>
+        <body style="font-family: sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; box-sizing: border-box;">
+            <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 30px; max-width: 500px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                <div style="font-size: 3rem; margin-bottom: 10px;">⚠️</div>
+                <h2 style="color: #ef4444; margin-top: 0;">Arquivo não encontrado no servidor</h2>
+                <p style="color: #94a3b8; font-size: 0.9rem; line-height: 1.5;">O arquivo <code>${req.params.filename}</code> não existe no disco persistente. Ele pode ter sido salvo em um ciclo anterior ao disco persistente.</p>
+                <p style="color: #38bdf8; font-size: 0.85rem;"><strong>Solução:</strong> Reenvie o arquivo diretamente no card do projeto dentro do MRP para salvá-lo de forma permanente.</p>
+                <button onclick="window.close()" style="background: #0ea5e9; border: none; color: white; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 15px;">Fechar Janela</button>
+            </div>
+        </body>
+        </html>
+    `);
+});
 
 // Servir o Frontend index.html na raiz
 app.use(express.static(path.join(__dirname)));
@@ -12246,17 +12293,21 @@ app.post('/api/projects/:code/send-email', authenticateToken, upload.fields([
             });
         }
 
+        const missingAttachments = [];
+
         // Anexar Invoice vinculada ao projeto se solicitado
         if (attach_invoice === 'true' || attach_invoice === true) {
             try {
                 const invAttach = await dbGet('SELECT * FROM attachments WHERE projectCode = ? AND (phase = "proforma" OR phase = "invoice" OR fileName LIKE "%invoice%" OR fileName LIKE "%proforma%") ORDER BY id DESC LIMIT 1', [code]);
                 if (invAttach && invAttach.filePath) {
-                    const fullInvPath = path.isAbsolute(invAttach.filePath) ? invAttach.filePath : path.join(__dirname, invAttach.filePath);
+                    const fullInvPath = getAbsoluteUploadPath(invAttach.filePath);
                     if (fs.existsSync(fullInvPath)) {
                         mailAttachments.push({
                             filename: invAttach.fileName || `Invoice_${code}.pdf`,
                             path: fullInvPath
                         });
+                    } else {
+                        missingAttachments.push(invAttach.fileName || 'Invoice');
                     }
                 }
             } catch (invErr) {
@@ -12287,12 +12338,14 @@ app.post('/api/projects/:code/send-email', authenticateToken, upload.fields([
             try {
                 const plAttach = await dbGet('SELECT * FROM attachments WHERE projectCode = ? AND (phase = "packing_list" OR fileName LIKE "%packing%" OR fileName LIKE "%romaneio%") ORDER BY id DESC LIMIT 1', [code]);
                 if (plAttach && plAttach.filePath) {
-                    const fullPlPath = path.isAbsolute(plAttach.filePath) ? plAttach.filePath : path.join(__dirname, plAttach.filePath);
+                    const fullPlPath = getAbsoluteUploadPath(plAttach.filePath);
                     if (fs.existsSync(fullPlPath)) {
                         mailAttachments.push({
                             filename: plAttach.fileName || `Packing_List_${code}.pdf`,
                             path: fullPlPath
                         });
+                    } else {
+                        missingAttachments.push(plAttach.fileName || 'Packing List');
                     }
                 }
             } catch (plErr) {
@@ -12331,7 +12384,7 @@ app.post('/api/projects/:code/send-email', authenticateToken, upload.fields([
                     for (const id of ids) {
                         const att = await dbGet('SELECT * FROM attachments WHERE id = ? AND projectCode = ?', [id, code]);
                         if (att && att.filePath) {
-                            const fullAttPath = path.isAbsolute(att.filePath) ? att.filePath : path.join(__dirname, att.filePath);
+                            const fullAttPath = getAbsoluteUploadPath(att.filePath);
                             if (fs.existsSync(fullAttPath)) {
                                 if (!mailAttachments.some(a => a.path === fullAttPath)) {
                                     mailAttachments.push({
@@ -12339,6 +12392,8 @@ app.post('/api/projects/:code/send-email', authenticateToken, upload.fields([
                                         path: fullAttPath
                                     });
                                 }
+                            } else {
+                                missingAttachments.push(att.fileName || `Documento #${id}`);
                             }
                         }
                     }
@@ -12405,20 +12460,33 @@ app.post('/api/projects/:code/send-email', authenticateToken, upload.fields([
 
         await transporter.sendMail(mailOptions);
 
-        const savedMessage = attachedFilesNames 
-            ? `${body.trim()}\n\n[📎 Documentos Anexados: ${attachedFilesNames}]` 
-            : body.trim();
+        let savedMessage = body.trim();
+        if (attachedFilesNames) {
+            savedMessage += `\n\n[📎 Documentos Anexados: ${attachedFilesNames}]`;
+        }
+        if (missingAttachments.length > 0) {
+            savedMessage += `\n\n[⚠️ Anexos Indisponíveis no Servidor (não puderam ser disparados): ${missingAttachments.join(', ')}]`;
+        }
 
         await dbRun(
             'INSERT INTO project_communications (project_code, type, role, sender, recipient, subject, message) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [code, 'email_sent', 'user', userEmail, to.trim(), finalSubject, savedMessage]
         );
 
+        let successMessage = `E-mail enviado com sucesso para ${to}!`;
+        if (attachedFilesNames) {
+            successMessage += `\n\n📎 Anexos anexados com sucesso: ${attachedFilesNames}`;
+        }
+        if (missingAttachments.length > 0) {
+            successMessage += `\n\n⚠️ Atenção: ${missingAttachments.length} anexo(s) marcado(s) não foram encontrados no disco do servidor e NÃO foram enviados:\n• ${missingAttachments.join('\n• ')}\n\n💡 Dica: Reenvie estes arquivos no card do projeto para salvá-los no disco persistente.`;
+        }
+
         res.json({
             success: true,
-            message: `E-mail enviado com sucesso para ${to}!${attachedFilesNames ? ` (Anexos: ${attachedFilesNames})` : ''}`,
+            message: successMessage,
             subject: finalSubject,
-            attachments: attachedFilesNames
+            attachments: attachedFilesNames,
+            missingAttachments
         });
 
     } catch (err) {
