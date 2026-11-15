@@ -4672,25 +4672,38 @@
                                 </div>
                             </div>
 
-                            <div class="detail-card">
-                                <h4 style="margin-bottom: 15px; color: var(--color-fase3);">Fase 3: Proforma, Câmbio & PO Fornecedor (Resp: Compras - SLA 3 dias)</h4>
-                                <div class="checklist-group" style="--group-color: var(--color-fase3); border-bottom: none; padding-bottom: 0;">
-                                    <div class="checklist-items">
-                                        <div class="checklist-item" id="chk-proforma" onclick="toggleCheckItem('proforma')">
-                                            <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                            <span class="checklist-label">8. Validação da Proforma Invoice <strong style="color: #ec4899;">[COMPRAS]</strong></span>
-                                            <div class="step-attach-area" id="attach-step-proforma" onclick="event.stopPropagation()"></div>
-                                        </div>
-                                        <div class="checklist-item" id="chk-cambio_sinal" onclick="toggleCheckItem('cambio_sinal')">
-                                            <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                            <span class="checklist-label">9. Fechamento de Câmbio (Sinal 30%) <strong style="color: #ec4899;">[COMPRAS]</strong></span>
-                                            <div class="step-attach-area" id="attach-step-cambio_sinal" onclick="event.stopPropagation()"></div>
-                                        </div>
-                                        <div class="checklist-item" id="chk-swift_pagamento" onclick="toggleCheckItem('swift_pagamento')">
-                                            <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
-                                            <span class="checklist-label">10. Envio do Comprovante SWIFT <strong style="color: #ec4899;">[COMPRAS]</strong></span>
-                                            <div class="step-attach-area" id="attach-step-swift_pagamento" onclick="event.stopPropagation()"></div>
-                                        </div>
+                            <div class="detail-card" style="background: rgba(236, 72, 153, 0.05); border: 1px dashed rgba(236, 72, 153, 0.3);">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                    <h4 style="margin: 0; color: var(--color-fase3); font-size: 0.88rem; display: flex; align-items: center; gap: 6px;">
+                                        <span>🚢</span> Fase 3: Proforma, Câmbio & Importação
+                                    </h4>
+                                    <span style="font-size: 0.65rem; background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4); padding: 2px 6px; border-radius: 4px; font-weight: 800;">
+                                        GESTÃO INDIVIDUAL POR FORNECEDOR
+                                    </span>
+                                </div>
+                                <p style="font-size: 0.74rem; color: #94a3b8; margin: 8px 0 10px 0; line-height: 1.4;">
+                                    Cada fabricante possui prazos, faturas e valores independentes. A validação de <strong>Proforma Invoice</strong>, <strong>Câmbio de Sinal (30%)</strong> e <strong>SWIFT</strong> é controlada diretamente nos <strong>Cards de Importação</strong> de cada fornecedor.
+                                </p>
+                                <button type="button" class="btn" onclick="switchProjectModalTab('logistics')" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; font-size: 0.72rem; font-weight: 700; padding: 5px 12px; border-radius: 5px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+                                    <span>📦</span> Ver Cards de Importação (Aba Comex) ➔
+                                </button>
+
+                                <!-- Elementos Legados Preservados em Modo Oculto -->
+                                <div style="display: none;">
+                                    <div class="checklist-item" id="chk-proforma" onclick="toggleCheckItem('proforma')">
+                                        <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                        <span class="checklist-label">8. Validação da Proforma Invoice</span>
+                                        <div class="step-attach-area" id="attach-step-proforma"></div>
+                                    </div>
+                                    <div class="checklist-item" id="chk-cambio_sinal" onclick="toggleCheckItem('cambio_sinal')">
+                                        <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                        <span class="checklist-label">9. Fechamento de Câmbio (Sinal 30%)</span>
+                                        <div class="step-attach-area" id="attach-step-cambio_sinal"></div>
+                                    </div>
+                                    <div class="checklist-item" id="chk-swift_pagamento" onclick="toggleCheckItem('swift_pagamento')">
+                                        <div class="checklist-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg></div>
+                                        <span class="checklist-label">10. Envio do Comprovante SWIFT</span>
+                                        <div class="step-attach-area" id="attach-step-swift_pagamento"></div>
                                     </div>
                                 </div>
                             </div>
@@ -7230,6 +7243,7 @@
             <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
                 <!-- Status & Pipeline Progress -->
                 <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                    <div id="sc-details-stepper-container" style="margin-bottom: 14px;"></div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 12px;">
                         <div style="flex: 1; min-width: 250px;">
                             <span style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Etapa Atual do Container:</span>
@@ -24901,6 +24915,93 @@ function renderKanban() {
         }
 
         // =========================================================================
+        // QUADRINHOS DE EVOLUÇÃO DO PROCESSO DE IMPORTAÇÃO (MULTI-FORNECEDOR)
+        // =========================================================================
+        function renderImportEvolutionStepperHtml(stage, orderId, isInteractive = true) {
+            const pipelineStages = [
+                { key: 'PO_EMITIDA', label: '1. Proforma & PO', icon: '📄', short: '1. Proforma' },
+                { key: 'EM_FABRICACAO', label: '2. Em Fabricação', icon: '🏭', short: '2. Fabricação' },
+                { key: 'PACKING_LIST_EMBARQUE', label: '3. Packing List & Pronto', icon: '📦', short: '3. Packing List' },
+                { key: 'NO_NAVIO', label: '4. No Navio / Trânsito', icon: '🚢', short: '4. No Navio' },
+                { key: 'NO_PORTO_DESEMBARACO', label: '5. Porto / Desembaraço', icon: '🛃', short: '5. Porto/DI' },
+                { key: 'DOCA_GALPAO', label: '6. Entregue na Doca', icon: '🏢', short: '6. Doca Tecfag' }
+            ];
+
+            const stageRank = {
+                'PO_EMITIDA': 1,
+                'EM_FABRICACAO': 2,
+                'PACKING_LIST_EMBARQUE': 3,
+                'NO_NAVIO': 4,
+                'NO_PORTO_DESEMBARACO': 5,
+                'ENTREPOSTADO_EADI': 5,
+                'DOCA_GALPAO': 6
+            };
+
+            const currentRank = stageRank[stage] || 1;
+            const currentStageObj = pipelineStages[currentRank - 1] || pipelineStages[0];
+
+            return `
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 8px 10px;">
+                    <div style="font-size: 0.68rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+                        <span style="display: flex; align-items: center; gap: 5px;"><span>📋</span> Quadrinhos de Evolução Desta Importação:</span>
+                        <span style="color: #38bdf8; font-weight: 800; font-size: 0.70rem;">Etapa Atual: ${currentStageObj.label}</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 6px;">
+                        ${pipelineStages.map((st, idx) => {
+                            const stepRank = idx + 1;
+                            const isCompleted = stepRank < currentRank;
+                            const isCurrent = stepRank === currentRank;
+                            const clickAttr = (isInteractive && orderId) ? `onclick="event.stopPropagation(); quickAdvanceOrderStage('${orderId}', '${st.key}')"` : '';
+                            const cursorStyle = (isInteractive && orderId) ? 'cursor: pointer;' : 'cursor: default;';
+                            const bgStyle = isCompleted ? 'rgba(16, 185, 129, 0.15)' : (isCurrent ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.03)');
+                            const borderStyle = isCompleted ? '#10b981' : (isCurrent ? '#38bdf8' : 'rgba(255, 255, 255, 0.08)');
+                            const textColor = isCompleted ? '#34d399' : (isCurrent ? '#38bdf8' : '#64748b');
+
+                            return `
+                                <div ${clickAttr}
+                                     style="padding: 6px 3px; border-radius: 5px; text-align: center; ${cursorStyle} transition: all 0.2s;
+                                            background: ${bgStyle}; border: 1px solid ${borderStyle};
+                                            box-shadow: ${isCurrent ? '0 0 8px rgba(56, 189, 248, 0.35)' : 'none'};"
+                                     title="Etapa ${st.short}: ${st.label}. ${isCompleted ? '✓ Concluído' : (isCurrent ? '⏳ Em Andamento' : '⚪ Pendente (Clique para avançar/marcar)')}">
+                                    <div style="font-size: 0.85rem; margin-bottom: 2px;">
+                                        ${isCompleted ? '✅' : (isCurrent ? st.icon : '⬜')}
+                                    </div>
+                                    <div style="font-size: 0.64rem; font-weight: ${isCurrent ? '800' : '600'}; color: ${textColor}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        ${st.short}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderMiniEvolutionStepperHtml(stage) {
+            const stageRank = {
+                'PO_EMITIDA': 1,
+                'EM_FABRICACAO': 2,
+                'PACKING_LIST_EMBARQUE': 3,
+                'NO_NAVIO': 4,
+                'NO_PORTO_DESEMBARACO': 5,
+                'ENTREPOSTADO_EADI': 5,
+                'DOCA_GALPAO': 6
+            };
+            const currentRank = stageRank[stage] || 1;
+            const names = ['1. Proforma', '2. Fabricação', '3. Packing List', '4. Navio', '5. Porto/DI', '6. Doca'];
+            return `
+                <div style="display: flex; gap: 3px; margin: 4px 0 2px 0;" title="Evolução: Etapa ${currentRank} de 6 (${names[currentRank - 1]})">
+                    ${[1, 2, 3, 4, 5, 6].map(i => {
+                        const isCompleted = i < currentRank;
+                        const isCurrent = i === currentRank;
+                        const bg = isCompleted ? '#10b981' : (isCurrent ? '#38bdf8' : 'rgba(255,255,255,0.12)');
+                        return `<div style="flex: 1; height: 4px; border-radius: 2px; background: ${bg}; ${isCurrent ? 'box-shadow: 0 0 6px #38bdf8;' : ''}"></div>`;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        // =========================================================================
         // MULTI-FORNECEDOR & CONTÊINER MISTO (SUB-ORDENS DE IMPORTAÇÃO)
         // =========================================================================
         async function loadProjectMultiOrders(projectCode) {
@@ -25009,6 +25110,9 @@ function renderKanban() {
                                     </span>
                                 </div>
                             </div>
+
+                            <!-- Quadrinhos com a Evolução Desta Importação -->
+                            ${renderImportEvolutionStepperHtml(ord.stage, ord.id, true)}
 
                             <!-- Grade de Metadados -->
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; font-size: 0.74rem; background: rgba(0,0,0,0.25); padding: 8px 10px; border-radius: 5px;">
@@ -31301,6 +31405,7 @@ function renderKanban() {
 
                     ${logisticsSnippet}
                     ${eadiProgressSnippet}
+                    ${typeof renderMiniEvolutionStepperHtml === 'function' ? renderMiniEvolutionStepperHtml(stage) : ''}
 
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 0.72rem; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 6px; margin-top: 2px;">
                         <span style="color: #4ade80; font-weight: 700;">${totalFobStr}</span>
@@ -31971,6 +32076,12 @@ function renderKanban() {
                 if (title) title.innerText = `Container / PO: ${order.po_number} - ${order.supplier_name}`;
                 if (subtitle) subtitle.innerText = `Fatura: ${order.invoice_number || 'S/N'} • Condição: ${order.payment_terms_desc || order.payment_terms_type}`;
                 if (badge) badge.innerText = stageLabels[order.stage] || order.stage;
+
+                // Renderizar Quadrinhos com a Evolução Desta Importação no Topo do Modal
+                const stepperEl = document.getElementById('sc-details-stepper-container');
+                if (stepperEl && typeof renderImportEvolutionStepperHtml === 'function') {
+                    stepperEl.innerHTML = renderImportEvolutionStepperHtml(order.stage, order.id, true);
+                }
 
                 // Botão de retorno à Ficha do Projeto & Copiloto IA
                 const prjCode = order.project_code || (typeof order.id === 'string' && order.id.startsWith('PRJ-') ? order.id.replace('PRJ-', '') : null);
