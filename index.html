@@ -4936,6 +4936,20 @@
                                 </div>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; line-height: 1.4;" id="modal-setup-specs-alert-grid"></div>
                                 <div style="border-top: 1px dashed rgba(249, 115, 22, 0.3); padding-top: 8px; color: #fdba74; line-height: 1.4;" id="modal-setup-specs-alert-obs"></div>
+                            <!-- Identificação Física e Números de Série das Máquinas (Fase 6 / Etapa 20) -->
+                            <div class="detail-card" style="border: 1px solid rgba(56, 189, 248, 0.35); background: rgba(15, 23, 42, 0.7); box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                                    <h4 style="margin: 0; color: #38bdf8; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+                                        <span>🏷️</span> Números de Série & Direcionamento Físico das Máquinas
+                                    </h4>
+                                    <span style="font-size: 0.72rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 2px 8px; border-radius: 4px; font-weight: bold;">
+                                        Obrigatório p/ Etapa 20
+                                    </span>
+                                </div>
+                                <div style="font-size: 0.74rem; color: #94a3b8; margin-bottom: 12px; line-height: 1.35;">
+                                    Preencha o <strong>Número de Série Físico</strong> da placa de cada máquina da linha e defina a <strong>Rota de Direcionamento</strong> física no galpão para liberar o checklist.
+                                </div>
+                                <div id="modal-machines-list-workshop" style="display: flex; flex-direction: column; gap: 12px;"></div>
                             </div>
 
                             <div class="detail-card">
@@ -21895,17 +21909,23 @@ function renderKanban() {
                 if (contentEl) contentEl.style.display = 'none';
             }
             
-            // Render machines in modal
+            // Render machines in modal (aba Importação e aba Oficina)
             const machinesContainer = document.getElementById('modal-machines-list');
-            if (machinesContainer) {
-                machinesContainer.innerHTML = '';
-                
-                const machinesList = project.machines || [{ sku: project.sku, serial: project.serial, route: project.route }];
-                
+            const machinesContainerWorkshop = document.getElementById('modal-machines-list-workshop');
+            
+            const machinesList = (project.machines && project.machines.length > 0)
+                ? project.machines 
+                : [{ sku: project.sku, serial: project.serial, route: project.route }];
+
+            const isEditable = (currentRole === 'ALL' || currentRole === 'ADMIN' || currentRole === 'GERENTE' || currentRole === 'DIRETOR' || currentRole === 'ESTOQUE' || currentRole === 'TECNICO' || currentRole === 'OFICINA');
+
+            function renderMachinesInto(container) {
+                if (!container) return;
+                container.innerHTML = '';
                 machinesList.forEach((mach, idx) => {
                     const item = document.createElement('div');
                     item.className = 'modal-machine-item';
-                    item.style = "border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 8px;";
+                    item.style = "border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; margin-bottom: 10px;";
                     if (idx === machinesList.length - 1) {
                         item.style.borderBottom = 'none';
                         item.style.marginBottom = '0';
@@ -21914,22 +21934,27 @@ function renderKanban() {
                     
                     const hasSerial = mach.serial && mach.serial !== '-';
                     const erpSku = hasSerial ? `${mach.sku}-PRJ-${project.code.replace(/-/g, '')}` : '-';
-                    const isEditable = (currentRole === 'ALL' || currentRole === 'GERENTE' || currentRole === 'ESTOQUE');
+                    const serialValue = (mach.serial && mach.serial !== '-') ? escapeProjectHtml(mach.serial) : '';
 
                     item.innerHTML = `
-                        <div style="font-weight: 700; font-size: 0.82rem; color: var(--primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink: 0;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                            MÁQUINA ${idx + 1}: ${mach.sku}
+                        <div style="font-weight: 700; font-size: 0.82rem; color: #38bdf8; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink: 0;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                                <span>MÁQUINA ${idx + 1}: <strong style="color: #f1f5f9;">${mach.sku}</strong></span>
+                            </div>
+                            <span style="font-size: 0.70rem; color: ${hasSerial ? '#34d399' : '#f59e0b'}; font-weight: bold;">
+                                ${hasSerial ? '✅ S/N Registrado' : '⚠️ S/N Pendente'}
+                            </span>
                         </div>
                         <div class="form-row" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 10px; margin-bottom: 6px;">
                             <div class="form-group" style="margin-bottom: 0;">
-                                <label style="font-size: 0.65rem; text-transform: uppercase;">Número de Série Físico</label>
-                                <input type="text" class="form-control modal-machine-serial" data-idx="${idx}" placeholder="Ex: SN-HF-98328-N" value="${mach.serial || '-'}" oninput="handleSerialInputInModal()" style="padding: 8px 12px; font-size: 0.8rem;" ${isEditable ? '' : 'disabled'}>
+                                <label style="font-size: 0.68rem; font-weight: bold; text-transform: uppercase; color: #cbd5e1;">Número de Série Físico da Placa</label>
+                                <input type="text" class="form-control modal-machine-serial" data-idx="${idx}" placeholder="Ex: SN-HF-98328-N" value="${serialValue}" oninput="handleSerialInputInModal(this)" style="padding: 8px 12px; font-size: 0.82rem;" ${isEditable ? '' : 'disabled'}>
                             </div>
                             <div class="form-group" style="margin-bottom: 0;">
-                                <label style="font-size: 0.65rem; text-transform: uppercase;">Direcionamento (Fase 3)</label>
-                                <select class="form-control modal-machine-route" data-idx="${idx}" onchange="handleRouteSelectChange()" style="padding: 8px 10px; font-size: 0.8rem; height: auto;" ${isEditable ? '' : 'disabled'}>
-                                    <option value="-" ${mach.route === '-' ? 'selected' : ''}>[Aguardando]</option>
+                                <label style="font-size: 0.68rem; font-weight: bold; text-transform: uppercase; color: #cbd5e1;">Direcionamento (Etapa 20)</label>
+                                <select class="form-control modal-machine-route" data-idx="${idx}" onchange="handleRouteSelectChange(this)" style="padding: 8px 10px; font-size: 0.82rem; height: auto;" ${isEditable ? '' : 'disabled'}>
+                                    <option value="-" ${mach.route === '-' ? 'selected' : ''}>[Selecione a Rota]</option>
                                     <option value="A" ${mach.route === 'A' ? 'selected' : ''}>Rota A - NR-12</option>
                                     <option value="B" ${mach.route === 'B' ? 'selected' : ''}>Rota B - Engenharia</option>
                                     <option value="C" ${mach.route === 'C' ? 'selected' : ''}>Rota C - Direto Exped.</option>
@@ -21941,9 +21966,12 @@ function renderKanban() {
                             ${hasSerial ? '<span style="color: #10b981; font-weight: 700; margin-left: 5px;">[BLOQUEADO COMERCIALMENTE]</span>' : ''}
                         </div>
                     `;
-                    machinesContainer.appendChild(item);
+                    container.appendChild(item);
                 });
             }
+
+            renderMachinesInto(machinesContainer);
+            renderMachinesInto(machinesContainerWorkshop);
 
             const autoprintMsg = document.getElementById('modal-autoprint-trigger-msg'); if (autoprintMsg) autoprintMsg.style.display = 'none';
 
@@ -24001,21 +24029,27 @@ function renderKanban() {
             }
         }
 
-        function handleSerialInputInModal() {
+        function handleSerialInputInModal(sourceEl) {
+            if (sourceEl) {
+                const idx = sourceEl.getAttribute('data-idx');
+                const val = sourceEl.value;
+                document.querySelectorAll(`.modal-machine-serial[data-idx="${idx}"]`).forEach(el => {
+                    if (el !== sourceEl) el.value = val;
+                });
+            }
+
             const project = state.projects.find(p => p.code === activeProjectCode);
             if (!project) return;
             
             const msgBox = document.getElementById('modal-autoprint-trigger-msg');
-            const serialInputs = document.querySelectorAll('.modal-machine-serial');
-            const routeSelects = document.querySelectorAll('.modal-machine-route');
-            
             let triggerPrint = false;
             
-            serialInputs.forEach((input, idx) => {
-                const serialVal = input.value.trim();
-                const routeVal = routeSelects[idx] ? routeSelects[idx].value : '-';
-                
-                const oldMach = project.machines && project.machines[idx];
+            const machinesList = project.machines || [{ sku: project.sku, serial: project.serial, route: project.route }];
+            machinesList.forEach((oldMach, idx) => {
+                const sInput = document.querySelector(`.modal-machine-serial[data-idx="${idx}"]`);
+                const rSelect = document.querySelector(`.modal-machine-route[data-idx="${idx}"]`);
+                const serialVal = sInput ? sInput.value.trim() : '';
+                const routeVal = rSelect ? rSelect.value : '-';
                 const oldSerial = oldMach ? oldMach.serial : '-';
                 
                 if (serialVal !== '-' && serialVal !== '' && oldSerial === '-' && routeVal !== '-') {
@@ -24023,10 +24057,8 @@ function renderKanban() {
                 }
             });
             
-            if (triggerPrint) {
-                msgBox.style.display = 'block';
-            } else {
-                msgBox.style.display = 'none';
+            if (msgBox) {
+                msgBox.style.display = triggerPrint ? 'block' : 'none';
             }
         }
 
@@ -27131,45 +27163,51 @@ function renderKanban() {
             if (key === 'direcionamento') {
                 const isChecking = !currentlyChecked;
                 if (isChecking) {
-                    const serialInputs = document.querySelectorAll('.modal-machine-serial');
-                    const routeSelects = document.querySelectorAll('.modal-machine-route');
-                    
+                    const machinesList = (project.machines && project.machines.length > 0)
+                        ? project.machines
+                        : [{ sku: project.sku, serial: project.serial, route: project.route }];
+
                     let allSerialsOk = true;
                     let allRoutesOk = true;
-                    
-                    serialInputs.forEach((input, idx) => {
-                        const serialVal = input.value.trim();
-                        const routeVal = routeSelects[idx] ? routeSelects[idx].value : '-';
-                        
-                        if (serialVal === '' || serialVal === '-') {
+
+                    machinesList.forEach((_, idx) => {
+                        const serialEl = document.querySelector(`.modal-machine-serial[data-idx="${idx}"]`);
+                        const routeEl = document.querySelector(`.modal-machine-route[data-idx="${idx}"]`);
+
+                        const serialVal = serialEl ? serialEl.value.trim() : '';
+                        const routeVal = routeEl ? routeEl.value : '-';
+
+                        if (!serialVal || serialVal === '-') {
                             allSerialsOk = false;
-                            input.style.border = '2px solid #ef4444';
-                            input.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.4)';
-                            setTimeout(() => {
-                                input.style.border = '';
-                                input.style.boxShadow = '';
-                            }, 3000);
-                        }
-                        
-                        if (routeVal === '-') {
-                            allRoutesOk = false;
-                            if (routeSelects[idx]) {
-                                routeSelects[idx].style.border = '2px solid var(--primary)';
-                                routeSelects[idx].style.boxShadow = '0 0 10px var(--primary-glow)';
+                            document.querySelectorAll(`.modal-machine-serial[data-idx="${idx}"]`).forEach(input => {
+                                input.style.border = '2px solid #ef4444';
+                                input.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.4)';
                                 setTimeout(() => {
-                                    routeSelects[idx].style.border = '';
-                                    routeSelects[idx].style.boxShadow = '';
-                                }, 3000);
-                            }
+                                    input.style.border = '';
+                                    input.style.boxShadow = '';
+                                }, 4000);
+                            });
+                        }
+
+                        if (!routeVal || routeVal === '-') {
+                            allRoutesOk = false;
+                            document.querySelectorAll(`.modal-machine-route[data-idx="${idx}"]`).forEach(sel => {
+                                sel.style.border = '2px solid var(--primary)';
+                                sel.style.boxShadow = '0 0 10px var(--primary-glow)';
+                                setTimeout(() => {
+                                    sel.style.border = '';
+                                    sel.style.boxShadow = '';
+                                }, 4000);
+                            });
                         }
                     });
-                    
+
                     if (!allSerialsOk) {
-                        alert('Atenção: Para concluir o direcionamento, preencha o Número de Série de TODAS as máquinas do projeto.');
+                        alert('Atenção: Para concluir o direcionamento (Etapa 20), preencha o Número de Série Físico de TODAS as máquinas do projeto no quadro "Identificação Física & Números de Série".');
                         return;
                     }
                     if (!allRoutesOk) {
-                        alert('Atenção: Para concluir o direcionamento, selecione a Rota de Direcionamento de TODAS as máquinas do projeto.');
+                        alert('Atenção: Para concluir o direcionamento (Etapa 20), selecione a Rota de Direcionamento de TODAS as máquinas do projeto.');
                         return;
                     }
                 }
@@ -27290,29 +27328,38 @@ function renderKanban() {
         }
 
         // Mudança de Rota no Dropdown marca ou desmarca o item 12 de forma automática
-        function handleRouteSelectChange() {
+        function handleRouteSelectChange(sourceEl) {
+            if (sourceEl) {
+                const idx = sourceEl.getAttribute('data-idx');
+                const val = sourceEl.value;
+                document.querySelectorAll(`.modal-machine-route[data-idx="${idx}"]`).forEach(el => {
+                    if (el !== sourceEl) el.value = val;
+                });
+            }
             handleSerialInputInModal();
             
             const project = state.projects.find(p => p.code === activeProjectCode);
             if (!project) return;
             
-            const serialInputs = document.querySelectorAll('.modal-machine-serial');
-            const routeSelects = document.querySelectorAll('.modal-machine-route');
-            
-            routeSelects.forEach((select, idx) => {
-                const routeVal = select.value;
-                const serialInput = serialInputs[idx];
+            const machinesList = (project.machines && project.machines.length > 0)
+                ? project.machines
+                : [{ sku: project.sku, serial: project.serial, route: project.route }];
+
+            machinesList.forEach((_, idx) => {
+                const serialInput = document.querySelector(`.modal-machine-serial[data-idx="${idx}"]`);
+                const routeSelect = document.querySelector(`.modal-machine-route[data-idx="${idx}"]`);
+                const routeVal = routeSelect ? routeSelect.value : '-';
                 const serialVal = serialInput ? serialInput.value.trim() : '';
                 
                 if (routeVal !== '-' && (serialVal === '' || serialVal === '-')) {
-                    if (serialInput) {
-                        serialInput.style.border = '2px solid #ef4444';
-                        serialInput.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.4)';
+                    document.querySelectorAll(`.modal-machine-serial[data-idx="${idx}"]`).forEach(input => {
+                        input.style.border = '2px solid #ef4444';
+                        input.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.4)';
                         setTimeout(() => {
-                            serialInput.style.border = '';
-                            serialInput.style.boxShadow = '';
+                            input.style.border = '';
+                            input.style.boxShadow = '';
                         }, 3000);
-                    }
+                    });
                 }
             });
         }
@@ -27366,38 +27413,35 @@ function renderKanban() {
                     if (saveBtn) saveBtn.innerText = 'Salvando dados...';
                 }
 
-                const serialInputs = document.querySelectorAll('.modal-machine-serial');
-                const routeSelects = document.querySelectorAll('.modal-machine-route');
-                
+                const baseMachines = (project.machines && project.machines.length > 0) 
+                    ? project.machines 
+                    : [{ sku: project.sku, serial: project.serial || '-', route: project.route || '-' }];
+
                 let updatedMachines = [];
                 let triggerAutoPrint = false;
 
-                if (serialInputs.length > 0) {
-                    serialInputs.forEach((input, idx) => {
-                        const serialVal = input.value.trim() || '-';
-                        const routeVal = routeSelects[idx] ? routeSelects[idx].value : '-';
-                        const oldMach = (project.machines && project.machines[idx]) || { sku: project.sku, serial: '-', route: '-' };
-                        
-                        updatedMachines.push({
-                            sku: oldMach.sku,
-                            serial: serialVal,
-                            route: routeVal
-                        });
-
-                        const hasSerialNow = serialVal !== '-';
-                        const hasRouteNow = routeVal !== '-';
-                        const serialJustAdded = (serialVal !== '-' && oldMach.serial === '-');
-                        const routeJustAdded = (routeVal !== '-' && oldMach.route === '-');
-                        
-                        if (hasSerialNow && hasRouteNow && (serialJustAdded || routeJustAdded)) {
-                            triggerAutoPrint = true;
-                        }
+                baseMachines.forEach((oldMach, idx) => {
+                    const sInput = document.querySelector(`.modal-machine-serial[data-idx="${idx}"]`);
+                    const rSelect = document.querySelector(`.modal-machine-route[data-idx="${idx}"]`);
+                    
+                    const serialVal = sInput ? (sInput.value.trim() || '-') : (oldMach.serial || '-');
+                    const routeVal = rSelect ? (rSelect.value || '-') : (oldMach.route || '-');
+                    
+                    updatedMachines.push({
+                        sku: oldMach.sku,
+                        serial: serialVal,
+                        route: routeVal
                     });
-                } else {
-                    updatedMachines = (project.machines && project.machines.length > 0) 
-                        ? project.machines 
-                        : [{ sku: project.sku, serial: project.serial || '-', route: project.route || '-' }];
-                }
+
+                    const hasSerialNow = serialVal !== '-';
+                    const hasRouteNow = routeVal !== '-';
+                    const serialJustAdded = (serialVal !== '-' && oldMach.serial === '-');
+                    const routeJustAdded = (routeVal !== '-' && oldMach.route === '-');
+                    
+                    if (hasSerialNow && hasRouteNow && (serialJustAdded || routeJustAdded)) {
+                        triggerAutoPrint = true;
+                    }
+                });
 
                 const nonHyphenSerials = updatedMachines.map(m => m.serial).filter(s => s !== '-');
                 const projectSerial = nonHyphenSerials.length > 0 ? nonHyphenSerials.join(', ') : '-';
