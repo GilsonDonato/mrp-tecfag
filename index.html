@@ -7463,10 +7463,22 @@
                                 <input type="text" id="sc-det-di-number" class="form-control" placeholder="Ex: 26/1849102-0" style="padding: 6px 8px; font-size: 0.8rem;">
                             </div>
                             <div class="form-group" style="margin-bottom: 0;">
-                                <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Arquivo da NF-e (PDF/XML):</label>
-                                <div id="sc-det-nfe-file-container" style="display: flex; gap: 6px; align-items: center;">
-                                    <input type="file" id="sc-det-nfe-file" class="form-control" accept=".pdf,.xml" style="padding: 4px; font-size: 0.72rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                                    <label style="font-size: 0.72rem; font-weight: 700; color: #10b981;">Arquivo da NF-e (PDF/XML):</label>
+                                    <span style="font-size: 0.65rem; color: #38bdf8; font-weight: bold; display: inline-flex; align-items: center; gap: 3px;">
+                                        <span>✨</span> Leitura Automática IA
+                                    </span>
+                                </div>
+                                <div id="sc-det-nfe-file-container" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                                    <input type="file" id="sc-det-nfe-file" class="form-control" accept=".pdf,.xml" onchange="handleDetailsNfeFileInputChanged(this)" style="padding: 4px; font-size: 0.72rem; flex: 1; min-width: 140px;">
+                                    <button type="button" class="btn" onclick="triggerDetailsDanfeAiRead()" style="padding: 4px 10px; font-size: 0.72rem; font-weight: bold; background: #38bdf8; color: black; border-radius: 4px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 6px rgba(56, 189, 248, 0.4);">
+                                        <span>🤖</span> Ler com IA
+                                    </button>
                                     <a id="sc-det-nfe-view-link" href="#" target="_blank" style="display: none; padding: 4px 8px; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; border-radius: 4px; font-size: 0.72rem; font-weight: bold; text-decoration: none; white-space: nowrap;">📄 Ver NF-e</a>
+                                </div>
+                                <div id="sc-det-nfe-ai-loading" style="display: none; font-size: 0.72rem; color: #38bdf8; margin-top: 4px; padding: 4px 8px; background: rgba(56, 189, 248, 0.1); border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.3);">
+                                    <span class="spinner" style="display: inline-block; width: 10px; height: 10px; border: 2px solid #38bdf8; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; vertical-align: middle; margin-right: 4px;"></span>
+                                    Lendo DANFE via IA... extraindo Nº da Nota, Emissão, D.I., Chave e Itens...
                                 </div>
                             </div>
                         </div>
@@ -33391,6 +33403,88 @@ function renderKanban() {
             } catch (e) {
                 console.error('Erro ao excluir DANFE:', e);
                 alert('Erro ao desvincular DANFE: ' + e.message);
+            }
+        }
+
+        async function triggerDetailsDanfeAiRead() {
+            const input = document.getElementById('sc-det-nfe-file');
+            if (!input || !input.files || input.files.length === 0) {
+                alert('Por favor, primeiro clique em "Escolher arquivo" e selecione o PDF ou XML da DANFE.');
+                return;
+            }
+            await handleDetailsNfeFileInputChanged(input);
+        }
+
+        async function handleDetailsNfeFileInputChanged(input) {
+            if (!supplyChainState.currentOrder || !input.files || input.files.length === 0) return;
+            const orderId = supplyChainState.currentOrder.id;
+            const file = input.files[0];
+            const loadingEl = document.getElementById('sc-det-nfe-ai-loading');
+
+            try {
+                if (loadingEl) loadingEl.style.display = 'block';
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('order_id', orderId);
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch('/api/supply-chain/extract-nfe-doca', {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Erro ao processar DANFE.');
+                }
+
+                const data = await res.json();
+                const extracted = data.extracted;
+
+                if (extracted) {
+                    // Preencher campos na tela
+                    const nfeNumInput = document.getElementById('sc-det-nfe-number');
+                    const nfeDateInput = document.getElementById('sc-det-nfe-date');
+                    const diNumInput = document.getElementById('sc-det-di-number');
+
+                    if (nfeNumInput && extracted.nfe_number) nfeNumInput.value = extracted.nfe_number;
+                    if (nfeDateInput && extracted.nfe_date) nfeDateInput.value = extracted.nfe_date;
+                    if (diNumInput && extracted.di_number) diNumInput.value = extracted.di_number;
+
+                    // Salvar automaticamente na tabela stock_order_nfes e atualizar a ordem
+                    const addForm = new FormData();
+                    addForm.append('nfe_file', file);
+                    addForm.append('nfe_number', extracted.nfe_number || 'S/N');
+                    addForm.append('nfe_series', extracted.nfe_series || '1');
+                    addForm.append('nfe_date', extracted.nfe_date || new Date().toISOString().split('T')[0]);
+                    if (extracted.nfe_access_key) addForm.append('nfe_access_key', extracted.nfe_access_key);
+                    if (extracted.di_number) addForm.append('di_number', extracted.di_number);
+                    if (extracted.addition_number) addForm.append('addition_number', extracted.addition_number);
+                    if (extracted.total_value) addForm.append('total_value', extracted.total_value);
+                    if (extracted.items) addForm.append('items_json', JSON.stringify(extracted.items));
+
+                    const saveRes = await fetch(`/api/supply-chain/orders/${orderId}/add-nfe`, {
+                        method: 'POST',
+                        headers,
+                        body: addForm
+                    });
+
+                    if (saveRes.ok) {
+                        await openSupplyDetailsModal(orderId);
+                        await loadSupplyChainData();
+
+                        alert(`✨ DANFE lida com sucesso via IA!\n\n• Nº da NF-e: ${extracted.nfe_number || '-'}\n• Data de Emissão: ${extracted.nfe_date || '-'}\n• D.I. / DUIMP: ${extracted.di_number || '-'}\n• Adição: ${extracted.addition_number || '001'}\n• Chave de Acesso: ${extracted.nfe_access_key ? '44 dígitos' : '-'}\n• Itens identificados: ${(extracted.items || []).length}\n\nOs dados fiscais e o arquivo foram salvos e vinculados a este container.`);
+                    }
+                }
+            } catch (err) {
+                console.error('Erro na leitura da DANFE:', err);
+                alert('Erro ao ler a DANFE via IA: ' + err.message);
+            } finally {
+                if (loadingEl) loadingEl.style.display = 'none';
             }
         }
 
