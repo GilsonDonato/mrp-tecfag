@@ -10233,38 +10233,6 @@ app.get('/api/projects/:code/import-orders', authenticateToken, async (req, res)
         for (const ord of orders) {
             const items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [ord.id]);
             ord.items = items || [];
-
-            // Apenas para o fornecedor principal (não sub-ordem), se não tiver arquivos preenchidos, busca nos anexos gerais do projeto
-            const isSub = (ord.is_sub_order === 1 || ord.is_sub_order === true);
-            if (!ord.invoice_file_path && !isSub) {
-                const attach = await dbGet(`
-                    SELECT filePath FROM attachments 
-                    WHERE (projectCode = ? OR projectCode = ?) 
-                      AND (phase = 'proforma' OR phase = 'invoice' OR LOWER(fileName) LIKE '%invoice%' OR LOWER(fileName) LIKE '%proforma%')
-                    ORDER BY id DESC LIMIT 1
-                `, [code, shortCode]);
-                if (attach && attach.filePath) {
-                    ord.invoice_file_path = attach.filePath;
-                    try {
-                        await dbRun('UPDATE stock_orders SET invoice_file_path = ? WHERE id = ?', [attach.filePath, ord.id]);
-                    } catch (e) {}
-                }
-            }
-
-            if (!ord.packing_list_file_path && !isSub) {
-                const attachPL = await dbGet(`
-                    SELECT filePath FROM attachments 
-                    WHERE (projectCode = ? OR projectCode = ?) 
-                      AND (phase = 'packing_list' OR LOWER(fileName) LIKE '%packing%' OR LOWER(fileName) LIKE '%romaneio%')
-                    ORDER BY id DESC LIMIT 1
-                `, [code, shortCode]);
-                if (attachPL && attachPL.filePath) {
-                    ord.packing_list_file_path = attachPL.filePath;
-                    try {
-                        await dbRun('UPDATE stock_orders SET packing_list_file_path = ? WHERE id = ?', [attachPL.filePath, ord.id]);
-                    } catch (e) {}
-                }
-            }
         }
         res.json({ success: true, orders: orders || [] });
     } catch (err) {
@@ -10695,6 +10663,61 @@ app.post('/api/supply-chain/orders/:id/attach-packing-list', authenticateToken, 
     } catch (err) {
         console.error('[ATTACH PACKING LIST ERROR]', err);
         res.status(500).json({ error: 'Erro ao anexar Packing List: ' + err.message });
+    }
+});
+
+// DELETE /api/supply-chain/orders/:id/packing-list - Remove o Packing List anexado exclusivamente desta ordem
+app.delete('/api/supply-chain/orders/:id/packing-list', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const { id } = req.params;
+    const user = req.user ? req.user.username : 'Sistema';
+    try {
+        const order = await resolveOrMaterializeStockOrder(id, user);
+        if (!order) return res.status(404).json({ error: 'Ordem não encontrada.' });
+
+        const now = new Date().toISOString();
+        await dbRun('UPDATE stock_orders SET packing_list_file_path = NULL, updated_at = ? WHERE id = ?', [now, order.id]);
+
+        if (order.project_code) {
+            await dbRun(`
+                DELETE FROM attachments 
+                WHERE (projectCode = ? OR projectCode = ?) 
+                  AND (phase = 'packing_list' OR fileName LIKE ?)
+            `, [order.project_code, order.project_code.replace(/^PRJTEC0+/, 'PRJ'), `%${order.po_number}%`]);
+            await recordAuditLog(order.project_code, user, `Packing List desanexado da ordem ${order.po_number}`);
+        }
+
+        res.json({ success: true, message: 'Packing List desanexado com sucesso desta ordem!' });
+    } catch (err) {
+        console.error('[REMOVE PACKING LIST ERROR]', err);
+        res.status(500).json({ error: 'Erro ao desanexar Packing List: ' + err.message });
+    }
+});
+
+// DELETE /api/supply-chain/orders/:id/invoice - Remove a Proforma Invoice anexada exclusivamente desta ordem
+app.delete('/api/supply-chain/orders/:id/invoice', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const { id } = req.params;
+    const user = req.user ? req.user.username : 'Sistema';
+    try {
+        const order = await resolveOrMaterializeStockOrder(id, user);
+        if (!order) return res.status(404).json({ error: 'Ordem não encontrada.' });
+
+        const now = new Date().toISOString();
+        await dbRun('UPDATE stock_orders SET invoice_file_path = NULL, updated_at = ? WHERE id = ?', [now, order.id]);
+
+        if (order.project_code) {
+            await dbRun(`
+                DELETE FROM attachments 
+                WHERE (projectCode = ? OR projectCode = ?) 
+                  AND (phase = 'proforma' OR phase = 'invoice')
+                  AND fileName LIKE ?
+            `, [order.project_code, order.project_code.replace(/^PRJTEC0+/, 'PRJ'), `%${order.po_number}%`]);
+            await recordAuditLog(order.project_code, user, `Proforma Invoice desanexada da ordem ${order.po_number}`);
+        }
+
+        res.json({ success: true, message: 'Proforma Invoice desanexada com sucesso desta ordem!' });
+    } catch (err) {
+        console.error('[REMOVE INVOICE ERROR]', err);
+        res.status(500).json({ error: 'Erro ao desanexar fatura: ' + err.message });
     }
 });
 

@@ -25386,6 +25386,60 @@ function renderKanban() {
             }
         }
 
+        async function removeOrderPackingList(orderId) {
+            if (!confirm('Deseja realmente desanexar o Packing List exclusivamente desta ordem?')) return;
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/supply-chain/orders/${orderId}/packing-list`, {
+                    method: 'DELETE',
+                    headers
+                });
+
+                if (res.ok) {
+                    alert('✅ Packing List removido com sucesso desta ordem.');
+                    await loadSupplyChainData();
+                    await openSupplyDetailsModal(orderId);
+                    if (activeProjectCode) {
+                        await loadProjectMultiOrders(activeProjectCode);
+                    }
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert('Erro ao remover Packing List: ' + (err.error || 'Falha no servidor.'));
+                }
+            } catch (err) {
+                alert('Erro ao comunicar com o servidor: ' + err.message);
+            }
+        }
+
+        async function removeOrderInvoiceFile(orderId) {
+            if (!confirm('Deseja realmente desanexar a Proforma Invoice exclusivamente desta ordem?')) return;
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/supply-chain/orders/${orderId}/invoice`, {
+                    method: 'DELETE',
+                    headers
+                });
+
+                if (res.ok) {
+                    alert('✅ Proforma Invoice removida com sucesso desta ordem.');
+                    await loadSupplyChainData();
+                    await openSupplyDetailsModal(orderId);
+                    if (activeProjectCode) {
+                        await loadProjectMultiOrders(activeProjectCode);
+                    }
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert('Erro ao remover fatura: ' + (err.error || 'Falha no servidor.'));
+                }
+            } catch (err) {
+                alert('Erro ao comunicar com o servidor: ' + err.message);
+            }
+        }
+
         function openAddProjectSupplierOrderModal(targetPrjCode) {
             const code = targetPrjCode || activeProjectCode || (supplyChainState.currentOrder && (supplyChainState.currentOrder.project_code || (typeof supplyChainState.currentOrder.id === 'string' && supplyChainState.currentOrder.id.startsWith('PRJ-') ? supplyChainState.currentOrder.id.replace('PRJ-', '') : null)));
             if (!code) {
@@ -32254,6 +32308,9 @@ function renderKanban() {
                             <button type="button" class="btn btn-secondary" onclick="document.getElementById('sc-det-upload-invoice-input').click()" style="padding: 4px 8px; font-size: 0.70rem; border-radius: 4px; color: #94a3b8;" title="Substituir arquivo de fatura">
                                 🔄 Trocar
                             </button>
+                            <button type="button" class="btn btn-secondary" onclick="removeOrderInvoiceFile('${order.id}')" style="padding: 4px 8px; font-size: 0.70rem; border-radius: 4px; color: #ef4444; border-color: rgba(239, 68, 68, 0.4);" title="Desanexar fatura exclusivamente desta ordem">
+                                🗑️ Desanexar
+                            </button>
                         `;
                     } else {
                         if (invBadge) {
@@ -32300,6 +32357,9 @@ function renderKanban() {
                             <input type="file" id="sc-det-upload-packing-input" accept=".pdf,.xls,.xlsx,image/*" style="display: none;" onchange="uploadOrderPackingListFile('${order.id}', this)">
                             <button type="button" class="btn btn-secondary" onclick="document.getElementById('sc-det-upload-packing-input').click()" style="padding: 4px 8px; font-size: 0.70rem; border-radius: 4px; color: #94a3b8;" title="Substituir arquivo de packing list">
                                 🔄 Trocar
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="removeOrderPackingList('${order.id}')" style="padding: 4px 8px; font-size: 0.70rem; border-radius: 4px; color: #ef4444; border-color: rgba(239, 68, 68, 0.4);" title="Desanexar Packing List exclusivamente desta ordem">
+                                🗑️ Desanexar
                             </button>
                             <button type="button" class="btn btn-secondary" onclick="openReconcileModalForCurrentOrder()" style="padding: 4px 8px; font-size: 0.70rem; border-color: #ec4899; color: #ec4899; font-weight: 700; border-radius: 4px;" title="Conferir volumes e backorders">
                                 ⚡ Conciliar
