@@ -3070,11 +3070,11 @@ app.get('/api/projects/:code', async (req, res) => {
         project.import_items = importItemsParsed;
         project.fase = computeCanonicalProjectPhase(project);
 
-        // Sincronizar e consolidar todas as DANFEs de todos os fornecedores/ordens vinculados
+        // Sincronizar e consolidar todas as DANFEs de importação de todos os fornecedores/ordens vinculados na Doca
         try {
             const syncedDanfes = await syncProjectDanfeNumbersFromAllOrders(project.code);
             if (syncedDanfes) {
-                project.danfe_number = syncedDanfes;
+                project.import_danfe_numbers = syncedDanfes;
             }
         } catch (e) {
             console.warn('[PROJECT DANFE SYNC ERROR]', e.message);
@@ -9799,13 +9799,13 @@ app.get('/api/attachments/:projectCode', authenticateToken, async (req, res) => 
                     orderIds
                 );
 
-                // Adiciona NF-es da tabela stock_order_nfes
+                // Adiciona NF-es da tabela stock_order_nfes (como documentos de Importação / Doca)
                 (docaNfes || []).forEach(nfe => {
                     if (nfe.file_path && !rows.some(r => r.filePath === nfe.file_path)) {
                         rows.push({
                             id: `doca-nfe-${nfe.id}`,
                             projectCode: req.params.projectCode,
-                            phase: 'danfe_venda',
+                            phase: 'danfe_importacao',
                             fileName: nfe.file_name || `DANFE_NF_${nfe.nfe_number}.pdf`,
                             fileType: 'application/pdf',
                             filePath: nfe.file_path,
@@ -9823,7 +9823,7 @@ app.get('/api/attachments/:projectCode', authenticateToken, async (req, res) => 
                         rows.push({
                             id: `order-nfe-${o.id}`,
                             projectCode: req.params.projectCode,
-                            phase: 'danfe_venda',
+                            phase: 'danfe_importacao',
                             fileName: `DANFE_NF_${o.nfe_number || o.po_number}.pdf`,
                             fileType: 'application/pdf',
                             filePath: o.nfe_file_path,
@@ -10422,6 +10422,8 @@ app.get('/api/projects/:code/import-orders', authenticateToken, async (req, res)
         for (const ord of orders) {
             const items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [ord.id]);
             ord.items = items || [];
+            const nfes = await dbAll('SELECT * FROM stock_order_nfes WHERE order_id = ? ORDER BY id ASC', [ord.id]);
+            ord.nfes = nfes || [];
         }
         res.json({ success: true, orders: orders || [] });
     } catch (err) {
@@ -11615,12 +11617,7 @@ app.post('/api/projects/:code/align-commercial-fiscal', authenticateToken, async
                         po_number: oi.po_number
                     }));
 
-                    // Persistir no projeto para preencher o visualizador de itens
-                    if (!project.danfe_items || project.danfe_items === '[]') {
-                        await dbRun('UPDATE projects SET danfe_items = ? WHERE code = ?', [
-                            JSON.stringify(danfeItems), code
-                        ]);
-                    }
+                    // Manter itens de importação apenas em memória caso a DANFE de venda ainda não esteja anexada
                 }
             }
         }
@@ -13514,8 +13511,8 @@ app.post('/api/supply-chain/orders/:id/advance-doca', authenticateToken, restric
                 ['producao', 'embarque', 'pagamento', 'fedex', 'transporte_maritimo', 'desembaraco', 'chegada_tecfag'].forEach(k => {
                     chk[k] = true;
                 });
-                await dbRun("UPDATE projects SET fase = 6, checklist = ?, danfe_number = ?, faseEntryDate = ?, lastUpdate = ? WHERE code = ?", [
-                    JSON.stringify(chk), danfeDisplay, nowIso, nowIso, order.project_code
+                await dbRun("UPDATE projects SET fase = 6, checklist = ?, faseEntryDate = ?, lastUpdate = ? WHERE code = ?", [
+                    JSON.stringify(chk), nowIso, nowIso, order.project_code
                 ]);
                 await recordAuditLog(order.project_code, user, `Entrada fiscal validada na Doca Tecfag via NF-e(s) nº ${danfeDisplay}. Todos os equipamentos da linha (${allLinked.length}/${allLinked.length}) estão na Doca. Projeto liberado para Fase 6 (Oficina, Setup & SAT).`);
                 console.log(`[DOCA GATING] Todos os ${allLinked.length} fornecedores do projeto ${order.project_code} na Doca. Projeto liberado para Oficina.`);

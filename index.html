@@ -25277,6 +25277,30 @@ function renderKanban() {
                                         `}
                                     </div>
                                 </div>
+                                <div>
+                                    <span style="color: #94a3b8;">🧾 DANFE(s) de Importação (Doca):</span>
+                                    <div style="margin-top: 2px;">
+                                        ${(ord.nfes && ord.nfes.length > 0) ? `
+                                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                                ${ord.nfes.map(nfe => `
+                                                    <div style="display: inline-flex; align-items: center; gap: 4px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 4px; padding: 2px 8px; font-size: 0.72rem;">
+                                                        <span>🧾</span>
+                                                        <strong style="color: #34d399;">NF ${escapeProjectHtml(nfe.nfe_number)}</strong>
+                                                        ${nfe.file_path ? `<a href="/${nfe.file_path.replace(/^\//, '')}" target="_blank" style="color: #34d399; text-decoration: underline; font-weight: bold; margin-left: 4px;">⬇️ Baixar</a>` : ''}
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        ` : (ord.nfe_number ? `
+                                            <div style="display: inline-flex; align-items: center; gap: 4px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 4px; padding: 2px 8px; font-size: 0.72rem;">
+                                                <span>🧾</span>
+                                                <strong style="color: #34d399;">NF ${escapeProjectHtml(ord.nfe_number)}</strong>
+                                                ${ord.nfe_file_path ? `<a href="/${ord.nfe_file_path.replace(/^\//, '')}" target="_blank" style="color: #34d399; text-decoration: underline; font-weight: bold; margin-left: 4px;">⬇️ Baixar</a>` : ''}
+                                            </div>
+                                        ` : `
+                                            <span style="color: #64748b; font-size: 0.70rem;">Aguardando Doca</span>
+                                        `)}
+                                    </div>
+                                </div>
                             </div>
                     `;
 
@@ -26554,16 +26578,14 @@ function renderKanban() {
                     if (propPreview) { propPreview.style.display = 'none'; propPreview.innerHTML = ''; }
                 }
 
-                // 2. Verificar DANFE / Nota Fiscal
+                // 2. Verificar DANFE / Nota Fiscal de Venda ao Cliente (exclui estritamente notas de importação/Doca)
                 const danfeAttaches = (attachments || []).filter(a => 
-                    a.phase === 'danfe_venda' || a.phase === 'danfe' || (a.fileName || '').toLowerCase().includes('danfe')
+                    (a.phase === 'danfe_venda' || a.phase === 'danfe') && !a.isDocaNfe && a.phase !== 'danfe_importacao'
                 );
 
-                const hasDanfeData = prj && (prj.danfe_number || prj.danfe_value || (prj.danfe_items && prj.danfe_items !== '[]'));
-
-                if (danfeAttaches.length > 0 || hasDanfeData) {
+                if (danfeAttaches.length > 0) {
                     if (danfeBadge) {
-                        danfeBadge.innerText = prj && prj.danfe_number ? `NF ${prj.danfe_number}` : (danfeAttaches.length > 0 ? `${danfeAttaches.length} DANFE(s)` : 'Anexada');
+                        danfeBadge.innerText = prj && prj.danfe_number && !prj.import_danfe_numbers ? `NF ${prj.danfe_number}` : 'Anexada';
                         danfeBadge.style.background = 'rgba(16, 185, 129, 0.2)';
                         danfeBadge.style.color = '#34d399';
                         danfeBadge.style.fontSize = '0.78rem';
@@ -26714,7 +26736,7 @@ function renderKanban() {
                     }
                 } else {
                     if (danfeBadge) {
-                        danfeBadge.innerText = 'Não faturada';
+                        danfeBadge.innerText = 'Não anexada';
                         danfeBadge.style.background = 'rgba(255,255,255,0.06)';
                         danfeBadge.style.color = '#94a3b8';
                         danfeBadge.style.fontSize = '0.78rem';
