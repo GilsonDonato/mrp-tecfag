@@ -10273,6 +10273,289 @@ app.get('/api/projects/:code/import-orders', authenticateToken, async (req, res)
     }
 });
 
+/**
+ * Função utilitária para extração multimodal com Gemini IA / OCR de faturas e proformas.
+ */
+async function extractInvoiceDataFromFile(filePath, originalName = 'invoice.pdf', fileMime = 'application/pdf') {
+    let extractedText = '';
+    const suppliers = await dbAll('SELECT id, name, currency, payment_terms_type FROM stock_suppliers');
+    const supplierNames = (suppliers || []).map(s => s.name).join(', ');
+
+    const lowerName = (originalName || '').toLowerCase();
+    const isPdf = (fileMime && fileMime.includes('pdf')) || lowerName.endsWith('.pdf');
+    if (isPdf && fs.existsSync(filePath)) {
+        try {
+            const dataBuffer = fs.readFileSync(filePath);
+            const pdfData = await pdfParse(dataBuffer);
+            extractedText = pdfData.text || '';
+        } catch (pdfErr) {
+            console.warn('[INVOICE OCR] Aviso ao extrair texto bruto com pdf-parse:', pdfErr.message);
+        }
+    }
+
+    let inlinePart = null;
+    try {
+        if (fs.existsSync(filePath)) {
+            const fileBuffer = fs.readFileSync(filePath);
+            let mime = fileMime || 'application/pdf';
+            if (lowerName.endsWith('.pdf') || (fileMime && fileMime.includes('pdf'))) {
+                mime = 'application/pdf';
+            } else if (lowerName.endsWith('.png')) {
+                mime = 'image/png';
+            } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+                mime = 'image/jpeg';
+            } else if (lowerName.endsWith('.webp')) {
+                mime = 'image/webp';
+            }
+
+            if (mime === 'application/pdf' || mime.startsWith('image/')) {
+                inlinePart = {
+                    inlineData: {
+                        mimeType: mime,
+                        data: fileBuffer.toString('base64')
+                    }
+                };
+            }
+        }
+    } catch (bufErr) {
+        console.warn('[INVOICE OCR] Falha ao codificar buffer para inlineData:', bufErr.message);
+    }
+
+    let aiResult = null;
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (apiKey && apiKey.trim() !== '') {
+        try {
+            const prompt = `
+Você é o Especialista Sênior em Comércio Exterior e Supply Chain da Tecfag.
+Sua missão é extrair com precisão cirúrgica de 100% todos os dados da Proforma Invoice / Commercial Invoice anexada.
+
+Lista de Fornecedores Cadastrados no Sistema da Tecfag:
+${supplierNames}
+
+Texto Bruto Extraído (Referência Auxiliar):
+"""
+${extractedText.substring(0, 40000)}
+"""
+
+=======================================================
+REGRAS OBRIGATÓRIAS E INEGOCIÁVEIS DE EXTRAÇÃO:
+=======================================================
+
+1. SEQUÊNCIA VISUAL ESTRITA E IMUTÁVEL (MÁXIMA PRIORIDADE):
+   - Os itens no array "items" DEVEM seguir RIGOROSAMENTE A MESMA SEQUÊNCIA FÍSICA E NUMÉRICA em que aparecem na fatura original, linha por linha, de cima para baixo.
+   - É ESTRITAMENTE PROIBIDO reordenar itens, mesclar linhas ou pular equipamentos/acessórios.
+
+2. QUANTIDADES E VALORES LINHA A LINHA:
+   - Para CADA item, extraia a quantidade ("qty_ordered") e o preço unitário FOB ("unit_price_fob").
+   - O campo "total_price_fob" deve ser: qty_ordered * unit_price_fob.
+
+3. MODELO / SKU PRECISO:
+   - Extraia o código do modelo industrial da máquina no campo "sku" (Exemplos comuns: FR-770, BSF-5640, BZH-120, ARLB160A, ATB1000, FL2000A, BF650, EW220, MT-50, etc.).
+   - Mantenha a descrição técnica completa no campo "description".
+
+4. CONFERÊNCIA MATEMÁTICA DO TOTAL:
+   - Calcule a soma de todos os "total_price_fob". Essa soma DEVE bater com o valor total da fatura ("total_fob_value").
+
+5. CLASSIFICAÇÃO FISCAL (NCM / HS CODE):
+   - Se a fatura indicar o código NCM ou HS Code (normalmente iniciando com 84, 85, etc.), extraia no campo "ncm".
+
+Estrutura JSON obrigatória:
+{
+  "supplier_name": "Nome da fábrica fornecedora",
+  "invoice_number": "Número da Invoice / Proforma",
+  "invoice_date": "YYYY-MM-DD",
+  "currency": "USD, EUR ou RMB",
+  "total_fob_value": 0.0,
+  "payment_terms_desc": "Condição de pagamento",
+  "items": [
+    {
+      "item_no": 1,
+      "sku": "MODELO",
+      "description": "Descrição do equipamento",
+      "ncm": "8422.30.29",
+      "qty_ordered": 1,
+      "unit_price_fob": 0.0,
+      "total_price_fob": 0.0
+    }
+  ]
+}
+
+Responda APENAS o JSON puro. Não utilize blocos markdown (\`\`\`json).
+`;
+
+            const contentsParts = [];
+            if (inlinePart) contentsParts.push(inlinePart);
+            contentsParts.push({ text: prompt });
+
+            const candidateModels = [
+                process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+                'gemini-flash-latest',
+                'gemini-2.0-flash'
+            ];
+
+            for (const modelName of candidateModels) {
+                try {
+                    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                    const payload = {
+                        contents: [{ parts: contentsParts }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    };
+
+                    const aiRes = await fetch(geminiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (aiRes.ok) {
+                        const aiData = await aiRes.json();
+                        if (aiData.candidates && aiData.candidates[0] && aiData.candidates[0].content && aiData.candidates[0].content.parts[0]) {
+                            const rawText = aiData.candidates[0].content.parts[0].text;
+                            aiResult = cleanAndParseJSON(rawText);
+                            if (aiResult && aiResult.items && aiResult.items.length > 0) {
+                                break;
+                            }
+                        }
+                    }
+                } catch (mErr) {
+                    console.warn(`[SUPPLY CHAIN OCR] Erro ao tentar modelo ${modelName}:`, mErr.message);
+                }
+            }
+        } catch (geminiErr) {
+            console.warn('[SUPPLY CHAIN OCR] Falha ao processar com Gemini:', geminiErr.message);
+        }
+    }
+
+    if (!aiResult || !aiResult.items || aiResult.items.length === 0) {
+        aiResult = parseInvoiceTextHeuristically(extractedText, suppliers);
+    }
+
+    if (aiResult && Array.isArray(aiResult.items)) {
+        const hasValidSeq = aiResult.items.every(it => it.item_no !== undefined && !isNaN(parseInt(it.item_no)));
+        if (hasValidSeq) {
+            aiResult.items.sort((a, b) => parseInt(a.item_no) - parseInt(b.item_no));
+        }
+    }
+
+    let matchedSupplier = null;
+    if (aiResult && aiResult.supplier_name) {
+        matchedSupplier = (suppliers || []).find(s => 
+            s.name.toLowerCase().includes(aiResult.supplier_name.toLowerCase()) ||
+            aiResult.supplier_name.toLowerCase().includes(s.name.toLowerCase())
+        );
+    }
+
+    if (matchedSupplier && aiResult) {
+        aiResult.supplier_id = matchedSupplier.id;
+        aiResult.supplier_name = matchedSupplier.name;
+        aiResult.payment_terms_type = matchedSupplier.payment_terms_type;
+    }
+
+    return aiResult;
+}
+
+/**
+ * Aplica os dados extraídos de uma fatura sobre a ordem de importação stock_orders e sincroniza itens.
+ */
+async function applyExtractedInvoiceToOrder(orderId, aiResult, user = 'Sistema') {
+    if (!orderId || !aiResult) return null;
+    const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+    if (!order) return null;
+
+    const now = new Date().toISOString();
+    const updates = [];
+    const params = [];
+
+    const supplierName = (aiResult.supplier_name || '').trim();
+    if (supplierName) {
+        updates.push('supplier_name = ?');
+        params.push(supplierName);
+
+        try {
+            let supp = await dbGet('SELECT id, name FROM stock_suppliers WHERE LOWER(name) = LOWER(?)', [supplierName]);
+            if (!supp) {
+                const resSupp = await dbRun('INSERT INTO stock_suppliers (name, currency, created_at) VALUES (?, ?, ?)', [supplierName, aiResult.currency || 'USD', now]);
+                aiResult.supplier_id = resSupp.lastID;
+            } else {
+                aiResult.supplier_id = supp.id;
+            }
+        } catch (sErr) {}
+    }
+
+    if (aiResult.supplier_id) {
+        updates.push('supplier_id = ?');
+        params.push(aiResult.supplier_id);
+    }
+
+    const invoiceNum = (aiResult.invoice_number || '').trim();
+    if (invoiceNum) {
+        updates.push('invoice_number = ?');
+        params.push(invoiceNum);
+    }
+
+    if (aiResult.invoice_date) {
+        updates.push('invoice_date = ?');
+        params.push(aiResult.invoice_date);
+    }
+
+    if (aiResult.currency && ['USD', 'EUR', 'CNY', 'RMB'].includes(aiResult.currency.toUpperCase())) {
+        updates.push('currency = ?');
+        params.push(aiResult.currency.toUpperCase());
+    }
+
+    const totalFob = parseFloat(aiResult.total_fob_value) || 0;
+    if (totalFob > 0) {
+        updates.push('total_fob_value = ?');
+        params.push(totalFob);
+    }
+
+    if (aiResult.payment_terms_desc) {
+        updates.push('payment_terms_desc = ?');
+        params.push(aiResult.payment_terms_desc);
+    }
+
+    updates.push('updated_at = ?');
+    params.push(now);
+
+    params.push(order.id);
+    if (updates.length > 1) {
+        await dbRun(`UPDATE stock_orders SET ${updates.join(', ')} WHERE id = ?`, params);
+    }
+
+    // Sincronizar itens na tabela stock_order_items
+    if (Array.isArray(aiResult.items) && aiResult.items.length > 0) {
+        const project = order.project_code ? await dbGet('SELECT * FROM projects WHERE code = ? OR code LIKE ?', [order.project_code, `%${order.project_code}%`]) : null;
+        await syncStockOrderItems(order.id, aiResult.items, project);
+    }
+
+    // Se a ordem estiver vinculada a um projeto, sincronizar também a tabela projects
+    if (order.project_code) {
+        const prjCode = order.project_code;
+        const pUpdates = ['lastUpdate = ?'];
+        const pParams = [now];
+
+        if (supplierName) {
+            pUpdates.push('import_supplier = ?', 'supplier = ?');
+            pParams.push(supplierName, supplierName);
+        }
+        if (invoiceNum) {
+            pUpdates.push('import_invoice_number = ?');
+            pParams.push(invoiceNum);
+        }
+        if (totalFob > 0) {
+            pUpdates.push('import_total_fob_value = ?');
+            pParams.push(totalFob);
+        }
+        pParams.push(prjCode);
+        await dbRun(`UPDATE projects SET ${pUpdates.join(', ')} WHERE code = ?`, pParams);
+    }
+
+    await recordAuditLog(order.project_code || `ORD-${order.id}`, user, `IA extraiu dados da invoice: Fornecedor ${supplierName || 'N/A'}, Fatura ${invoiceNum || 'N/A'}, ${(aiResult.items || []).length} itens.`);
+
+    return await dbGet('SELECT * FROM stock_orders WHERE id = ?', [order.id]);
+}
+
 // POST /api/supply-chain/orders/:id/attach-invoice - Anexa ou atualiza a Proforma Invoice de uma ordem
 app.post('/api/supply-chain/orders/:id/attach-invoice', authenticateToken, restrictToSupplyChain, upload.single('invoice_file'), async (req, res) => {
     const { id } = req.params;
@@ -10307,10 +10590,79 @@ app.post('/api/supply-chain/orders/:id/attach-invoice', authenticateToken, restr
             await recordAuditLog(order.project_code, user, `Proforma Invoice anexada para a ordem ${order.po_number}: ${req.file.originalname}`);
         }
 
-        res.json({ success: true, order_id: order.id, invoice_file_path: invoiceFilePath, message: 'Proforma Invoice anexada com sucesso!' });
+        // Extração automática via IA dos dados da Proforma Invoice (Fornecedor, Número da Invoice, FOB e Itens)
+        let aiResult = null;
+        try {
+            const fullPath = req.file.path || path.join(__dirname, invoiceFilePath);
+            aiResult = await extractInvoiceDataFromFile(fullPath, req.file.originalname, req.file.mimetype);
+            if (aiResult) {
+                await applyExtractedInvoiceToOrder(order.id, aiResult, user);
+            }
+        } catch (aiErr) {
+            console.warn('[ATTACH INVOICE] Aviso: Falha na extração automática de IA:', aiErr.message);
+        }
+
+        const updatedOrder = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [order.id]);
+        if (updatedOrder) {
+            updatedOrder.items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [order.id]);
+        }
+
+        res.json({
+            success: true,
+            order_id: order.id,
+            invoice_file_path: invoiceFilePath,
+            extracted: aiResult,
+            order: updatedOrder,
+            message: aiResult && aiResult.supplier_name
+                ? `Proforma Invoice anexada e dados extraídos com sucesso! Fabricante: ${aiResult.supplier_name} | Fatura: ${aiResult.invoice_number || 'S/N'} | ${(aiResult.items || []).length} itens carregados.`
+                : 'Proforma Invoice anexada com sucesso!'
+        });
     } catch (err) {
         console.error('[ATTACH INVOICE ERROR]', err);
         res.status(500).json({ error: 'Erro ao anexar fatura: ' + err.message });
+    }
+});
+
+// POST /api/supply-chain/orders/:id/extract-invoice-ai - Reexecuta ou executa a extração IA na fatura já anexada
+app.post('/api/supply-chain/orders/:id/extract-invoice-ai', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const { id } = req.params;
+    const user = req.user ? req.user.username : 'Sistema';
+    try {
+        const order = await resolveOrMaterializeStockOrder(id, user);
+        if (!order) return res.status(404).json({ error: 'Ordem não encontrada.' });
+
+        if (!order.invoice_file_path) {
+            return res.status(400).json({ error: 'Nenhum arquivo de Proforma Invoice anexado a esta ordem para ser analisado.' });
+        }
+
+        const relativePath = order.invoice_file_path.replace(/^\//, '');
+        const fullPath = path.isAbsolute(relativePath) ? relativePath : path.join(__dirname, relativePath);
+
+        if (!fs.existsSync(fullPath)) {
+            return res.status(404).json({ error: 'Arquivo da fatura não foi encontrado no servidor.' });
+        }
+
+        const fileName = path.basename(fullPath);
+        const aiResult = await extractInvoiceDataFromFile(fullPath, fileName, 'application/pdf');
+
+        if (aiResult) {
+            await applyExtractedInvoiceToOrder(order.id, aiResult, user);
+        }
+
+        const refreshed = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [order.id]);
+        if (refreshed) {
+            refreshed.items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [order.id]);
+        }
+
+        res.json({
+            success: true,
+            message: `Dados extraídos com sucesso! Fornecedor: ${aiResult?.supplier_name || 'Detectado'} | Fatura: ${aiResult?.invoice_number || 'S/N'} | ${(aiResult?.items || []).length} itens carregados.`,
+            extracted: aiResult,
+            order: refreshed
+        });
+    } catch (err) {
+        console.error('[EXTRACT INVOICE AI ERROR]', err);
+        res.status(500).json({ error: 'Erro ao extrair dados da invoice com IA: ' + err.message });
     }
 });
 
@@ -14097,206 +14449,20 @@ app.post('/api/supply-chain/extract-invoice', authenticateToken, restrictToSuppl
         return res.status(400).json({ error: 'Nenhum arquivo de fatura/proforma enviado.' });
     }
 
-    const filePath = req.file.path;
-    const fileMime = req.file.mimetype;
-    let extractedText = '';
-
     try {
-        const suppliers = await dbAll('SELECT id, name, currency, payment_terms_type FROM stock_suppliers');
-        const supplierNames = suppliers.map(s => s.name).join(', ');
+        const filePath = req.file.path;
+        const fileMime = req.file.mimetype;
+        const aiResult = await extractInvoiceDataFromFile(filePath, req.file.originalname, fileMime);
 
-        // 1. Extração de texto de PDF (para referência de OCR)
-        if (fileMime.includes('pdf') || req.file.originalname.toLowerCase().endsWith('.pdf')) {
-            try {
-                const dataBuffer = fs.readFileSync(filePath);
-                const pdfData = await pdfParse(dataBuffer);
-                extractedText = pdfData.text || '';
-            } catch (pdfErr) {
-                console.warn('[INVOICE OCR] Aviso ao extrair texto bruto com pdf-parse:', pdfErr.message);
-            }
+        if (aiResult) {
+            aiResult.file_path = 'uploads/' + req.file.filename;
+            aiResult.original_name = req.file.originalname;
         }
-
-        // 2. Preparar anexo multimodal nativo para o Gemini (PDF ou Imagem)
-        // Isso permite ao Gemini 'enxergar' a tabela visualmente linha por linha sem distorcer a ordem
-        let inlinePart = null;
-        try {
-            const fileBuffer = fs.readFileSync(filePath);
-            let mime = fileMime;
-            const lowerName = req.file.originalname.toLowerCase();
-            if (lowerName.endsWith('.pdf') || (fileMime && fileMime.includes('pdf'))) {
-                mime = 'application/pdf';
-            } else if (lowerName.endsWith('.png')) {
-                mime = 'image/png';
-            } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
-                mime = 'image/jpeg';
-            } else if (lowerName.endsWith('.webp')) {
-                mime = 'image/webp';
-            }
-
-            if (mime === 'application/pdf' || mime.startsWith('image/')) {
-                inlinePart = {
-                    inlineData: {
-                        mimeType: mime,
-                        data: fileBuffer.toString('base64')
-                    }
-                };
-            }
-        } catch (bufErr) {
-            console.warn('[INVOICE OCR] Falha ao codificar buffer para inlineData:', bufErr.message);
-        }
-
-        let aiResult = null;
-        const apiKey = process.env.GEMINI_API_KEY;
-
-        // 3. Análise visual direta com Gemini se API Key disponível
-        if (apiKey && apiKey.trim() !== '') {
-            try {
-                const prompt = `
-Você é o Especialista Sênior em Comércio Exterior e Supply Chain da Tecfag.
-Sua missão é extrair com precisão cirúrgica de 100% todos os dados da Proforma Invoice / Commercial Invoice anexada.
-
-Lista de Fornecedores Cadastrados no Sistema da Tecfag:
-${supplierNames}
-
-Texto Bruto Extraído (Referência Auxiliar):
-"""
-${extractedText.substring(0, 40000)}
-"""
-
-=======================================================
-REGRAS OBRIGATÓRIAS E INEGOCIÁVEIS DE EXTRAÇÃO:
-=======================================================
-
-1. SEQUÊNCIA VISUAL ESTRITA E IMUTÁVEL (MÁXIMA PRIORIDADE):
-   - Os itens no array "items" DEVEM seguir RIGOROSAMENTE A MESMA SEQUÊNCIA FÍSICA E NUMÉRICA em que aparecem na fatura original, linha por linha, de cima para baixo (do primeiro item no topo da página 1 até o último item na base da última página).
-   - É ESTRITAMENTE PROIBIDO:
-     a) Reordenar itens (NÃO ordene alfabeticamente, NÃO ordene por preço, NÃO agrupe por tipo);
-     b) Mesclar ou somar linhas repetidas (se um modelo aparece na Linha 1 com 2 unidades e novamente na Linha 5 com 3 unidades, mantenha DUAS linhas separadas, exatamente como constam na fatura original);
-     c) Pular ou omitir qualquer item, máquina, acessório ou peça listada na tabela da fatura.
-
-2. QUANTIDADES E VALORES LINHA A LINHA:
-   - Para CADA item, extraia a quantidade ("qty_ordered") e o preço unitário FOB ("unit_price_fob") EXCLUSIVAMENTE da linha correspondente daquele modelo.
-   - NUNCA troque ou desloque a quantidade de uma linha com o preço ou quantidade de outra linha.
-   - O campo "total_price_fob" de cada item deve ser exatamente: qty_ordered * unit_price_fob.
-
-3. MODELO / SKU PRECISO:
-   - Extraia o código do modelo industrial da máquina no campo "sku" (Exemplos comuns: FR-770, BSF-5640, BZH-120, ARLB160A, ATB1000, FL2000A, BF650, EW220, MT-50, etc.).
-   - Mantenha a descrição técnica completa no campo "description".
-
-4. CONFERÊNCIA MATEMÁTICA DO TOTAL:
-   - Calcule a soma de todos os "total_price_fob". Essa soma DEVE bater com o valor total da fatura ("total_fob_value").
-
-5. CLASSIFICAÇÃO FISCAL (NCM / HS CODE):
-   - Se a fatura indicar o código NCM ou HS Code (normalmente iniciando com 84, 85, etc.), extraia no campo "ncm". Se não constar, preencha com string vazia "".
-
-Estrutura JSON obrigatória:
-{
-  "supplier_name": "Nome da fábrica fornecedora",
-  "invoice_number": "Número da Invoice / Proforma",
-  "invoice_date": "YYYY-MM-DD",
-  "currency": "USD, EUR ou RMB",
-  "total_fob_value": 0.0,
-  "payment_terms_desc": "Condição de pagamento",
-  "items": [
-    {
-      "item_no": 1,
-      "sku": "MODELO",
-      "description": "Descrição do equipamento",
-      "ncm": "8422.30.29",
-      "qty_ordered": 1,
-      "unit_price_fob": 0.0,
-      "total_price_fob": 0.0
-    }
-  ]
-}
-
-Responda APENAS o JSON puro. Não utilize blocos markdown (\`\`\`json).
-`;
-
-                const contentsParts = [];
-                if (inlinePart) {
-                    contentsParts.push(inlinePart);
-                }
-                contentsParts.push({ text: prompt });
-
-                const candidateModels = [
-                    process.env.GEMINI_MODEL || 'gemini-1.5-flash',
-                    'gemini-flash-latest',
-                    'gemini-2.0-flash'
-                ];
-
-                for (const modelName of candidateModels) {
-                    try {
-                        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-                        const payload = {
-                            contents: [{ parts: contentsParts }],
-                            generationConfig: { responseMimeType: "application/json" }
-                        };
-
-                        const aiRes = await fetch(geminiUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
-
-                        if (aiRes.ok) {
-                            const aiData = await aiRes.json();
-                            if (aiData.candidates && aiData.candidates[0] && aiData.candidates[0].content && aiData.candidates[0].content.parts[0]) {
-                                const rawText = aiData.candidates[0].content.parts[0].text;
-                                aiResult = cleanAndParseJSON(rawText);
-                                if (aiResult && aiResult.items && aiResult.items.length > 0) {
-                                    break;
-                                }
-                            }
-                        } else {
-                            const errBody = await aiRes.text();
-                            console.warn(`[SUPPLY CHAIN OCR] Modelo ${modelName} retornou status ${aiRes.status}:`, errBody.substring(0, 150));
-                        }
-                    } catch (mErr) {
-                        console.warn(`[SUPPLY CHAIN OCR] Erro ao tentar modelo ${modelName}:`, mErr.message);
-                    }
-                }
-            } catch (geminiErr) {
-                console.warn('[SUPPLY CHAIN OCR] Falha ao processar com Gemini, executando parser heurístico:', geminiErr.message);
-            }
-        }
-
-        // 4. Parser Heurístico / Regex se a IA falhou ou não retornou itens
-        if (!aiResult || !aiResult.items || aiResult.items.length === 0) {
-            aiResult = parseInvoiceTextHeuristically(extractedText, suppliers);
-        }
-
-        // Garantir que a ordem sequencial dos itens seja estritamente respeitada
-        if (aiResult && Array.isArray(aiResult.items)) {
-            const hasValidSeq = aiResult.items.every(it => it.item_no !== undefined && !isNaN(parseInt(it.item_no)));
-            if (hasValidSeq) {
-                aiResult.items.sort((a, b) => parseInt(a.item_no) - parseInt(b.item_no));
-            }
-        }
-
-        // Vincular ao ID do fornecedor se encontrado
-        let matchedSupplier = null;
-        if (aiResult.supplier_name) {
-            matchedSupplier = suppliers.find(s => 
-                s.name.toLowerCase().includes(aiResult.supplier_name.toLowerCase()) ||
-                aiResult.supplier_name.toLowerCase().includes(s.name.toLowerCase())
-            );
-        }
-
-        if (matchedSupplier) {
-            aiResult.supplier_id = matchedSupplier.id;
-            aiResult.supplier_name = matchedSupplier.name;
-            aiResult.payment_terms_type = matchedSupplier.payment_terms_type;
-        }
-
-        aiResult.file_path = 'uploads/' + req.file.filename;
-        aiResult.original_name = req.file.originalname;
 
         res.json({
             success: true,
             extracted: aiResult
         });
-
     } catch (err) {
         console.error('[INVOICE OCR ERROR]', err);
         res.status(500).json({ error: 'Erro ao processar arquivo da fatura: ' + err.message });

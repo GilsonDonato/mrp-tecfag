@@ -25258,6 +25258,12 @@ function renderKanban() {
             if (!input.files || !input.files[0]) return;
             const file = input.files[0];
 
+            const invBadge = document.getElementById('sc-det-invoice-status-badge');
+            if (invBadge) {
+                invBadge.innerText = '⏳ Anexando e lendo via Gemini IA...';
+                invBadge.style.color = '#38bdf8';
+            }
+
             try {
                 const formData = new FormData();
                 formData.append('invoice_file', file);
@@ -25294,6 +25300,49 @@ function renderKanban() {
             } catch (err) {
                 console.error('[UPLOAD INVOICE FILE ERROR]', err);
                 alert('Erro ao enviar arquivo de fatura: ' + err.message);
+            }
+        }
+
+        async function extractOrderInvoiceWithAI(orderId) {
+            const btnAi = document.getElementById('sc-det-btn-extract-ai');
+            const invBadge = document.getElementById('sc-det-invoice-status-badge');
+            try {
+                if (btnAi) {
+                    btnAi.disabled = true;
+                    btnAi.innerHTML = '<span>⏳</span> Lendo com Gemini IA...';
+                }
+                if (invBadge) {
+                    invBadge.innerText = '⏳ Processando IA...';
+                    invBadge.style.color = '#38bdf8';
+                }
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/supply-chain/orders/${orderId}/extract-invoice-ai`, {
+                    method: 'POST',
+                    headers
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    alert(`✅ ${data.message || 'Dados extraídos com sucesso pela IA!'}`);
+                    await loadSupplyChainData();
+                    await openSupplyDetailsModal(orderId);
+                    if (activeProjectCode) {
+                        await loadProjectMultiOrders(activeProjectCode);
+                    }
+                } else {
+                    alert('Erro ao extrair com IA: ' + (data.error || 'Falha no processamento.'));
+                }
+            } catch (err) {
+                console.error('[EXTRACT INVOICE AI ERROR]', err);
+                alert('Erro na comunicação com a IA: ' + err.message);
+            } finally {
+                if (btnAi) {
+                    btnAi.disabled = false;
+                    btnAi.innerHTML = '<span>🤖</span> Ler com IA / Carregar Itens';
+                }
             }
         }
 
@@ -32172,7 +32221,15 @@ function renderKanban() {
                         suppSelect.value = order.supplier_id;
                     } else if (order.supplier_name) {
                         const found = (supplyChainState.suppliers || []).find(s => s.name.toLowerCase() === order.supplier_name.toLowerCase());
-                        if (found) suppSelect.value = found.id;
+                        if (found) {
+                            suppSelect.value = found.id;
+                        } else {
+                            const customOpt = document.createElement('option');
+                            customOpt.value = order.supplier_id || '';
+                            customOpt.innerText = `🏭 ${order.supplier_name}`;
+                            customOpt.selected = true;
+                            suppSelect.appendChild(customOpt);
+                        }
                     }
                 }
                 setVal('sc-det-invoice-number', order.invoice_number);
@@ -32190,6 +32247,9 @@ function renderKanban() {
                             <a href="/${order.invoice_file_path.replace(/^\//, '')}" target="_blank" style="padding: 5px 10px; background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #38bdf8; border-radius: 4px; font-size: 0.74rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">
                                 <span>📄</span> Ver Proforma Invoice
                             </a>
+                            <button type="button" class="btn" id="sc-det-btn-extract-ai" onclick="extractOrderInvoiceWithAI('${order.id}')" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; font-weight: 800; font-size: 0.72rem; padding: 5px 10px; border-radius: 4px; border: none; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);" title="Reanalisar fatura com IA para carregar/atualizar Fornecedor, Número da Fatura e Itens">
+                                <span>🤖</span> Ler com IA / Carregar Itens
+                            </button>
                             <input type="file" id="sc-det-upload-invoice-input" accept=".pdf,image/*" style="display: none;" onchange="uploadOrderInvoiceFile('${order.id}', this)">
                             <button type="button" class="btn btn-secondary" onclick="document.getElementById('sc-det-upload-invoice-input').click()" style="padding: 4px 8px; font-size: 0.70rem; border-radius: 4px; color: #94a3b8;" title="Substituir arquivo de fatura">
                                 🔄 Trocar
@@ -32203,7 +32263,7 @@ function renderKanban() {
                         invControls.innerHTML = `
                             <input type="file" id="sc-det-upload-invoice-input" accept=".pdf,image/*" style="display: none;" onchange="uploadOrderInvoiceFile('${order.id}', this)">
                             <button type="button" class="btn" onclick="document.getElementById('sc-det-upload-invoice-input').click()" style="background: rgba(56, 189, 248, 0.15); border: 1px dashed #38bdf8; color: #38bdf8; padding: 5px 12px; font-size: 0.72rem; font-weight: 700; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-                                <span>➕</span> Anexar Proforma Invoice (PDF)
+                                <span>➕</span> Anexar Proforma Invoice (PDF) & Ler com IA
                             </button>
                         `;
                     }
@@ -32594,8 +32654,10 @@ function renderKanban() {
 
             const suppSelect = document.getElementById('sc-det-supplier-select');
             if (suppSelect && suppSelect.value) {
-                payload.supplier_id = parseInt(suppSelect.value);
-                payload.supplier_name = suppSelect.options[suppSelect.selectedIndex]?.text;
+                payload.supplier_id = parseInt(suppSelect.value) || null;
+                payload.supplier_name = suppSelect.options[suppSelect.selectedIndex]?.text?.replace(/^🏭\s*/, '');
+            } else if (suppSelect && suppSelect.options[suppSelect.selectedIndex]?.text && !suppSelect.options[suppSelect.selectedIndex]?.text.includes('-- Selecione')) {
+                payload.supplier_name = suppSelect.options[suppSelect.selectedIndex]?.text?.replace(/^🏭\s*/, '');
             }
             const invInput = document.getElementById('sc-det-invoice-number');
             if (invInput) {
