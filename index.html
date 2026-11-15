@@ -5987,8 +5987,8 @@
     </div>
 
     <!-- MODAL DE FICHA TÉCNICA OFICIAL DO FABRICANTE DE BOBINAS (PDF/IMPRESSÃO) -->
-    <div id="film-spec-pdf-modal" class="modal" style="display: none; align-items: center; justify-content: center; z-index: 10000; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
-        <div class="modal-content" style="background: #ffffff; color: #0f172a; width: 92%; max-width: 950px; max-height: 92vh; overflow-y: auto; border-radius: 12px; padding: 25px; font-family: 'Inter', system-ui, sans-serif; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+    <div id="film-spec-pdf-modal" class="modal-overlay" style="display: none; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 100500 !important; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); align-items: center; justify-content: center;" onclick="if(event.target === this) closeFilmSpecPDFModal(event)">
+        <div class="modal-content" style="background: #ffffff; color: #0f172a; width: 92%; max-width: 950px; max-height: 92vh; overflow-y: auto; border-radius: 12px; padding: 25px; font-family: 'Inter', system-ui, sans-serif; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); position: relative; z-index: 100501;">
             <!-- Ações Superiores do Relatório (Ocultas na impressão) -->
             <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px;">
                 <div>
@@ -6002,7 +6002,7 @@
                     <button type="button" onclick="downloadFilmSpecPDF()" style="background: #16a34a; color: #ffffff; font-weight: bold; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; display: flex; align-items: center; gap: 6px;">
                         📥 Baixar PDF (Nova Aba)
                     </button>
-                    <button type="button" onclick="closeFilmSpecPDFModal()" style="background: #e2e8f0; color: #334155; font-weight: bold; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.82rem;">
+                    <button type="button" onclick="closeFilmSpecPDFModal(event)" style="background: #e2e8f0; color: #334155; font-weight: bold; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; position: relative; z-index: 100502;">
                         Fechar
                     </button>
                 </div>
@@ -10671,12 +10671,27 @@
             }
 
             modal.style.display = 'flex';
+            modal.classList.add('active');
         }
 
-        function closeFilmSpecPDFModal() {
+        function closeFilmSpecPDFModal(e) {
+            if (e && e.stopPropagation) e.stopPropagation();
             const modal = document.getElementById('film-spec-pdf-modal');
-            if (modal) modal.style.display = 'none';
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('active');
+            }
         }
+
+        // Fechar Ficha Técnica com a tecla Esc se estiver aberta
+        window.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('film-spec-pdf-modal');
+                if (modal && (modal.style.display === 'flex' || modal.classList.contains('active'))) {
+                    closeFilmSpecPDFModal(e);
+                }
+            }
+        });
 
         function downloadFilmSpecPDF() {
             openFilmSpecPDFModal();
