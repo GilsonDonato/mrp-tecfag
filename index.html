@@ -34962,10 +34962,10 @@ function renderKanban() {
                 select.appendChild(opt);
             });
 
-            if (preSelectedOrderId && candidateOrders.some(o => o.id === preSelectedOrderId)) {
-                select.value = preSelectedOrderId;
-            } else if (currentAuditOrderId && candidateOrders.some(o => o.id === currentAuditOrderId)) {
-                select.value = currentAuditOrderId;
+            if (preSelectedOrderId && candidateOrders.some(o => String(o.id) === String(preSelectedOrderId))) {
+                select.value = String(preSelectedOrderId);
+            } else if (currentAuditOrderId && candidateOrders.some(o => String(o.id) === String(currentAuditOrderId))) {
+                select.value = String(currentAuditOrderId);
             } else if (candidateOrders.length > 0) {
                 select.value = candidateOrders[0].id;
             }
