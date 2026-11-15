@@ -9978,17 +9978,19 @@ app.post('/api/projects/:code/cancel-import', authenticateToken, restrictToSuppl
     const user = req.user ? req.user.username : 'Sistema';
 
     try {
-        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        const shortCode = code.replace(/^PRJTEC0+/, 'PRJ');
+        const project = await dbGet('SELECT * FROM projects WHERE code = ? OR code = ? OR code LIKE ?', [code, shortCode, `%${shortCode}%`]);
         if (!project) {
             // Se o projeto não existe mais em projects, limpa qualquer ordem órfã vinculada a este código
-            await dbRun('DELETE FROM stock_order_items WHERE order_id IN (SELECT id FROM stock_orders WHERE project_code = ?)', [code]);
-            await dbRun('DELETE FROM stock_orders WHERE project_code = ?', [code]);
+            await dbRun('DELETE FROM stock_order_items WHERE order_id IN (SELECT id FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number LIKE ?)', [code, shortCode, `%${shortCode}%`]);
+            await dbRun('DELETE FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number LIKE ?', [code, shortCode, `%${shortCode}%`]);
             return res.json({ success: true, message: 'Card de importação órfão desvinculado e removido com sucesso.' });
         }
 
         const now = new Date().toISOString();
         let chk = safeJsonParse(project.checklist, {});
         chk.import_order_deleted = true;
+        chk.import_order_unlinked = true;
 
         await dbRun(`
             UPDATE projects SET
@@ -9997,12 +9999,12 @@ app.post('/api/projects/:code/cancel-import', authenticateToken, restrictToSuppl
                 checklist = ?,
                 lastUpdate = ?
             WHERE code = ?
-        `, [JSON.stringify(chk), now, code]);
+        `, [JSON.stringify(chk), now, project.code]);
 
-        await dbRun('DELETE FROM stock_order_items WHERE order_id IN (SELECT id FROM stock_orders WHERE project_code = ?)', [code]);
-        await dbRun('DELETE FROM stock_orders WHERE project_code = ?', [code]);
+        await dbRun('DELETE FROM stock_order_items WHERE order_id IN (SELECT id FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number LIKE ?)', [code, shortCode, `%${shortCode}%`]);
+        await dbRun('DELETE FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number LIKE ?', [code, shortCode, `%${shortCode}%`]);
 
-        await recordAuditLog(code, user, `Processo de importação desvinculado por ${user}. Projeto retornado para Pedido Fechado (Fase 2).`);
+        await recordAuditLog(project.code, user, `Processo de importação desvinculado por ${user}. Projeto retornado para Pedido Fechado (Fase 2).`);
 
         res.json({ success: true, message: 'Importação desvinculada. Projeto retornado para Pedido Fechado.' });
     } catch (err) {
@@ -11873,6 +11875,19 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
         `);
 
         for (const p of importProjects) {
+            let chk = {};
+            try { chk = typeof p.checklist === 'string' ? JSON.parse(p.checklist || '{}') : (p.checklist || {}); } catch(e) {}
+
+            // Se o usuário cancelou/desvinculou/excluiu a importação deste projeto, NUNCA exibe no Comex
+            if (chk.import_order_deleted || chk.import_order_unlinked) {
+                continue;
+            }
+
+            // Se o projeto está em Fase <= 2 e não possui etapa de importação explícita, não pertence ao Comex
+            if ((!p.fase || p.fase <= 2) && !p.import_stage) {
+                continue;
+            }
+
             const shortCode = p.code.replace(/^PRJTEC0+/, 'PRJ');
             const matchedOrders = orders.filter(o => o.project_code === p.code || o.project_code === shortCode || o.po_number === `PO-${shortCode}` || (o.po_number && o.po_number.startsWith(`PO-${shortCode}-`)));
 
@@ -11895,7 +11910,11 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
                     if (p.import_tracking_number && !existingOrder.tracking_number) existingOrder.tracking_number = p.import_tracking_number;
                 }
             } else {
-                // Apenas se o projeto NÃO tiver nenhuma ordem em stock_orders, gera um card virtual temporário
+                // Se não há ordens em stock_orders, só gera card temporário se o projeto estiver em fase 3, 4 ou 5 com import_stage ativa
+                if (chk.import_order_deleted || chk.import_order_unlinked || (!p.fase || p.fase <= 2) || !p.import_stage) {
+                    continue;
+                }
+
                 const canonStage = computeCanonicalImportStage(p) || p.import_stage || 'PO_EMITIDA';
                 const stage = canonStage;
                 let daysInEadi = 0;
@@ -11995,7 +12014,55 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
 // GET /api/supply-chain/orders/:id - Detalhes completos de uma ordem
 app.get('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain, async (req, res) => {
     try {
-        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [req.params.id]);
+        const orderId = req.params.id;
+        let order;
+
+        if (typeof orderId === 'string' && orderId.startsWith('PRJ-')) {
+            const pCode = orderId.replace('PRJ-', '');
+            const shortCode = pCode.replace(/^PRJTEC0+/, 'PRJ');
+            order = await dbGet('SELECT * FROM stock_orders WHERE project_code = ? OR project_code = ?', [pCode, shortCode]);
+            if (!order) {
+                const p = await dbGet('SELECT * FROM projects WHERE code = ? OR code = ? OR code LIKE ?', [pCode, shortCode, `%${shortCode}%`]);
+                if (!p) {
+                    return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
+                }
+                const canonStage = computeCanonicalImportStage(p) || p.import_stage || 'PO_EMITIDA';
+                const fobVal = p.import_total_fob_value || (p.crm_value ? (p.crm_value / 5.5) : 0);
+                order = {
+                    id: 'PRJ-' + p.code,
+                    is_project: true,
+                    project_code: p.code,
+                    client_name: p.client,
+                    project_name: p.project_name,
+                    project_sku: p.sku,
+                    stage: canonStage,
+                    po_number: 'PO-' + shortCode,
+                    supplier_name: p.import_supplier || p.supplier || 'Fornecedor Internacional',
+                    invoice_number: p.import_invoice_number || ('PI-' + shortCode),
+                    invoice_date: p.import_invoice_date,
+                    currency: p.import_currency || 'USD',
+                    total_fob_value: fobVal,
+                    container_id: p.import_container_id,
+                    vessel_name: p.import_vessel_name,
+                    bl_number: p.import_bl_number,
+                    bl_date: p.import_bl_date,
+                    etd_date: p.import_etd_date,
+                    eta_port_date: p.import_eta_port_date || p.import_eta_port,
+                    eta_warehouse_date: p.import_eta_warehouse_date || p.import_eta_wh,
+                    actual_arrival_date: p.import_actual_arrival_date || p.import_actual_arrival,
+                    transport_mode: p.import_transport_mode || 'MARITIMO',
+                    courier_service: p.import_courier_service,
+                    tracking_number: p.import_tracking_number,
+                    items: [],
+                    clearances: [],
+                    linked_orders: []
+                };
+                return res.json(order);
+            }
+        } else {
+            order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        }
+
         if (!order) {
             return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
         }
@@ -13699,9 +13766,22 @@ app.delete('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyCh
     try {
         if (typeof orderId === 'string' && orderId.startsWith('PRJ-')) {
             const pCode = orderId.replace('PRJ-', '');
-            await dbRun('UPDATE projects SET import_stage = NULL, fase = 2 WHERE code = ?', [pCode]);
-            await dbRun('DELETE FROM stock_order_items WHERE order_id IN (SELECT id FROM stock_orders WHERE project_code = ?)', [pCode]);
-            await dbRun('DELETE FROM stock_orders WHERE project_code = ?', [pCode]);
+            const shortCode = pCode.replace(/^PRJTEC0+/, 'PRJ');
+            const project = await dbGet('SELECT * FROM projects WHERE code = ? OR code = ? OR code LIKE ?', [pCode, shortCode, `%${shortCode}%`]);
+            if (project) {
+                let chk = {};
+                try { chk = project.checklist ? JSON.parse(project.checklist) : {}; } catch(e){}
+                chk.import_order_deleted = true;
+                chk.import_order_unlinked = true;
+                await dbRun('UPDATE projects SET import_stage = NULL, fase = 2, checklist = ?, lastUpdate = ? WHERE code = ?', [
+                    JSON.stringify(chk),
+                    new Date().toISOString(),
+                    project.code
+                ]);
+            }
+            await dbRun('DELETE FROM stock_order_items WHERE order_id IN (SELECT id FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number LIKE ?)', [pCode, shortCode, `%${shortCode}%`]);
+            await dbRun('DELETE FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number LIKE ?', [pCode, shortCode, `%${shortCode}%`]);
+            await recordAuditLog(pCode, user, "Card de importação virtual " + orderId + " foi excluído e desvinculado.");
             return res.json({ success: true, message: 'Card de importação desvinculado com sucesso.' });
         }
 
@@ -13713,16 +13793,17 @@ app.delete('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyCh
         // Se a ordem for a principal do projeto, marca no checklist para não recriar na rotina de sync
         // Se for sub-ordem (fornecedor adicional), apenas remove sem afetar a esteira do projeto
         if (order.project_code && !order.is_sub_order) {
-            const project = await dbGet('SELECT checklist FROM projects WHERE code = ?', [order.project_code]);
+            const shortCode = order.project_code.replace(/^PRJTEC0+/, 'PRJ');
+            const project = await dbGet('SELECT * FROM projects WHERE code = ? OR code = ? OR code LIKE ?', [order.project_code, shortCode, `%${shortCode}%`]);
             if (project) {
                 let chk = {};
                 try { chk = project.checklist ? JSON.parse(project.checklist) : {}; } catch(e){}
                 chk.import_order_deleted = true;
                 chk.import_order_unlinked = true;
-                await dbRun('UPDATE projects SET checklist = ?, lastUpdate = ? WHERE code = ?', [
+                await dbRun('UPDATE projects SET import_stage = NULL, fase = 2, checklist = ?, lastUpdate = ? WHERE code = ?', [
                     JSON.stringify(chk),
                     new Date().toISOString(),
-                    order.project_code
+                    project.code
                 ]);
             }
             await recordAuditLog(order.project_code, user, "Ordem de importação principal " + order.po_number + " foi excluída/desvinculada pelo usuário " + user + ".");

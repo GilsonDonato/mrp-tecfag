@@ -26643,22 +26643,38 @@ function renderKanban() {
 
             if (confirmReturn) {
                 try {
-                    const res = await fetch('/api/projects/' + code + '/cancel-import', {
-                        method: 'POST',
-                        headers
-                    });
-                    const data = await res.json();
-                    if (res.ok) {
-                        alert('✅ ' + (data.message || 'Projeto retornado para Pedido Fechado (Fase 2)!'));
+                    let cancelOk = false;
+                    let lastMsg = '';
+                    if (code) {
+                        const res = await fetch('/api/projects/' + code + '/cancel-import', {
+                            method: 'POST',
+                            headers
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            cancelOk = true;
+                            lastMsg = data.message;
+                        } else if (res.status === 404) {
+                            if (confirm(`O projeto ${code} não existe mais no cadastro do MRP (card órfão).\nDeseja remover este container da esteira agora?`)) {
+                                await deleteProjectCompletely(code, orderId);
+                                return;
+                            }
+                        }
+                    }
+                    if (orderId) {
+                        const resOrd = await fetch('/api/supply-chain/orders/' + orderId, {
+                            method: 'DELETE',
+                            headers
+                        });
+                        if (resOrd.ok) cancelOk = true;
+                    }
+                    if (cancelOk) {
+                        alert('✅ ' + (lastMsg || 'Processo de importação desvinculado com sucesso! Projeto retornado para Pedido Fechado.'));
                         if (typeof loadProjects === 'function') await loadProjects();
                         if (typeof loadProjectsDB === 'function') loadProjectsDB();
                         if (typeof loadSupplyChainData === 'function') await loadSupplyChainData();
-                    } else if (res.status === 404) {
-                        if (confirm(`O projeto ${code} não existe mais no cadastro do MRP (card órfão).\nDeseja remover este container da esteira agora?`)) {
-                            await deleteProjectCompletely(code, orderId);
-                        }
                     } else {
-                        alert('Erro ao desvincular: ' + (data.error || 'Erro desconhecido.'));
+                        alert('Erro ao desvincular importação.');
                     }
                 } catch (err) {
                     console.error(err);
@@ -26687,13 +26703,14 @@ function renderKanban() {
                     });
                 }
 
-                // 2. Deletar da tabela stock_orders (por ID numérico ou cancel-import)
-                if (orderId && typeof orderId === 'number') {
+                // 2. Deletar da tabela stock_orders (tanto id numérico quanto string PRJ-...)
+                if (orderId) {
                     await fetch(`/api/supply-chain/orders/${orderId}`, {
                         method: 'DELETE',
                         headers
                     });
-                } else if (code) {
+                }
+                if (code) {
                     await fetch(`/api/projects/${code}/cancel-import`, {
                         method: 'POST',
                         headers
@@ -31426,13 +31443,13 @@ function renderKanban() {
                     ${stage === 'ENTREPOSTADO_EADI' ? `
                         <!-- Barra de Ações Aduaneiras do EADI (Planilha, Saldo e Baixa) -->
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 5px; width: 100%; box-sizing: border-box;">
-                            <button type="button" class="btn" onclick="event.stopPropagation(); openEadiContainerExportModal(${order.id})" style="padding: 5px 3px; font-size: 0.68rem; font-weight: 700; background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; border-radius: 5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center; gap: 2px;" title="Exportar Planilha de Desembaraço deste Container">
+                            <button type="button" class="btn" onclick="event.stopPropagation(); openEadiContainerExportModal('${order.id}')" style="padding: 5px 3px; font-size: 0.68rem; font-weight: 700; background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; border-radius: 5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center; gap: 2px;" title="Exportar Planilha de Desembaraço deste Container">
                                 📑 Planilha
                             </button>
-                            <button type="button" class="btn" onclick="event.stopPropagation(); openEadiInventoryAuditModal(${order.id})" style="padding: 5px 3px; font-size: 0.68rem; font-weight: 700; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; border-radius: 5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center; gap: 2px;" title="Inventário / Ajustar Saldo Físico">
+                            <button type="button" class="btn" onclick="event.stopPropagation(); openEadiInventoryAuditModal('${order.id}')" style="padding: 5px 3px; font-size: 0.68rem; font-weight: 700; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; border-radius: 5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center; gap: 2px;" title="Inventário / Ajustar Saldo Físico">
                                 📝 Saldo
                             </button>
-                            <button type="button" class="btn" onclick="event.stopPropagation(); openEadiClearanceModal(${order.id})" style="padding: 5px 3px; font-size: 0.68rem; font-weight: 800; background: #f59e0b; border: 1px solid #d97706; color: #0f172a; border-radius: 5px; text-align: center; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 2px; box-shadow: 0 1px 4px rgba(245, 158, 11, 0.3);" title="Registrar Baixa D.I. (Nacionalização)">
+                            <button type="button" class="btn" onclick="event.stopPropagation(); openEadiClearanceModal('${order.id}')" style="padding: 5px 3px; font-size: 0.68rem; font-weight: 800; background: #f59e0b; border: 1px solid #d97706; color: #0f172a; border-radius: 5px; text-align: center; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 2px; box-shadow: 0 1px 4px rgba(245, 158, 11, 0.3);" title="Registrar Baixa D.I. (Nacionalização)">
                                 ⚡ Baixa
                             </button>
                         </div>
@@ -31441,34 +31458,34 @@ function renderKanban() {
                     <!-- Barra de Navegação e Gestão da Ordem -->
                     <div style="display: flex; gap: 5px; align-items: center; margin-top: 5px; width: 100%; box-sizing: border-box;">
                         ${isProject && prjCode ? `
-                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openSupplyDetailsModal(${order.id})" style="flex: 1; min-width: 0; padding: 5px 4px; font-size: 0.70rem; font-weight: 700; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.35); color: #38bdf8;" title="Ver Detalhes de Comex e Rastreio desta PO">
+                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openSupplyDetailsModal('${order.id}')" style="flex: 1; min-width: 0; padding: 5px 4px; font-size: 0.70rem; font-weight: 700; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.35); color: #38bdf8;" title="Ver Detalhes de Comex e Rastreio desta PO">
                                 🔍 Comex
                             </button>
                             <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openProjectModal('${prjCode}', 'logistics')" style="padding: 5px 6px; font-size: 0.70rem; font-weight: 700; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 3px; white-space: nowrap; background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" title="Abrir Ficha Geral do Projeto">
                                 📐 Projeto
                             </button>
-                            <button type="button" class="btn" onclick="event.stopPropagation(); ${order.is_sub_order ? `quickDeleteSupplyOrder(${order.id}, '${order.po_number}')` : `quickCancelProjectImport('${prjCode}', '${order.po_number}', ${typeof order.id === 'number' ? order.id : `'${order.id}'`})`}" style="padding: 5px 7px; font-size: 0.72rem; font-weight: bold; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 5px; flex-shrink: 0;" title="${order.is_sub_order ? 'Excluir esta Ordem Adicional' : 'Gerenciar / Desvincular Importação'}">
+                            <button type="button" class="btn" onclick="event.stopPropagation(); ${order.is_sub_order ? `quickDeleteSupplyOrder('${order.id}', '${order.po_number}')` : `quickCancelProjectImport('${prjCode}', '${order.po_number}', '${order.id}')`}" style="padding: 5px 7px; font-size: 0.72rem; font-weight: bold; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 5px; flex-shrink: 0;" title="${order.is_sub_order ? 'Excluir esta Ordem Adicional' : 'Gerenciar / Desvincular Importação'}">
                                 🗑️
                             </button>
                             ${stage !== 'DOCA_GALPAO' ? `
-                                <button type="button" class="btn" onclick="event.stopPropagation(); quickAdvanceOrderStage(${order.id})" style="padding: 5px 9px; font-size: 0.72rem; font-weight: bold; background: #0ea5e9; border: 1px solid #38bdf8; color: white; border-radius: 5px; flex-shrink: 0; box-shadow: 0 1px 4px rgba(14, 165, 233, 0.3);" title="Avançar Etapa Desta Ordem">
+                                <button type="button" class="btn" onclick="event.stopPropagation(); quickAdvanceOrderStage('${order.id}')" style="padding: 5px 9px; font-size: 0.72rem; font-weight: bold; background: #0ea5e9; border: 1px solid #38bdf8; color: white; border-radius: 5px; flex-shrink: 0; box-shadow: 0 1px 4px rgba(14, 165, 233, 0.3);" title="Avançar Etapa Desta Ordem">
                                     ➡️
                                 </button>
                             ` : ''}
                         ` : `
-                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openSupplyDetailsModal(${order.id})" style="flex: 1; min-width: 0; padding: 5px 6px; font-size: 0.72rem; font-weight: 600; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openSupplyDetailsModal('${order.id}')" style="flex: 1; min-width: 0; padding: 5px 6px; font-size: 0.72rem; font-weight: 600; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                 🔍 Detalhes
                             </button>
                             ${stage === 'PO_EMITIDA' || stage === 'EM_FABRICACAO' ? `
-                                <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openReconcileModal(${order.id})" style="padding: 5px 8px; font-size: 0.70rem; font-weight: 700; border-color: rgba(236, 72, 153, 0.4); color: #ec4899; border-radius: 5px; white-space: nowrap; flex-shrink: 0;" title="Conferir Carga / Packing List">
+                                <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openReconcileModal('${order.id}')" style="padding: 5px 8px; font-size: 0.70rem; font-weight: 700; border-color: rgba(236, 72, 153, 0.4); color: #ec4899; border-radius: 5px; white-space: nowrap; flex-shrink: 0;" title="Conferir Carga / Packing List">
                                     📦 Carga
                                 </button>
                             ` : ''}
-                            <button type="button" class="btn" onclick="event.stopPropagation(); quickDeleteSupplyOrder(${order.id}, '${order.po_number}')" style="padding: 5px 7px; font-size: 0.72rem; font-weight: bold; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 5px; flex-shrink: 0;" title="Excluir Ordem / Cancelar Card">
+                            <button type="button" class="btn" onclick="event.stopPropagation(); quickDeleteSupplyOrder('${order.id}', '${order.po_number}')" style="padding: 5px 7px; font-size: 0.72rem; font-weight: bold; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 5px; flex-shrink: 0;" title="Excluir Ordem / Cancelar Card">
                                 🗑️
                             </button>
                             ${stage !== 'DOCA_GALPAO' ? `
-                                <button type="button" class="btn" onclick="event.stopPropagation(); quickAdvanceOrderStage(${order.id})" style="padding: 5px 9px; font-size: 0.72rem; font-weight: bold; background: #0ea5e9; border: 1px solid #38bdf8; color: white; border-radius: 5px; flex-shrink: 0; box-shadow: 0 1px 4px rgba(14, 165, 233, 0.3);" title="Avançar Etapa">
+                                <button type="button" class="btn" onclick="event.stopPropagation(); quickAdvanceOrderStage('${order.id}')" style="padding: 5px 9px; font-size: 0.72rem; font-weight: bold; background: #0ea5e9; border: 1px solid #38bdf8; color: white; border-radius: 5px; flex-shrink: 0; box-shadow: 0 1px 4px rgba(14, 165, 233, 0.3);" title="Avançar Etapa">
                                     ➡️
                                 </button>
                             ` : ''}
