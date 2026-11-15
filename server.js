@@ -10352,8 +10352,10 @@ app.post('/api/projects/:code/import-orders', authenticateToken, restrictToSuppl
     const user = req.user ? req.user.username : 'Sistema';
     
     try {
-        const project = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+        const shortCode = code.replace(/^PRJTEC0+/, 'PRJ');
+        const project = await dbGet('SELECT * FROM projects WHERE code = ? OR code = ? OR code LIKE ?', [code, shortCode, `%${shortCode}%`]);
         if (!project) return res.status(404).json({ error: 'Projeto não encontrado.' });
+        const realProjectCode = project.code;
 
         const {
             supplier_name,
@@ -10375,10 +10377,13 @@ app.post('/api/projects/:code/import-orders', authenticateToken, restrictToSuppl
         }
 
         // Determinar o próximo código de PO
-        const existingOrders = await dbAll('SELECT po_number FROM stock_orders WHERE project_code = ?', [code]);
+        const existingOrders = await dbAll(
+            'SELECT po_number FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number = ? OR po_number LIKE ?',
+            [realProjectCode, shortCode, `PO-${shortCode}`, `PO-${shortCode}-%`]
+        );
         const count = existingOrders.length;
-        const basePo = 'PO-' + code.replace('PRJTEC000000', 'PRJ');
-        let poNumber = count === 0 ? basePo : `${basePo}-${String.fromCharCode(65 + count)}`; // PO-PRJ22-B, PO-PRJ22-C, etc.
+        const basePo = 'PO-' + shortCode;
+        let poNumber = count === 0 ? basePo : `${basePo}-${String.fromCharCode(65 + count)}`; // PO-PRJ69-B, PO-PRJ69-C, etc.
         
         // Se já existir esse exato poNumber no banco geral, incrementa sufixo numérico
         const checkExists = await dbGet('SELECT id FROM stock_orders WHERE po_number = ?', [poNumber]);
@@ -10403,13 +10408,13 @@ app.post('/api/projects/:code/import-orders', authenticateToken, restrictToSuppl
                 invoice_file_path, notes, is_sub_order, stage_entry_date, created_by, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PO_EMITIDA', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
-            poNumber, code, project.client, supplier_name.trim(), invoice_number || `PI-${poNumber}`,
+            poNumber, realProjectCode, project.client, supplier_name.trim(), invoice_number || `PI-${poNumber}`,
             invoice_date || now.split('T')[0], currency || 'USD', fobVal,
             isCourier ? 'COURIER' : 'MARITIMO',
             isCourier ? (courier_service || 'FEDEX') : null,
             isCourier ? (tracking_number || null) : null,
             container_id || null, vessel_name || null,
-            invoiceFilePath, notes || `Ordem de fornecedor para projeto ${code}`,
+            invoiceFilePath, notes || `Ordem de fornecedor para projeto ${realProjectCode}`,
             count > 0 ? 1 : 0, now, user, now, now
         ]);
 

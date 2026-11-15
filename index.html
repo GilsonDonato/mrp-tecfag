@@ -7296,9 +7296,14 @@
 
                     <!-- Documentos Oficiais desta Ordem / Fornecedor (Proforma Invoice e Packing List) -->
                     <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
-                        <div style="font-size: 0.75rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="font-size: 0.75rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
                             <span>📂 Documentos Oficiais Desta Ordem / Fornecedor</span>
-                            <span style="font-size: 0.68rem; color: #94a3b8; font-weight: normal;">Cada fabricante possui sua própria Fatura e Packing List</span>
+                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <span style="font-size: 0.68rem; color: #94a3b8; font-weight: normal;">Cada fabricante possui sua própria Fatura e Packing List</span>
+                                <button type="button" id="sc-det-btn-add-second-invoice" class="btn" style="display: none; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #34d399; font-weight: 800; font-size: 0.72rem; padding: 4px 10px; border-radius: 5px; cursor: pointer; align-items: center; gap: 5px;" title="Adicionar um segundo fabricante / outra invoice para este mesmo projeto">
+                                    <span>➕</span> Incluir 2ª Invoice / Outro Fornecedor
+                                </button>
+                            </div>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px;">
                             <!-- Proforma / Commercial Invoice -->
@@ -25332,13 +25337,15 @@ function renderKanban() {
             }
         }
 
-        function openAddProjectSupplierOrderModal() {
-            if (!activeProjectCode) {
+        function openAddProjectSupplierOrderModal(targetPrjCode) {
+            const code = targetPrjCode || activeProjectCode || (supplyChainState.currentOrder && (supplyChainState.currentOrder.project_code || (typeof supplyChainState.currentOrder.id === 'string' && supplyChainState.currentOrder.id.startsWith('PRJ-') ? supplyChainState.currentOrder.id.replace('PRJ-', '') : null)));
+            if (!code) {
                 alert('Abra a ficha de um projeto primeiro para vincular uma nova ordem.');
                 return;
             }
+            activeProjectCode = code;
             const project = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === activeProjectCode) : null;
-            const clientName = project ? project.client : '';
+            const clientName = project ? project.client : (supplyChainState.currentOrder ? supplyChainState.currentOrder.client_name : '');
 
             const subEl = document.getElementById('modal-add-supp-project-subtitle');
             if (subEl) {
@@ -32199,6 +32206,21 @@ function renderKanban() {
                                 <span>➕</span> Anexar Proforma Invoice (PDF)
                             </button>
                         `;
+                    }
+                }
+
+                // Botão para adicionar 2ª invoice / outro fabricante vinculado a este projeto
+                const btnAddSecondInvoice = document.getElementById('sc-det-btn-add-second-invoice');
+                if (btnAddSecondInvoice) {
+                    if (prjCode) {
+                        btnAddSecondInvoice.style.display = 'inline-flex';
+                        btnAddSecondInvoice.onclick = (e) => {
+                            e.preventDefault();
+                            closeSupplyDetailsModal();
+                            openAddProjectSupplierOrderModal(prjCode);
+                        };
+                    } else {
+                        btnAddSecondInvoice.style.display = 'none';
                     }
                 }
 
