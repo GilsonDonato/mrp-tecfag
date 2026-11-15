@@ -4092,10 +4092,10 @@
                                     <span>📋</span> Central de Documentos da Venda: Proposta Comercial Assinada & DANFE
                                 </h4>
                                 <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 3px;">
-                                    Anexe a Proposta Assinada e a Nota Fiscal para que a IA extraia o escopo prometido ao cliente e auxilie a Engenharia na definição dos equipamentos.
+                                    Auditoria de conformidade comercial vs faturamento/importação: cruza os equipamentos e opcionais prometidos com as DANFEs e Ordens da Doca para gerar a Ficha Técnica da Engenharia e Oficina.
                                 </div>
                             </div>
-                            <button type="button" class="btn" id="btn-align-commercial-fiscal" onclick="runCommercialFiscalAlignment()" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; font-weight: 800; padding: 6px 14px; font-size: 0.76rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);">
+                            <button type="button" class="btn" id="btn-align-commercial-fiscal" onclick="runCommercialFiscalAlignment()" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); color: white; font-weight: 800; padding: 7px 15px; font-size: 0.78rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);" title="Cruza o escopo prometido na proposta ou especificações do card com as notas fiscais emitidas/importadas, auditando tensões, esteiras e acessórios para o SAT e Engenharia">
                                 ✨ <span>Cruzar Proposta vs DANFE com IA</span>
                             </button>
                         </div>
@@ -26175,7 +26175,10 @@ function renderKanban() {
                 }
 
                 renderCommercialAlignmentResult(data.alignment);
-                alert('✅ Cruzamento concluído com sucesso pela IA!\nConsulte o relatório de auditoria e os alertas para Engenharia.');
+                if (typeof renderProjectCommercialDocs === 'function') {
+                    await renderProjectCommercialDocs(code);
+                }
+                alert('✅ Auditoria e cruzamento concluídos com sucesso pela IA!\n\nConsulte o relatório de conformidade abaixo com os alertas técnicos gerados para a Oficina e Engenharia.');
 
             } catch (err) {
                 console.error('Erro ao cruzar proposta e DANFE:', err);
@@ -26505,15 +26508,15 @@ function renderKanban() {
                 }
 
                 // 2. Verificar DANFE / Nota Fiscal
-                const danfeAttach = (attachments || []).find(a => 
+                const danfeAttaches = (attachments || []).filter(a => 
                     a.phase === 'danfe_venda' || a.phase === 'danfe' || (a.fileName || '').toLowerCase().includes('danfe')
                 );
 
                 const hasDanfeData = prj && (prj.danfe_number || prj.danfe_value || (prj.danfe_items && prj.danfe_items !== '[]'));
 
-                if (danfeAttach || hasDanfeData) {
+                if (danfeAttaches.length > 0 || hasDanfeData) {
                     if (danfeBadge) {
-                        danfeBadge.innerText = prj && prj.danfe_number ? `NF ${prj.danfe_number}` : 'Anexada';
+                        danfeBadge.innerText = prj && prj.danfe_number ? `NF ${prj.danfe_number}` : (danfeAttaches.length > 0 ? `${danfeAttaches.length} DANFE(s)` : 'Anexada');
                         danfeBadge.style.background = 'rgba(16, 185, 129, 0.2)';
                         danfeBadge.style.color = '#34d399';
                         danfeBadge.style.fontSize = '0.78rem';
@@ -26528,22 +26531,46 @@ function renderKanban() {
 
                     if (danfeInfo) {
                         danfeInfo.style.display = 'block';
-                        const dUrl = danfeAttach && danfeAttach.fileData ? (danfeAttach.fileData.startsWith('http') || danfeAttach.fileData.startsWith('/') ? danfeAttach.fileData : '/' + danfeAttach.fileData) : '#';
-                        const dName = danfeAttach ? escapeProjectHtml(danfeAttach.fileName || 'DANFE_NotaFiscal.pdf') : 'DANFE_NotaFiscal.pdf';
-                        const safeDUrl = escapeProjectHtml(dUrl);
+
+                        let danfesListHtml = '';
+                        if (danfeAttaches.length > 0) {
+                            danfesListHtml = danfeAttaches.map((att, idx) => {
+                                const dUrl = att.fileData ? (att.fileData.startsWith('http') || att.fileData.startsWith('/') ? att.fileData : '/' + att.fileData) : '#';
+                                const dName = escapeProjectHtml(att.fileName || `DANFE_${idx + 1}.pdf`);
+                                const safeDUrl = escapeProjectHtml(dUrl);
+                                const nfeBadge = att.nfeNumber ? `<span style="background: rgba(16, 185, 129, 0.3); color: #34d399; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.76rem;">NF ${escapeProjectHtml(att.nfeNumber)}</span>` : '';
+                                const suppTag = att.supplierName ? `<span style="color: #94a3b8; font-size: 0.74rem;">(${escapeProjectHtml(att.supplierName)})</span>` : '';
+                                return `
+                                    <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; padding: 6px 10px; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.82rem; margin-bottom: 4px;">
+                                        <span>🧾</span>
+                                        ${nfeBadge}
+                                        <strong style="color: #34d399; font-size: 0.85rem;">${dName}</strong>
+                                        ${suppTag}
+                                        <a href="${safeDUrl}" target="_blank" download="${dName}" style="background: rgba(16, 185, 129, 0.25); color: #34d399; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.76rem; border: 1px solid rgba(16, 185, 129, 0.4);">⬇️ Baixar</a>
+                                        ${idx === 0 ? `
+                                        <button type="button" class="btn" onclick="extractProjectDanfeWithAI(true)" style="background: rgba(16, 185, 129, 0.25); border: 1px solid rgba(16, 185, 129, 0.5); color: #34d399; padding: 4px 8px; font-size: 0.76rem; font-weight: bold; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Ler ou atualizar itens desta DANFE usando IA">
+                                            🤖 ${itemsCount > 0 ? 'Re-extrair' : 'Ler Itens'}
+                                        </button>
+                                        ` : ''}
+                                        ${!att.isDocaNfe ? `
+                                        <button type="button" class="btn" onclick="deleteProjectCommercialDocument('danfe')" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 4px 8px; font-size: 0.76rem; font-weight: bold; border-radius: 4px; cursor: pointer;">
+                                            🗑️
+                                        </button>
+                                        ` : ''}
+                                    </div>
+                                `;
+                            }).join('');
+                        } else {
+                            danfesListHtml = `
+                                <div style="background: rgba(16, 185, 129, 0.08); border: 1px dashed rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 6px 10px; font-size: 0.80rem; color: #34d399;">
+                                    🧾 NF-e(s) registradas: <strong>${escapeProjectHtml(prj.danfe_number || '-')}</strong>
+                                </div>
+                            `;
+                        }
+
                         danfeInfo.innerHTML = `
-                            <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; padding: 8px 12px; display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.85rem;">
-                                <span>🧾 DANFE:</span>
-                                <strong style="color: #34d399; font-size: 0.88rem;">${dName}</strong>
-                                ${danfeAttach ? `<a href="${safeDUrl}" target="_blank" download="${dName}" style="background: rgba(16, 185, 129, 0.25); color: #34d399; padding: 5px 10px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 0.80rem; border: 1px solid rgba(16, 185, 129, 0.4);">⬇️ Ver DANFE</a>` : ''}
-                                ${danfeAttach ? `
-                                <button type="button" class="btn" onclick="extractProjectDanfeWithAI(true)" style="background: rgba(16, 185, 129, 0.25); border: 1px solid rgba(16, 185, 129, 0.5); color: #34d399; padding: 5px 10px; font-size: 0.80rem; font-weight: bold; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Ler ou atualizar itens desta DANFE anexada usando IA">
-                                    🤖 ${itemsCount > 0 ? 'Re-extrair com IA' : 'Ler Itens com IA'}
-                                </button>
-                                ` : ''}
-                                <button type="button" class="btn" onclick="deleteProjectCommercialDocument('danfe')" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 5px 10px; font-size: 0.80rem; font-weight: bold; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-                                    🗑️ Excluir
-                                </button>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                ${danfesListHtml}
                             </div>
                         `;
                     }

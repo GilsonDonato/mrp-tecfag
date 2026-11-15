@@ -2827,20 +2827,33 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
         const rows = await dbAll('SELECT * FROM projects');
 
         // Pré-carrega ordens e itens de importação para enriquecer projetos caso colunas locais estejam nulas
+        // Pré-carrega ordens, itens e DANFEs de importação para enriquecer projetos
         let stockOrdersMap = {};
+        let stockOrdersByPrj = {};
         let stockOrderItemsMap = {};
         try {
             const stockOrders = await dbAll('SELECT * FROM stock_orders WHERE project_code IS NOT NULL');
             const stockItems = await dbAll('SELECT * FROM stock_order_items');
+            const stockNfes = await dbAll('SELECT order_id, nfe_number FROM stock_order_nfes WHERE nfe_number IS NOT NULL');
+            const stockNfesMap = {};
+            stockNfes.forEach(n => {
+                if (!stockNfesMap[n.order_id]) stockNfesMap[n.order_id] = [];
+                stockNfesMap[n.order_id].push(n.nfe_number);
+            });
+
             stockItems.forEach(it => {
                 if (!stockOrderItemsMap[it.order_id]) stockOrderItemsMap[it.order_id] = [];
                 stockOrderItemsMap[it.order_id].push(it);
             });
             stockOrders.forEach(so => {
-                stockOrdersMap[so.project_code] = {
+                const soObj = {
                     ...so,
-                    items: stockOrderItemsMap[so.id] || []
+                    items: stockOrderItemsMap[so.id] || [],
+                    nfes: stockNfesMap[so.id] || []
                 };
+                stockOrdersMap[so.project_code] = soObj;
+                if (!stockOrdersByPrj[so.project_code]) stockOrdersByPrj[so.project_code] = [];
+                stockOrdersByPrj[so.project_code].push(soObj);
             });
         } catch (e) {
             console.warn('[PROJECTS FETCH] Erro ao mapear ordens de importação:', e.message);
@@ -2900,8 +2913,31 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
                 checklist: chkParsed
             }) || (linkedOrder ? linkedOrder.stage : p.import_stage) || 'PO_EMITIDA';
 
+            // Consolidar DANFEs de todas as ordens vinculadas ao projeto (todos os fornecedores e adições)
+            const shortCode = p.code ? p.code.replace(/^PRJTEC0+/, 'PRJ') : '';
+            const prjOrders = (stockOrdersByPrj[p.code] || []).concat(stockOrdersByPrj[shortCode] || []);
+            let consolidatedDanfe = p.danfe_number || '';
+            if (prjOrders.length > 0) {
+                const danfeSet = new Set();
+                if (consolidatedDanfe) {
+                    consolidatedDanfe.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean).forEach(n => danfeSet.add(n));
+                }
+                prjOrders.forEach(o => {
+                    if (o.nfe_number) {
+                        o.nfe_number.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean).forEach(n => danfeSet.add(n));
+                    }
+                    (o.nfes || []).forEach(n => {
+                        n.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean).forEach(x => danfeSet.add(x));
+                    });
+                });
+                if (danfeSet.size > 0) {
+                    consolidatedDanfe = Array.from(danfeSet).sort((a, b) => (parseInt(a.replace(/\D/g, '')) || 0) - (parseInt(b.replace(/\D/g, '')) || 0)).join(', ');
+                }
+            }
+
             return {
                 ...p,
+                danfe_number: consolidatedDanfe || p.danfe_number,
                 fase: effectiveFase,
                 has_import_order: !!linkedOrder,
                 import_stage: ((effectiveFase >= 3 && effectiveFase <= 6) ? canonImportStage : null),
@@ -3033,6 +3069,16 @@ app.get('/api/projects/:code', async (req, res) => {
 
         project.import_items = importItemsParsed;
         project.fase = computeCanonicalProjectPhase(project);
+
+        // Sincronizar e consolidar todas as DANFEs de todos os fornecedores/ordens vinculados
+        try {
+            const syncedDanfes = await syncProjectDanfeNumbersFromAllOrders(project.code);
+            if (syncedDanfes) {
+                project.danfe_number = syncedDanfes;
+            }
+        } catch (e) {
+            console.warn('[PROJECT DANFE SYNC ERROR]', e.message);
+        }
 
         // Restrição de vendedor para rota individual
         if (req.user && req.user.role === 'VENDAS' && req.user.username !== 'vendas6' && req.user.username !== 'vendas6@tecfag.com.br') {
@@ -3623,6 +3669,73 @@ async function recordAuditLog(projectCode, user, action) {
         ]);
     } catch (e) {
         console.error('[AUDIT ERROR] Falha ao registrar log de auditoria:', e);
+    }
+}
+
+// Sincroniza e consolida todas as DANFEs de todos os fornecedores/ordens vinculados a um projeto
+async function syncProjectDanfeNumbersFromAllOrders(projectCode) {
+    if (!projectCode) return null;
+    try {
+        const shortCode = projectCode.replace(/^PRJTEC0+/, 'PRJ');
+        const orders = await dbAll(
+            'SELECT id, nfe_number FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number = ? OR po_number LIKE ?',
+            [projectCode, shortCode, `PO-${shortCode}`, `PO-${shortCode}-%`]
+        );
+        if (!orders || orders.length === 0) return null;
+
+        const orderIds = orders.map(o => o.id);
+        const placeholders = orderIds.map(() => '?').join(',');
+        const nfesRows = await dbAll(
+            `SELECT nfe_number FROM stock_order_nfes WHERE order_id IN (${placeholders})`,
+            orderIds
+        );
+
+        // Obter número atual cadastrado no projeto para preservar qualquer NF já existente
+        const currentPrj = await dbGet('SELECT danfe_number FROM projects WHERE code = ?', [projectCode]);
+        const currentDanfeStr = currentPrj ? (currentPrj.danfe_number || '') : '';
+
+        const allNumbers = new Set();
+
+        // 1. Números já gravados no projeto
+        if (currentDanfeStr) {
+            currentDanfeStr.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean).forEach(n => allNumbers.add(n));
+        }
+
+        // 2. Números das stock_orders vinculadas
+        orders.forEach(o => {
+            if (o.nfe_number) {
+                o.nfe_number.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean).forEach(n => allNumbers.add(n));
+            }
+        });
+
+        // 3. Números da tabela stock_order_nfes (todas as adições de todos os fornecedores)
+        (nfesRows || []).forEach(row => {
+            if (row.nfe_number) {
+                row.nfe_number.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean).forEach(n => allNumbers.add(n));
+            }
+        });
+
+        if (allNumbers.size === 0) return null;
+
+        const consolidated = Array.from(allNumbers).sort((a, b) => {
+            const na = parseInt(a.replace(/\D/g, '')) || 0;
+            const nb = parseInt(b.replace(/\D/g, '')) || 0;
+            return na - nb;
+        }).join(', ');
+
+        if (currentDanfeStr !== consolidated) {
+            await dbRun('UPDATE projects SET danfe_number = ?, lastUpdate = ? WHERE code = ?', [
+                consolidated,
+                new Date().toISOString(),
+                projectCode
+            ]);
+            console.log(`[SYNC PROJECT DANFE] Projeto ${projectCode} sincronizado com NF-e(s): ${consolidated}`);
+        }
+
+        return consolidated;
+    } catch (e) {
+        console.error('[SYNC DANFE NUMBERS ERROR]', e);
+        return null;
     }
 }
 
@@ -9667,6 +9780,64 @@ app.post('/api/attachments', authenticateToken, upload.single('file'), async (re
 app.get('/api/attachments/:projectCode', authenticateToken, async (req, res) => {
     try {
         let rows = await dbAll('SELECT * FROM attachments WHERE projectCode = ?', [req.params.projectCode]);
+
+        // Incluir automaticamente DANFEs anexadas nas ordens de importação deste projeto (Doca Tecfag)
+        try {
+            const shortCode = req.params.projectCode.replace(/^PRJTEC0+/, 'PRJ');
+            const linkedOrders = await dbAll(
+                'SELECT id, po_number, supplier_name, nfe_number, nfe_file_path FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number = ? OR po_number LIKE ?',
+                [req.params.projectCode, shortCode, `PO-${shortCode}`, `PO-${shortCode}-%`]
+            );
+            if (linkedOrders && linkedOrders.length > 0) {
+                const orderIds = linkedOrders.map(o => o.id);
+                const placeholders = orderIds.map(() => '?').join(',');
+                const docaNfes = await dbAll(
+                    `SELECT son.*, so.po_number, so.supplier_name 
+                     FROM stock_order_nfes son
+                     JOIN stock_orders so ON son.order_id = so.id
+                     WHERE son.order_id IN (${placeholders})`,
+                    orderIds
+                );
+
+                // Adiciona NF-es da tabela stock_order_nfes
+                (docaNfes || []).forEach(nfe => {
+                    if (nfe.file_path && !rows.some(r => r.filePath === nfe.file_path)) {
+                        rows.push({
+                            id: `doca-nfe-${nfe.id}`,
+                            projectCode: req.params.projectCode,
+                            phase: 'danfe_venda',
+                            fileName: nfe.file_name || `DANFE_NF_${nfe.nfe_number}.pdf`,
+                            fileType: 'application/pdf',
+                            filePath: nfe.file_path,
+                            dateAdded: nfe.created_at,
+                            isDocaNfe: true,
+                            nfeNumber: nfe.nfe_number,
+                            supplierName: nfe.supplier_name
+                        });
+                    }
+                });
+
+                // Adiciona DANFEs gravadas diretamente no registro principal da ordem
+                linkedOrders.forEach(o => {
+                    if (o.nfe_file_path && !rows.some(r => r.filePath === o.nfe_file_path)) {
+                        rows.push({
+                            id: `order-nfe-${o.id}`,
+                            projectCode: req.params.projectCode,
+                            phase: 'danfe_venda',
+                            fileName: `DANFE_NF_${o.nfe_number || o.po_number}.pdf`,
+                            fileType: 'application/pdf',
+                            filePath: o.nfe_file_path,
+                            dateAdded: new Date().toISOString(),
+                            isDocaNfe: true,
+                            nfeNumber: o.nfe_number,
+                            supplierName: o.supplier_name
+                        });
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('[ATTACHMENTS MERGE DOCA NFES]', e.message);
+        }
         
         // Filtrar arquivo 4 da fase 1 (Cotação) para quem não for admin/gerente/diretor/compras
         if (req.user.role !== 'ALL' && req.user.role !== 'GERENTE' && req.user.role !== 'DIRETOR' && req.user.role !== 'COMPRAS') {
@@ -11412,11 +11583,60 @@ app.post('/api/projects/:code/align-commercial-fiscal', authenticateToken, async
         }
 
         const proposal = safeJsonParse(project.commercial_proposal_data, null);
-        const danfeItems = safeJsonParse(project.danfe_items, []);
+        let danfeItems = safeJsonParse(project.danfe_items, []);
         const setupSpecs = safeJsonParse(project.setup_specs, {});
 
-        if (!proposal && (!danfeItems || danfeItems.length === 0)) {
-            return res.status(400).json({ error: 'Para realizar o cruzamento, anexe pelo menos a Proposta Comercial ou a DANFE.' });
+        // Fallback inteligente: se danfeItems estiver vazio, buscar das ordens de importação (stock_order_items)
+        if (!danfeItems || danfeItems.length === 0) {
+            const shortCode = code.replace(/^PRJTEC0+/, 'PRJ');
+            const linkedOrders = await dbAll(
+                'SELECT id, po_number, supplier_name, invoice_number FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number = ? OR po_number LIKE ?',
+                [code, shortCode, `PO-${shortCode}`, `PO-${shortCode}-%`]
+            );
+            if (linkedOrders && linkedOrders.length > 0) {
+                const orderIds = linkedOrders.map(o => o.id);
+                const placeholders = orderIds.map(() => '?').join(',');
+                const orderItems = await dbAll(
+                    `SELECT soi.*, so.supplier_name, so.po_number 
+                     FROM stock_order_items soi
+                     JOIN stock_orders so ON soi.order_id = so.id
+                     WHERE soi.order_id IN (${placeholders})`,
+                    orderIds
+                );
+                if (orderItems && orderItems.length > 0) {
+                    danfeItems = orderItems.map((oi, idx) => ({
+                        item_no: idx + 1,
+                        code: oi.tecfag_sku || oi.sku,
+                        description: `[${oi.supplier_name || 'Importado'}] ${oi.description || oi.sku}`,
+                        qty: oi.qty_ordered || 1,
+                        unit_price: oi.unit_price_fob || 0,
+                        total_price: oi.total_price_fob || 0,
+                        supplier: oi.supplier_name,
+                        po_number: oi.po_number
+                    }));
+
+                    // Persistir no projeto para preencher o visualizador de itens
+                    if (!project.danfe_items || project.danfe_items === '[]') {
+                        await dbRun('UPDATE projects SET danfe_items = ? WHERE code = ?', [
+                            JSON.stringify(danfeItems), code
+                        ]);
+                    }
+                }
+            }
+        }
+
+        // Se não houver proposta comercial anexada, estruturar escopo a partir do card, especificações e diagnóstico
+        const proposalScope = proposal || {
+            aviso: "Proposta Comercial em PDF não foi anexada no Card 1. O escopo comercial foi reconstruído com base no cadastro do projeto e especificações técnicas alinhadas.",
+            nome_projeto: project.project_name || project.sku || 'Linha / Equipamento',
+            cliente: project.client,
+            sku_base: project.sku,
+            especificacoes_tecnicas: setupSpecs,
+            diagnostico_comercial: project.diagnostico || 'Sem diagnóstico adicional'
+        };
+
+        if (!proposal && (!danfeItems || danfeItems.length === 0) && Object.keys(setupSpecs).length === 0) {
+            return res.status(400).json({ error: 'Para realizar o cruzamento, anexe a Proposta Comercial (Card 1) ou verifique se há DANFEs/Ordens de Importação com itens cadastrados.' });
         }
 
         const apiKey = process.env.GEMINI_API_KEY;
@@ -11426,32 +11646,33 @@ app.post('/api/projects/:code/align-commercial-fiscal', authenticateToken, async
 
         const prompt = `
 Você é o Auditor Sênior de Qualidade, Engenharia e Comércio da Tecfag.
-Realize um cruzamento minucioso entre o que foi PROMETIDO COMERCIALMENTE ao cliente e o que foi FATURADO NA NOTA FISCAL (DANFE), gerando também as diretrizes exatas para a Ficha Técnica de Engenharia e Montagem.
+Realize um cruzamento minucioso entre o que foi PROMETIDO COMERCIALMENTE ao cliente e o que foi FATURADO/IMPORTADO (DANFEs e Ordens de Importação), gerando também as diretrizes exatas para a Ficha Técnica de Engenharia e Montagem no SAT.
 
 DADOS DO PROJETO:
 - Código: ${project.code}
 - Cliente: ${project.client}
 - Modelo Base Cadastrado (SKU): ${project.sku}
+- Nome do Projeto: ${project.project_name || project.sku || 'N/A'}
 
-PROPOSTA COMERCIAL APROVADA:
-${JSON.stringify(proposal, null, 2)}
+PROPOSTA COMERCIAL / ESCOPO VENDIDO:
+${JSON.stringify(proposalScope, null, 2)}
 
-DANFE / NOTA FISCAL DE VENDA:
+DANFE / NOTAS FISCAIS & ITENS IMPORTADOS:
 - Nº da NF: ${project.danfe_number || 'Não informado'}
 - Data Emissão: ${project.danfe_date || 'Não informado'}
 - Valor Total NF: R$ ${project.danfe_value || 0}
 - Chave de Acesso: ${project.danfe_access_key || 'Não informado'}
-- Itens da Nota:
+- Itens das Notas / Ordens de Importação:
 ${JSON.stringify(danfeItems, null, 2)}
 
 ESPECIFICAÇÕES TÉCNICAS ATUAIS DO CARD:
 ${JSON.stringify(setupSpecs, null, 2)}
 
 SUA MISSÃO:
-1. Comparar os itens da Proposta Comercial com os itens da DANFE (conformidade de quantidades, modelos e valores).
-2. Listar claramente quaisquer DIVERGÊNCIAS ou ITENS FALTANTES.
+1. Comparar os itens e equipamentos prometidos com os itens faturados/importados (quantidades, modelos e complementos).
+2. Listar claramente quaisquer DIVERGÊNCIAS, ITENS FALTANTES ou OBSERVAÇÕES DE INTEGRAÇÃO.
 3. Identificar TODOS os opcionais, customizações técnicas, voltagem elétrica, esteiras ou acessórios prometidos ao cliente que a Engenharia/Oficina DEVE garantir na preparação física da máquina.
-4. Extrair e preencher os parâmetros recomendados para a Ficha Técnica de Engenharia (voltagem, tipo de solda/tampa, formato da embalagem, dosador, etc.).
+4. Extrair e preencher os parâmetros recomendados para a Ficha Técnica de Engenharia (voltagem, tipo de solda/tampa, formato da embalagem, dosador, esteiras, etc.).
 
 Retorne EXCLUSIVAMENTE um objeto JSON no formato:
 {
@@ -11480,23 +11701,41 @@ Retorne EXCLUSIVAMENTE um objeto JSON no formato:
 }
 `;
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-        const aiRes = await fetch(geminiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json" }
-            })
-        });
+        const candidateModels = [
+            process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+            'gemini-flash-latest',
+            'gemini-2.0-flash'
+        ];
 
-        if (!aiRes.ok) {
-            throw new Error(`Gemini retornou status ${aiRes.status}`);
+        let auditResult = null;
+        for (const modelName of candidateModels) {
+            try {
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                const aiRes = await fetch(geminiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                if (aiRes.ok) {
+                    const aiData = await aiRes.json();
+                    if (aiData.candidates && aiData.candidates[0]?.content?.parts[0]) {
+                        const rawJson = aiData.candidates[0].content.parts[0].text;
+                        auditResult = cleanAndParseJSON(rawJson);
+                        if (auditResult) break;
+                    }
+                }
+            } catch (mErr) {
+                console.warn(`[ALIGN GEMINI] Erro no modelo ${modelName}:`, mErr.message);
+            }
         }
 
-        const aiData = await aiRes.json();
-        const rawJson = aiData.candidates[0].content.parts[0].text;
-        const auditResult = cleanAndParseJSON(rawJson);
+        if (!auditResult) {
+            throw new Error('Não foi possível obter resposta válida da IA para o cruzamento.');
+        }
 
         // Salvar resumo no banco
         await dbRun(`
@@ -13263,6 +13502,10 @@ app.post('/api/supply-chain/orders/:id/advance-doca', authenticateToken, restric
             const allLinked = await dbAll("SELECT id, po_number, supplier_name, stage FROM stock_orders WHERE project_code = ?", [order.project_code]);
             const pendingOrders = allLinked.filter(o => o.id !== order.id && o.stage !== 'DOCA_GALPAO');
 
+            // Sincronizar DANFEs de todos os fornecedores do projeto (Shanghai Royal + Wenzhou Urban + outros)
+            const allProjectDanfes = await syncProjectDanfeNumbersFromAllOrders(order.project_code);
+            const danfeDisplay = allProjectDanfes || consolidatedNfeNumbers;
+
             if (pendingOrders.length === 0) {
                 const nowIso = new Date().toISOString();
                 const prjRow = await dbGet("SELECT checklist FROM projects WHERE code = ?", [order.project_code]);
@@ -13272,9 +13515,9 @@ app.post('/api/supply-chain/orders/:id/advance-doca', authenticateToken, restric
                     chk[k] = true;
                 });
                 await dbRun("UPDATE projects SET fase = 6, checklist = ?, danfe_number = ?, faseEntryDate = ?, lastUpdate = ? WHERE code = ?", [
-                    JSON.stringify(chk), consolidatedNfeNumbers, nowIso, nowIso, order.project_code
+                    JSON.stringify(chk), danfeDisplay, nowIso, nowIso, order.project_code
                 ]);
-                await recordAuditLog(order.project_code, user, `Entrada fiscal validada na Doca Tecfag via NF-e(s) nº ${consolidatedNfeNumbers}. Todos os equipamentos da linha (${allLinked.length}/${allLinked.length}) estão na Doca. Projeto liberado para Fase 6 (Oficina, Setup & SAT).`);
+                await recordAuditLog(order.project_code, user, `Entrada fiscal validada na Doca Tecfag via NF-e(s) nº ${danfeDisplay}. Todos os equipamentos da linha (${allLinked.length}/${allLinked.length}) estão na Doca. Projeto liberado para Fase 6 (Oficina, Setup & SAT).`);
                 console.log(`[DOCA GATING] Todos os ${allLinked.length} fornecedores do projeto ${order.project_code} na Doca. Projeto liberado para Oficina.`);
             } else {
                 const pendingNames = pendingOrders.map(o => `${o.po_number} (${o.supplier_name})`).join(', ');
@@ -15677,6 +15920,10 @@ app.post('/api/supply-chain/orders/:id/add-nfe', authenticateToken, restrictToSu
             consolidatedNfeNumbers, now, order.id
         ]);
 
+        if (order.project_code) {
+            await syncProjectDanfeNumbersFromAllOrders(order.project_code);
+        }
+
         await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
             now,
             '#10b981',
@@ -15717,6 +15964,10 @@ app.delete('/api/supply-chain/orders/:id/nfe/:nfeId', authenticateToken, restric
         await dbRun('UPDATE stock_orders SET nfe_number = ?, updated_at = ? WHERE id = ?', [
             consolidatedNfeNumbers, now, order.id
         ]);
+
+        if (order.project_code) {
+            await syncProjectDanfeNumbersFromAllOrders(order.project_code);
+        }
 
         await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
             now,
