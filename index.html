@@ -25275,8 +25275,9 @@ function renderKanban() {
                             checkProjectAttachedInvoice(activeProjectCode);
                         }
                     }
-                    if (typeof supplyChainState !== 'undefined' && supplyChainState.currentOrder && String(supplyChainState.currentOrder.id) === String(orderId)) {
-                        await openSupplyDetailsModal(orderId);
+                    const targetOrderId = data.order_id || orderId;
+                    if (typeof supplyChainState !== 'undefined' && supplyChainState.currentOrder && (String(supplyChainState.currentOrder.id) === String(orderId) || String(supplyChainState.currentOrder.id) === String(targetOrderId))) {
+                        await openSupplyDetailsModal(targetOrderId);
                     }
                     if (typeof loadSupplyChainData === 'function') {
                         loadSupplyChainData();
@@ -25314,8 +25315,9 @@ function renderKanban() {
                     if (activeProjectCode) {
                         await loadProjectMultiOrders(activeProjectCode);
                     }
-                    if (typeof supplyChainState !== 'undefined' && supplyChainState.currentOrder && String(supplyChainState.currentOrder.id) === String(orderId)) {
-                        await openSupplyDetailsModal(orderId);
+                    const targetOrderId = data.order_id || orderId;
+                    if (typeof supplyChainState !== 'undefined' && supplyChainState.currentOrder && (String(supplyChainState.currentOrder.id) === String(orderId) || String(supplyChainState.currentOrder.id) === String(targetOrderId))) {
+                        await openSupplyDetailsModal(targetOrderId);
                     }
                     if (typeof loadSupplyChainData === 'function') {
                         loadSupplyChainData();

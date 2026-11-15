@@ -1026,6 +1026,99 @@ function computeCanonicalImportStage(project) {
 }
 
 /**
+ * Localiza uma ordem em stock_orders por ID numérico ou por identificador virtual 'PRJ-...'
+ * Caso seja um card virtual de projeto ('PRJ-PRJTEC...'), localiza a ordem existente ou
+ * materializa a ordem principal do projeto em stock_orders de forma atômica e consistente.
+ */
+async function resolveOrMaterializeStockOrder(orderId, user = 'Sistema') {
+    if (!orderId) return null;
+    const strId = String(orderId).trim();
+
+    if (strId.startsWith('PRJ-')) {
+        const pCode = strId.replace('PRJ-', '').trim();
+        const shortCode = pCode.replace(/^PRJTEC0+/, 'PRJ');
+        let order = await dbGet('SELECT * FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number = ?', [pCode, shortCode, `PO-${shortCode}`]);
+        if (!order) {
+            const p = await dbGet('SELECT * FROM projects WHERE code = ? OR code = ? OR code LIKE ?', [pCode, shortCode, `%${shortCode}%`]);
+            if (!p) return null;
+
+            const canonStage = computeCanonicalImportStage(p) || p.import_stage || 'PO_EMITIDA';
+            const fobVal = p.import_total_fob_value || (p.crm_value ? (p.crm_value / 5.5) : 0);
+            const poBase = `PO-${p.code.replace(/^PRJTEC0+/, 'PRJ')}`;
+            const now = new Date().toISOString();
+
+            let finalPo = poBase;
+            const conflict = await dbGet('SELECT id FROM stock_orders WHERE LOWER(po_number) = LOWER(?)', [finalPo]);
+            if (conflict) {
+                finalPo = `${poBase}-${Date.now().toString().slice(-4)}`;
+            }
+
+            const insertRes = await dbRun(
+                `INSERT INTO stock_orders (
+                    po_number, supplier_name, stage, project_code, client_name,
+                    invoice_number, currency, total_fob_value,
+                    container_id, vessel_name, bl_number, bl_date,
+                    etd_date, eta_port_date, eta_warehouse_date, actual_arrival_date,
+                    transport_mode, courier_service, tracking_number,
+                    created_by, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    finalPo,
+                    p.import_supplier || p.supplier || 'Fornecedor Internacional',
+                    canonStage,
+                    p.code,
+                    p.client || null,
+                    p.import_invoice_number || `PI-${p.code.replace(/^PRJTEC0+/, 'PRJ')}`,
+                    p.import_currency || 'USD',
+                    fobVal,
+                    p.import_container_id || null,
+                    p.import_vessel_name || null,
+                    p.import_bl_number || null,
+                    p.import_bl_date || null,
+                    p.import_etd_date || null,
+                    p.import_eta_port_date || p.import_eta_port || null,
+                    p.import_eta_warehouse_date || p.import_eta_wh || null,
+                    p.import_actual_arrival_date || p.import_actual_arrival || null,
+                    p.import_transport_mode || 'MARITIMO',
+                    p.import_courier_service || null,
+                    p.import_tracking_number || null,
+                    user || 'Sistema',
+                    now,
+                    now
+                ]
+            );
+
+            const newOrderId = insertRes.lastID;
+            if (p.sku || p.project_name) {
+                await dbRun(
+                    `INSERT INTO stock_order_items (order_id, sku, description, qty_ordered, unit_price_fob) VALUES (?, ?, ?, ?, ?)`,
+                    [newOrderId, p.sku || 'MAQ-PROJETO', p.project_name || p.sku || 'Equipamento do Projeto', 1, fobVal]
+                );
+            }
+
+            // Garante que o projeto tenha import_stage ativo e flags limpas
+            let chk = {};
+            try { chk = typeof p.checklist === 'string' ? JSON.parse(p.checklist || '{}') : (p.checklist || {}); } catch(e){}
+            delete chk.import_order_deleted;
+            delete chk.import_order_unlinked;
+            await dbRun('UPDATE projects SET import_stage = ?, checklist = ?, has_import_order = 1, lastUpdate = ? WHERE code = ?', [
+                canonStage,
+                JSON.stringify(chk),
+                now,
+                p.code
+            ]);
+
+            order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [newOrderId]);
+        }
+        return order;
+    }
+
+    // Se for ID numérico direto
+    const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+    return order;
+}
+
+/**
  * Sincronizador Atômico de Itens de Importação (Etapa 3 da Estabilização)
  * Garante que a tabela filha stock_order_items reflita com precisão os itens
  * lidos pela IA ou salvos pelo operador, respeitando a integridade referencial do EADI.
@@ -10185,7 +10278,7 @@ app.post('/api/supply-chain/orders/:id/attach-invoice', authenticateToken, restr
     const { id } = req.params;
     const user = req.user ? req.user.username : 'Sistema';
     try {
-        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [id]);
+        const order = await resolveOrMaterializeStockOrder(id, user);
         if (!order) return res.status(404).json({ error: 'Ordem não encontrada.' });
 
         if (!req.file) {
@@ -10195,17 +10288,26 @@ app.post('/api/supply-chain/orders/:id/attach-invoice', authenticateToken, restr
         const invoiceFilePath = 'uploads/' + req.file.filename;
         const now = new Date().toISOString();
 
-        await dbRun('UPDATE stock_orders SET invoice_file_path = ?, updated_at = ? WHERE id = ?', [invoiceFilePath, now, id]);
+        await dbRun('UPDATE stock_orders SET invoice_file_path = ?, updated_at = ? WHERE id = ?', [invoiceFilePath, now, order.id]);
 
         if (order.project_code) {
             await dbRun(`
                 INSERT INTO attachments (projectCode, phase, fileName, fileType, filePath, dateAdded)
                 VALUES (?, 'proforma', ?, ?, ?, ?)
             `, [order.project_code, `[${order.po_number}] ${req.file.originalname}`, req.file.mimetype, invoiceFilePath, now]);
+
+            const p = await dbGet('SELECT checklist FROM projects WHERE code = ?', [order.project_code]);
+            if (p) {
+                let chk = {};
+                try { chk = JSON.parse(p.checklist || '{}'); } catch(e) {}
+                chk.proforma = true;
+                await dbRun('UPDATE projects SET checklist = ?, import_invoice_path = ?, lastUpdate = ? WHERE code = ?', [JSON.stringify(chk), invoiceFilePath, now, order.project_code]);
+            }
+
             await recordAuditLog(order.project_code, user, `Proforma Invoice anexada para a ordem ${order.po_number}: ${req.file.originalname}`);
         }
 
-        res.json({ success: true, invoice_file_path: invoiceFilePath, message: 'Proforma Invoice anexada com sucesso!' });
+        res.json({ success: true, order_id: order.id, invoice_file_path: invoiceFilePath, message: 'Proforma Invoice anexada com sucesso!' });
     } catch (err) {
         console.error('[ATTACH INVOICE ERROR]', err);
         res.status(500).json({ error: 'Erro ao anexar fatura: ' + err.message });
@@ -10217,7 +10319,7 @@ app.post('/api/supply-chain/orders/:id/attach-packing-list', authenticateToken, 
     const { id } = req.params;
     const user = req.user ? req.user.username : 'Sistema';
     try {
-        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [id]);
+        const order = await resolveOrMaterializeStockOrder(id, user);
         if (!order) return res.status(404).json({ error: 'Ordem não encontrada.' });
 
         if (!req.file) {
@@ -10227,7 +10329,7 @@ app.post('/api/supply-chain/orders/:id/attach-packing-list', authenticateToken, 
         const packingListFilePath = 'uploads/' + req.file.filename;
         const now = new Date().toISOString();
 
-        await dbRun('UPDATE stock_orders SET packing_list_file_path = ?, updated_at = ? WHERE id = ?', [packingListFilePath, now, id]);
+        await dbRun('UPDATE stock_orders SET packing_list_file_path = ?, updated_at = ? WHERE id = ?', [packingListFilePath, now, order.id]);
 
         if (order.project_code) {
             await dbRun(`
@@ -10237,7 +10339,7 @@ app.post('/api/supply-chain/orders/:id/attach-packing-list', authenticateToken, 
             await recordAuditLog(order.project_code, user, `Packing List anexado para a ordem ${order.po_number}: ${req.file.originalname}`);
         }
 
-        res.json({ success: true, packing_list_file_path: packingListFilePath, message: 'Packing List anexado com sucesso!' });
+        res.json({ success: true, order_id: order.id, packing_list_file_path: packingListFilePath, message: 'Packing List anexado com sucesso!' });
     } catch (err) {
         console.error('[ATTACH PACKING LIST ERROR]', err);
         res.status(500).json({ error: 'Erro ao anexar Packing List: ' + err.message });
@@ -12015,56 +12117,21 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
 app.get('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain, async (req, res) => {
     try {
         const orderId = req.params.id;
-        let order;
-
-        if (typeof orderId === 'string' && orderId.startsWith('PRJ-')) {
-            const pCode = orderId.replace('PRJ-', '');
-            const shortCode = pCode.replace(/^PRJTEC0+/, 'PRJ');
-            order = await dbGet('SELECT * FROM stock_orders WHERE project_code = ? OR project_code = ?', [pCode, shortCode]);
-            if (!order) {
-                const p = await dbGet('SELECT * FROM projects WHERE code = ? OR code = ? OR code LIKE ?', [pCode, shortCode, `%${shortCode}%`]);
-                if (!p) {
-                    return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
-                }
-                const canonStage = computeCanonicalImportStage(p) || p.import_stage || 'PO_EMITIDA';
-                const fobVal = p.import_total_fob_value || (p.crm_value ? (p.crm_value / 5.5) : 0);
-                order = {
-                    id: 'PRJ-' + p.code,
-                    is_project: true,
-                    project_code: p.code,
-                    client_name: p.client,
-                    project_name: p.project_name,
-                    project_sku: p.sku,
-                    stage: canonStage,
-                    po_number: 'PO-' + shortCode,
-                    supplier_name: p.import_supplier || p.supplier || 'Fornecedor Internacional',
-                    invoice_number: p.import_invoice_number || ('PI-' + shortCode),
-                    invoice_date: p.import_invoice_date,
-                    currency: p.import_currency || 'USD',
-                    total_fob_value: fobVal,
-                    container_id: p.import_container_id,
-                    vessel_name: p.import_vessel_name,
-                    bl_number: p.import_bl_number,
-                    bl_date: p.import_bl_date,
-                    etd_date: p.import_etd_date,
-                    eta_port_date: p.import_eta_port_date || p.import_eta_port,
-                    eta_warehouse_date: p.import_eta_warehouse_date || p.import_eta_wh,
-                    actual_arrival_date: p.import_actual_arrival_date || p.import_actual_arrival,
-                    transport_mode: p.import_transport_mode || 'MARITIMO',
-                    courier_service: p.import_courier_service,
-                    tracking_number: p.import_tracking_number,
-                    items: [],
-                    clearances: [],
-                    linked_orders: []
-                };
-                return res.json(order);
-            }
-        } else {
-            order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
-        }
+        const user = req.user ? req.user.username : 'Sistema';
+        let order = await resolveOrMaterializeStockOrder(orderId, user);
 
         if (!order) {
             return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
+        }
+
+        if (order.project_code) {
+            const p = await dbGet('SELECT * FROM projects WHERE code = ? OR code LIKE ?', [order.project_code, `%${order.project_code}%`]);
+            if (p) {
+                order.is_project = true;
+                order.client_name = p.client;
+                order.project_name = p.project_name;
+                order.project_sku = p.sku;
+            }
         }
 
         order.items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [order.id]);
@@ -12129,7 +12196,8 @@ app.get('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
 app.get('/api/supply-chain/orders/:id/logs', authenticateToken, restrictToSupplyChain, async (req, res) => {
     try {
         const orderId = req.params.id;
-        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        const user = req.user ? req.user.username : 'Sistema';
+        const order = await resolveOrMaterializeStockOrder(orderId, user);
         if (!order) {
             return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
         }
@@ -12328,13 +12396,14 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
     } = req.body;
 
     try {
-        const existing = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        const existing = await resolveOrMaterializeStockOrder(orderId, user);
         if (!existing) {
             return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
         }
+        const realId = existing.id;
 
         if (po_number && po_number.trim() && po_number.trim().toLowerCase() !== (existing.po_number || '').toLowerCase()) {
-            const conflictPo = await dbGet('SELECT id, po_number FROM stock_orders WHERE LOWER(po_number) = LOWER(?) AND id != ?', [po_number.trim(), orderId]);
+            const conflictPo = await dbGet('SELECT id, po_number FROM stock_orders WHERE LOWER(po_number) = LOWER(?) AND id != ?', [po_number.trim(), realId]);
             if (conflictPo) {
                 return res.status(400).json({ error: `Já existe outra ordem cadastrada com o número de PO "${po_number.trim()}".` });
             }
@@ -12410,7 +12479,7 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
             tracking_number !== undefined ? tracking_number : existing.tracking_number,
             stageEntry,
             new Date().toISOString(),
-            orderId
+            realId
         ]);
 
         if (existing.project_code) {
@@ -12440,26 +12509,26 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
                         await dbRun(`UPDATE stock_order_items SET 
                             sku = ?, description = ?, qty_ordered = ?, unit_price_fob = ?, total_price_fob = ?, notes = ?
                             WHERE id = ? AND order_id = ?`, [
-                            (it.sku || '').trim().toUpperCase(), it.description || '', qty, price, total, it.notes || '', it.id, orderId
+                            (it.sku || '').trim().toUpperCase(), it.description || '', qty, price, total, it.notes || '', it.id, realId
                         ]);
                     } else {
                         await dbRun(`INSERT INTO stock_order_items (
                             order_id, sku, description, qty_ordered, qty_shipped, qty_backorder, unit_price_fob, total_price_fob, status, notes, created_at
                         ) VALUES (?, ?, ?, ?, 0, 0, ?, ?, 'ORDERED', ?, ?)`, [
-                            orderId, (it.sku || '').trim().toUpperCase(), it.description || '', qty, price, total, it.notes || '', new Date().toISOString()
+                            realId, (it.sku || '').trim().toUpperCase(), it.description || '', qty, price, total, it.notes || '', new Date().toISOString()
                         ]);
                     }
                 }
-                await dbRun('UPDATE stock_orders SET total_fob_value = ? WHERE id = ?', [sumFob, orderId]);
+                await dbRun('UPDATE stock_orders SET total_fob_value = ? WHERE id = ?', [sumFob, realId]);
             }
         }
 
         // Recalcular datas de vencimento de pagamentos se data do BL ou Invoice mudou
-        await refreshOrderPaymentDates(orderId);
+        await refreshOrderPaymentDates(realId);
 
-        const updated = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
-        updated.items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [orderId]);
-        updated.payments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [orderId]);
+        const updated = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [realId]);
+        updated.items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [realId]);
+        updated.payments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [realId]);
 
         res.json(updated);
     } catch (err) {
@@ -12488,27 +12557,7 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
     };
 
     try {
-        let order;
-        if (typeof orderId === 'string' && orderId.startsWith('PRJ-')) {
-            const pCode = orderId.replace('PRJ-', '');
-            order = await dbGet('SELECT * FROM stock_orders WHERE project_code = ?', [pCode]);
-            if (!order) {
-                const p = await dbGet('SELECT * FROM projects WHERE code = ?', [pCode]);
-                if (!p) {
-                    return res.status(404).json({ error: 'Projeto não encontrado.' });
-                }
-                const shortCode = p.code.replace(/^PRJTEC0+/, 'PRJ');
-                const poNumber = `PO-${shortCode}`;
-                const insertRes = await dbRun(
-                    `INSERT INTO stock_orders (po_number, supplier_name, stage, project_code, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                    [poNumber, p.supplier || 'Fornecedor Principal', p.import_stage || 'PO_EMITIDA', p.code, user, new Date().toISOString(), new Date().toISOString()]
-                );
-                order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [insertRes.lastID]);
-            }
-        } else {
-            order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
-        }
-
+        let order = await resolveOrMaterializeStockOrder(orderId, user);
         if (!order) {
             return res.status(404).json({ error: 'Ordem não encontrada.' });
         }
@@ -12557,7 +12606,7 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
         // Verifica se TODOS os fornecedores deste projeto já chegaram na Doca antes de avançar para Fase 6!
         if (nextStage === 'DOCA_GALPAO' && order.project_code) {
             const allLinked = await dbAll("SELECT id, po_number, supplier_name, stage FROM stock_orders WHERE project_code = ?", [order.project_code]);
-            const pendingOrders = allLinked.filter(o => o.id !== parseInt(orderId) && o.stage !== 'DOCA_GALPAO');
+            const pendingOrders = allLinked.filter(o => o.id !== order.id && o.stage !== 'DOCA_GALPAO');
 
             if (pendingOrders.length === 0) {
                 const nowIso = new Date().toISOString();
@@ -12618,7 +12667,7 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
             customsRegime = 'EADI_BAURU';
 
             // Inicializar qty_eadi_admitted em stock_order_items se ainda for 0
-            const items = await dbAll('SELECT id, qty_ordered, qty_shipped, qty_eadi_admitted FROM stock_order_items WHERE order_id = ?', [orderId]);
+            const items = await dbAll('SELECT id, qty_ordered, qty_shipped, qty_eadi_admitted FROM stock_order_items WHERE order_id = ?', [order.id]);
             for (const it of items) {
                 if (!it.qty_eadi_admitted || it.qty_eadi_admitted <= 0) {
                     const admitted = it.qty_shipped > 0 ? it.qty_shipped : it.qty_ordered;
@@ -12631,7 +12680,7 @@ app.post('/api/supply-chain/orders/:id/advance-stage', authenticateToken, restri
         await dbRun(`UPDATE stock_orders SET 
             stage = ?, actual_arrival_date = ?, eadi_entry_date = ?, customs_regime = ?, stage_entry_date = ?, updated_at = ? 
             WHERE id = ?`, [
-            nextStage, actualArrival, eadiEntry, customsRegime, nowIso, nowIso, orderId
+            nextStage, actualArrival, eadiEntry, customsRegime, nowIso, nowIso, order.id
         ]);
 
         const currentIndex = stages.indexOf(order.stage);
@@ -12669,7 +12718,7 @@ app.post('/api/supply-chain/orders/:id/advance-doca', authenticateToken, restric
     }
 
     try {
-        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        const order = await resolveOrMaterializeStockOrder(orderId, user);
         if (!order) {
             return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
         }
@@ -12693,7 +12742,7 @@ app.post('/api/supply-chain/orders/:id/advance-doca', authenticateToken, restric
                 if (mapItem.id && mapItem.tecfag_sku) {
                     const cleanTecfagSku = mapItem.tecfag_sku.trim().toUpperCase();
                     await dbRun('UPDATE stock_order_items SET tecfag_sku = ? WHERE id = ? AND order_id = ?', [
-                        cleanTecfagSku, mapItem.id, orderId
+                        cleanTecfagSku, mapItem.id, order.id
                     ]);
 
                     // Salvar na memória permanente de De-Para (supplier_sku_mappings)
@@ -12737,13 +12786,13 @@ app.post('/api/supply-chain/orders/:id/advance-doca', authenticateToken, restric
             di_number ? di_number.trim() : null,
             now,
             now,
-            orderId
+            order.id
         ]);
 
         // Se houver projeto vinculado, verifica convergência de todos os fornecedores antes de avançar para Fase 6
         if (order.project_code) {
             const allLinked = await dbAll("SELECT id, po_number, supplier_name, stage FROM stock_orders WHERE project_code = ?", [order.project_code]);
-            const pendingOrders = allLinked.filter(o => o.id !== parseInt(orderId) && o.stage !== 'DOCA_GALPAO');
+            const pendingOrders = allLinked.filter(o => o.id !== order.id && o.stage !== 'DOCA_GALPAO');
 
             if (pendingOrders.length === 0) {
                 const nowIso = new Date().toISOString();
@@ -12818,11 +12867,11 @@ app.post('/api/supply-chain/orders/:id/eadi-clearance', authenticateToken, restr
     }
 
     try {
-        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        const order = await resolveOrMaterializeStockOrder(orderId, user);
         if (!order) return res.status(404).json({ error: 'Ordem não encontrada.' });
 
         // Validação de saldos disponíveis
-        const orderItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [orderId]);
+        const orderItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [order.id]);
         const itemMap = {};
         orderItems.forEach(it => itemMap[it.id] = it);
 
@@ -12832,7 +12881,7 @@ app.post('/api/supply-chain/orders/:id/eadi-clearance', authenticateToken, restr
             JOIN stock_eadi_clearances c ON ci.clearance_id = c.id
             WHERE c.order_id = ?
             GROUP BY ci.order_item_id
-        `, [orderId]);
+        `, [order.id]);
         const clearedMap = {};
         currentClearances.forEach(r => clearedMap[r.order_item_id] = r.total_cleared || 0);
 
@@ -12858,7 +12907,7 @@ app.post('/api/supply-chain/orders/:id/eadi-clearance', authenticateToken, restr
                 notes, di_file_path, created_by, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
-            orderId,
+            order.id,
             di_number.trim(),
             di_date,
             parseFloat(exchange_rate) || 1.0,
@@ -12933,7 +12982,7 @@ app.post('/api/supply-chain/orders/:id/eadi-clearance', authenticateToken, restr
             JOIN stock_eadi_clearances c ON ci.clearance_id = c.id
             WHERE c.order_id = ?
             GROUP BY ci.order_item_id
-        `, [orderId]);
+        `, [order.id]);
         const updatedClearedMap = {};
         updatedClearances.forEach(r => updatedClearedMap[r.order_item_id] = r.total_cleared || 0);
 
@@ -12951,7 +13000,7 @@ app.post('/api/supply-chain/orders/:id/eadi-clearance', authenticateToken, restr
             await dbRun(`UPDATE stock_orders SET stage = 'DOCA_GALPAO', actual_arrival_date = ?, updated_at = ? WHERE id = ?`, [
                 new Date().toISOString().split('T')[0],
                 new Date().toISOString(),
-                orderId
+                order.id
             ]);
             await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
                 new Date().toISOString(),
@@ -12985,12 +13034,12 @@ app.post('/api/supply-chain/orders/:id/eadi-audit', authenticateToken, restrictT
     } = req.body;
 
     try {
-        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        const order = await resolveOrMaterializeStockOrder(orderId, user);
         if (!order) {
             return res.status(404).json({ error: 'Ordem / Container não encontrado.' });
         }
 
-        const orderItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [orderId]);
+        const orderItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [order.id]);
         if (!orderItems || orderItems.length === 0) {
             return res.status(400).json({ error: 'Nenhum item encontrado nesta ordem.' });
         }
@@ -13002,7 +13051,7 @@ app.post('/api/supply-chain/orders/:id/eadi-audit', authenticateToken, restrictT
             JOIN stock_eadi_clearances c ON ci.clearance_id = c.id
             WHERE c.order_id = ?
             GROUP BY ci.order_item_id
-        `, [orderId]);
+        `, [order.id]);
         const clearedMap = {};
         clearances.forEach(c => clearedMap[c.order_item_id] = c.total_cleared || 0);
 
@@ -13057,7 +13106,7 @@ app.post('/api/supply-chain/orders/:id/eadi-audit', authenticateToken, restrictT
                     notes, created_by, created_at, destination_type
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
-                orderId,
+                order.id,
                 'AJUSTE-INVENTARIO',
                 diDate,
                 1.0,
@@ -13115,7 +13164,7 @@ app.post('/api/supply-chain/orders/:id/eadi-audit', authenticateToken, restrictT
             newDaNumber,
             newStage,
             new Date().toISOString(),
-            orderId
+            order.id
         ]);
 
         // Registrar no log do sistema
@@ -13127,7 +13176,7 @@ app.post('/api/supply-chain/orders/:id/eadi-audit', authenticateToken, restrictT
 
         res.json({
             success: true,
-            order_id: orderId,
+            order_id: order.id,
             final_balance: finalContainerBalance,
             stage: newStage,
             message: `Saldo atualizado com sucesso! Restam ${finalContainerBalance} máquina(s) neste container.`
@@ -13586,10 +13635,11 @@ app.post('/api/supply-chain/orders/:id/reconcile', authenticateToken, restrictTo
     const user = req.user ? req.user.username : 'Sistema';
     
     try {
-        const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+        const order = await resolveOrMaterializeStockOrder(orderId, user);
         if (!order) {
             return res.status(404).json({ error: 'Ordem de importação não encontrada.' });
         }
+        const realId = order.id;
 
         let itemsData = [];
         if (req.body.items) {
@@ -13600,7 +13650,7 @@ app.post('/api/supply-chain/orders/:id/reconcile', authenticateToken, restrictTo
             }
         }
 
-        const existingItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [orderId]);
+        const existingItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [realId]);
         const backorderItems = [];
         let newTotalFob = 0;
 
@@ -13642,7 +13692,7 @@ app.post('/api/supply-chain/orders/:id/reconcile', authenticateToken, restrictTo
                 await dbRun(`INSERT INTO stock_order_items (
                     order_id, sku, description, qty_ordered, qty_shipped, qty_backorder, unit_price_fob, total_price_fob, status, notes, created_at
                 ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'SHIPPED', 'Item extra adicionado na estufagem/embarque', ?)`, [
-                    orderId, sku, description, qtyShipped, qtyShipped, unitPrice, totalPrice, new Date().toISOString()
+                    realId, sku, description, qtyShipped, qtyShipped, unitPrice, totalPrice, new Date().toISOString()
                 ]);
             }
         }
@@ -13658,7 +13708,7 @@ app.post('/api/supply-chain/orders/:id/reconcile', authenticateToken, restrictTo
             packing_list_file_path = ?,
             updated_at = ?
             WHERE id = ?`, [
-            newTotalFob, packingListPath, new Date().toISOString(), orderId
+            newTotalFob, packingListPath, new Date().toISOString(), realId
         ]);
 
         let rolloverTargetOrder = null;
@@ -13667,7 +13717,7 @@ app.post('/api/supply-chain/orders/:id/reconcile', authenticateToken, restrictTo
                 SELECT * FROM stock_orders 
                 WHERE supplier_name = ? AND id != ? AND stage IN ('PO_EMITIDA', 'EM_FABRICACAO')
                 ORDER BY id ASC LIMIT 1
-            `, [order.supplier_name, orderId]);
+            `, [order.supplier_name, realId]);
 
             let targetOrderId = null;
 
@@ -13727,7 +13777,7 @@ app.post('/api/supply-chain/orders/:id/reconcile', authenticateToken, restrictTo
             await refreshOrderPaymentDates(targetOrderId);
         }
 
-        await refreshOrderPaymentDates(orderId);
+        await refreshOrderPaymentDates(realId);
 
         const summaryText = backorderItems.length > 0
             ? `Conciliação de carga concluída para <strong>${order.po_number}</strong>. ${backorderItems.length} modelo(s) com saldo não embarcado transferidos automaticamente para <strong>${rolloverTargetOrder ? rolloverTargetOrder.po_number : 'Próxima PO'}</strong>.`
@@ -13739,9 +13789,9 @@ app.post('/api/supply-chain/orders/:id/reconcile', authenticateToken, restrictTo
             `<strong>[SUPPLY CHAIN]</strong> ${summaryText} (por ${user})`
         ]);
 
-        const updatedOrder = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
-        const updatedItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [orderId]);
-        const updatedPayments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [orderId]);
+        const updatedOrder = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [realId]);
+        const updatedItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [realId]);
+        const updatedPayments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [realId]);
 
         res.json({
             success: true,
