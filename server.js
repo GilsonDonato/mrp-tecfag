@@ -10301,7 +10301,7 @@ app.post('/api/supply-chain/orders/:id/attach-invoice', authenticateToken, restr
                 let chk = {};
                 try { chk = JSON.parse(p.checklist || '{}'); } catch(e) {}
                 chk.proforma = true;
-                await dbRun('UPDATE projects SET checklist = ?, import_invoice_path = ?, lastUpdate = ? WHERE code = ?', [JSON.stringify(chk), invoiceFilePath, now, order.project_code]);
+                await dbRun('UPDATE projects SET checklist = ?, lastUpdate = ? WHERE code = ?', [JSON.stringify(chk), now, order.project_code]);
             }
 
             await recordAuditLog(order.project_code, user, `Proforma Invoice anexada para a ordem ${order.po_number}: ${req.file.originalname}`);
