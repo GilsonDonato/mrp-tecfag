@@ -763,7 +763,8 @@ async function cleanupErroneousRecreatedOrders() {
         const poNumbers = [
             'PO-PRJ002', 'PO-PRJ008', 'PO-PRJ023', 'PO-PRJ025', 'PO-PRJ26', 'PO-PRJ026',
             'PO-PRJ027', 'PO-PRJ028', 'PO-PRJ032', 'PO-PRJ033', 'PO-PRJ36', 'PO-PRJ036',
-            'PO-PRJ037', 'PO-PRJ038', 'PO-PRJ043', 'PO-PRJ051', 'PO-PRJ055'
+            'PO-PRJ037', 'PO-PRJ038', 'PO-PRJ043', 'PO-PRJ051', 'PO-PRJ055',
+            'PO-PRJ067', 'PO-PRJ070', 'PO-PRJ71', 'PO-PRJ071', 'PO-PRJ069'
         ];
 
         for (const po of poNumbers) {
@@ -775,7 +776,8 @@ async function cleanupErroneousRecreatedOrders() {
         const cancelledProjects = [
             'PRJTEC000000002', 'PRJTEC000000023', 'PRJTEC000000025', 'PRJTEC000000026',
             'PRJTEC000000027', 'PRJTEC000000028', 'PRJTEC000000032', 'PRJTEC000000033',
-            'PRJTEC000000036', 'PRJTEC000000037', 'PRJTEC000000038', 'PRJTEC000000043'
+            'PRJTEC000000036', 'PRJTEC000000037', 'PRJTEC000000038', 'PRJTEC000000043',
+            'PRJTEC000000067', 'PRJTEC000000069', 'PRJTEC000000070', 'PRJTEC000000071'
         ];
         for (const code of cancelledProjects) {
             const p = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
@@ -818,7 +820,7 @@ async function cleanupErroneousRecreatedOrders() {
 
         // Projetos com importação desvinculada pelo admin: restaurar fase 2 (Pedido Fechado)
         const unlinkedProjects = [
-            'PRJTEC000000057', 'PRJTEC000000067', 'PRJTEC000000069', 'PRJTEC000000070', 'PRJTEC000000071'
+            'PRJTEC000000057'
         ];
         for (const code of unlinkedProjects) {
             const p = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
@@ -953,8 +955,7 @@ async function syncImportProjectsToStockOrders() {
 
             let chk = {};
             try { chk = p.checklist ? JSON.parse(p.checklist) : {}; } catch(e){}
-            const isActiveImportWithProforma = (p.fase >= 3 && p.fase <= 5) && !p.motivoPerda && (chk.proforma || p.import_invoice_number);
-            if ((chk.import_order_deleted || chk.import_order_unlinked || p.fase >= 8 || p.motivoPerda) && !isActiveImportWithProforma) {
+            if (chk.import_order_deleted || chk.import_order_unlinked || p.fase >= 8 || p.motivoPerda) {
                 // Usuário já excluiu ou desvinculou essa ordem manualmente ou projeto cancelado. Não recriar.
                 continue;
             }
@@ -12982,10 +12983,8 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
             let chk = {};
             try { chk = typeof p.checklist === 'string' ? JSON.parse(p.checklist || '{}') : (p.checklist || {}); } catch(e) {}
 
-            // Se o usuário cancelou/desvinculou/excluiu a importação deste projeto, não exibe no Comex,
-            // A MENOS que o projeto esteja ativo em fase de importação (Fase 3, 4 ou 5) com proforma ativa e sem motivoPerda
-            const isActiveImportWithProforma = (p.fase >= 3 && p.fase <= 5) && !p.motivoPerda && (chk.proforma || p.import_invoice_number);
-            if ((chk.import_order_deleted || chk.import_order_unlinked) && !isActiveImportWithProforma) {
+            // Se o usuário cancelou/desvinculou/excluiu a importação deste projeto, NUNCA exibe no Comex
+            if (chk.import_order_deleted || chk.import_order_unlinked) {
                 continue;
             }
 
@@ -13018,7 +13017,7 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
             } else {
                 // Se não há ordens em stock_orders, gera card temporário se o projeto estiver em fase 3, 4 ou 5 OU possuir contrato/proposta assinado
                 const hasContractOrImport = chk.contrato || chk.proforma || (p.fase >= 3 && p.fase <= 5);
-                if (((chk.import_order_deleted || chk.import_order_unlinked) && !isActiveImportWithProforma) || !hasContractOrImport) {
+                if (chk.import_order_deleted || chk.import_order_unlinked || !hasContractOrImport) {
                     continue;
                 }
 
