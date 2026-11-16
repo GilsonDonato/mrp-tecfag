@@ -7673,6 +7673,9 @@
                         ⚡ Presets Rápidos de Mercado:
                     </div>
                     <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-secondary" onclick="applyPaymentPreset25_25_50()" style="padding: 4px 10px; font-size: 0.74rem; font-weight: 700; border-color: rgba(56, 189, 248, 0.5); color: #38bdf8; background: rgba(56, 189, 248, 0.1);">
+                            ⭐ 25% Ent. + 25% B/L + 50% (90d B/L)
+                        </button>
                         <button type="button" class="btn btn-secondary" onclick="applyPaymentPreset(30, 70, '30% Sinal na Proforma / Início Fabricação', '70% Saldo contra cópia do B/L')" style="padding: 4px 10px; font-size: 0.74rem; font-weight: 700;">
                             30% Entrada + 70% Saldo
                         </button>
@@ -7691,58 +7694,19 @@
                     </div>
                 </div>
 
-                <!-- Formulário de Configuração das Parcelas -->
+                <!-- Formulário Dinâmico de Configuração das Parcelas -->
                 <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 14px;">
-                    <!-- Parcela 1: Sinal / Entrada -->
-                    <div style="border-left: 3px solid #f59e0b; padding-left: 10px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <strong style="font-size: 0.82rem; color: #f59e0b;">Parcela 1: Entrada / Sinal da Proforma</strong>
-                            <span id="reconfig-pay-p1-badge" style="font-size: 0.72rem; color: #f59e0b; font-weight: 800;">30%</span>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 100px 1fr 150px; gap: 10px; align-items: flex-end;">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #94a3b8;">% Entrada</label>
-                                <input type="number" id="reconfig-pay-p1-pct" min="0" max="100" step="1" class="form-control" style="padding: 6px; font-size: 0.85rem; font-weight: bold; text-align: center;" oninput="onPaymentP1PctChanged()">
-                            </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #94a3b8;">Valor Entrada (<span class="reconfig-currency-label">USD</span>)</label>
-                                <input type="number" id="reconfig-pay-p1-amount" min="0" step="0.01" class="form-control" style="padding: 6px; font-size: 0.85rem; font-weight: bold; color: #4ade80;" oninput="onPaymentP1AmountChanged()">
-                            </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #94a3b8;">Vencimento Entrada</label>
-                                <input type="date" id="reconfig-pay-p1-date" class="form-control" style="padding: 6px; font-size: 0.82rem;">
-                            </div>
-                        </div>
-                        <div class="form-group" style="margin-top: 6px; margin-bottom: 0;">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: #94a3b8;">Descrição Parcela 1</label>
-                            <input type="text" id="reconfig-pay-p1-desc" class="form-control" placeholder="Ex: 30% Sinal na Proforma / Início Fabricação" style="padding: 6px; font-size: 0.8rem;">
-                        </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.78rem; font-weight: 700; color: #cbd5e1; text-transform: uppercase;">
+                            Configuração das Parcelas de Câmbio
+                        </span>
+                        <button type="button" class="btn btn-secondary" onclick="addNewReconfigInstallment()" style="padding: 4px 10px; font-size: 0.74rem; font-weight: bold; border-color: rgba(56, 189, 248, 0.5); color: #38bdf8; background: rgba(56, 189, 248, 0.08);">
+                            ➕ Adicionar Parcela
+                        </button>
                     </div>
 
-                    <!-- Parcela 2: Saldo -->
-                    <div style="border-left: 3px solid #38bdf8; padding-left: 10px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <strong style="font-size: 0.82rem; color: #38bdf8;">Parcela 2: Saldo / Pagamento Final</strong>
-                            <span id="reconfig-pay-p2-badge" style="font-size: 0.72rem; color: #38bdf8; font-weight: 800;">70%</span>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 100px 1fr 150px; gap: 10px; align-items: flex-end;">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #94a3b8;">% Saldo</label>
-                                <input type="number" id="reconfig-pay-p2-pct" min="0" max="100" step="1" class="form-control" style="padding: 6px; font-size: 0.85rem; font-weight: bold; text-align: center;" oninput="onPaymentP2PctChanged()">
-                            </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #94a3b8;">Valor Saldo (<span class="reconfig-currency-label">USD</span>)</label>
-                                <input type="number" id="reconfig-pay-p2-amount" min="0" step="0.01" class="form-control" style="padding: 6px; font-size: 0.85rem; font-weight: bold; color: #4ade80;" oninput="onPaymentP2AmountChanged()">
-                            </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label style="font-size: 0.68rem; font-weight: 700; color: #94a3b8;">Vencimento Saldo</label>
-                                <input type="date" id="reconfig-pay-p2-date" class="form-control" style="padding: 6px; font-size: 0.82rem;">
-                            </div>
-                        </div>
-                        <div class="form-group" style="margin-top: 6px; margin-bottom: 0;">
-                            <label style="font-size: 0.68rem; font-weight: 700; color: #94a3b8;">Descrição Parcela 2</label>
-                            <input type="text" id="reconfig-pay-p2-desc" class="form-control" placeholder="Ex: 70% Saldo contra cópia do B/L" style="padding: 6px; font-size: 0.8rem;">
-                        </div>
+                    <div id="reconfig-pay-installments-list" style="display: flex; flex-direction: column; gap: 12px;">
+                        <!-- Renderizado dinamicamente via JS -->
                     </div>
                 </div>
 
@@ -33436,6 +33400,8 @@ function renderKanban() {
         // =========================================================================
         // RECONFIGURAÇÃO E PERSONALIZAÇÃO LIVRE DE PARCELAS DE CÂMBIO & ENTRADA
         // =========================================================================
+        let currentReconfigInstallments = [];
+
         function openReconfigurePaymentsModal() {
             const order = supplyChainState.currentOrder;
             if (!order) {
@@ -33460,48 +33426,36 @@ function renderKanban() {
             }
 
             const payments = order.payments || [];
-            let p1Pct = 30;
-            let p2Pct = 70;
-            let p1Desc = '30% Sinal na Proforma / Início Fabricação';
-            let p2Desc = '70% Saldo contra cópia do B/L';
             const todayStr = new Date().toISOString().split('T')[0];
-            let p1Date = order.invoice_date || todayStr;
-            let p2Date = order.etd_date || order.eta_port_date || '';
+            const p1Date = order.invoice_date || todayStr;
+            const p2Date = order.bl_date || order.etd_date || order.eta_port_date || '';
 
-            if (payments.length >= 2) {
-                p1Pct = Math.round(payments[0].percentage);
-                p2Pct = Math.round(payments[1].percentage);
-                p1Desc = payments[0].description;
-                p2Desc = payments[1].description;
-                if (payments[0].due_date) p1Date = payments[0].due_date.split('T')[0];
-                if (payments[1].due_date) p2Date = payments[1].due_date.split('T')[0];
-            } else if (payments.length === 1) {
-                if (payments[0].percentage >= 100) {
-                    const descLower = (payments[0].description || '').toLowerCase();
-                    if (descLower.includes('prazo') || descLower.includes('120') || descLower.includes('saldo')) {
-                        p1Pct = 0;
-                        p2Pct = 100;
-                        p1Desc = '';
-                        p2Desc = payments[0].description;
-                        if (payments[0].due_date) p2Date = payments[0].due_date.split('T')[0];
-                    } else {
-                        p1Pct = 100;
-                        p2Pct = 0;
-                        p1Desc = payments[0].description;
-                        p2Desc = '';
-                        if (payments[0].due_date) p1Date = payments[0].due_date.split('T')[0];
+            if (payments.length > 0) {
+                currentReconfigInstallments = payments.map((p, idx) => ({
+                    id: p.id,
+                    percentage: parseFloat(p.percentage) || 0,
+                    amount_currency: parseFloat(p.amount_currency) || Math.round(totalFob * ((parseFloat(p.percentage) || 0) / 100) * 100) / 100,
+                    description: p.description || `Parcela ${idx + 1}`,
+                    due_date: p.due_date ? p.due_date.split('T')[0] : ''
+                }));
+            } else {
+                currentReconfigInstallments = [
+                    {
+                        percentage: 30,
+                        amount_currency: Math.round(totalFob * 0.3 * 100) / 100,
+                        description: '30% Sinal na Proforma / Início Fabricação',
+                        due_date: p1Date
+                    },
+                    {
+                        percentage: 70,
+                        amount_currency: Math.round(totalFob * 0.7 * 100) / 100,
+                        description: '70% Saldo contra cópia do B/L',
+                        due_date: p2Date
                     }
-                }
+                ];
             }
 
-            document.getElementById('reconfig-pay-p1-pct').value = p1Pct;
-            document.getElementById('reconfig-pay-p2-pct').value = p2Pct;
-            document.getElementById('reconfig-pay-p1-desc').value = p1Desc;
-            document.getElementById('reconfig-pay-p2-desc').value = p2Desc;
-            document.getElementById('reconfig-pay-p1-date').value = p1Date;
-            document.getElementById('reconfig-pay-p2-date').value = p2Date;
-
-            updatePaymentAmountsFromPct();
+            renderReconfigInstallmentRows();
             modal.style.display = 'flex';
         }
 
@@ -33510,125 +33464,246 @@ function renderKanban() {
             if (modal) modal.style.display = 'none';
         }
 
-        function updatePaymentAmountsFromPct() {
+        function renderReconfigInstallmentRows() {
+            const container = document.getElementById('reconfig-pay-installments-list');
+            if (!container) return;
+
             const order = supplyChainState.currentOrder;
-            const totalFob = parseFloat(order?.total_fob_value) || 0;
+            const currency = order?.currency || 'USD';
+            const colors = ['#f59e0b', '#38bdf8', '#10b981', '#a855f7', '#ec4899', '#f97316'];
 
-            const p1Pct = parseFloat(document.getElementById('reconfig-pay-p1-pct').value) || 0;
-            const p2Pct = parseFloat(document.getElementById('reconfig-pay-p2-pct').value) || 0;
-
-            const p1Amt = Math.round(totalFob * (p1Pct / 100) * 100) / 100;
-            const p2Amt = Math.round(totalFob * (p2Pct / 100) * 100) / 100;
-
-            document.getElementById('reconfig-pay-p1-amount').value = p1Amt.toFixed(2);
-            document.getElementById('reconfig-pay-p2-amount').value = p2Amt.toFixed(2);
-
-            document.getElementById('reconfig-pay-p1-badge').innerText = p1Pct + '%';
-            document.getElementById('reconfig-pay-p2-badge').innerText = p2Pct + '%';
+            container.innerHTML = currentReconfigInstallments.map((inst, idx) => {
+                const color = colors[idx % colors.length];
+                const canDelete = currentReconfigInstallments.length > 1;
+                return `
+                    <div style="border-left: 3px solid ${color}; background: rgba(255, 255, 255, 0.02); border-radius: 0 6px 6px 0; padding: 10px 12px; margin-bottom: 2px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <strong style="font-size: 0.82rem; color: ${color};">Parcela ${idx + 1}</strong>
+                                <span id="reconfig-badge-${idx}" style="font-size: 0.72rem; color: ${color}; font-weight: 800; background: rgba(255, 255, 255, 0.06); padding: 1px 6px; border-radius: 4px;">
+                                    ${inst.percentage}%
+                                </span>
+                            </div>
+                            ${canDelete ? `
+                                <button type="button" class="btn btn-secondary" onclick="removeReconfigInstallment(${idx})" title="Remover Parcela" style="padding: 2px 8px; font-size: 0.7rem; color: #f87171; border-color: rgba(239, 68, 68, 0.3);">
+                                    🗑️ Excluir
+                                </button>
+                            ` : ''}
+                        </div>
+                        <div style="display: grid; grid-template-columns: 90px 1fr 150px; gap: 10px; align-items: flex-end;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.68rem; font-weight: 700; color: #94a3b8;">%</label>
+                                <input type="number" min="0" max="100" step="any" class="form-control" style="padding: 6px; font-size: 0.85rem; font-weight: bold; text-align: center;" value="${inst.percentage}" oninput="onReconfigInstallmentPctChanged(${idx}, this.value)">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.68rem; font-weight: 700; color: #94a3b8;">Valor (${currency})</label>
+                                <input type="number" min="0" step="0.01" class="form-control" id="reconfig-amount-${idx}" style="padding: 6px; font-size: 0.85rem; font-weight: bold; color: #4ade80;" value="${(inst.amount_currency || 0).toFixed(2)}" oninput="onReconfigInstallmentAmountChanged(${idx}, this.value)">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.68rem; font-weight: 700; color: #94a3b8;">Vencimento</label>
+                                <input type="date" class="form-control" style="padding: 6px; font-size: 0.82rem;" value="${inst.due_date || ''}" oninput="onReconfigInstallmentDateChanged(${idx}, this.value)">
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-top: 6px; margin-bottom: 0;">
+                            <label style="font-size: 0.68rem; font-weight: 700; color: #94a3b8;">Descrição / Condição</label>
+                            <input type="text" class="form-control" style="padding: 6px; font-size: 0.8rem;" value="${(inst.description || '').replace(/"/g, '&quot;')}" placeholder="Ex: Entrada, Saldo B/L, 90 dias após B/L..." oninput="onReconfigInstallmentDescChanged(${idx}, this.value)">
+                        </div>
+                    </div>
+                `;
+            }).join('');
 
             updatePaymentSumStatus();
         }
 
-        function onPaymentP1PctChanged() {
-            let p1 = parseFloat(document.getElementById('reconfig-pay-p1-pct').value);
-            if (isNaN(p1)) p1 = 0;
-            if (p1 < 0) p1 = 0;
-            if (p1 > 100) p1 = 100;
+        function onReconfigInstallmentPctChanged(idx, val) {
+            const order = supplyChainState.currentOrder;
+            const totalFob = parseFloat(order?.total_fob_value) || 0;
+            let pct = parseFloat(val);
+            if (isNaN(pct)) pct = 0;
+            if (pct < 0) pct = 0;
 
-            document.getElementById('reconfig-pay-p1-pct').value = p1;
-            document.getElementById('reconfig-pay-p2-pct').value = Math.max(0, 100 - p1);
+            if (currentReconfigInstallments[idx]) {
+                currentReconfigInstallments[idx].percentage = pct;
+                const amt = Math.round(totalFob * (pct / 100) * 100) / 100;
+                currentReconfigInstallments[idx].amount_currency = amt;
 
-            if (!document.getElementById('reconfig-pay-p1-desc').value.trim() && p1 > 0) {
-                document.getElementById('reconfig-pay-p1-desc').value = `${p1}% Sinal na Proforma / Início Fabricação`;
+                const amtInput = document.getElementById(`reconfig-amount-${idx}`);
+                if (amtInput) amtInput.value = amt.toFixed(2);
+
+                const badge = document.getElementById(`reconfig-badge-${idx}`);
+                if (badge) badge.innerText = pct + '%';
             }
-            if (!document.getElementById('reconfig-pay-p2-desc').value.trim() && (100 - p1) > 0) {
-                document.getElementById('reconfig-pay-p2-desc').value = `${100 - p1}% Saldo contra cópia do B/L`;
+
+            updatePaymentSumStatus();
+        }
+
+        function onReconfigInstallmentAmountChanged(idx, val) {
+            const order = supplyChainState.currentOrder;
+            const totalFob = parseFloat(order?.total_fob_value) || 0;
+            let amt = parseFloat(val);
+            if (isNaN(amt)) amt = 0;
+            if (amt < 0) amt = 0;
+
+            if (currentReconfigInstallments[idx]) {
+                currentReconfigInstallments[idx].amount_currency = amt;
+                let pct = totalFob > 0 ? Math.round((amt / totalFob) * 1000) / 10 : 0;
+                currentReconfigInstallments[idx].percentage = pct;
+
+                const badge = document.getElementById(`reconfig-badge-${idx}`);
+                if (badge) badge.innerText = pct + '%';
             }
 
-            updatePaymentAmountsFromPct();
-        }
-
-        function onPaymentP2PctChanged() {
-            let p2 = parseFloat(document.getElementById('reconfig-pay-p2-pct').value);
-            if (isNaN(p2)) p2 = 0;
-            if (p2 < 0) p2 = 0;
-            if (p2 > 100) p2 = 100;
-
-            document.getElementById('reconfig-pay-p2-pct').value = p2;
-            document.getElementById('reconfig-pay-p1-pct').value = Math.max(0, 100 - p2);
-
-            updatePaymentAmountsFromPct();
-        }
-
-        function onPaymentP1AmountChanged() {
-            const order = supplyChainState.currentOrder;
-            const totalFob = parseFloat(order?.total_fob_value) || 0;
-            if (totalFob <= 0) return;
-
-            let amt = parseFloat(document.getElementById('reconfig-pay-p1-amount').value) || 0;
-            let p1Pct = Math.round((amt / totalFob) * 100);
-            if (p1Pct < 0) p1Pct = 0;
-            if (p1Pct > 100) p1Pct = 100;
-
-            document.getElementById('reconfig-pay-p1-pct').value = p1Pct;
-            document.getElementById('reconfig-pay-p2-pct').value = 100 - p1Pct;
-            document.getElementById('reconfig-pay-p2-amount').value = (totalFob - amt).toFixed(2);
-
-            document.getElementById('reconfig-pay-p1-badge').innerText = p1Pct + '%';
-            document.getElementById('reconfig-pay-p2-badge').innerText = (100 - p1Pct) + '%';
-
             updatePaymentSumStatus();
         }
 
-        function onPaymentP2AmountChanged() {
+        function onReconfigInstallmentDateChanged(idx, val) {
+            if (currentReconfigInstallments[idx]) {
+                currentReconfigInstallments[idx].due_date = val;
+            }
+        }
+
+        function onReconfigInstallmentDescChanged(idx, val) {
+            if (currentReconfigInstallments[idx]) {
+                currentReconfigInstallments[idx].description = val;
+            }
+        }
+
+        function addNewReconfigInstallment() {
             const order = supplyChainState.currentOrder;
             const totalFob = parseFloat(order?.total_fob_value) || 0;
-            if (totalFob <= 0) return;
+            const currentTotalPct = currentReconfigInstallments.reduce((acc, i) => acc + (parseFloat(i.percentage) || 0), 0);
+            const remPct = Math.max(0, Math.round((100 - currentTotalPct) * 10) / 10);
+            const remAmt = Math.round(totalFob * (remPct / 100) * 100) / 100;
 
-            let amt = parseFloat(document.getElementById('reconfig-pay-p2-amount').value) || 0;
-            let p2Pct = Math.round((amt / totalFob) * 100);
-            if (p2Pct < 0) p2Pct = 0;
-            if (p2Pct > 100) p2Pct = 100;
+            const nextNum = currentReconfigInstallments.length + 1;
+            let defaultDesc = `Parcela ${nextNum}`;
+            if (nextNum === 2) defaultDesc = 'Saldo contra cópia do B/L';
+            else if (nextNum === 3) defaultDesc = '50% Saldo - 90 dias após data do B/L';
 
-            document.getElementById('reconfig-pay-p2-pct').value = p2Pct;
-            document.getElementById('reconfig-pay-p1-pct').value = 100 - p2Pct;
-            document.getElementById('reconfig-pay-p1-amount').value = (totalFob - amt).toFixed(2);
+            currentReconfigInstallments.push({
+                percentage: remPct,
+                amount_currency: remAmt,
+                description: defaultDesc,
+                due_date: ''
+            });
 
-            document.getElementById('reconfig-pay-p1-badge').innerText = (100 - p2Pct) + '%';
-            document.getElementById('reconfig-pay-p2-badge').innerText = p2Pct + '%';
+            renderReconfigInstallmentRows();
+        }
 
-            updatePaymentSumStatus();
+        function removeReconfigInstallment(idx) {
+            if (currentReconfigInstallments.length <= 1) return;
+            currentReconfigInstallments.splice(idx, 1);
+            renderReconfigInstallmentRows();
+        }
+
+        function applyPaymentPreset25_25_50() {
+            const order = supplyChainState.currentOrder;
+            const totalFob = parseFloat(order?.total_fob_value) || 0;
+            const todayStr = new Date().toISOString().split('T')[0];
+            const p1Date = order?.invoice_date || todayStr;
+            
+            // Base data B/L: bl_date ou etd_date ou invoice_date + 30 dias
+            let blBaseDate = order?.bl_date || order?.etd_date;
+            if (!blBaseDate) {
+                const dEst = new Date(p1Date);
+                dEst.setDate(dEst.getDate() + 30);
+                blBaseDate = dEst.toISOString().split('T')[0];
+            }
+
+            // 90 dias após o B/L
+            const dBl = new Date(blBaseDate);
+            const d90 = new Date(dBl);
+            d90.setDate(d90.getDate() + 90);
+            const p3Date = !isNaN(d90.getTime()) ? d90.toISOString().split('T')[0] : '';
+
+            currentReconfigInstallments = [
+                {
+                    percentage: 25,
+                    amount_currency: Math.round(totalFob * 0.25 * 100) / 100,
+                    description: '25% Sinal na Proforma / Início Fabricação',
+                    due_date: p1Date
+                },
+                {
+                    percentage: 25,
+                    amount_currency: Math.round(totalFob * 0.25 * 100) / 100,
+                    description: '25% Saldo contra cópia do B/L',
+                    due_date: blBaseDate
+                },
+                {
+                    percentage: 50,
+                    amount_currency: Math.round(totalFob * 0.50 * 100) / 100,
+                    description: '50% Saldo - 90 dias após data do B/L',
+                    due_date: p3Date
+                }
+            ];
+
+            renderReconfigInstallmentRows();
         }
 
         function applyPaymentPreset(p1, p2, desc1, desc2) {
-            document.getElementById('reconfig-pay-p1-pct').value = p1;
-            document.getElementById('reconfig-pay-p2-pct').value = p2;
-            if (desc1 !== undefined) document.getElementById('reconfig-pay-p1-desc').value = desc1;
-            if (desc2 !== undefined) document.getElementById('reconfig-pay-p2-desc').value = desc2;
+            const order = supplyChainState.currentOrder;
+            const totalFob = parseFloat(order?.total_fob_value) || 0;
+            const todayStr = new Date().toISOString().split('T')[0];
+            const p1Date = order?.invoice_date || todayStr;
+            const p2Date = order?.bl_date || order?.etd_date || '';
 
-            updatePaymentAmountsFromPct();
+            if (p1 > 0 && p2 > 0) {
+                currentReconfigInstallments = [
+                    {
+                        percentage: p1,
+                        amount_currency: Math.round(totalFob * (p1 / 100) * 100) / 100,
+                        description: desc1 || `${p1}% Sinal`,
+                        due_date: p1Date
+                    },
+                    {
+                        percentage: p2,
+                        amount_currency: Math.round(totalFob * (p2 / 100) * 100) / 100,
+                        description: desc2 || `${p2}% Saldo`,
+                        due_date: p2Date
+                    }
+                ];
+            } else if (p1 === 100) {
+                currentReconfigInstallments = [
+                    {
+                        percentage: 100,
+                        amount_currency: totalFob,
+                        description: desc1 || '100% Antecipado na Proforma',
+                        due_date: p1Date
+                    }
+                ];
+            } else if (p2 === 100) {
+                currentReconfigInstallments = [
+                    {
+                        percentage: 100,
+                        amount_currency: totalFob,
+                        description: desc2 || '100% Saldo a Prazo após B/L',
+                        due_date: p2Date
+                    }
+                ];
+            }
+
+            renderReconfigInstallmentRows();
         }
 
         function updatePaymentSumStatus() {
-            const p1 = parseFloat(document.getElementById('reconfig-pay-p1-pct').value) || 0;
-            const p2 = parseFloat(document.getElementById('reconfig-pay-p2-pct').value) || 0;
-            const sum = Math.round((p1 + p2) * 10) / 10;
+            const sum = currentReconfigInstallments.reduce((acc, i) => acc + (parseFloat(i.percentage) || 0), 0);
+            const roundedSum = Math.round(sum * 10) / 10;
 
             const pill = document.getElementById('reconfig-pay-status-pill');
             const saveBtn = document.getElementById('btn-save-reconfig-payments');
             if (!pill) return;
 
-            if (sum === 100) {
+            if (Math.abs(roundedSum - 100) <= 0.1) {
                 pill.style.background = 'rgba(16, 185, 129, 0.2)';
                 pill.style.borderColor = 'rgba(16, 185, 129, 0.4)';
                 pill.style.color = '#10b981';
-                pill.innerText = '✓ Soma: 100% (Balanceado)';
+                pill.innerText = `✓ Soma: ${roundedSum}% (Balanceado)`;
                 if (saveBtn) saveBtn.removeAttribute('disabled');
             } else {
                 pill.style.background = 'rgba(239, 68, 68, 0.2)';
                 pill.style.borderColor = 'rgba(239, 68, 68, 0.4)';
                 pill.style.color = '#f87171';
-                pill.innerText = `⚠️ Soma: ${sum}% (Diferente de 100%)`;
+                pill.innerText = `⚠️ Soma: ${roundedSum}% (Diferente de 100%)`;
                 if (saveBtn) saveBtn.setAttribute('disabled', 'disabled');
             }
         }
@@ -33637,43 +33712,31 @@ function renderKanban() {
             const order = supplyChainState.currentOrder;
             if (!order) return;
 
-            const p1Pct = parseFloat(document.getElementById('reconfig-pay-p1-pct').value) || 0;
-            const p2Pct = parseFloat(document.getElementById('reconfig-pay-p2-pct').value) || 0;
-            const p1Amt = parseFloat(document.getElementById('reconfig-pay-p1-amount').value) || 0;
-            const p2Amt = parseFloat(document.getElementById('reconfig-pay-p2-amount').value) || 0;
-            const p1Desc = document.getElementById('reconfig-pay-p1-desc').value.trim() || `${p1Pct}% Sinal`;
-            const p2Desc = document.getElementById('reconfig-pay-p2-desc').value.trim() || `${p2Desc}% Saldo`;
-            const p1Date = document.getElementById('reconfig-pay-p1-date').value || new Date().toISOString().split('T')[0];
-            const p2Date = document.getElementById('reconfig-pay-p2-date').value || p1Date;
-
-            const installments = [];
-            if (p1Pct > 0) {
-                installments.push({
-                    installment_number: 1,
-                    description: p1Desc,
-                    percentage: p1Pct,
-                    amount_currency: p1Amt,
-                    due_date: p1Date
-                });
-            }
-            if (p2Pct > 0) {
-                installments.push({
-                    installment_number: installments.length + 1,
-                    description: p2Desc,
-                    percentage: p2Pct,
-                    amount_currency: p2Amt,
-                    due_date: p2Date
-                });
-            }
-
-            if (installments.length === 0) {
-                alert('Erro: É necessário definir ao menos uma parcela.');
+            const sum = currentReconfigInstallments.reduce((acc, i) => acc + (parseFloat(i.percentage) || 0), 0);
+            if (Math.abs(sum - 100) > 0.5) {
+                alert(`Atenção: A soma das parcelas atual é de ${sum}%. O total deve somar exatamente 100%.`);
                 return;
             }
 
-            const termsDesc = installments.length === 1 
-                ? (p1Pct === 100 ? `${p1Pct}% Antecipado` : `${p2Pct}% a Prazo`)
-                : `${p1Pct}% Sinal / ${p2Pct}% Saldo`;
+            const installments = currentReconfigInstallments.map((inst, index) => ({
+                installment_number: index + 1,
+                description: inst.description || `Parcela ${index + 1}`,
+                percentage: parseFloat(inst.percentage) || 0,
+                amount_currency: parseFloat(inst.amount_currency) || 0,
+                due_date: inst.due_date || (order.invoice_date || new Date().toISOString().split('T')[0])
+            }));
+
+            // Montar termo descritivo legível
+            let termsDesc = '';
+            if (installments.length === 3 && installments[0].percentage === 25 && installments[1].percentage === 25 && installments[2].percentage === 50) {
+                termsDesc = '25% Sinal / 25% B/L / 50% (90d B/L)';
+            } else if (installments.length === 2) {
+                termsDesc = `${installments[0].percentage}% Sinal / ${installments[1].percentage}% Saldo`;
+            } else if (installments.length === 1) {
+                termsDesc = installments[0].percentage === 100 ? `${installments[0].description}` : `${installments[0].percentage}% a Prazo`;
+            } else {
+                termsDesc = installments.map(i => `${i.percentage}% ${i.description.split(' ')[0] || ''}`).join(' + ');
+            }
 
             const saveBtn = document.getElementById('btn-save-reconfig-payments');
             if (saveBtn) {
