@@ -869,6 +869,67 @@ async function cleanupErroneousRecreatedOrders() {
             WHERE code = 'PRJTEC000000066'`);
         }
 
+        // Restauração e sincronização garantida do card da CLEAN UP (PRJTEC000000056)
+        const prj56 = await dbGet("SELECT * FROM projects WHERE code = 'PRJTEC000000056'");
+        if (prj56) {
+            let chk56 = safeJsonParse(prj56.checklist, {});
+            delete chk56.import_order_deleted;
+            delete chk56.import_order_unlinked;
+            await dbRun(
+                "UPDATE projects SET checklist = ?, import_stage = 'EM_FABRICACAO', fase = 4, has_import_order = 1 WHERE code = 'PRJTEC000000056'",
+                [JSON.stringify(chk56)]
+            );
+
+            const existingOrder56 = await dbGet("SELECT id FROM stock_orders WHERE project_code = 'PRJTEC000000056' OR po_number = 'PO-PRJ056'");
+            if (!existingOrder56) {
+                const now56 = new Date().toISOString();
+                const insertRes56 = await dbRun(
+                    `INSERT INTO stock_orders (
+                        po_number, project_code, client_name, supplier_name, invoice_number,
+                        currency, total_fob_value, stage, created_by, created_at, updated_at,
+                        notes, customs_regime, destination_port, origin_port
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        'PO-PRJ056', 'PRJTEC000000056', prj56.client,
+                        prj56.import_supplier || 'Brother Machinery Group Co., Ltd.',
+                        prj56.import_invoice_number || 'BIT26-1014W',
+                        prj56.import_currency || 'USD',
+                        prj56.import_total_fob_value || 4850.00,
+                        'EM_FABRICACAO', 'Sistema', now56, now56,
+                        'Importação do Projeto Especial PRJTEC000000056 (CLEAN UP PRODUTOS OTICOS LTDA)',
+                        'IMPORTACAO_DIRETA', 'Santos (SP)', 'Ningbo, China'
+                    ]
+                );
+                const orderId56 = insertRes56.lastID;
+                await dbRun(
+                    `INSERT INTO stock_order_items (
+                        order_id, sku, description, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at, project_code, client_name
+                    ) VALUES (?, ?, ?, 1, 0, ?, ?, 'PENDING', ?, 'PRJTEC000000056', ?)`,
+                    [
+                        orderId56,
+                        prj56.sku || 'HZGY100-6D',
+                        prj56.project_name || 'Envasadora Automática de Líquidos 6 Bicos - Frascos 25ml',
+                        prj56.import_total_fob_value || 4850.00,
+                        prj56.import_total_fob_value || 4850.00,
+                        now56,
+                        prj56.client
+                    ]
+                );
+                console.log('[CLEANUP] ✅ Card de Comex restaurado com sucesso para CLEAN UP (PO-PRJ056).');
+            } else {
+                await dbRun(
+                    "UPDATE stock_orders SET stage = 'EM_FABRICACAO', supplier_name = ?, invoice_number = ?, total_fob_value = ? WHERE id = ?",
+                    [
+                        prj56.import_supplier || 'Brother Machinery Group Co., Ltd.',
+                        prj56.import_invoice_number || 'BIT26-1014W',
+                        prj56.import_total_fob_value || 4850.00,
+                        existingOrder56.id
+                    ]
+                );
+                console.log('[CLEANUP] ✅ Card de Comex atualizado com sucesso para CLEAN UP (PO-PRJ056).');
+            }
+        }
+
         console.log('[CLEANUP] ✅ Limpeza e ajuste da invoice concluídos com sucesso.');
     } catch (err) {
         console.error('[CLEANUP ERROR]:', err);
@@ -888,10 +949,12 @@ async function syncImportProjectsToStockOrders() {
             else if (p.code === 'PRJTEC000000031') poNumber = 'PO-PRJ31';
             else if (p.code === 'PRJTEC000000036') poNumber = 'PO-PRJ36';
             else if (p.code === 'PRJTEC000000026') poNumber = 'PO-PRJ26';
+            else if (p.code === 'PRJTEC000000056') poNumber = 'PO-PRJ056';
 
             let chk = {};
             try { chk = p.checklist ? JSON.parse(p.checklist) : {}; } catch(e){}
-            if (chk.import_order_deleted || chk.import_order_unlinked || p.fase >= 8 || p.motivoPerda) {
+            const isActiveImportWithProforma = (p.fase >= 3 && p.fase <= 5) && !p.motivoPerda && (chk.proforma || p.import_invoice_number);
+            if ((chk.import_order_deleted || chk.import_order_unlinked || p.fase >= 8 || p.motivoPerda) && !isActiveImportWithProforma) {
                 // Usuário já excluiu ou desvinculou essa ordem manualmente ou projeto cancelado. Não recriar.
                 continue;
             }
@@ -12919,8 +12982,10 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
             let chk = {};
             try { chk = typeof p.checklist === 'string' ? JSON.parse(p.checklist || '{}') : (p.checklist || {}); } catch(e) {}
 
-            // Se o usuário cancelou/desvinculou/excluiu a importação deste projeto, NUNCA exibe no Comex
-            if (chk.import_order_deleted || chk.import_order_unlinked) {
+            // Se o usuário cancelou/desvinculou/excluiu a importação deste projeto, não exibe no Comex,
+            // A MENOS que o projeto esteja ativo em fase de importação (Fase 3, 4 ou 5) com proforma ativa e sem motivoPerda
+            const isActiveImportWithProforma = (p.fase >= 3 && p.fase <= 5) && !p.motivoPerda && (chk.proforma || p.import_invoice_number);
+            if ((chk.import_order_deleted || chk.import_order_unlinked) && !isActiveImportWithProforma) {
                 continue;
             }
 
@@ -12953,7 +13018,7 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
             } else {
                 // Se não há ordens em stock_orders, gera card temporário se o projeto estiver em fase 3, 4 ou 5 OU possuir contrato/proposta assinado
                 const hasContractOrImport = chk.contrato || chk.proforma || (p.fase >= 3 && p.fase <= 5);
-                if (chk.import_order_deleted || chk.import_order_unlinked || !hasContractOrImport) {
+                if (((chk.import_order_deleted || chk.import_order_unlinked) && !isActiveImportWithProforma) || !hasContractOrImport) {
                     continue;
                 }
 
