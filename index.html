@@ -31616,6 +31616,24 @@ function renderKanban() {
             }
         };
 
+        // Abre diretamente o modal de liquidação cambial e upload de SWIFT a partir da pílula do card
+        window.openDirectSwiftPaymentModal = async function(paymentId, orderId) {
+            if (paymentId) {
+                if (!supplyChainState.currentOrder || supplyChainState.currentOrder.id != orderId) {
+                    const ord = (supplyChainState.orders || []).find(o => o.id == orderId);
+                    if (ord) supplyChainState.currentOrder = ord;
+                }
+                openPaymentModal(paymentId);
+                const statusSelect = document.getElementById('sc-pay-status');
+                if (statusSelect) {
+                    statusSelect.value = 'PAID';
+                    handlePaymentStatusSelectChange();
+                }
+            } else if (orderId) {
+                openSupplyDetailsModal(orderId);
+            }
+        };
+
         function renderSupplyChainKanban() {
             const stages = ['PO_EMITIDA', 'EM_FABRICACAO', 'PACKING_LIST_EMBARQUE', 'NO_NAVIO', 'NO_PORTO_DESEMBARACO', 'ENTREPOSTADO_EADI', 'DOCA_GALPAO'];
             const counts = {};
@@ -31975,21 +31993,27 @@ function renderKanban() {
                     let pillPaymentHtml = '';
                     if (isCreditTerm) {
                         pillPaymentHtml = `
-                            <span onclick="event.stopPropagation(); toggleOrderCreditTerms('${order.id}', false);" style="flex: 1; min-width: 0; background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.4); padding: 4px 6px; border-radius: 5px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background 0.2s;" title="100% a Prazo: Produção liberada sem adiantamento. (Clique para alternar para exigência de sinal)" onmouseover="this.style.background='rgba(99, 102, 241, 0.25)'" onmouseout="this.style.background='rgba(99, 102, 241, 0.15)'">
-                                <span>🏷️</span> <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">100% a Prazo</span> <span style="font-size: 0.62rem; opacity: 0.8;" title="Clique para alternar condição">⇄</span>
-                            </span>
+                            <div style="flex: 1; min-width: 0; background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.4); padding: 4px 6px; border-radius: 5px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: space-between; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background 0.2s;" onmouseover="this.style.background='rgba(99, 102, 241, 0.25)'" onmouseout="this.style.background='rgba(99, 102, 241, 0.15)'">
+                                <span onclick="event.stopPropagation(); openSupplyDetailsModal('${order.id}');" style="cursor: pointer; display: inline-flex; align-items: center; gap: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="100% a Prazo: Produção autorizada sem sinal">
+                                    <span>🏷️</span> <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">100% a Prazo</span>
+                                </span>
+                                <span onclick="event.stopPropagation(); toggleOrderCreditTerms('${order.id}', false);" style="cursor: pointer; font-size: 0.65rem; opacity: 0.8; padding: 0 3px; border-left: 1px solid rgba(99,102,241,0.35);" title="Exigir sinal antecipado? Clique para alternar">⇄</span>
+                            </div>
                         `;
                     } else if (isDepositPaid) {
                         pillPaymentHtml = `
-                            <a href="${swiftUrl || '#'}" ${swiftUrl ? 'target="_blank"' : ''} style="flex: 1; min-width: 0; background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); padding: 4px 6px; border-radius: 5px; font-size: 0.68rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background 0.2s;" title="Sinal pago e SWIFT enviada ao fornecedor" onmouseover="this.style.background='rgba(16, 185, 129, 0.22)'" onmouseout="this.style.background='rgba(16, 185, 129, 0.12)'">
+                            <a href="${swiftUrl || '#'}" ${swiftUrl ? 'target="_blank"' : ''} style="flex: 1; min-width: 0; background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); padding: 4px 6px; border-radius: 5px; font-size: 0.68rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background 0.2s;" title="Sinal pago e SWIFT enviada ao fornecedor (Clique para ver comprovante)" onmouseover="this.style.background='rgba(16, 185, 129, 0.22)'" onmouseout="this.style.background='rgba(16, 185, 129, 0.12)'">
                                 <span>✅</span> <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Sinal & SWIFT</span> <span>↗</span>
                             </a>
                         `;
                     } else {
                         pillPaymentHtml = `
-                            <span onclick="event.stopPropagation(); toggleOrderCreditTerms('${order.id}', true);" style="flex: 1; min-width: 0; background: rgba(239, 68, 68, 0.14); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 4px 6px; border-radius: 5px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background 0.2s;" title="Aguardando pagamento de sinal (${depositPct}%) e envio da SWIFT para liberar a produção na fábrica. (Clique para marcar como 100% a prazo)" onmouseover="this.style.background='rgba(239, 68, 68, 0.24)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.14)'">
-                                <span>⏳</span> <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Sinal (${depositPct}%)</span> <span style="font-size: 0.62rem; opacity: 0.8;" title="Clique para alternar para a prazo">⇄</span>
-                            </span>
+                            <div style="flex: 1; min-width: 0; background: rgba(239, 68, 68, 0.14); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 4px 6px; border-radius: 5px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: space-between; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background 0.2s;" onmouseover="this.style.background='rgba(239, 68, 68, 0.22)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.14)'">
+                                <span onclick="event.stopPropagation(); openDirectSwiftPaymentModal(${depositPay ? depositPay.id : 'null'}, '${order.id}');" style="cursor: pointer; display: inline-flex; align-items: center; gap: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Clique para anexar a cópia da SWIFT e registrar o pagamento do sinal">
+                                    <span>⏳</span> <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: underline;">Sinal (${depositPct}%)</span>
+                                </span>
+                                <span onclick="event.stopPropagation(); toggleOrderCreditTerms('${order.id}', true);" style="cursor: pointer; font-size: 0.65rem; opacity: 0.8; padding: 0 3px; border-left: 1px solid rgba(239,68,68,0.35);" title="Fornecedor concedeu prazo? Clique para alternar para 100% a prazo">⇄</span>
+                            </div>
                         `;
                     }
 
