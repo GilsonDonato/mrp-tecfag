@@ -32048,15 +32048,15 @@ function renderKanban() {
                     );
 
                     // Verifica se a entrada já foi paga e se tem comprovante SWIFT
+                    // Autoridade máxima: o status real da Parcela de Câmbio (#1 / Sinal) cadastrada no card
                     let isDepositPaid = false;
                     let swiftUrl = null;
                     if (depositPay) {
-                        isDepositPaid = depositPay.status === 'PAID' || !!depositPay.payment_date || !!depositPay.swift_file_path;
+                        isDepositPaid = depositPay.status === 'PAID';
                         if (depositPay.swift_file_path) {
                             swiftUrl = `/${depositPay.swift_file_path.replace(/^\//, '')}`;
                         }
-                    }
-                    if (!isDepositPaid && linkedPrj) {
+                    } else if (payments.length === 0 && linkedPrj) {
                         let chk = {};
                         try { chk = typeof linkedPrj.checklist === 'string' ? JSON.parse(linkedPrj.checklist || '{}') : (linkedPrj.checklist || {}); } catch(e){}
                         if (chk.swift_pagamento || chk.cambio_sinal) {
