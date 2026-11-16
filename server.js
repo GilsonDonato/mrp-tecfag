@@ -15121,8 +15121,13 @@ app.put('/api/supply-chain/payments/:id', authenticateToken, restrictToSupplyCha
             swiftPath = 'uploads/' + req.file.filename;
         }
 
-        const newStatus = status || payment.status;
-        const newPaymentDate = newStatus === 'PAID' ? (payment_date || new Date().toISOString().split('T')[0]) : null;
+        // Se anexou arquivo de SWIFT ou selecionou PAID, marca como PAID
+        let newStatus = status || payment.status;
+        if (req.file || status === 'PAID') {
+            newStatus = 'PAID';
+        }
+
+        const newPaymentDate = newStatus === 'PAID' ? (payment_date || payment.payment_date || new Date().toISOString().split('T')[0]) : null;
         const rate = parseFloat(exchange_rate_brl) || payment.exchange_rate_brl || null;
         const brl = rate ? (parseFloat(amount_brl) || (payment.amount_currency * rate)) : (payment.amount_brl || null);
 

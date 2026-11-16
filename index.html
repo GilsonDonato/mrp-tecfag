@@ -7878,9 +7878,9 @@
                     <div class="form-group" style="margin-bottom: 12px;">
                         <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Status da Parcela</label>
                         <select id="sc-pay-status" class="form-control" style="padding: 8px; font-size: 0.85rem;" onchange="handlePaymentStatusSelectChange()">
-                            <option value="PENDING">Pendente / A Vencer</option>
-                            <option value="SCHEDULED">Agendado no Banco</option>
                             <option value="PAID">Pago / Liquidado (Câmbio Fechado)</option>
+                            <option value="SCHEDULED">Agendado no Banco</option>
+                            <option value="PENDING">Pendente / A Vencer</option>
                         </select>
                     </div>
 
@@ -7902,13 +7902,14 @@
 
                     <div class="form-group" style="margin-bottom: 16px;">
                         <label style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);">Anexar Comprovante / Swift (PDF ou Imagem)</label>
-                        <input type="file" id="sc-pay-swift-file" class="form-control" accept=".pdf,image/*" style="padding: 8px; font-size: 0.8rem;">
+                        <input type="file" id="sc-pay-swift-file" class="form-control" accept=".pdf,image/*" onchange="onPaymentSwiftFileSelected(this)" style="padding: 8px; font-size: 0.8rem;">
+                        <div id="sc-pay-current-swift-preview" style="margin-top: 8px;"></div>
                     </div>
 
                     <div style="display: flex; justify-content: flex-end; gap: 10px;">
                         <button type="button" class="btn btn-secondary" onclick="closePaymentModal()">Cancelar</button>
-                        <button type="submit" class="btn" style="background: #10b981; color: white; font-weight: bold; padding: 8px 18px;">
-                            Salvar Pagamento
+                        <button type="submit" class="btn" id="btn-submit-payment-liquidation" style="background: #10b981; color: white; font-weight: bold; padding: 8px 18px;">
+                            💾 Salvar Pagamento
                         </button>
                     </div>
                 </form>
@@ -33376,22 +33377,26 @@ function renderKanban() {
 
             payments.forEach(p => {
                 const tr = document.createElement('tr');
-                const isPaid = p.status === 'PAID';
+                const isPaid = p.status === 'PAID' || !!p.swift_file_path;
                 const statusBadge = isPaid 
                     ? `<span style="background: rgba(16, 185, 129, 0.2); color: #10b981; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold;">LIQUIDADO / PAGO</span>`
                     : `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold;">PENDENTE</span>`;
 
                 const dueStr = p.due_date ? new Date(p.due_date + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
+                
+                const swiftLink = p.swift_file_path 
+                    ? `<a href="/${p.swift_file_path.replace(/^\//, '')}" target="_blank" style="color: #38bdf8; font-size: 0.72rem; font-weight: bold; margin-left: 6px; text-decoration: underline;" title="Visualizar comprovante SWIFT em nova aba">📄 SWIFT ↗</a>` 
+                    : '';
 
                 tr.innerHTML = `
                     <td style="padding: 6px; font-weight: bold;">#${p.installment_number}</td>
-                    <td style="padding: 6px;">${p.description} (${p.percentage}%)</td>
+                    <td style="padding: 6px;">${p.description} (${p.percentage}%) ${swiftLink}</td>
                     <td style="padding: 6px; font-weight: bold; color: #cbd5e1;">${dueStr}</td>
                     <td style="padding: 6px; font-weight: bold; color: #4ade80;">${p.currency} ${(p.amount_currency || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                     <td style="padding: 6px;">${statusBadge}</td>
                     <td style="padding: 6px; text-align: right;">
-                        <button type="button" class="btn btn-secondary" onclick="openPaymentModal(${p.id})" style="padding: 4px 8px; font-size: 0.72rem; font-weight: bold;">
-                            ${isPaid ? 'Ver Swift' : '💳 Liquidar'}
+                        <button type="button" class="btn btn-secondary" onclick="openPaymentModal(${p.id})" style="padding: 4px 8px; font-size: 0.72rem; font-weight: bold; ${isPaid ? 'color: #34d399; border-color: rgba(16, 185, 129, 0.4);' : ''}">
+                            ${isPaid ? '👁️ Ver Swift' : '💳 Liquidar'}
                         </button>
                     </td>
                 `;
@@ -34966,28 +34971,74 @@ function renderKanban() {
             renderSupplyChainPayments();
         }
 
+        function onPaymentSwiftFileSelected(input) {
+            if (input && input.files && input.files[0]) {
+                const statusSelect = document.getElementById('sc-pay-status');
+                if (statusSelect) statusSelect.value = 'PAID';
+                const dateInput = document.getElementById('sc-pay-date');
+                if (dateInput && !dateInput.value) {
+                    dateInput.value = new Date().toISOString().split('T')[0];
+                }
+            }
+        }
+
         function openPaymentModal(paymentId) {
-            const payment = (supplyChainState.payments || []).find(p => p.id == paymentId);
+            let payment = (supplyChainState.currentOrder?.payments || []).find(p => p.id == paymentId);
+            if (!payment) {
+                payment = (supplyChainState.payments || []).find(p => p.id == paymentId);
+            }
             if (!payment) return;
 
             const modal = document.getElementById('modal-supply-chain-payment');
             const sub = document.getElementById('sc-pay-modal-subtitle');
-            if (sub) sub.innerText = `PO: ${payment.po_number} • ${payment.description} (${payment.currency} ${payment.amount_currency.toFixed(2)})`;
+            const poNum = payment.po_number || supplyChainState.currentOrder?.po_number || '';
+            if (sub) sub.innerText = `PO: ${poNum} • ${payment.description} (${payment.currency || 'USD'} ${(payment.amount_currency || 0).toFixed(2)})`;
 
             const idInput = document.getElementById('sc-pay-id');
             if (idInput) idInput.value = payment.id;
 
+            // Ao clicar para liquidar ou ver swift, status padrão deve ser PAID
             const statusSelect = document.getElementById('sc-pay-status');
-            if (statusSelect) statusSelect.value = payment.status || 'PENDING';
+            if (statusSelect) {
+                statusSelect.value = payment.status === 'PAID' || payment.swift_file_path ? 'PAID' : 'PAID';
+            }
 
             const dateInput = document.getElementById('sc-pay-date');
-            if (dateInput) dateInput.value = payment.payment_date || new Date().toISOString().split('T')[0];
+            if (dateInput) {
+                dateInput.value = payment.payment_date ? payment.payment_date.split('T')[0] : new Date().toISOString().split('T')[0];
+            }
 
             const rateInput = document.getElementById('sc-pay-exchange-rate');
             if (rateInput) rateInput.value = payment.exchange_rate_brl || '';
 
             const brlInput = document.getElementById('sc-pay-amount-brl');
             if (brlInput) brlInput.value = payment.amount_brl || '';
+
+            // Limpa o input de arquivo e mostra o preview do comprovante atual
+            const fileInput = document.getElementById('sc-pay-swift-file');
+            if (fileInput) fileInput.value = '';
+
+            const previewEl = document.getElementById('sc-pay-current-swift-preview');
+            if (previewEl) {
+                if (payment.swift_file_path) {
+                    const fname = payment.swift_file_path.split('/').pop();
+                    const furl = `/${payment.swift_file_path.replace(/^\//, '')}`;
+                    previewEl.innerHTML = `
+                        <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                            <a href="${furl}" target="_blank" style="color: #34d399; font-weight: bold; font-size: 0.78rem; text-decoration: underline; display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <span>📄</span> Ver comprovante atual: <strong>${escapeHtml(fname)}</strong> ↗
+                            </a>
+                            <span style="font-size: 0.7rem; color: #94a3b8;">(Envie novo acima para trocar)</span>
+                        </div>
+                    `;
+                } else {
+                    previewEl.innerHTML = `
+                        <div style="font-size: 0.72rem; color: #94a3b8; font-style: italic;">
+                            Nenhum comprovante SWIFT anexado a esta parcela ainda.
+                        </div>
+                    `;
+                }
+            }
 
             if (modal) modal.style.display = 'flex';
         }
@@ -35008,7 +35059,10 @@ function renderKanban() {
 
         function calculateBrlPaymentAmount() {
             const payId = document.getElementById('sc-pay-id')?.value;
-            const payment = (supplyChainState.payments || []).find(p => p.id == payId);
+            let payment = (supplyChainState.currentOrder?.payments || []).find(p => p.id == payId);
+            if (!payment) {
+                payment = (supplyChainState.payments || []).find(p => p.id == payId);
+            }
             if (!payment) return;
 
             const rate = parseFloat(document.getElementById('sc-pay-exchange-rate')?.value) || 0;
@@ -35023,15 +35077,33 @@ function renderKanban() {
             const payId = document.getElementById('sc-pay-id')?.value;
             if (!payId) return;
 
+            const fileInput = document.getElementById('sc-pay-swift-file');
+            const hasFile = fileInput && fileInput.files && fileInput.files[0];
+
+            let statusVal = document.getElementById('sc-pay-status')?.value || 'PAID';
+            if (hasFile) {
+                statusVal = 'PAID';
+            }
+
+            let payDate = document.getElementById('sc-pay-date')?.value;
+            if (!payDate && statusVal === 'PAID') {
+                payDate = new Date().toISOString().split('T')[0];
+            }
+
             const formData = new FormData();
-            formData.append('status', document.getElementById('sc-pay-status')?.value);
-            formData.append('payment_date', document.getElementById('sc-pay-date')?.value || '');
+            formData.append('status', statusVal);
+            formData.append('payment_date', payDate || '');
             formData.append('exchange_rate_brl', document.getElementById('sc-pay-exchange-rate')?.value || '');
             formData.append('amount_brl', document.getElementById('sc-pay-amount-brl')?.value || '');
 
-            const fileInput = document.getElementById('sc-pay-swift-file');
-            if (fileInput && fileInput.files && fileInput.files[0]) {
+            if (hasFile) {
                 formData.append('swift_file', fileInput.files[0]);
+            }
+
+            const btnSave = document.getElementById('btn-submit-payment-liquidation');
+            if (btnSave) {
+                btnSave.disabled = true;
+                btnSave.innerText = 'Salvando Comprovante...';
             }
 
             try {
@@ -35045,12 +35117,25 @@ function renderKanban() {
                 });
 
                 if (res.ok) {
+                    const updatedPayment = await res.json();
                     closePaymentModal();
-                    await loadSupplyChainData();
+                    
+                    // Atualiza imediatamente o pagamento no currentOrder em memória
+                    if (supplyChainState.currentOrder && Array.isArray(supplyChainState.currentOrder.payments)) {
+                        const idx = supplyChainState.currentOrder.payments.findIndex(p => p.id == payId);
+                        if (idx !== -1) {
+                            supplyChainState.currentOrder.payments[idx] = updatedPayment;
+                        }
+                        renderDetailsPayments(supplyChainState.currentOrder.payments);
+                    }
+
+                    if (typeof loadSupplyChainData === 'function') {
+                        await loadSupplyChainData();
+                    }
                     if (supplyChainState.currentOrder) {
                         await openSupplyDetailsModal(supplyChainState.currentOrder.id);
                     }
-                    alert('✅ Parcela atualizada com sucesso!');
+                    alert('✅ Parcela liquidada e comprovante SWIFT salvo com sucesso!');
                 } else {
                     const data = await res.json();
                     alert('Erro ao atualizar pagamento: ' + (data.error || 'Erro desconhecido.'));
@@ -35058,6 +35143,11 @@ function renderKanban() {
             } catch (err) {
                 console.error(err);
                 alert('Erro de conexão ao liquidar parcela.');
+            } finally {
+                if (btnSave) {
+                    btnSave.disabled = false;
+                    btnSave.innerText = '💾 Salvar Pagamento';
+                }
             }
         }
 
