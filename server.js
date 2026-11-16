@@ -748,72 +748,106 @@ db.run("UPDATE projects SET import_stage = NULL WHERE (fase IS NULL OR fase <= 2
             UNIQUE(supplier_sku, tecfag_sku)
         )`, (err) => {});
 
-        // Executar importação e auto-recuperação assíncrona se necessário
+        // Executar importação e limpeza segura de cards ressuscitados indevidamente
         setTimeout(importClientsCsvIfEmpty, 800);
-        setTimeout(autoHealSignedProjects, 1200);
-        setTimeout(syncImportProjectsToStockOrders, 2000);
+        setTimeout(cleanupErroneousRecreatedOrders, 1200);
+        setTimeout(syncImportProjectsToStockOrders, 2500);
     });
 }
 
-// Auto-cura e restauração garantida de projetos com proposta/contrato assinado (ex: TRUE SOURCE)
-async function autoHealSignedProjects() {
+// Limpeza segura e reversão de cards reabertos indevidamente por rotina de auto-cura ampla
+async function cleanupErroneousRecreatedOrders() {
     try {
-        const signedProjects = await dbAll(`
-            SELECT * FROM projects 
-            WHERE (
-                code = 'PRJTEC000000043' 
-                OR UPPER(client) LIKE '%TRUE%' 
-                OR UPPER(client) LIKE '%GROW DIETARY%' 
-                OR checklist LIKE '%"contrato":true%'
-            )
-        `);
+        console.log('[CLEANUP] Iniciando limpeza segura de ordens reabertas indevidamente...');
 
-        for (const p of (signedProjects || [])) {
-            let chk = {};
-            try { chk = typeof p.checklist === 'string' ? JSON.parse(p.checklist || '{}') : (p.checklist || {}); } catch(e){}
+        const poNumbers = [
+            'PO-PRJ002', 'PO-PRJ008', 'PO-PRJ023', 'PO-PRJ025', 'PO-PRJ26', 'PO-PRJ026',
+            'PO-PRJ027', 'PO-PRJ028', 'PO-PRJ032', 'PO-PRJ033', 'PO-PRJ36', 'PO-PRJ036',
+            'PO-PRJ037', 'PO-PRJ038', 'PO-PRJ043', 'PO-PRJ051', 'PO-PRJ055'
+        ];
 
-            // Se for o projeto PRJTEC000000043 (TRUE SOURCE) ou possuir contrato/proposta assinado
-            if (p.code === 'PRJTEC000000043' || chk.contrato) {
-                chk.diagnostico = true;
-                chk.customizacao = true;
-                chk.cotacao = true;
-                chk.fluxograma = true;
-                chk.planta_baixa = true;
-                chk.aprovacao = true;
-                chk.contrato = true;
+        for (const po of poNumbers) {
+            await dbRun('DELETE FROM stock_order_items WHERE order_id IN (SELECT id FROM stock_orders WHERE po_number = ?)', [po]);
+            await dbRun('DELETE FROM stock_orders WHERE po_number = ?', [po]);
+        }
 
-                const clientName = (p.code === 'PRJTEC000000043' && !p.client.includes('TRUE'))
-                    ? 'TRUE SOURCE / GDS GROW DIETARY SUPPLEMENTS DO BRASIL S/A'
-                    : p.client;
-
-                const now = new Date().toISOString();
+        // Projetos cancelados anteriormente: restaurar fase 8 e motivoPerda
+        const cancelledProjects = [
+            'PRJTEC000000002', 'PRJTEC000000023', 'PRJTEC000000025', 'PRJTEC000000026',
+            'PRJTEC000000027', 'PRJTEC000000028', 'PRJTEC000000032', 'PRJTEC000000033',
+            'PRJTEC000000036', 'PRJTEC000000037', 'PRJTEC000000038', 'PRJTEC000000043'
+        ];
+        for (const code of cancelledProjects) {
+            const p = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+            if (p) {
+                let chk = {};
+                try { chk = p.checklist ? JSON.parse(p.checklist) : {}; } catch(e){}
+                chk.import_order_deleted = true;
+                chk.import_order_unlinked = true;
                 await dbRun(`
-                    UPDATE projects SET
-                        client = ?,
-                        fase = 3,
-                        motivoPerda = NULL,
-                        waiting_vendor = 0,
-                        waiting_vendor_since = NULL,
-                        waiting_vendor_reason = NULL,
-                        import_stage = COALESCE(import_stage, 'PO_EMITIDA'),
-                        has_import_order = 1,
+                    UPDATE projects SET 
+                        fase = 8, 
+                        motivoPerda = COALESCE(motivoPerda, 'Cancelado'), 
+                        import_stage = NULL, 
                         checklist = ?,
                         lastUpdate = ?
                     WHERE code = ?
-                `, [clientName, JSON.stringify(chk), now, p.code]);
-
-                console.log(`[AUTO-HEAL] ✅ Projeto ${p.code} (${clientName}) recuperado na Fase 3 / PO_EMITIDA.`);
+                `, [JSON.stringify(chk), new Date().toISOString(), code]);
             }
         }
+
+        // Projetos finalizados/entregues anteriormente: restaurar fase 8 sem import_stage
+        const finalizedProjects = ['PRJTEC000000008', 'PRJTEC000000051', 'PRJTEC000000055'];
+        for (const code of finalizedProjects) {
+            const p = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+            if (p) {
+                let chk = {};
+                try { chk = p.checklist ? JSON.parse(p.checklist) : {}; } catch(e){}
+                chk.import_order_deleted = true;
+                chk.import_order_unlinked = true;
+                await dbRun(`
+                    UPDATE projects SET 
+                        fase = 8, 
+                        import_stage = NULL, 
+                        checklist = ?,
+                        lastUpdate = ?
+                    WHERE code = ?
+                `, [JSON.stringify(chk), new Date().toISOString(), code]);
+            }
+        }
+
+        // Projetos com importação desvinculada pelo admin: restaurar fase 2 (Pedido Fechado)
+        const unlinkedProjects = [
+            'PRJTEC000000057', 'PRJTEC000000067', 'PRJTEC000000069', 'PRJTEC000000070', 'PRJTEC000000071'
+        ];
+        for (const code of unlinkedProjects) {
+            const p = await dbGet('SELECT * FROM projects WHERE code = ?', [code]);
+            if (p) {
+                let chk = {};
+                try { chk = p.checklist ? JSON.parse(p.checklist) : {}; } catch(e){}
+                chk.import_order_deleted = true;
+                chk.import_order_unlinked = true;
+                await dbRun(`
+                    UPDATE projects SET 
+                        fase = 2, 
+                        import_stage = NULL, 
+                        checklist = ?,
+                        lastUpdate = ?
+                    WHERE code = ?
+                `, [JSON.stringify(chk), new Date().toISOString(), code]);
+            }
+        }
+
+        console.log('[CLEANUP] ✅ Limpeza concluída: Todos os cards indevidos foram apagados com segurança.');
     } catch (err) {
-        console.warn('[AUTO-HEAL] Erro na recuperação automática:', err.message);
+        console.error('[CLEANUP ERROR]:', err);
     }
 }
 
 // Sincronização automática de projetos em fase internacional (3, 4, 5) para o módulo de Importação & Estoque
 async function syncImportProjectsToStockOrders() {
     try {
-        const importProjects = await dbAll("SELECT * FROM projects WHERE fase IN (3, 4, 5)");
+        const importProjects = await dbAll("SELECT * FROM projects WHERE fase IN (3, 4, 5) AND (motivoPerda IS NULL OR motivoPerda = '')");
         console.log("[SYNC-IMPORT] Verificando sincronização de " + importProjects.length + " projetos internacionais.");
 
         for (const p of importProjects) {
@@ -826,8 +860,8 @@ async function syncImportProjectsToStockOrders() {
 
             let chk = {};
             try { chk = p.checklist ? JSON.parse(p.checklist) : {}; } catch(e){}
-            if (chk.import_order_deleted || chk.import_order_unlinked) {
-                // Usuário já excluiu ou desvinculou essa ordem manualmente. Não recriar.
+            if (chk.import_order_deleted || chk.import_order_unlinked || p.fase >= 8 || p.motivoPerda) {
+                // Usuário já excluiu ou desvinculou essa ordem manualmente ou projeto cancelado. Não recriar.
                 continue;
             }
 
