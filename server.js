@@ -748,10 +748,66 @@ db.run("UPDATE projects SET import_stage = NULL WHERE (fase IS NULL OR fase <= 2
             UNIQUE(supplier_sku, tecfag_sku)
         )`, (err) => {});
 
-        // Executar importação assíncrona se necessário
-        setTimeout(importClientsCsvIfEmpty, 1000);
-        setTimeout(syncImportProjectsToStockOrders, 1500);
+        // Executar importação e auto-recuperação assíncrona se necessário
+        setTimeout(importClientsCsvIfEmpty, 800);
+        setTimeout(autoHealSignedProjects, 1200);
+        setTimeout(syncImportProjectsToStockOrders, 2000);
     });
+}
+
+// Auto-cura e restauração garantida de projetos com proposta/contrato assinado (ex: TRUE SOURCE)
+async function autoHealSignedProjects() {
+    try {
+        const signedProjects = await dbAll(`
+            SELECT * FROM projects 
+            WHERE (
+                code = 'PRJTEC000000043' 
+                OR UPPER(client) LIKE '%TRUE%' 
+                OR UPPER(client) LIKE '%GROW DIETARY%' 
+                OR checklist LIKE '%"contrato":true%'
+            )
+        `);
+
+        for (const p of (signedProjects || [])) {
+            let chk = {};
+            try { chk = typeof p.checklist === 'string' ? JSON.parse(p.checklist || '{}') : (p.checklist || {}); } catch(e){}
+
+            // Se for o projeto PRJTEC000000043 (TRUE SOURCE) ou possuir contrato/proposta assinado
+            if (p.code === 'PRJTEC000000043' || chk.contrato) {
+                chk.diagnostico = true;
+                chk.customizacao = true;
+                chk.cotacao = true;
+                chk.fluxograma = true;
+                chk.planta_baixa = true;
+                chk.aprovacao = true;
+                chk.contrato = true;
+
+                const clientName = (p.code === 'PRJTEC000000043' && !p.client.includes('TRUE'))
+                    ? 'TRUE SOURCE / GDS GROW DIETARY SUPPLEMENTS DO BRASIL S/A'
+                    : p.client;
+
+                const now = new Date().toISOString();
+                await dbRun(`
+                    UPDATE projects SET
+                        client = ?,
+                        fase = 3,
+                        motivoPerda = NULL,
+                        waiting_vendor = 0,
+                        waiting_vendor_since = NULL,
+                        waiting_vendor_reason = NULL,
+                        import_stage = COALESCE(import_stage, 'PO_EMITIDA'),
+                        has_import_order = 1,
+                        checklist = ?,
+                        lastUpdate = ?
+                    WHERE code = ?
+                `, [clientName, JSON.stringify(chk), now, p.code]);
+
+                console.log(`[AUTO-HEAL] ✅ Projeto ${p.code} (${clientName}) recuperado na Fase 3 / PO_EMITIDA.`);
+            }
+        }
+    } catch (err) {
+        console.warn('[AUTO-HEAL] Erro na recuperação automática:', err.message);
+    }
 }
 
 // Sincronização automática de projetos em fase internacional (3, 4, 5) para o módulo de Importação & Estoque
