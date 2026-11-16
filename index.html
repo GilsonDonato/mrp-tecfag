@@ -32026,14 +32026,15 @@ function renderKanban() {
                     const payments = Array.isArray(order.payments) ? order.payments : [];
                     const depositPay = payments.find(p => {
                         const d = (p.description || '').toLowerCase();
-                        return d.includes('sinal') || d.includes('proforma') || d.includes('entrada') || d.includes('deposit') || d.includes('início') || d.includes('inicio');
+                        return d.includes('sinal') || d.includes('proforma') || d.includes('entrada') || d.includes('deposit') || d.includes('início') || d.includes('inicio') || (payments.length > 1 && p.installment_number === 1);
                     });
 
                     const termsType = (order.payment_terms_type || '').toUpperCase();
                     const termsDesc = (order.payment_terms_desc || '').toLowerCase();
 
                     // Detecta se a ordem é 100% a prazo (dispensada de sinal antecipado para produção)
-                    const isCreditTerm = 
+                    // Só pode ser a prazo se NÃO houver parcela de sinal/entrada cadastrada
+                    const isCreditTerm = !depositPay && (
                         termsType.includes('120_DAYS') || 
                         termsType.includes('100_BL') || 
                         termsType.includes('100_PERCENT') ||
@@ -32041,9 +32042,10 @@ function renderKanban() {
                         termsDesc.includes('100% contra') || 
                         termsDesc.includes('sem entrada') || 
                         termsDesc.includes('sem sinal') ||
-                        termsDesc.includes('a prazo') ||
-                        (payments.length === 1 && payments[0].percentage === 100 && !depositPay) ||
-                        (payments.length > 0 && !depositPay && payments.every(p => !p.description.toLowerCase().includes('sinal')));
+                        termsDesc.includes('100% a prazo') ||
+                        (payments.length === 1 && payments[0].percentage >= 99) ||
+                        (payments.length > 0 && payments.every(p => !p.description.toLowerCase().includes('sinal') && !p.description.toLowerCase().includes('entrada')))
+                    );
 
                     // Verifica se a entrada já foi paga e se tem comprovante SWIFT
                     let isDepositPaid = false;

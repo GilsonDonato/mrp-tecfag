@@ -1706,9 +1706,37 @@ function seedDefaultStockSuppliers() {
 
     setTimeout(autoFixBrotherMachineryOrders, 3000);
     setTimeout(autoFixInvoiceBIT26_0404W, 4000);
+    setTimeout(autoHealCustomPaymentInstallments, 4500);
     setTimeout(autoFixInvoiceBIT26_0606W, 6000);
     setTimeout(autoFixInvoiceBIT26_0616W, 8000);
     setTimeout(autoFixInvoiceHL26CP009098, 10000);
+}
+
+// Rotina de auto-cura para restaurar ordens com parcelamento customizado (ex: 25/25/50)
+async function autoHealCustomPaymentInstallments() {
+    try {
+        const customOrders = await dbAll("SELECT * FROM stock_orders WHERE payment_terms_desc LIKE '%25% Sinal%' OR payment_terms_desc LIKE '%25% / 25% / 50%' OR po_number LIKE '%PRJ052%'");
+        for (const ord of customOrders) {
+            const pays = await dbAll("SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC", [ord.id]);
+            if (pays.length === 3) {
+                const total = parseFloat(ord.total_fob_value) || 8800;
+                const p1Amt = Math.round(total * 0.25 * 100) / 100;
+                const p1Date = ord.invoice_date || pays[0].due_date || '2026-10-26';
+                
+                await dbRun("UPDATE stock_orders SET payment_terms_type = 'CUSTOM', payment_terms_desc = '25% Sinal / 25% B/L / 50% (90d B/L)' WHERE id = ?", [ord.id]);
+                
+                // Se a parcela 1 foi corrompida com "100% Saldo", restaura
+                if (pays[0].description.includes('100% Saldo') || pays[0].amount_currency > (total * 0.4)) {
+                    await dbRun("UPDATE stock_order_payments SET description = '25% Sinal na Proforma / Início Fabricação', percentage = 25, amount_currency = ?, due_date = ? WHERE id = ?", [
+                        p1Amt, p1Date, pays[0].id
+                    ]);
+                    console.log(`[AUTO-HEAL PAYMENTS] ✅ Parcela #1 da ordem ${ord.po_number} restaurada para 25% (${p1Amt})!`);
+                }
+            }
+        }
+    } catch (e) {
+        console.error('[AUTO-HEAL PAYMENTS ERROR]', e.message);
+    }
 }
 
 // Rotina de auditoria para vincular as 4 invoices a Brother Machinery Group Co., Ltd.
@@ -2104,9 +2132,16 @@ function calculatePaymentInstallments(order, supplier) {
 async function refreshOrderPaymentDates(orderId) {
     const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
     if (!order) return;
+    
+    // Se a ordem tem parcelas personalizadas (CUSTOM) ou condição customizada, NUNCA recalcular nem sobrescrever
+    if (order.payment_terms_type === 'CUSTOM') return;
+
+    const existingPayments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [orderId]);
+    // Se já existem múltiplas parcelas configuradas (ex: 25/25/50 ou 30/70), preservar integralmente
+    if (existingPayments.length > 1) return;
+
     const supplier = order.supplier_id ? await dbGet('SELECT * FROM stock_suppliers WHERE id = ?', [order.supplier_id]) : null;
     
-    const existingPayments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [orderId]);
     if (existingPayments.length === 0) {
         const newPayments = calculatePaymentInstallments(order, supplier);
         for (const p of newPayments) {
@@ -2121,8 +2156,9 @@ async function refreshOrderPaymentDates(orderId) {
         for (const exp of expected) {
             const current = existingPayments.find(p => p.installment_number === exp.installment_number);
             if (current && current.status !== 'PAID') {
-                await dbRun('UPDATE stock_order_payments SET due_date = ?, description = ?, amount_currency = ? WHERE id = ?', [
-                    exp.due_date, exp.description, exp.amount_currency, current.id
+                // Atualiza APENAS a data de vencimento se aplicável, preservando a integridade de valores e descrições
+                await dbRun('UPDATE stock_order_payments SET due_date = ? WHERE id = ?', [
+                    exp.due_date, current.id
                 ]);
             }
         }
@@ -15130,12 +15166,22 @@ app.post('/api/supply-chain/orders/:id/reconfigure-payments', authenticateToken,
         const currency = order.currency || 'USD';
         const now = new Date().toISOString();
 
-        // 1. Atualizar a descrição da condição na ordem
-        if (payment_terms_desc) {
-            await dbRun('UPDATE stock_orders SET payment_terms_desc = ?, updated_at = ? WHERE id = ?', [
-                payment_terms_desc.trim(), now, order.id
-            ]);
+        // 1. Atualizar a descrição e o tipo da condição na ordem (para evitar recálculos automáticos)
+        let termsType = 'CUSTOM';
+        if (installments.length === 1 && installments[0].percentage >= 99) {
+            const descLower = (installments[0].description || '').toLowerCase();
+            if (descLower.includes('antecipado')) {
+                termsType = '100_ADVANCE';
+            } else {
+                termsType = '120_DAYS_BL';
+            }
         }
+        await dbRun('UPDATE stock_orders SET payment_terms_desc = ?, payment_terms_type = ?, updated_at = ? WHERE id = ?', [
+            payment_terms_desc ? payment_terms_desc.trim() : 'Personalizado',
+            termsType,
+            now,
+            order.id
+        ]);
 
         // Buscar pagamentos atuais para preservar comprovantes SWIFT já anexados se houver
         const currentPayments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [order.id]);
