@@ -838,7 +838,38 @@ async function cleanupErroneousRecreatedOrders() {
             }
         }
 
-        console.log('[CLEANUP] ✅ Limpeza concluída: Todos os cards indevidos foram apagados com segurança.');
+        // Ajuste dos dados corretos da Proforma Invoice da TRUE BRANDS (PO-PRJ066)
+        const order66 = await dbGet("SELECT id FROM stock_orders WHERE po_number = 'PO-PRJ066'");
+        if (order66) {
+            await dbRun(`UPDATE stock_orders SET
+                supplier_id = 9,
+                supplier_name = 'Guangdong Shengwei Machinery Technology Co., Ltd.',
+                invoice_number = 'SW20261116',
+                invoice_date = '2026-11-16',
+                currency = 'USD',
+                total_fob_value = 10200.00,
+                payment_terms_desc = '30% (USD3060.00) as deposit and 70% balance (USD7140.00) before delivery.'
+            WHERE id = ?`, [order66.id]);
+
+            await dbRun('DELETE FROM stock_order_items WHERE order_id = ?', [order66.id]);
+            await dbRun(`INSERT INTO stock_order_items (
+                order_id, sku, description, qty_ordered, qty_shipped, qty_backorder, unit_price_fob, total_price_fob, status, created_at, project_code, client_name
+            ) VALUES (?, ?, ?, 3, 0, 0, 3400.00, 10200.00, 'PENDING', ?, 'PRJTEC000000066', 'TRUE BRANDS DISTRIBUIDORA DE PRODUTOS SAUDAVEIS S.A.')`, [
+                order66.id,
+                'PAMQGPAU050',
+                'SW-1328 Horizotal auger powder 3 side sealing packing machine (AFPP1328 + NR12)',
+                new Date().toISOString()
+            ]);
+
+            await dbRun(`UPDATE projects SET
+                supplier = 'Guangdong Shengwei Machinery Technology Co., Ltd.',
+                import_supplier = 'Guangdong Shengwei Machinery Technology Co., Ltd.',
+                import_invoice_number = 'SW20261116',
+                import_total_fob_value = 10200.00
+            WHERE code = 'PRJTEC000000066'`);
+        }
+
+        console.log('[CLEANUP] ✅ Limpeza e ajuste da invoice concluídos com sucesso.');
     } catch (err) {
         console.error('[CLEANUP ERROR]:', err);
     }
@@ -11026,7 +11057,13 @@ app.post('/api/supply-chain/orders/:id/extract-invoice-ai', authenticateToken, r
         }
 
         const relativePath = order.invoice_file_path.replace(/^\//, '');
-        const fullPath = path.isAbsolute(relativePath) ? relativePath : path.join(__dirname, relativePath);
+        let fullPath = path.isAbsolute(relativePath) ? relativePath : path.join(__dirname, relativePath);
+        if (!fs.existsSync(fullPath)) {
+            fullPath = path.join(UPLOADS_DIR, path.basename(relativePath));
+        }
+        if (!fs.existsSync(fullPath)) {
+            fullPath = path.join(DB_DIR, relativePath);
+        }
 
         if (!fs.existsSync(fullPath)) {
             return res.status(404).json({ error: 'Arquivo da fatura não foi encontrado no servidor.' });
