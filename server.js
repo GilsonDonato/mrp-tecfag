@@ -972,7 +972,8 @@ function computeCanonicalProjectPhase(project) {
     }
 
     const f1Complete = !!(chk.diagnostico && chk.customizacao && chk.cotacao && chk.fluxograma && chk.planta_baixa);
-    const f2Complete = !!(chk.aprovacao && chk.contrato);
+    // Contrato ou proposta assinada pelo cliente conclui formalmente a Fase 2 (Comercial)
+    const f2Complete = !!(chk.contrato || (chk.aprovacao && chk.contrato));
     const f3Complete = !!(chk.proforma && chk.cambio_sinal && chk.swift_pagamento);
     const f4Complete = !!(chk.producao && chk.embarque && chk.pagamento && chk.fedex);
     const f5Complete = !!(chk.transporte_maritimo && chk.desembaraco && chk.chegada_tecfag);
@@ -8330,16 +8331,32 @@ app.put('/api/projects/:code', async (req, res) => {
             }
         }
 
+        // Se o contrato/proposta estiver sendo marcado como assinado, reativa o projeto e garante aprovação comercial
+        let effectiveMotivoPerda = motivoPerda !== undefined ? motivoPerda : oldProject.motivoPerda;
+        if (currentChecklist.contrato) {
+            currentChecklist.aprovacao = true;
+            if (!motivoPerda && oldProject.motivoPerda) {
+                effectiveMotivoPerda = null;
+            }
+        }
+
         // Calcula a fase canônica autoritativa pelo backend
         let canonicalFase = computeCanonicalProjectPhase({
             ...oldProject,
             ...req.body,
+            motivoPerda: effectiveMotivoPerda,
             checklist: currentChecklist
         });
 
+        // Garantir que proposta/contrato assinado para equipamento sob encomenda avance para Fase 3 (Proforma / Comex)
+        const isNotLocal = (equipment_origin || oldProject.equipment_origin || 'Importação') !== 'Pronta Entrega (Estoque Local)';
+        if (currentChecklist.contrato && isNotLocal && (!fase || parseInt(fase) < 8) && !effectiveMotivoPerda) {
+            canonicalFase = Math.max(3, canonicalFase);
+        }
+
         // Garantir que status explícito de perda/cancelamento, conclusão direta ou retorno para Fase 1 sejam respeitados se passados
         if (fase !== undefined && parseInt(fase) === 8) canonicalFase = 8;
-        if (motivoPerda) canonicalFase = 8;
+        if (effectiveMotivoPerda) canonicalFase = 8;
         if (fase !== undefined && parseInt(fase) === 7 && (currentChecklist.sat || oldProject.is_archived === 1)) canonicalFase = 7;
         if (fase !== undefined && parseInt(fase) === 1) {
             // Permitir mover explicitamente para Fase 1 se não houver etapas de comex/importação ativas
@@ -8455,7 +8472,7 @@ app.put('/api/projects/:code', async (req, res) => {
             checklist: JSON.stringify(currentChecklist),
             prazos: prazos ? JSON.stringify(prazos) : oldProject.prazos,
             lastUpdate: lastUpdate || new Date().toISOString(),
-            motivoPerda: motivoPerda !== undefined ? motivoPerda : oldProject.motivoPerda,
+            motivoPerda: effectiveMotivoPerda,
             machines: machines ? JSON.stringify(machines) : oldProject.machines,
             equipment_origin: equipment_origin !== undefined ? equipment_origin : oldProject.equipment_origin,
             handover_signed: handover_signed !== undefined ? parseInt(handover_signed) : oldProject.handover_signed,
@@ -8534,6 +8551,11 @@ app.put('/api/projects/:code', async (req, res) => {
         if (waiting_vendor !== undefined) updateFields.waiting_vendor = waiting_vendor ? 1 : 0;
         if (waiting_vendor_since !== undefined) updateFields.waiting_vendor_since = waiting_vendor_since;
         if (waiting_vendor_reason !== undefined) updateFields.waiting_vendor_reason = waiting_vendor_reason;
+        if (currentChecklist.contrato) {
+            updateFields.waiting_vendor = 0;
+            updateFields.waiting_vendor_since = null;
+            updateFields.waiting_vendor_reason = null;
+        }
         if (paused_sla_seconds !== undefined) updateFields.paused_sla_seconds = parseInt(paused_sla_seconds) || 0;
         if (spare_parts_recommendations !== undefined) {
             updateFields.spare_parts_recommendations = typeof spare_parts_recommendations === 'string' ? spare_parts_recommendations : JSON.stringify(spare_parts_recommendations);
@@ -12745,7 +12767,7 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
             SELECT * FROM projects 
             WHERE (
                     fase IN (3, 4, 5) 
-                    OR (checklist LIKE '%"contrato":true%' AND checklist LIKE '%"aprovacao":true%' AND (equipment_origin IS NULL OR equipment_origin != 'Pronta Entrega (Estoque Local)') AND (fase IS NULL OR fase < 6))
+                    OR ((checklist LIKE '%"contrato":true%' OR checklist LIKE '%"proforma":true%') AND (equipment_origin IS NULL OR equipment_origin != 'Pronta Entrega (Estoque Local)') AND (fase IS NULL OR fase < 6))
                   )
               AND (motivoPerda IS NULL)
         `);
@@ -12759,8 +12781,8 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
                 continue;
             }
 
-            // Se o projeto está em Fase <= 2 e não possui etapa de importação explícita, não pertence ao Comex
-            if ((!p.fase || p.fase <= 2) && !p.import_stage) {
+            // Se o projeto está em Fase <= 2 e não possui etapa de importação explícita nem contrato assinado, não pertence ao Comex
+            if ((!p.fase || p.fase <= 2) && !p.import_stage && !chk.contrato && !chk.proforma) {
                 continue;
             }
 
@@ -12786,8 +12808,9 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
                     if (p.import_tracking_number && !existingOrder.tracking_number) existingOrder.tracking_number = p.import_tracking_number;
                 }
             } else {
-                // Se não há ordens em stock_orders, só gera card temporário se o projeto estiver em fase 3, 4 ou 5 com import_stage ativa
-                if (chk.import_order_deleted || chk.import_order_unlinked || (!p.fase || p.fase <= 2) || !p.import_stage) {
+                // Se não há ordens em stock_orders, gera card temporário se o projeto estiver em fase 3, 4 ou 5 OU possuir contrato/proposta assinado
+                const hasContractOrImport = chk.contrato || chk.proforma || (p.fase >= 3 && p.fase <= 5);
+                if (chk.import_order_deleted || chk.import_order_unlinked || !hasContractOrImport) {
                     continue;
                 }
 

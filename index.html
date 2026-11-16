@@ -19484,7 +19484,8 @@ const SEGMENT_SPECS_CONFIG = {"MISTURADORES":{"title":"1. Processamento e Mistur
 
             // Etapas completas por fase
             const f1Complete = !!(chk.diagnostico && chk.customizacao && chk.cotacao && chk.fluxograma && chk.planta_baixa);
-            const f2Complete = !!(chk.aprovacao && chk.contrato);
+            // Contrato ou proposta assinada pelo cliente conclui formalmente a Fase 2 (Comercial)
+            const f2Complete = !!(chk.contrato || (chk.aprovacao && chk.contrato));
             const f3Complete = !!(chk.proforma && chk.cambio_sinal && chk.swift_pagamento);
             const f4Complete = !!(chk.producao && chk.embarque && chk.pagamento && chk.fedex);
             const f5Complete = !!(chk.transporte_maritimo && chk.desembaraco && chk.chegada_tecfag);
@@ -27264,6 +27265,24 @@ function renderKanban() {
                 delete project.checklist[key + '_user'];
                 delete project.checklist[key + '_date'];
             }
+
+            // Se o usuário marcar o contrato/proposta como assinado
+            if (key === 'contrato' && isChecked) {
+                // Se a etapa 6 (aprovacao) não estava marcada, marca automaticamente
+                if (!project.checklist.aprovacao) {
+                    project.checklist.aprovacao = true;
+                    project.checklist.aprovacao_user = currentUser;
+                    project.checklist.aprovacao_date = new Date().toISOString();
+                    const elAprov = document.getElementById('chk-aprovacao');
+                    if (elAprov) elAprov.classList.add('checked');
+                }
+                project.waiting_vendor = 0;
+                project.waiting_vendor_reason = null;
+                project.motivoPerda = null;
+                if (project.equipment_origin !== 'Pronta Entrega (Estoque Local)') {
+                    project.import_stage = project.import_stage || 'PO_EMITIDA';
+                }
+            }
             
             // Pipeline routing (8 fases)
             let oldFase = parseInt(project.fase) || 1;
@@ -27296,6 +27315,9 @@ function renderKanban() {
                 checklist: project.checklist,
                 fase: newFase,
                 import_stage: project.import_stage,
+                motivoPerda: (key === 'contrato' && isChecked) ? null : undefined,
+                waiting_vendor: (key === 'contrato' && isChecked) ? 0 : undefined,
+                waiting_vendor_reason: (key === 'contrato' && isChecked) ? null : undefined,
                 lastUpdate: new Date().toISOString()
             };
 
@@ -27358,6 +27380,13 @@ function renderKanban() {
                 }
 
                 loadProjectsDB();
+                if (typeof loadSupplyChainData === 'function') {
+                    loadSupplyChainData();
+                }
+
+                if (key === 'contrato' && isChecked && newFase === 3) {
+                    alert(`🎉 PROPOSTA / CONTRATO ASSINADO COM SUCESSO!\n\nO projeto ${project.code} (${project.client || ''}) avançou para a Fase 3 e agora está visível na aba "🚢 Importações & Estoque" na coluna "1. PROFORMA".`);
+                }
             })
             .catch(err => {
                 console.error(err);
