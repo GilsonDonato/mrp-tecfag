@@ -3378,15 +3378,17 @@ app.get('/api/projects/:code/comments', authenticateToken, async (req, res) => {
     }
 });
 
-// POST /api/projects/:code/comments - Adiciona um novo comentário com suporte opcional a anexo de arquivo (máx 50MB) e controle de SLA
-app.post('/api/projects/:code/comments', authenticateToken, upload.single('file'), async (req, res) => {
+// POST /api/projects/:code/comments - Adiciona comentário(s) com suporte a múltiplos anexos (máx 50MB/cada) e controle de SLA
+app.post('/api/projects/:code/comments', authenticateToken, upload.any(), async (req, res) => {
     const { code } = req.params;
     const { message, is_vendor_query } = req.body;
-    const file = req.file;
+    const files = (req.files && Array.isArray(req.files) && req.files.length > 0)
+        ? req.files
+        : (req.file ? [req.file] : []);
     const user = req.user ? req.user.username : 'Sistema';
 
-    if ((!message || message.trim() === '') && !file) {
-        return res.status(400).json({ error: 'A mensagem do comentário ou um arquivo anexo é obrigatório.' });
+    if ((!message || message.trim() === '') && files.length === 0) {
+        return res.status(400).json({ error: 'A mensagem do comentário ou ao menos um arquivo anexo é obrigatório.' });
     }
 
     try {
@@ -3396,34 +3398,46 @@ app.post('/api/projects/:code/comments', authenticateToken, upload.single('file'
         }
 
         const timestamp = new Date().toISOString();
-        let attachmentPath = null;
-        let attachmentName = null;
-
-        if (file) {
-            attachmentPath = 'uploads/' + file.filename;
-            attachmentName = file.originalname;
-        }
-
         const cleanMessage = message ? message.trim() : '';
 
-        await dbRun(`INSERT INTO comments (projectCode, user, message, dateAdded, attachmentPath, attachmentName) VALUES (?, ?, ?, ?, ?, ?)`, [
-            code,
-            user,
-            cleanMessage,
-            timestamp,
-            attachmentPath,
-            attachmentName
-        ]);
+        // Se não houver arquivos, insere o registro com o texto da mensagem
+        if (files.length === 0) {
+            await dbRun(`INSERT INTO comments (projectCode, user, message, dateAdded, attachmentPath, attachmentName) VALUES (?, ?, ?, ?, ?, ?)`, [
+                code,
+                user,
+                cleanMessage,
+                timestamp,
+                null,
+                null
+            ]);
+        } else {
+            // Insere cada arquivo como um anexo. O primeiro registro leva a mensagem descritiva (se houver)
+            for (let i = 0; i < files.length; i++) {
+                const f = files[i];
+                const attachmentPath = 'uploads/' + f.filename;
+                const attachmentName = f.originalname;
+                const msg = (i === 0) ? cleanMessage : '';
+                await dbRun(`INSERT INTO comments (projectCode, user, message, dateAdded, attachmentPath, attachmentName) VALUES (?, ?, ?, ?, ?, ?)`, [
+                    code,
+                    user,
+                    msg,
+                    timestamp,
+                    attachmentPath,
+                    attachmentName
+                ]);
+            }
+        }
 
         const isQuery = is_vendor_query === true || is_vendor_query === 'true' || is_vendor_query === '1';
 
         if (isQuery) {
             // A Engenharia marcou como pergunta para o Vendedor -> Pausa SLA e define waiting_vendor = 1
+            const reasonText = cleanMessage || (files.length > 0 ? `Anexos: ${files.map(f => f.originalname).join(', ')}` : '');
             await dbRun(`UPDATE projects SET crm_last_comment_user = ?, crm_last_interaction_date = ?, waiting_vendor = 1, waiting_vendor_since = ?, waiting_vendor_reason = ? WHERE code = ?`, [
                 user,
                 timestamp,
                 timestamp,
-                cleanMessage,
+                reasonText,
                 code
             ]);
 
@@ -3433,7 +3447,7 @@ app.post('/api/projects/:code/comments', authenticateToken, upload.single('file'
                 code,
                 waiting_vendor: 1,
                 waiting_vendor_since: timestamp,
-                waiting_vendor_reason: cleanMessage,
+                waiting_vendor_reason: reasonText,
                 user
             });
         } else {
@@ -3480,8 +3494,7 @@ app.post('/api/projects/:code/comments', authenticateToken, upload.single('file'
             user,
             message: cleanMessage,
             dateAdded: timestamp,
-            attachmentPath,
-            attachmentName,
+            filesCount: files.length,
             is_vendor_query: isQuery
         });
 
@@ -3490,13 +3503,16 @@ app.post('/api/projects/:code/comments', authenticateToken, upload.single('file'
             user, 
             dateAdded: timestamp, 
             message: cleanMessage,
-            attachmentPath,
-            attachmentName,
+            filesCount: files.length,
             is_vendor_query: isQuery
         });
     } catch (err) {
-        if (file && fs.existsSync(file.path)) {
-            fs.unlinkSync(file.path);
+        if (Array.isArray(files)) {
+            for (const f of files) {
+                if (f && f.path && fs.existsSync(f.path)) {
+                    try { fs.unlinkSync(f.path); } catch (e) {}
+                }
+            }
         }
         res.status(500).json({ error: 'Erro ao salvar comentário: ' + err.message });
     }
