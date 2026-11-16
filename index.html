@@ -31441,6 +31441,40 @@ function renderKanban() {
             };
         }
 
+        // Alterna com 1 clique a condição da ordem entre "Exige Sinal Antecipado" e "100% a Prazo / Sem Entrada"
+        window.toggleOrderCreditTerms = async function(orderId, isCredit) {
+            if (!orderId) return;
+            const confirmMsg = isCredit
+                ? 'Deseja marcar esta ordem como 100% A PRAZO (sem necessidade de adiantamento / sinal para iniciar a produção)?'
+                : 'Deseja retornar esta ordem para a condição com SINAL ANTECIPADO (exige pagamento e SWIFT para iniciar a produção)?';
+
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                const payload = isCredit
+                    ? { payment_terms_type: '120_DAYS_BL', payment_terms_desc: '100% a Prazo direto sem adiantamento (Produção liberada)' }
+                    : { payment_terms_type: '30_70_BL_COPY', payment_terms_desc: '30% Sinal na Proforma e 70% contra cópia do B/L' };
+
+                const res = await fetch(`/api/supply-chain/orders/${orderId}`, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    await loadSupplyChainData();
+                } else {
+                    alert('Erro ao atualizar condição de pagamento.');
+                }
+            } catch (err) {
+                alert('Erro ao atualizar condição: ' + err.message);
+            }
+        };
+
         function renderSupplyChainKanban() {
             const stages = ['PO_EMITIDA', 'EM_FABRICACAO', 'PACKING_LIST_EMBARQUE', 'NO_NAVIO', 'NO_PORTO_DESEMBARACO', 'ENTREPOSTADO_EADI', 'DOCA_GALPAO'];
             const counts = {};
@@ -31727,6 +31761,106 @@ function renderKanban() {
                 const dateLabel = isEadi ? 'Entrada EADI:' : etaLabel;
                 const dateColor = isEadi ? '#38bdf8' : etaColor;
 
+                // =========================================================================
+                // GESTÃO DE MARCOS NA ETAPA 1. PROFORMA:
+                // 1) Status da Invoice (Recebida vs Pendente)
+                // 2) Pagamento de Sinal & SWIFT vs 100% a Prazo (Sem Entrada)
+                // =========================================================================
+                let proformaMilestonesHtml = '';
+                if (stage === 'PO_EMITIDA') {
+                    const hasRealInvoice = !!(order.invoice_file_path || (order.invoice_number && !order.invoice_number.startsWith('PI-PRJTEC') && !order.invoice_number.startsWith('PI-PRJ')));
+                    const invLabel = (order.invoice_number && !order.invoice_number.startsWith('PI-PRJTEC') && !order.invoice_number.startsWith('PI-PRJ')) ? order.invoice_number : (order.invoice_file_path ? 'Invoice Anexada' : 'Aguardando');
+                    const invUrl = order.invoice_file_path ? `/${order.invoice_file_path.replace(/^\//, '')}` : null;
+
+                    // Condição de Pagamento e Análise de Entrada
+                    const payments = Array.isArray(order.payments) ? order.payments : [];
+                    const depositPay = payments.find(p => {
+                        const d = (p.description || '').toLowerCase();
+                        return d.includes('sinal') || d.includes('proforma') || d.includes('entrada') || d.includes('deposit') || d.includes('início') || d.includes('inicio');
+                    });
+
+                    const termsType = (order.payment_terms_type || '').toUpperCase();
+                    const termsDesc = (order.payment_terms_desc || '').toLowerCase();
+
+                    // Detecta se a ordem é 100% a prazo (dispensada de sinal antecipado para produção)
+                    const isCreditTerm = 
+                        termsType.includes('120_DAYS') || 
+                        termsType.includes('100_BL') || 
+                        termsType.includes('100_PERCENT') ||
+                        termsDesc.includes('100% em') || 
+                        termsDesc.includes('100% contra') || 
+                        termsDesc.includes('sem entrada') || 
+                        termsDesc.includes('sem sinal') ||
+                        termsDesc.includes('a prazo') ||
+                        (payments.length === 1 && payments[0].percentage === 100 && !depositPay) ||
+                        (payments.length > 0 && !depositPay && payments.every(p => !p.description.toLowerCase().includes('sinal')));
+
+                    // Verifica se a entrada já foi paga e se tem comprovante SWIFT
+                    let isDepositPaid = false;
+                    let swiftUrl = null;
+                    if (depositPay) {
+                        isDepositPaid = depositPay.status === 'PAID' || !!depositPay.payment_date || !!depositPay.swift_file_path;
+                        if (depositPay.swift_file_path) {
+                            swiftUrl = `/${depositPay.swift_file_path.replace(/^\//, '')}`;
+                        }
+                    }
+                    if (!isDepositPaid && linkedPrj) {
+                        let chk = {};
+                        try { chk = typeof linkedPrj.checklist === 'string' ? JSON.parse(linkedPrj.checklist || '{}') : (linkedPrj.checklist || {}); } catch(e){}
+                        if (chk.swift_pagamento || chk.cambio_sinal) {
+                            isDepositPaid = true;
+                        }
+                    }
+
+                    const depositPct = depositPay ? depositPay.percentage : 30;
+
+                    proformaMilestonesHtml = `
+                        <div style="background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 6px 8px; margin: 4px 0; display: flex; flex-direction: column; gap: 5px;" onclick="event.stopPropagation();">
+                            <!-- Linha 1: Status da Proforma Invoice -->
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.70rem; gap: 4px;">
+                                <span style="color: #94a3b8; font-weight: 600; display: flex; align-items: center; gap: 3px;">📄 Proforma:</span>
+                                ${hasRealInvoice ? `
+                                    <a href="${invUrl || '#'}" ${invUrl ? 'target="_blank"' : ''} style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 1px 6px; border-radius: 4px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;" title="Proforma Invoice confirmada do fornecedor">
+                                        ✅ ${escapeProjectHtml(invLabel)} ↗
+                                    </a>
+                                ` : `
+                                    <span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 1px 6px; border-radius: 4px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px;" title="Aguardando envio da Proforma Invoice pelo fornecedor">
+                                        ⚠️ Aguardando Invoice
+                                    </span>
+                                `}
+                            </div>
+
+                            <!-- Linha 2: Condição de Entrada / SWIFT -->
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.70rem; gap: 4px;">
+                                <span style="color: #94a3b8; font-weight: 600; display: flex; align-items: center; gap: 3px;">💸 Entrada / SWIFT:</span>
+                                ${isCreditTerm ? `
+                                    <div style="display: inline-flex; align-items: center; gap: 4px;">
+                                        <span style="background: rgba(99, 102, 241, 0.18); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.4); padding: 1px 6px; border-radius: 4px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px;" title="Condição a prazo: Produção autorizada sem necessidade de adiantamento">
+                                            🏷️ 100% a Prazo (Sem Entrada)
+                                        </span>
+                                        <button type="button" onclick="event.stopPropagation(); toggleOrderCreditTerms('${order.id}', false)" style="background: transparent; color: #64748b; border: none; font-size: 0.60rem; padding: 0 2px; cursor: pointer; text-decoration: underline;" title="Alterar para condição com sinal antecipado">
+                                            exigir sinal?
+                                        </button>
+                                    </div>
+                                ` : (isDepositPaid ? `
+                                    <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 1px 6px; border-radius: 4px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px;" title="Sinal pago e comprovante SWIFT disponível">
+                                        ${swiftUrl ? `<a href="${swiftUrl}" target="_blank" style="color: #34d399; text-decoration: none;">✅ Sinal Pago & SWIFT ↗</a>` : `✅ Sinal Pago (${depositPct}%)`}
+                                    </span>
+                                ` : `
+                                    <div style="display: inline-flex; align-items: center; gap: 4px;">
+                                        <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 1px 5px; border-radius: 4px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px;" title="Aguardando pagamento de sinal (${depositPct}%) e envio da SWIFT para liberar a produção">
+                                            ⏳ Aguardando Sinal (${depositPct}%)
+                                        </span>
+                                        <button type="button" onclick="event.stopPropagation(); toggleOrderCreditTerms('${order.id}', true)" style="background: rgba(99, 102, 241, 0.2); color: #c7d2fe; border: 1px solid rgba(99, 102, 241, 0.4); font-size: 0.62rem; padding: 1px 5px; border-radius: 3px; cursor: pointer; font-weight: bold;" title="Clique se o fornecedor concedeu prazo sem necessidade de sinal antecipado">
+                                            🏷️ É a prazo?
+                                        </button>
+                                    </div>
+                                `)}
+                            </div>
+                        </div>
+                    `;
+                }
+
                 card.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
                         <div>
@@ -31747,6 +31881,7 @@ function renderKanban() {
                     ${logisticsSnippet}
                     ${eadiProgressSnippet}
                     ${typeof renderMiniEvolutionStepperHtml === 'function' ? renderMiniEvolutionStepperHtml(stage) : ''}
+                    ${proformaMilestonesHtml}
 
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 0.72rem; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 6px; margin-top: 2px;">
                         <span style="color: #4ade80; font-weight: 700;">${totalFobStr}</span>
