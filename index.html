@@ -31831,7 +31831,7 @@ function renderKanban() {
                 const courierBadge = isCourier ? `<span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: 800;" title="Courier Expresso (${order.courier_service || 'FEDEX'})">✈️ ${order.courier_service || 'COURIER'}</span>` : '';
                 const isRollover = order.is_rollover_order === 1;
                 const rolloverBadge = isRollover ? `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(245, 158, 11, 0.3);">SALDO REMANESCENTE</span>` : '';
-                const invoiceBadge = order.invoice_number ? (order.invoice_file_path ? `<a href="/${order.invoice_file_path.replace(/^\//, '')}" target="_blank" onclick="event.stopPropagation();" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;" title="Ver Fatura Proforma (${order.invoice_number})">📄 ${order.invoice_number} ↗</a>` : `<span style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: bold;" title="Invoice / Proforma">📄 ${order.invoice_number}</span>`) : '';
+                const invoiceBadge = (stage === 'PO_EMITIDA') ? '' : (order.invoice_number ? (order.invoice_file_path ? `<a href="/${order.invoice_file_path.replace(/^\//, '')}" target="_blank" onclick="event.stopPropagation();" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;" title="Ver Fatura Proforma (${order.invoice_number})">📄 ${order.invoice_number} ↗</a>` : `<span style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: bold;" title="Invoice / Proforma">📄 ${order.invoice_number}</span>`) : '');
                 const packingBadge = order.packing_list_file_path ? `<a href="/${order.packing_list_file_path.replace(/^\//, '')}" target="_blank" onclick="event.stopPropagation();" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;" title="Ver Romaneio / Packing List Oficial">📦 P.List ↗</a>` : '';
                 let projectBadge = '';
                 if (isMultiProject) {
@@ -31955,49 +31955,48 @@ function renderKanban() {
 
                     const depositPct = depositPay ? depositPay.percentage : 30;
 
-                    proformaMilestonesHtml = `
-                        <div style="background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 6px 8px; margin: 4px 0; display: flex; flex-direction: column; gap: 5px;" onclick="event.stopPropagation();">
-                            <!-- Linha 1: Status da Proforma Invoice -->
-                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.70rem; gap: 4px;">
-                                <span style="color: #94a3b8; font-weight: 600; display: flex; align-items: center; gap: 3px;">📄 Proforma:</span>
-                                ${hasRealInvoice ? `
-                                    <a href="${invUrl || '#'}" ${invUrl ? 'target="_blank"' : ''} style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 1px 6px; border-radius: 4px; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;" title="Proforma Invoice confirmada do fornecedor">
-                                        ✅ ${escapeProjectHtml(invLabel)} ↗
-                                    </a>
-                                ` : `
-                                    <span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 1px 6px; border-radius: 4px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px;" title="Aguardando envio da Proforma Invoice pelo fornecedor">
-                                        ⚠️ Aguardando Invoice
-                                    </span>
-                                `}
-                            </div>
+                    // Pílula 1: Proforma Invoice
+                    let pillInvoiceHtml = '';
+                    if (hasRealInvoice) {
+                        pillInvoiceHtml = `
+                            <a href="${invUrl || '#'}" ${invUrl ? 'target="_blank"' : ''} style="flex: 1; min-width: 0; background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); padding: 4px 6px; border-radius: 5px; font-size: 0.68rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background 0.2s;" title="Proforma Invoice confirmada (${escapeProjectHtml(invLabel)}) - Clique para abrir o documento oficial" onmouseover="this.style.background='rgba(16, 185, 129, 0.22)'" onmouseout="this.style.background='rgba(16, 185, 129, 0.12)'">
+                                <span>📄</span> <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeProjectHtml(invLabel)}</span> <span>↗</span>
+                            </a>
+                        `;
+                    } else {
+                        pillInvoiceHtml = `
+                            <span style="flex: 1; min-width: 0; background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px dashed rgba(245, 158, 11, 0.45); padding: 4px 6px; border-radius: 5px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Aguardando envio da Proforma Invoice pelo fornecedor">
+                                <span>⚠️</span> <span>Falta Invoice</span>
+                            </span>
+                        `;
+                    }
 
-                            <!-- Linha 2: Condição de Entrada / SWIFT -->
-                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.70rem; gap: 4px;">
-                                <span style="color: #94a3b8; font-weight: 600; display: flex; align-items: center; gap: 3px;">💸 Entrada / SWIFT:</span>
-                                ${isCreditTerm ? `
-                                    <div style="display: inline-flex; align-items: center; gap: 4px;">
-                                        <span style="background: rgba(99, 102, 241, 0.18); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.4); padding: 1px 6px; border-radius: 4px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px;" title="Condição a prazo: Produção autorizada sem necessidade de adiantamento">
-                                            🏷️ 100% a Prazo (Sem Entrada)
-                                        </span>
-                                        <button type="button" onclick="event.stopPropagation(); toggleOrderCreditTerms('${order.id}', false)" style="background: transparent; color: #64748b; border: none; font-size: 0.60rem; padding: 0 2px; cursor: pointer; text-decoration: underline;" title="Alterar para condição com sinal antecipado">
-                                            exigir sinal?
-                                        </button>
-                                    </div>
-                                ` : (isDepositPaid ? `
-                                    <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 1px 6px; border-radius: 4px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px;" title="Sinal pago e comprovante SWIFT disponível">
-                                        ${swiftUrl ? `<a href="${swiftUrl}" target="_blank" style="color: #34d399; text-decoration: none;">✅ Sinal Pago & SWIFT ↗</a>` : `✅ Sinal Pago (${depositPct}%)`}
-                                    </span>
-                                ` : `
-                                    <div style="display: inline-flex; align-items: center; gap: 4px;">
-                                        <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 1px 5px; border-radius: 4px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px;" title="Aguardando pagamento de sinal (${depositPct}%) e envio da SWIFT para liberar a produção">
-                                            ⏳ Aguardando Sinal (${depositPct}%)
-                                        </span>
-                                        <button type="button" onclick="event.stopPropagation(); toggleOrderCreditTerms('${order.id}', true)" style="background: rgba(99, 102, 241, 0.2); color: #c7d2fe; border: 1px solid rgba(99, 102, 241, 0.4); font-size: 0.62rem; padding: 1px 5px; border-radius: 3px; cursor: pointer; font-weight: bold;" title="Clique se o fornecedor concedeu prazo sem necessidade de sinal antecipado">
-                                            🏷️ É a prazo?
-                                        </button>
-                                    </div>
-                                `)}
-                            </div>
+                    // Pílula 2: Condição de Entrada / Prazo
+                    let pillPaymentHtml = '';
+                    if (isCreditTerm) {
+                        pillPaymentHtml = `
+                            <span onclick="event.stopPropagation(); toggleOrderCreditTerms('${order.id}', false);" style="flex: 1; min-width: 0; background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.4); padding: 4px 6px; border-radius: 5px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background 0.2s;" title="100% a Prazo: Produção liberada sem adiantamento. (Clique para alternar para exigência de sinal)" onmouseover="this.style.background='rgba(99, 102, 241, 0.25)'" onmouseout="this.style.background='rgba(99, 102, 241, 0.15)'">
+                                <span>🏷️</span> <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">100% a Prazo</span> <span style="font-size: 0.62rem; opacity: 0.8;" title="Clique para alternar condição">⇄</span>
+                            </span>
+                        `;
+                    } else if (isDepositPaid) {
+                        pillPaymentHtml = `
+                            <a href="${swiftUrl || '#'}" ${swiftUrl ? 'target="_blank"' : ''} style="flex: 1; min-width: 0; background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); padding: 4px 6px; border-radius: 5px; font-size: 0.68rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background 0.2s;" title="Sinal pago e SWIFT enviada ao fornecedor" onmouseover="this.style.background='rgba(16, 185, 129, 0.22)'" onmouseout="this.style.background='rgba(16, 185, 129, 0.12)'">
+                                <span>✅</span> <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Sinal & SWIFT</span> <span>↗</span>
+                            </a>
+                        `;
+                    } else {
+                        pillPaymentHtml = `
+                            <span onclick="event.stopPropagation(); toggleOrderCreditTerms('${order.id}', true);" style="flex: 1; min-width: 0; background: rgba(239, 68, 68, 0.14); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 4px 6px; border-radius: 5px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background 0.2s;" title="Aguardando pagamento de sinal (${depositPct}%) e envio da SWIFT para liberar a produção na fábrica. (Clique para marcar como 100% a prazo)" onmouseover="this.style.background='rgba(239, 68, 68, 0.24)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.14)'">
+                                <span>⏳</span> <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Sinal (${depositPct}%)</span> <span style="font-size: 0.62rem; opacity: 0.8;" title="Clique para alternar para a prazo">⇄</span>
+                            </span>
+                        `;
+                    }
+
+                    proformaMilestonesHtml = `
+                        <div style="display: flex; align-items: center; gap: 6px; margin: 3px 0 1px 0;" onclick="event.stopPropagation();">
+                            ${pillInvoiceHtml}
+                            ${pillPaymentHtml}
                         </div>
                     `;
                 }
