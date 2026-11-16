@@ -7135,11 +7135,12 @@
                                 <thead>
                                     <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left;">
                                         <th style="padding: 6px; width: 45px; text-align: center;">Item #</th>
-                                        <th style="padding: 6px; width: 180px;">Modelo / SKU *</th>
+                                        <th style="padding: 6px; width: 150px;">Modelo / SKU *</th>
                                         <th style="padding: 6px;">Descrição do Equipamento</th>
-                                        <th style="padding: 6px; width: 90px; text-align: center;">Qtd (un) *</th>
-                                        <th style="padding: 6px; width: 120px;">Unit. FOB *</th>
-                                        <th style="padding: 6px; width: 120px;">Total FOB</th>
+                                        <th style="padding: 6px; width: 170px;">Destino / Projeto</th>
+                                        <th style="padding: 6px; width: 80px; text-align: center;">Qtd (un) *</th>
+                                        <th style="padding: 6px; width: 110px;">Unit. FOB *</th>
+                                        <th style="padding: 6px; width: 110px;">Total FOB</th>
                                         <th style="padding: 6px; width: 75px; text-align: center;">Ações</th>
                                     </tr>
                                 </thead>
@@ -7543,6 +7544,7 @@
                                             <th style="padding: 6px;">SKU Fornecedor</th>
                                             <th style="padding: 6px;">Descrição</th>
                                             <th style="padding: 6px;">Código Tecfag (De-Para)</th>
+                                            <th style="padding: 6px; text-align: center;">Destino / Projeto</th>
                                             <th style="padding: 6px; text-align: center;">Qtd Solicitada</th>
                                             <th style="padding: 6px; text-align: center;">Qtd Embarcada</th>
                                             <th style="padding: 6px; text-align: center;">Saldo Salvo</th>
@@ -31578,8 +31580,17 @@ function renderKanban() {
                 };
                 card.onmouseenter = () => { card.style.borderColor = 'rgba(56, 189, 248, 0.4)'; card.style.transform = 'translateY(-2px)'; };
                 card.onmouseleave = () => { card.style.borderColor = 'rgba(255, 255, 255, 0.08)'; card.style.transform = 'none'; };
-                const isProject = !!order.project_code || !!order.is_project;
-                const prjCode = order.project_code || (typeof order.id === 'string' && order.id.startsWith('PRJ-') ? order.id.replace('PRJ-', '') : null);
+                // Suporte a Múltiplos Projetos por Invoice / Container
+                const orderItems = order.items || [];
+                const distinctPrjCodes = Array.from(new Set(
+                    orderItems.map(it => it.project_code).filter(Boolean)
+                ));
+                if (order.project_code && !distinctPrjCodes.includes(order.project_code)) {
+                    distinctPrjCodes.push(order.project_code);
+                }
+                const isMultiProject = distinctPrjCodes.length > 1;
+                const isProject = distinctPrjCodes.length > 0 || !!order.is_project;
+                const prjCode = distinctPrjCodes.length > 0 ? distinctPrjCodes[0] : (typeof order.id === 'string' && order.id.startsWith('PRJ-') ? order.id.replace('PRJ-', '') : null);
                 card.onclick = () => { openSupplyDetailsModal(order.id); };
 
                 // Gestão de Pendências e Atrasos no Card do Comex
@@ -31618,8 +31629,15 @@ function renderKanban() {
                 const rolloverBadge = isRollover ? `<span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(245, 158, 11, 0.3);">SALDO REMANESCENTE</span>` : '';
                 const invoiceBadge = order.invoice_number ? (order.invoice_file_path ? `<a href="/${order.invoice_file_path.replace(/^\//, '')}" target="_blank" onclick="event.stopPropagation();" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;" title="Ver Fatura Proforma (${order.invoice_number})">📄 ${order.invoice_number} ↗</a>` : `<span style="background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: bold;" title="Invoice / Proforma">📄 ${order.invoice_number}</span>`) : '';
                 const packingBadge = order.packing_list_file_path ? `<a href="/${order.packing_list_file_path.replace(/^\//, '')}" target="_blank" onclick="event.stopPropagation();" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;" title="Ver Romaneio / Packing List Oficial">📦 P.List ↗</a>` : '';
-                const clientLabel = (order.client_name && order.client_name.trim()) ? order.client_name.trim() : order.project_code;
-                const projectBadge = order.project_code ? `<span style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: 800;" title="Projeto Especial vinculado: ${order.project_code} • ${order.client_name || ''}">🎯 ${clientLabel}</span>` : '';
+                let projectBadge = '';
+                if (isMultiProject) {
+                    const multiTitle = distinctPrjCodes.join(', ');
+                    projectBadge = `<span style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.45); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px;" title="Carga Compartilhada com ${distinctPrjCodes.length} Projetos: ${multiTitle}">📦 Compartilhada (${distinctPrjCodes.length} Prj)</span>`;
+                } else if (order.project_code || distinctPrjCodes.length === 1) {
+                    const singleCode = distinctPrjCodes[0] || order.project_code;
+                    const clientLabel = (order.client_name && order.client_name.trim()) ? order.client_name.trim() : singleCode;
+                    projectBadge = `<span style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); font-size: 0.68rem; padding: 1px 6px; border-radius: 4px; font-weight: 800;" title="Projeto Especial vinculado: ${singleCode} • ${order.client_name || ''}">🎯 ${clientLabel}</span>`;
+                }
 
                 // Datas formatadas e Cores do Semáforo
                 const totalFobStr = (order.currency || 'USD') + ' ' + (order.total_fob_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -31738,10 +31756,16 @@ function renderKanban() {
                             <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openSupplyDetailsModal('${order.id}')" style="flex: 1; min-width: 0; padding: 5px 4px; font-size: 0.70rem; font-weight: 700; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.35); color: #38bdf8;" title="Ver Detalhes de Comex e Rastreio desta PO">
                                 🔍 Comex
                             </button>
-                            <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openProjectModal('${prjCode}', 'logistics')" style="padding: 5px 6px; font-size: 0.70rem; font-weight: 700; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 3px; white-space: nowrap; background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" title="Abrir Ficha Geral do Projeto">
-                                📐 Projeto
-                            </button>
-                            <button type="button" class="btn" onclick="event.stopPropagation(); ${order.is_sub_order ? `quickDeleteSupplyOrder('${order.id}', '${order.po_number}')` : `quickCancelProjectImport('${prjCode}', '${order.po_number}', '${order.id}')`}" style="padding: 5px 7px; font-size: 0.72rem; font-weight: bold; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 5px; flex-shrink: 0;" title="${order.is_sub_order ? 'Excluir esta Ordem Adicional' : 'Gerenciar / Desvincular Importação'}">
+                            ${isMultiProject ? `
+                                <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openSupplyDetailsModal('${order.id}')" style="padding: 5px 6px; font-size: 0.70rem; font-weight: 700; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 3px; white-space: nowrap; background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" title="Carga compartilhada entre ${distinctPrjCodes.length} projetos (${distinctPrjCodes.join(', ')})">
+                                    📐 ${distinctPrjCodes.length} Projetos
+                                </button>
+                            ` : `
+                                <button type="button" class="btn btn-secondary" onclick="event.stopPropagation(); openProjectModal('${prjCode}', 'logistics')" style="padding: 5px 6px; font-size: 0.70rem; font-weight: 700; border-radius: 5px; display: flex; align-items: center; justify-content: center; gap: 3px; white-space: nowrap; background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" title="Abrir Ficha Geral do Projeto">
+                                    📐 Projeto
+                                </button>
+                            `}
+                            <button type="button" class="btn" onclick="event.stopPropagation(); ${order.is_sub_order ? `quickDeleteSupplyOrder('${order.id}', '${order.po_number}')` : `quickCancelProjectImport('${prjCode}', '${order.po_number}', '${order.id}')`}" style="padding: 5px 7px; font-size: 0.72rem; font-weight: bold; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 5px; flex-shrink: 0;" title="${order.is_sub_order ? 'Excluir esta Ordem Adicional' : (isMultiProject ? 'Gerenciar / Desvincular Projeto' : 'Gerenciar / Desvincular Importação')}">
                                 🗑️
                             </button>
                             ${stage !== 'DOCA_GALPAO' ? `
@@ -31876,10 +31900,25 @@ function renderKanban() {
         // MODAL NOVA ORDEM / UPLOAD IA PROFORMA
         // ==========================================
 
-        function openNewSupplyOrderModal() {
+        async function openNewSupplyOrderModal() {
             const modal = document.getElementById('modal-supply-chain-new');
             const form = document.getElementById('sc-new-order-form');
             if (form) form.reset();
+
+            // Garantir lista de projetos para o seletor dos itens
+            if ((!state || !state.projects || state.projects.length === 0) && (!supplyChainState || !supplyChainState.projectsLookup)) {
+                try {
+                    const token = localStorage.getItem('tecfag_session_token');
+                    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                    const res = await fetch('/api/supply-chain/projects-lookup', { headers });
+                    if (res.ok) {
+                        if (!supplyChainState) window.supplyChainState = {};
+                        supplyChainState.projectsLookup = await res.json();
+                    }
+                } catch (e) {
+                    console.warn('Falha ao carregar projects-lookup:', e);
+                }
+            }
             
             const tbody = document.getElementById('sc-new-items-tbody');
             if (tbody) {
@@ -32142,9 +32181,23 @@ function renderKanban() {
             return num.toLocaleString('pt-BR', { minimumFractionDigits: minDec, maximumFractionDigits: 4 });
         }
 
-        function addSupplyOrderItemRow(sku = '', desc = '', qty = 1, price = 0) {
+        function addSupplyOrderItemRow(sku = '', desc = '', qty = 1, price = 0, prjCode = '', clientName = '') {
             const tbody = document.getElementById('sc-new-items-tbody');
             if (!tbody) return;
+
+            // Obter lista de projetos disponíveis
+            const projectsList = (state && Array.isArray(state.projects) && state.projects.length > 0)
+                ? state.projects
+                : ((supplyChainState && Array.isArray(supplyChainState.projectsLookup)) ? supplyChainState.projectsLookup : []);
+
+            let projectOptions = '<option value="">📦 Estoque Tecfag</option>';
+            projectsList.forEach(p => {
+                const cCode = p.code || '';
+                const cClient = (p.client || '').replace(/"/g, '&quot;');
+                const isSel = (prjCode && (cCode === prjCode || cCode.replace(/^PRJTEC0+/, 'PRJ') === prjCode.replace(/^PRJTEC0+/, 'PRJ'))) ? 'selected' : '';
+                const label = `${cCode} - ${p.client || 'Cliente'}`;
+                projectOptions += `<option value="${cCode}" data-client="${cClient}" ${isSel}>📐 ${label}</option>`;
+            });
 
             const tr = document.createElement('tr');
             tr.className = 'sc-item-row';
@@ -32157,6 +32210,11 @@ function renderKanban() {
                 </td>
                 <td style="padding: 6px;">
                     <input type="text" class="form-control sc-input-desc" value="${desc}" placeholder="Descrição técnica" style="padding: 6px 8px; font-size: 0.8rem;">
+                </td>
+                <td style="padding: 6px;">
+                    <select class="form-control sc-input-project" style="padding: 6px 8px; font-size: 0.76rem; background: #0f172a; border-color: rgba(56, 189, 248, 0.3); color: #f8fafc;">
+                        ${projectOptions}
+                    </select>
                 </td>
                 <td style="padding: 6px;">
                     <input type="number" class="form-control sc-input-qty" required min="1" value="${qty || 1}" oninput="recalcOrderTotalFob()" style="padding: 6px 8px; font-size: 0.8rem; text-align: center; font-weight: bold;">
@@ -32262,10 +32320,20 @@ function renderKanban() {
             rows.forEach(r => {
                 const sku = r.querySelector('.sc-input-sku')?.value.trim();
                 const desc = r.querySelector('.sc-input-desc')?.value.trim();
+                const prjSelect = r.querySelector('.sc-input-project');
+                const prjCode = prjSelect ? prjSelect.value.trim() : '';
+                const clientName = (prjSelect && prjSelect.selectedIndex >= 0) ? (prjSelect.options[prjSelect.selectedIndex].getAttribute('data-client') || '') : '';
                 const qty = parseInt(r.querySelector('.sc-input-qty')?.value) || 1;
                 const price = parseFloat(r.querySelector('.sc-input-price')?.value) || 0;
                 if (sku) {
-                    items.push({ sku, description: desc, qty_ordered: qty, unit_price_fob: price });
+                    items.push({ 
+                        sku, 
+                        description: desc, 
+                        qty_ordered: qty, 
+                        unit_price_fob: price,
+                        project_code: prjCode || null,
+                        client_name: clientName || null
+                    });
                 }
             });
 
@@ -32793,9 +32861,14 @@ function renderKanban() {
             tbody.innerHTML = '';
 
             if (items.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 15px;">Nenhum item cadastrado.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-secondary); padding: 15px;">Nenhum item cadastrado.</td></tr>';
                 return;
             }
+
+            // Obter lista de projetos disponíveis
+            const projectsList = (state && Array.isArray(state.projects) && state.projects.length > 0)
+                ? state.projects
+                : ((supplyChainState && Array.isArray(supplyChainState.projectsLookup)) ? supplyChainState.projectsLookup : []);
 
             items.forEach(it => {
                 const tr = document.createElement('tr');
@@ -32806,10 +32879,25 @@ function renderKanban() {
                     ? `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;" title="Código Interno Tecfag">${it.tecfag_sku}</span>`
                     : `<span style="color: #64748b; font-size: 0.70rem; font-style: italic;">Pendente</span>`;
 
+                let projectOptions = '<option value="">📦 Estoque Tecfag</option>';
+                projectsList.forEach(p => {
+                    const cCode = p.code || '';
+                    const isSel = (it.project_code && (cCode === it.project_code || cCode.replace(/^PRJTEC0+/, 'PRJ') === it.project_code.replace(/^PRJTEC0+/, 'PRJ'))) ? 'selected' : '';
+                    const label = `${cCode} - ${p.client || 'Cliente'}`;
+                    projectOptions += `<option value="${cCode}" ${isSel}>📐 ${label}</option>`;
+                });
+
+                const prjSelectorHtml = `
+                    <select class="form-control" onchange="reallocateSupplyOrderItem(${it.id}, this.value)" style="padding: 2px 5px; font-size: 0.72rem; background: #0f172a; border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; border-radius: 4px; max-width: 175px;" title="Destino desta máquina (Projeto ou Estoque)">
+                        ${projectOptions}
+                    </select>
+                `;
+
                 tr.innerHTML = `
                     <td style="padding: 6px; font-weight: bold; color: #38bdf8;">${it.sku}</td>
                     <td style="padding: 6px;">${it.description || '-'}</td>
                     <td style="padding: 6px;">${tecfagSkuBadge}</td>
+                    <td style="padding: 6px; text-align: center;">${prjSelectorHtml}</td>
                     <td style="padding: 6px; text-align: center;">${it.qty_ordered}</td>
                     <td style="padding: 6px; text-align: center; font-weight: bold; color: #4ade80;">${qtyShipped}</td>
                     <td style="padding: 6px; text-align: center;">${backorderBadge}</td>
@@ -32818,6 +32906,33 @@ function renderKanban() {
                 `;
                 tbody.appendChild(tr);
             });
+        }
+
+        async function reallocateSupplyOrderItem(itemId, projectCode) {
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+                const res = await fetch(`/api/supply-chain/items/${itemId}/allocation`, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify({ project_code: projectCode })
+                });
+                if (res.ok) {
+                    await loadSupplyChainData();
+                    if (typeof loadAllProjects === 'function') {
+                        await loadAllProjects();
+                    }
+                    if (supplyChainState.currentOrder) {
+                        await openSupplyDetailsModal(supplyChainState.currentOrder.id);
+                    }
+                } else {
+                    const err = await res.json();
+                    alert('Erro ao realocar item: ' + (err.error || 'Erro desconhecido.'));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Erro de conexão ao realocar item.');
+            }
         }
 
         function renderDetailsPayments(payments) {

@@ -725,10 +725,16 @@ db.run("UPDATE projects SET import_stage = NULL WHERE (fase IS NULL OR fase <= 2
         db.run("ALTER TABLE stock_order_items ADD COLUMN tecfag_sku TEXT", (err) => {});
         db.run("ALTER TABLE stock_orders ADD COLUMN stage_entry_date TEXT", (err) => {});
         db.run("ALTER TABLE projects ADD COLUMN import_stage_entry_date TEXT", (err) => {});
-        db.run("ALTER TABLE projects ADD COLUMN has_import_order INTEGER DEFAULT 0", (err) => {});
         db.run("ALTER TABLE stock_order_items ADD COLUMN is_project_item INTEGER DEFAULT 1", (err) => {});
+        db.run("ALTER TABLE stock_order_items ADD COLUMN project_code TEXT", (err) => {});
+        db.run("ALTER TABLE stock_order_items ADD COLUMN client_name TEXT", (err) => {});
         db.run("ALTER TABLE stock_orders ADD COLUMN is_sub_order INTEGER DEFAULT 0", (err) => {});
         db.run("UPDATE stock_orders SET stage_entry_date = COALESCE(invoice_date, created_at) WHERE stage_entry_date IS NULL", () => {});
+        db.run(`UPDATE stock_order_items 
+            SET project_code = (SELECT project_code FROM stock_orders WHERE stock_orders.id = stock_order_items.order_id),
+                client_name = (SELECT client_name FROM stock_orders WHERE stock_orders.id = stock_order_items.order_id)
+            WHERE project_code IS NULL 
+              AND order_id IN (SELECT id FROM stock_orders WHERE project_code IS NOT NULL)`, () => {});
 
         db.run(`CREATE TABLE IF NOT EXISTS supplier_sku_mappings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1176,15 +1182,20 @@ async function syncStockOrderItems(orderId, items, project) {
         const canSafelyDelete = !hasClearances || hasClearances.count === 0;
 
         if (canSafelyDelete) {
-            await dbRun('DELETE FROM stock_order_items WHERE order_id = ?', [orderId]);
+            if (project && project.code) {
+                const shortCode = project.code.replace(/^PRJTEC0+/, 'PRJ');
+                await dbRun('DELETE FROM stock_order_items WHERE order_id = ? AND (project_code = ? OR project_code = ?)', [orderId, project.code, shortCode]);
+            } else {
+                await dbRun('DELETE FROM stock_order_items WHERE order_id = ?', [orderId]);
+            }
             const now = new Date().toISOString();
             for (const it of items) {
                 const qty = parseFloat(it.qty_ordered) || 1;
                 const unitFob = parseFloat(it.unit_price_fob) || 0;
                 const totalFob = parseFloat(it.total_price_fob) || (qty * unitFob);
                 await dbRun(`INSERT INTO stock_order_items (
-                    order_id, sku, description, ncm, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at
-                ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'PENDING', ?)`, [
+                    order_id, sku, description, ncm, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at, project_code, client_name
+                ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'PENDING', ?, ?, ?)`, [
                     orderId,
                     it.sku || (project ? (project.sku || project.code) : 'SKU-ITEM'),
                     it.description || (project ? (project.project_name || 'Item de Importação') : 'Item de Importação'),
@@ -1192,7 +1203,9 @@ async function syncStockOrderItems(orderId, items, project) {
                     qty,
                     unitFob,
                     totalFob,
-                    now
+                    now,
+                    it.project_code || (project ? project.code : null),
+                    it.client_name || (project ? project.client : null)
                 ]);
             }
         } else {
@@ -1205,7 +1218,7 @@ async function syncStockOrderItems(orderId, items, project) {
 
                 if (existingItems[i]) {
                     await dbRun(`UPDATE stock_order_items SET 
-                        sku = ?, description = ?, ncm = ?, qty_ordered = ?, unit_price_fob = ?, total_price_fob = ?
+                        sku = ?, description = ?, ncm = ?, qty_ordered = ?, unit_price_fob = ?, total_price_fob = ?, project_code = COALESCE(?, project_code), client_name = COALESCE(?, client_name)
                         WHERE id = ?`, [
                         it.sku || existingItems[i].sku,
                         it.description || existingItems[i].description,
@@ -1213,12 +1226,14 @@ async function syncStockOrderItems(orderId, items, project) {
                         qty,
                         unitFob,
                         totalFob,
+                        it.project_code || (project ? project.code : null),
+                        it.client_name || (project ? project.client : null),
                         existingItems[i].id
                     ]);
                 } else {
                     await dbRun(`INSERT INTO stock_order_items (
-                        order_id, sku, description, ncm, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at
-                    ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'PENDING', ?)`, [
+                        order_id, sku, description, ncm, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at, project_code, client_name
+                    ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'PENDING', ?, ?, ?)`, [
                         orderId,
                         it.sku || (project ? (project.sku || project.code) : 'SKU-ITEM'),
                         it.description || (project ? (project.project_name || 'Item de Importação') : 'Item de Importação'),
@@ -1226,7 +1241,9 @@ async function syncStockOrderItems(orderId, items, project) {
                         qty,
                         unitFob,
                         totalFob,
-                        new Date().toISOString()
+                        new Date().toISOString(),
+                        it.project_code || (project ? project.code : null),
+                        it.client_name || (project ? project.client : null)
                     ]);
                 }
             }
@@ -2879,7 +2896,7 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
         let stockOrdersByPrj = {};
         let stockOrderItemsMap = {};
         try {
-            const stockOrders = await dbAll('SELECT * FROM stock_orders WHERE project_code IS NOT NULL');
+            const stockOrders = await dbAll('SELECT * FROM stock_orders');
             const stockItems = await dbAll('SELECT * FROM stock_order_items');
             const stockNfes = await dbAll('SELECT order_id, nfe_number FROM stock_order_nfes WHERE nfe_number IS NOT NULL');
             const stockNfesMap = {};
@@ -2892,15 +2909,27 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
                 if (!stockOrderItemsMap[it.order_id]) stockOrderItemsMap[it.order_id] = [];
                 stockOrderItemsMap[it.order_id].push(it);
             });
+
             stockOrders.forEach(so => {
+                const soItems = stockOrderItemsMap[so.id] || [];
                 const soObj = {
                     ...so,
-                    items: stockOrderItemsMap[so.id] || [],
+                    items: soItems,
                     nfes: stockNfesMap[so.id] || []
                 };
-                stockOrdersMap[so.project_code] = soObj;
-                if (!stockOrdersByPrj[so.project_code]) stockOrdersByPrj[so.project_code] = [];
-                stockOrdersByPrj[so.project_code].push(soObj);
+
+                // Coletar todos os projetos vinculados a esta ordem (seja pelo cabeçalho ou pelas linhas de item)
+                const linkedPrjCodes = new Set();
+                if (so.project_code) linkedPrjCodes.add(so.project_code);
+                soItems.forEach(it => {
+                    if (it.project_code) linkedPrjCodes.add(it.project_code);
+                });
+
+                linkedPrjCodes.forEach(pCode => {
+                    if (!stockOrdersMap[pCode]) stockOrdersMap[pCode] = soObj;
+                    if (!stockOrdersByPrj[pCode]) stockOrdersByPrj[pCode] = [];
+                    stockOrdersByPrj[pCode].push(soObj);
+                });
             });
         } catch (e) {
             console.warn('[PROJECTS FETCH] Erro ao mapear ordens de importação:', e.message);
@@ -2923,20 +2952,41 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
             } catch (e) {}
 
             // Fallback para recuperar dados a partir da ordem de importação se o card já foi transferido
-            const linkedOrder = stockOrdersMap[p.code];
+            const shortCode = p.code ? p.code.replace(/^PRJTEC0+/, 'PRJ') : '';
+            const linkedOrder = stockOrdersMap[p.code] || stockOrdersMap[shortCode];
             let supp = p.import_supplier || (linkedOrder ? linkedOrder.supplier_name : null);
             let invNum = p.import_invoice_number || (linkedOrder ? linkedOrder.invoice_number : null);
-            let fobVal = (parseFloat(p.import_total_fob_value) > 0) ? parseFloat(p.import_total_fob_value) : (linkedOrder ? parseFloat(linkedOrder.total_fob_value) || 0 : 0);
             let curr = p.import_currency || (linkedOrder ? linkedOrder.currency : 'USD');
 
-            if ((!importItemsParsed || importItemsParsed.length === 0) && linkedOrder && Array.isArray(linkedOrder.items) && linkedOrder.items.length > 0) {
-                importItemsParsed = linkedOrder.items.map((oi, idx) => ({
+            // Calcular itens específicos e FOB proporcional se a ordem for compartilhada
+            let projectSpecificItems = [];
+            let calculatedPrjFob = 0;
+            if (linkedOrder && Array.isArray(linkedOrder.items)) {
+                projectSpecificItems = linkedOrder.items.filter(it => it.project_code === p.code || it.project_code === shortCode);
+                if (projectSpecificItems.length === 0 && linkedOrder.project_code === p.code) {
+                    projectSpecificItems = linkedOrder.items; // Fallback para ordem legado 100% monoprojeto
+                }
+                projectSpecificItems.forEach(it => {
+                    const itQ = parseFloat(it.qty_ordered) || 1;
+                    const itU = parseFloat(it.unit_price_fob) || 0;
+                    calculatedPrjFob += (parseFloat(it.total_price_fob) || (itQ * itU));
+                });
+            }
+
+            let fobVal = (parseFloat(p.import_total_fob_value) > 0) 
+                ? parseFloat(p.import_total_fob_value) 
+                : (calculatedPrjFob > 0 ? calculatedPrjFob : (linkedOrder ? parseFloat(linkedOrder.total_fob_value) || 0 : 0));
+
+            if ((!importItemsParsed || importItemsParsed.length === 0) && projectSpecificItems.length > 0) {
+                importItemsParsed = projectSpecificItems.map((oi, idx) => ({
                     item_no: idx + 1,
                     sku: oi.sku,
                     description: oi.description,
                     qty_ordered: oi.qty_ordered,
                     unit_price_fob: oi.unit_price_fob,
-                    total_price_fob: oi.total_price_fob
+                    total_price_fob: oi.total_price_fob,
+                    project_code: oi.project_code,
+                    client_name: oi.client_name
                 }));
             }
 
@@ -2961,7 +3011,6 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
             }) || (linkedOrder ? linkedOrder.stage : p.import_stage) || 'PO_EMITIDA';
 
             // Consolidar DANFEs de todas as ordens vinculadas ao projeto (todos os fornecedores e adições)
-            const shortCode = p.code ? p.code.replace(/^PRJTEC0+/, 'PRJ') : '';
             const prjOrders = (stockOrdersByPrj[p.code] || []).concat(stockOrdersByPrj[shortCode] || []);
             let consolidatedDanfe = p.danfe_number || '';
             if (prjOrders.length > 0) {
@@ -10330,8 +10379,31 @@ app.post('/api/projects/:code/cancel-import', authenticateToken, restrictToSuppl
             WHERE code = ?
         `, [JSON.stringify(chk), now, project.code]);
 
-        await dbRun('DELETE FROM stock_order_items WHERE order_id IN (SELECT id FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number LIKE ?)', [code, shortCode, `%${shortCode}%`]);
-        await dbRun('DELETE FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number LIKE ?', [code, shortCode, `%${shortCode}%`]);
+        // 1. Desvincular itens deste projeto na tabela stock_order_items
+        await dbRun('UPDATE stock_order_items SET project_code = NULL, client_name = NULL WHERE project_code = ? OR project_code = ?', [code, shortCode]);
+
+        // 2. Verificar ordens vinculadas para limpar cabeçalho ou deletar apenas se for 100% dedicada a este projeto
+        const candidateOrders = await dbAll('SELECT id, project_code FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number LIKE ?', [code, shortCode, `%${shortCode}%`]);
+        for (const ord of candidateOrders) {
+            const remainingItems = await dbAll('SELECT id, project_code FROM stock_order_items WHERE order_id = ?', [ord.id]);
+            const hasOtherItems = remainingItems.length > 0;
+            if (hasOtherItems) {
+                // Se a ordem tem outros itens (de outros projetos ou estoque), JAMAIS deleta a ordem master!
+                if (ord.project_code === code || ord.project_code === shortCode) {
+                    const otherPrjItem = remainingItems.find(it => it.project_code && it.project_code !== code && it.project_code !== shortCode);
+                    if (otherPrjItem) {
+                        const otherClient = await dbGet('SELECT client FROM projects WHERE code = ?', [otherPrjItem.project_code]);
+                        await dbRun('UPDATE stock_orders SET project_code = ?, client_name = ? WHERE id = ?', [otherPrjItem.project_code, otherClient ? otherClient.client : null, ord.id]);
+                    } else {
+                        await dbRun('UPDATE stock_orders SET project_code = NULL, client_name = NULL WHERE id = ?', [ord.id]);
+                    }
+                }
+            } else {
+                // Sem nenhum item restante, exclui a ordem órfã
+                await dbRun('DELETE FROM stock_order_items WHERE order_id = ?', [ord.id]);
+                await dbRun('DELETE FROM stock_orders WHERE id = ?', [ord.id]);
+            }
+        }
 
         await recordAuditLog(project.code, user, `Processo de importação desvinculado por ${user}. Projeto retornado para Pedido Fechado (Fase 2).`);
 
@@ -13058,11 +13130,26 @@ app.post('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, s
             const qty = parseInt(it.qty_ordered) || 1;
             const price = parseFloat(it.unit_price_fob) || 0;
             const total = qty * price;
+            let clientName = it.client_name;
+            if (it.project_code && !clientName) {
+                const prj = await dbGet('SELECT client FROM projects WHERE code = ?', [it.project_code]);
+                if (prj) clientName = prj.client;
+            }
             await dbRun(`INSERT INTO stock_order_items (
-                order_id, sku, description, qty_ordered, qty_shipped, qty_backorder, unit_price_fob, total_price_fob, status, notes, created_at
-            ) VALUES (?, ?, ?, ?, 0, 0, ?, ?, 'ORDERED', ?, ?)`, [
-                orderId, (it.sku || '').trim().toUpperCase(), it.description || '', qty, price, total, it.notes || '', new Date().toISOString()
+                order_id, sku, description, qty_ordered, qty_shipped, qty_backorder, unit_price_fob, total_price_fob, status, notes, created_at, project_code, client_name
+            ) VALUES (?, ?, ?, ?, 0, 0, ?, ?, 'ORDERED', ?, ?, ?, ?)`, [
+                orderId, (it.sku || '').trim().toUpperCase(), it.description || '', qty, price, total, it.notes || '', new Date().toISOString(), it.project_code || null, clientName || null
             ]);
+        }
+
+        const firstPrjItem = parsedItems.find(it => it.project_code);
+        if (firstPrjItem) {
+            let prjClient = firstPrjItem.client_name;
+            if (!prjClient) {
+                const prj = await dbGet('SELECT client FROM projects WHERE code = ?', [firstPrjItem.project_code]);
+                if (prj) prjClient = prj.client;
+            }
+            await dbRun('UPDATE stock_orders SET project_code = ?, client_name = ? WHERE id = ?', [firstPrjItem.project_code, prjClient || null, orderId]);
         }
 
         // Gerar parcelas de pagamento com base na regra do fornecedor
@@ -13225,17 +13312,23 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
                     const total = qty * price;
                     sumFob += total;
 
+                    let clientName = it.client_name;
+                    if (it.project_code && !clientName) {
+                        const prj = await dbGet('SELECT client FROM projects WHERE code = ?', [it.project_code]);
+                        if (prj) clientName = prj.client;
+                    }
+
                     if (it.id) {
                         await dbRun(`UPDATE stock_order_items SET 
-                            sku = ?, description = ?, qty_ordered = ?, unit_price_fob = ?, total_price_fob = ?, notes = ?
+                            sku = ?, description = ?, qty_ordered = ?, unit_price_fob = ?, total_price_fob = ?, notes = ?, project_code = ?, client_name = ?
                             WHERE id = ? AND order_id = ?`, [
-                            (it.sku || '').trim().toUpperCase(), it.description || '', qty, price, total, it.notes || '', it.id, realId
+                            (it.sku || '').trim().toUpperCase(), it.description || '', qty, price, total, it.notes || '', it.project_code || null, clientName || null, it.id, realId
                         ]);
                     } else {
                         await dbRun(`INSERT INTO stock_order_items (
-                            order_id, sku, description, qty_ordered, qty_shipped, qty_backorder, unit_price_fob, total_price_fob, status, notes, created_at
-                        ) VALUES (?, ?, ?, ?, 0, 0, ?, ?, 'ORDERED', ?, ?)`, [
-                            realId, (it.sku || '').trim().toUpperCase(), it.description || '', qty, price, total, it.notes || '', new Date().toISOString()
+                            order_id, sku, description, qty_ordered, qty_shipped, qty_backorder, unit_price_fob, total_price_fob, status, notes, created_at, project_code, client_name
+                        ) VALUES (?, ?, ?, ?, 0, 0, ?, ?, 'ORDERED', ?, ?, ?, ?)`, [
+                            realId, (it.sku || '').trim().toUpperCase(), it.description || '', qty, price, total, it.notes || '', new Date().toISOString(), it.project_code || null, clientName || null
                         ]);
                     }
                 }
@@ -13257,6 +13350,40 @@ app.put('/api/supply-chain/orders/:id', authenticateToken, restrictToSupplyChain
             return res.status(400).json({ error: `O número de PO informado já existe em outra ordem no sistema.` });
         }
         res.status(500).json({ error: 'Erro ao atualizar ordem de importação: ' + err.message });
+    }
+});
+
+// PUT /api/supply-chain/items/:id/allocation - Aloca / Realoca item de importação para Projeto ou Estoque
+app.put('/api/supply-chain/items/:id/allocation', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    try {
+        const itemId = parseInt(req.params.id);
+        const { project_code } = req.body || {};
+        let clientName = null;
+
+        if (project_code) {
+            const shortCode = project_code.replace(/^PRJTEC0+/, 'PRJ');
+            const prj = await dbGet('SELECT client FROM projects WHERE code = ? OR code = ?', [project_code, shortCode]);
+            if (prj) clientName = prj.client;
+        }
+
+        await dbRun('UPDATE stock_order_items SET project_code = ?, client_name = ? WHERE id = ?', [
+            project_code || null, clientName || null, itemId
+        ]);
+
+        // Registrar auditoria
+        const it = await dbGet('SELECT * FROM stock_order_items WHERE id = ?', [itemId]);
+        const user = req.user ? req.user.username : 'Sistema';
+        const destDesc = project_code ? `Projeto ${project_code}${clientName ? ' (' + clientName + ')' : ''}` : 'Estoque Geral Tecfag';
+        await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
+            new Date().toISOString(),
+            '#a855f7',
+            `<strong>[SUPPLY CHAIN]</strong> Item #${itemId} (${it ? it.sku : 'Máquina'}) realocado para <strong>${destDesc}</strong> por <strong>${user}</strong>.`
+        ]);
+
+        res.json({ success: true, project_code: project_code || null, client_name: clientName || null });
+    } catch (err) {
+        console.error('[ITEM ALLOCATION ERROR]', err);
+        res.status(500).json({ error: 'Erro ao alocar item: ' + err.message });
     }
 });
 
