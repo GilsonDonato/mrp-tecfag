@@ -15112,6 +15112,84 @@ app.put('/api/supply-chain/payments/:id', authenticateToken, restrictToSupplyCha
     }
 });
 
+// POST /api/supply-chain/orders/:id/reconfigure-payments - Reconfigura livremente as parcelas de câmbio (percentuais, entrada, saldo e prazos)
+app.post('/api/supply-chain/orders/:id/reconfigure-payments', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const orderId = req.params.id;
+    const user = req.user ? req.user.username : 'Sistema';
+    const { payment_terms_desc, installments } = req.body;
+
+    try {
+        const order = await resolveOrMaterializeStockOrder(orderId, user);
+        if (!order) return res.status(404).json({ error: 'Ordem não encontrada.' });
+
+        if (!Array.isArray(installments) || installments.length === 0) {
+            return res.status(400).json({ error: 'Nenhuma parcela informada.' });
+        }
+
+        const totalFob = parseFloat(order.total_fob_value) || 0;
+        const currency = order.currency || 'USD';
+        const now = new Date().toISOString();
+
+        // 1. Atualizar a descrição da condição na ordem
+        if (payment_terms_desc) {
+            await dbRun('UPDATE stock_orders SET payment_terms_desc = ?, updated_at = ? WHERE id = ?', [
+                payment_terms_desc.trim(), now, order.id
+            ]);
+        }
+
+        // Buscar pagamentos atuais para preservar comprovantes SWIFT já anexados se houver
+        const currentPayments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [order.id]);
+
+        // 2. Limpar pagamentos antigos da ordem
+        await dbRun('DELETE FROM stock_order_payments WHERE order_id = ?', [order.id]);
+
+        // 3. Inserir novas parcelas configuradas
+        let instNum = 1;
+        for (const inst of installments) {
+            const pct = parseFloat(inst.percentage) || 0;
+            const amt = parseFloat(inst.amount_currency) || Math.round(totalFob * (pct / 100) * 100) / 100;
+            const desc = (inst.description || `Parcela ${instNum}`).trim();
+            const dueDate = inst.due_date || now.split('T')[0];
+            
+            // Preservar dados de liquidação se essa parcela correspondente já estava paga
+            const oldMatch = currentPayments[instNum - 1];
+            const isOldPaid = oldMatch && oldMatch.status === 'PAID';
+            const status = inst.status || (isOldPaid ? 'PAID' : 'PENDING');
+            const swiftPath = inst.swift_file_path || (isOldPaid ? oldMatch.swift_file_path : null);
+            const paymentDate = inst.payment_date || (isOldPaid ? oldMatch.payment_date : null);
+            const exRate = inst.exchange_rate_brl || (isOldPaid ? oldMatch.exchange_rate_brl : null);
+            const amtBrl = inst.amount_brl || (isOldPaid ? oldMatch.amount_brl : null);
+
+            await dbRun(`INSERT INTO stock_order_payments (
+                order_id, installment_number, description, percentage, amount_currency, currency, due_date, status, payment_date, swift_file_path, exchange_rate_brl, amount_brl, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                order.id, instNum, desc, pct, amt, currency, dueDate, status, paymentDate, swiftPath, exRate, amtBrl, now
+            ]);
+            instNum++;
+        }
+
+        // Atualizar projeto vinculado se houver
+        if (order.project_code) {
+            await dbRun('UPDATE projects SET lastUpdate = ? WHERE code = ?', [now, order.project_code]);
+        }
+
+        await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
+            now,
+            '#38bdf8',
+            `<strong>[CONDIÇÃO CAMBIAL ALTERADA]</strong> Parcelas de câmbio da PO <strong>${order.po_number}</strong> (${order.client_name || order.supplier_name}) reconfiguradas por <strong>${user}</strong>: ${payment_terms_desc || installments.map(i => `${i.percentage}% ${i.description}`).join(' + ')}.`
+        ]);
+
+        const updatedPayments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [order.id]);
+        const updatedOrder = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [order.id]);
+        updatedOrder.payments = updatedPayments;
+
+        res.json({ success: true, order: updatedOrder, payments: updatedPayments });
+    } catch (err) {
+        console.error('[RECONFIGURE PAYMENTS ERROR]', err);
+        res.status(500).json({ error: 'Erro ao reconfigurar parcelas: ' + err.message });
+    }
+});
+
 // GET /api/supply-chain/sku-matrix - Matriz de busca instantânea de máquinas em estoque/trânsito
 app.get('/api/supply-chain/sku-matrix', authenticateToken, restrictToSupplyChain, async (req, res) => {
     const q = (req.query.q || '').trim().toUpperCase();
