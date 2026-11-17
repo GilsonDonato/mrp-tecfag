@@ -7906,11 +7906,16 @@
                         <div id="sc-pay-current-swift-preview" style="margin-top: 8px;"></div>
                     </div>
 
-                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                        <button type="button" class="btn btn-secondary" onclick="closePaymentModal()">Cancelar</button>
-                        <button type="submit" class="btn" id="btn-submit-payment-liquidation" style="background: #10b981; color: white; font-weight: bold; padding: 8px 18px;">
-                            💾 Salvar Pagamento
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                        <button type="button" class="btn" id="btn-sc-pay-revert-swift" onclick="removeAttachedSwiftFromCurrentModal()" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; font-weight: 700; font-size: 0.76rem; padding: 7px 12px; border-radius: 6px; cursor: pointer;">
+                            🗑️ Excluir SWIFT / Reverter p/ Pendente
                         </button>
+                        <div style="display: flex; gap: 10px; margin-left: auto;">
+                            <button type="button" class="btn btn-secondary" onclick="closePaymentModal()">Cancelar</button>
+                            <button type="submit" class="btn" id="btn-submit-payment-liquidation" style="background: #10b981; color: white; font-weight: bold; padding: 8px 18px;">
+                                💾 Salvar Pagamento
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -25471,7 +25476,10 @@ function renderKanban() {
                                 </div>
                                 <div>
                                     <span style="color: #94a3b8;">Valor Total FOB:</span>
-                                    <strong style="color: #34d399; display: block;">${ord.currency || 'USD'} ${fobStr}</strong>
+                                    <div style="display: flex; align-items: center; gap: 4px;">
+                                        <strong style="color: #34d399;">${ord.currency || 'USD'} ${fobStr}</strong>
+                                        <button type="button" class="btn" onclick="quickEditOrderTotalFOB(${ord.id}, ${ord.total_fob_value || 0}, '${ord.po_number || ''}', '${ord.currency || 'USD'}')" style="background: rgba(52, 211, 153, 0.15); border: 1px solid rgba(52, 211, 153, 0.4); color: #34d399; padding: 1px 5px; font-size: 0.65rem; border-radius: 3px; cursor: pointer;" title="Editar / Corrigir Valor FOB deste pedido">✏️</button>
+                                    </div>
                                 </div>
                                 <div>
                                     <span style="color: #94a3b8;">📄 Proforma / Invoice:</span>
@@ -25483,6 +25491,7 @@ function renderKanban() {
                                                 </a>
                                                 <input type="file" id="attach-invoice-input-${ord.id}" accept=".pdf,image/*" style="display: none;" onchange="uploadOrderInvoiceFile('${ord.id}', this)">
                                                 <button type="button" onclick="document.getElementById('attach-invoice-input-${ord.id}').click();" style="background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 0.68rem;" title="Substituir fatura">🔄</button>
+                                                <button type="button" onclick="removeOrderInvoiceFile('${ord.id}')" style="background: none; border: none; cursor: pointer; color: #f87171; font-size: 0.68rem; margin-left: 2px;" title="Excluir / Desanexar fatura desta ordem">🗑️</button>
                                             </div>
                                         ` : `
                                             <div style="display: inline-flex; align-items: center; gap: 6px;">
@@ -25643,7 +25652,13 @@ function renderKanban() {
 
                 if (res.ok) {
                     const data = await res.json();
-                    alert(`✅ ${data.message || 'Proforma Invoice anexada com sucesso!'}`);
+                    const orderFob = data.order ? (parseFloat(data.order.total_fob_value) || 0) : 0;
+                    if (orderFob <= 0) {
+                        alert(`✅ ${data.message || 'Proforma Invoice anexada com sucesso!'}\n\n⚠️ ATENÇÃO: O valor total FOB não pôde ser identificado automaticamente no documento ou ficou em $0,00.\nPor favor, confira e informe o Valor Total FOB manualmente clicando no botão (✏️).`);
+                    } else {
+                        const cur = (data.order && data.order.currency) ? data.order.currency : 'USD';
+                        alert(`✅ ${data.message || 'Proforma Invoice anexada com sucesso!'}\n\nValor FOB apurado: ${cur} ${orderFob.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`);
+                    }
                     if (activeProjectCode) {
                         await loadProjectMultiOrders(activeProjectCode);
                         if (typeof checkProjectAttachedInvoice === 'function') {
@@ -25778,7 +25793,7 @@ function renderKanban() {
         }
 
         async function removeOrderInvoiceFile(orderId) {
-            if (!confirm('Deseja realmente desanexar a Proforma Invoice exclusivamente desta ordem?')) return;
+            if (!confirm('Deseja realmente excluir e desanexar a Proforma Invoice desta ordem de importação?')) return;
             try {
                 const token = localStorage.getItem('tecfag_session_token');
                 const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
@@ -25789,9 +25804,12 @@ function renderKanban() {
                 });
 
                 if (res.ok) {
-                    alert('✅ Proforma Invoice removida com sucesso desta ordem.');
+                    alert('🗑️ Proforma Invoice excluída com sucesso desta ordem.');
                     await loadSupplyChainData();
-                    await openSupplyDetailsModal(orderId);
+                    const detModal = document.getElementById('modal-supply-chain-details');
+                    if (detModal && detModal.style.display !== 'none') {
+                        await openSupplyDetailsModal(orderId);
+                    }
                     if (activeProjectCode) {
                         await loadProjectMultiOrders(activeProjectCode);
                     }
@@ -25801,6 +25819,85 @@ function renderKanban() {
                 }
             } catch (err) {
                 alert('Erro ao comunicar com o servidor: ' + err.message);
+            }
+        }
+
+        // Edição manual rápida e segura do Valor Total FOB da Ordem
+        async function quickEditOrderTotalFOB(orderId, currentVal, poNumber, currency) {
+            if (!orderId) return;
+            const cur = currency || 'USD';
+            const curValFormatted = parseFloat(currentVal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            
+            const promptVal = prompt(
+                `[Editar Valor Total FOB]\nOrdem / PO: ${poNumber || orderId}\n\nInforme o novo Valor Total FOB (${cur}):`,
+                curValFormatted
+            );
+            if (promptVal === null) return;
+
+            let s = promptVal.trim();
+            if (!s) return;
+            if (s.includes('.') && s.includes(',')) {
+                if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+                    s = s.replace(/\./g, '').replace(',', '.');
+                } else {
+                    s = s.replace(/,/g, '');
+                }
+            } else if (s.includes(',')) {
+                s = s.replace(',', '.');
+            }
+            const parsedVal = parseFloat(s);
+            if (isNaN(parsedVal) || parsedVal < 0) {
+                alert('Valor FOB inválido. Por favor, informe um número válido maior ou igual a zero.');
+                return;
+            }
+
+            let recalculatePending = false;
+            const confirmRecalc = confirm(
+                `Deseja recalcular proporcionalmente as parcelas de câmbio PENDENTES desta ordem para refletir o novo total de ${cur} ${parsedVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}?\n\n(Aviso: Parcelas já PAGAS ou com comprovante SWIFT anexado NUNCA serão alteradas).`
+            );
+            if (confirmRecalc) {
+                recalculatePending = true;
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                };
+
+                const res = await fetch(`/api/supply-chain/orders/${orderId}/fob`, {
+                    method: 'PATCH',
+                    headers,
+                    body: JSON.stringify({
+                        total_fob_value: parsedVal,
+                        recalculate_pending: recalculatePending
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    alert(`✅ ${data.message || 'Valor Total FOB atualizado com sucesso!'}`);
+
+                    if (typeof activeProjectCode !== 'undefined' && activeProjectCode && typeof loadProjectMultiOrders === 'function') {
+                        await loadProjectMultiOrders(activeProjectCode);
+                    }
+                    if (typeof supplyChainState !== 'undefined' && supplyChainState.currentOrder && (String(supplyChainState.currentOrder.id) === String(orderId))) {
+                        await openSupplyDetailsModal(orderId);
+                    }
+                    if (typeof loadSupplyChainData === 'function') {
+                        await loadSupplyChainData();
+                    }
+                    if (typeof loadProjectsDB === 'function') {
+                        loadProjectsDB();
+                    }
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert('Erro ao atualizar Valor FOB: ' + (err.error || 'Falha no servidor.'));
+                }
+            } catch (err) {
+                console.error('[QUICK EDIT FOB ERROR]', err);
+                alert('Erro na comunicação com o servidor: ' + err.message);
             }
         }
 
@@ -32019,8 +32116,10 @@ function renderKanban() {
                 // =========================================================================
                 let proformaMilestonesHtml = '';
                 if (stage === 'PO_EMITIDA') {
-                    const hasRealInvoice = !!(order.invoice_file_path || (order.invoice_number && !order.invoice_number.startsWith('PI-PRJTEC') && !order.invoice_number.startsWith('PI-PRJ')));
-                    const invLabel = (order.invoice_number && !order.invoice_number.startsWith('PI-PRJTEC') && !order.invoice_number.startsWith('PI-PRJ')) ? order.invoice_number : (order.invoice_file_path ? 'Invoice Anexada' : 'Aguardando');
+                    const hasRealInvoice = !!(order.invoice_file_path);
+                    const invLabel = order.invoice_file_path 
+                        ? (order.invoice_number && !order.invoice_number.startsWith('PI-PRJTEC') && !order.invoice_number.startsWith('PI-PRJ') ? order.invoice_number : 'Invoice Anexada')
+                        : (order.invoice_number && !order.invoice_number.startsWith('PI-PRJTEC') && !order.invoice_number.startsWith('PI-PRJ') ? order.invoice_number : 'Aguardando');
                     const invUrl = order.invoice_file_path ? `/${order.invoice_file_path.replace(/^\//, '')}` : null;
 
                     // Condição de Pagamento e Análise de Entrada
@@ -32049,19 +32148,13 @@ function renderKanban() {
                     );
 
                     // Verifica se a entrada já foi paga e se tem comprovante SWIFT
-                    // Autoridade máxima: o status real da Parcela de Câmbio (#1 / Sinal) cadastrada no card
+                    // Autoridade máxima e exclusiva: o status real da Parcela de Câmbio (#1 / Sinal) DESTA ordem
                     let isDepositPaid = false;
                     let swiftUrl = null;
                     if (depositPay) {
                         isDepositPaid = depositPay.status === 'PAID';
                         if (depositPay.swift_file_path) {
                             swiftUrl = `/${depositPay.swift_file_path.replace(/^\//, '')}`;
-                        }
-                    } else if (payments.length === 0 && linkedPrj) {
-                        let chk = {};
-                        try { chk = typeof linkedPrj.checklist === 'string' ? JSON.parse(linkedPrj.checklist || '{}') : (linkedPrj.checklist || {}); } catch(e){}
-                        if (chk.swift_pagamento || chk.cambio_sinal) {
-                            isDepositPaid = true;
                         }
                     }
 
@@ -32963,8 +33056,8 @@ function renderKanban() {
                             <button type="button" class="btn btn-secondary" onclick="document.getElementById('sc-det-upload-invoice-input').click()" style="padding: 4px 8px; font-size: 0.70rem; border-radius: 4px; color: #94a3b8;" title="Substituir arquivo de fatura">
                                 🔄 Trocar
                             </button>
-                            <button type="button" class="btn btn-secondary" onclick="removeOrderInvoiceFile('${order.id}')" style="padding: 4px 8px; font-size: 0.70rem; border-radius: 4px; color: #ef4444; border-color: rgba(239, 68, 68, 0.4);" title="Desanexar fatura exclusivamente desta ordem">
-                                🗑️ Desanexar
+                            <button type="button" class="btn" onclick="removeOrderInvoiceFile('${order.id}')" style="padding: 5px 10px; font-size: 0.72rem; font-weight: 700; border-radius: 4px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Excluir ou desanexar fatura Proforma desta ordem">
+                                <span>🗑️</span> Excluir Invoice
                             </button>
                         `;
                     } else {
@@ -33328,6 +33421,28 @@ function renderKanban() {
                 `;
                 tbody.appendChild(tr);
             });
+
+            // Totalizador e Botão de Edição Rápida de FOB
+            const currentOrd = (typeof supplyChainState !== 'undefined' && supplyChainState.currentOrder) ? supplyChainState.currentOrder : {};
+            const orderFob = parseFloat(currentOrd.total_fob_value) || 0;
+            const itemsFobSum = items.reduce((sum, it) => sum + (parseFloat(it.total_price_fob) || (parseFloat(it.qty_ordered || 1) * parseFloat(it.unit_price_fob || 0)) || 0), 0);
+            const displayFob = orderFob > 0 ? orderFob : itemsFobSum;
+            const cur = currentOrd.currency || 'USD';
+
+            const totalTr = document.createElement('tr');
+            totalTr.style.background = 'rgba(15, 23, 42, 0.7)';
+            totalTr.style.fontWeight = 'bold';
+            totalTr.style.borderTop = '2px solid rgba(56, 189, 248, 0.4)';
+            totalTr.innerHTML = `
+                <td colspan="7" style="padding: 8px 10px; text-align: right; color: #94a3b8; font-size: 0.78rem;">
+                    VALOR TOTAL FOB DA ORDEM:
+                </td>
+                <td colspan="2" style="padding: 8px 10px; text-align: right; color: #34d399; font-size: 0.88rem; white-space: nowrap;">
+                    ${cur} ${displayFob.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <button type="button" class="btn" onclick="quickEditOrderTotalFOB(${currentOrd.id}, ${displayFob}, '${currentOrd.po_number || ''}', '${cur}')" style="background: rgba(52, 211, 153, 0.15); border: 1px solid rgba(52, 211, 153, 0.4); color: #34d399; padding: 2px 8px; font-size: 0.70rem; border-radius: 4px; cursor: pointer; margin-left: 6px; font-weight: 700;" title="Editar / Corrigir Valor FOB da Ordem">✏️ Editar FOB</button>
+                </td>
+            `;
+            tbody.appendChild(totalTr);
         }
 
         async function reallocateSupplyOrderItem(itemId, projectCode) {
@@ -33394,10 +33509,15 @@ function renderKanban() {
                     <td style="padding: 6px; font-weight: bold; color: #cbd5e1;">${dueStr}</td>
                     <td style="padding: 6px; font-weight: bold; color: #4ade80;">${p.currency} ${(p.amount_currency || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                     <td style="padding: 6px;">${statusBadge}</td>
-                    <td style="padding: 6px; text-align: right;">
+                    <td style="padding: 6px; text-align: right; white-space: nowrap;">
                         <button type="button" class="btn btn-secondary" onclick="openPaymentModal(${p.id})" style="padding: 4px 8px; font-size: 0.72rem; font-weight: bold; ${isPaid ? 'color: #34d399; border-color: rgba(16, 185, 129, 0.4);' : ''}">
                             ${isPaid ? '👁️ Ver Swift' : '💳 Liquidar'}
                         </button>
+                        ${(isPaid || p.swift_file_path) ? `
+                            <button type="button" class="btn btn-secondary" onclick="removeAttachedSwift(${p.id})" style="padding: 4px 7px; font-size: 0.70rem; color: #f87171; border-color: rgba(239, 68, 68, 0.4); margin-left: 4px;" title="Excluir comprovante SWIFT e retornar parcela para Pendente">
+                                🗑️
+                            </button>
+                        ` : ''}
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -34989,6 +35109,11 @@ function renderKanban() {
             }
             if (!payment) return;
 
+            if (payment.order_id && (!supplyChainState.currentOrder || supplyChainState.currentOrder.id != payment.order_id)) {
+                const targetOrd = (supplyChainState.orders || []).find(o => o.id == payment.order_id);
+                if (targetOrd) supplyChainState.currentOrder = targetOrd;
+            }
+
             const modal = document.getElementById('modal-supply-chain-payment');
             const sub = document.getElementById('sc-pay-modal-subtitle');
             const poNum = payment.po_number || supplyChainState.currentOrder?.po_number || '';
@@ -35018,17 +35143,24 @@ function renderKanban() {
             const fileInput = document.getElementById('sc-pay-swift-file');
             if (fileInput) fileInput.value = '';
 
+            const revertBtn = document.getElementById('btn-sc-pay-revert-swift');
+            if (revertBtn) {
+                revertBtn.style.display = (payment.swift_file_path || payment.status === 'PAID') ? 'inline-flex' : 'none';
+            }
+
             const previewEl = document.getElementById('sc-pay-current-swift-preview');
             if (previewEl) {
                 if (payment.swift_file_path) {
                     const fname = payment.swift_file_path.split('/').pop();
                     const furl = `/${payment.swift_file_path.replace(/^\//, '')}`;
                     previewEl.innerHTML = `
-                        <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                            <a href="${furl}" target="_blank" style="color: #34d399; font-weight: bold; font-size: 0.78rem; text-decoration: underline; display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                <span>📄</span> Ver comprovante atual: <strong>${escapeHtml(fname)}</strong> ↗
+                        <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                            <a href="${furl}" target="_blank" style="color: #34d399; font-weight: bold; font-size: 0.78rem; text-decoration: underline; display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px;">
+                                <span>📄</span> Ver comprovante: <strong>${escapeHtml(fname)}</strong> ↗
                             </a>
-                            <span style="font-size: 0.7rem; color: #94a3b8;">(Envie novo acima para trocar)</span>
+                            <button type="button" class="btn" onclick="removeAttachedSwift(${payment.id})" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Excluir o comprovante SWIFT anexado e voltar para Pendente">
+                                <span>🗑️</span> Excluir SWIFT
+                            </button>
                         </div>
                     `;
                 } else {
@@ -35149,6 +35281,55 @@ function renderKanban() {
                     btnSave.innerText = '💾 Salvar Pagamento';
                 }
             }
+        }
+
+        async function removeAttachedSwift(paymentId) {
+            if (!paymentId) return;
+            if (!confirm('Deseja realmente excluir o comprovante SWIFT anexado e reverter esta parcela para Pendente?')) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`/api/supply-chain/payments/${paymentId}/swift`, {
+                    method: 'DELETE',
+                    headers
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    closePaymentModal();
+
+                    if (supplyChainState.currentOrder && Array.isArray(supplyChainState.currentOrder.payments)) {
+                        const idx = supplyChainState.currentOrder.payments.findIndex(p => p.id == paymentId);
+                        if (idx !== -1 && data.payment) {
+                            supplyChainState.currentOrder.payments[idx] = data.payment;
+                        }
+                        renderDetailsPayments(supplyChainState.currentOrder.payments);
+                    }
+
+                    if (typeof loadSupplyChainData === 'function') {
+                        await loadSupplyChainData();
+                    }
+                    if (supplyChainState.currentOrder) {
+                        await openSupplyDetailsModal(supplyChainState.currentOrder.id);
+                    }
+                    alert('🗑️ Comprovante SWIFT excluído com sucesso e parcela revertida para Pendente.');
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert('Erro ao excluir SWIFT: ' + (err.error || 'Falha no servidor.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão ao excluir SWIFT: ' + err.message);
+            }
+        }
+
+        function removeAttachedSwiftFromCurrentModal() {
+            const payId = document.getElementById('sc-pay-id')?.value;
+            if (payId) removeAttachedSwift(payId);
         }
 
         // ==========================================

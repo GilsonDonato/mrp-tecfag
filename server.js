@@ -1270,7 +1270,7 @@ async function resolveOrMaterializeStockOrder(orderId, user = 'Sistema') {
         const shortCode = pCode.replace(/^PRJTEC0+/, 'PRJ');
         let order = await dbGet('SELECT * FROM stock_orders WHERE project_code = ? OR project_code = ? OR po_number = ?', [pCode, shortCode, `PO-${shortCode}`]);
         if (!order) {
-            const p = await dbGet('SELECT * FROM projects WHERE code = ? OR code = ? OR code LIKE ?', [pCode, shortCode, `%${shortCode}%`]);
+            const p = await dbGet('SELECT * FROM projects WHERE code = ? OR code = ?', [pCode, shortCode]);
             if (!p) return null;
 
             const canonStage = computeCanonicalImportStage(p) || p.import_stage || 'PO_EMITIDA';
@@ -10811,6 +10811,40 @@ app.get('/api/projects/:code/import-orders', authenticateToken, async (req, res)
 });
 
 /**
+ * Converte com segurança strings monetárias em formatos internacional, brasileiro ou chinês para Number.
+ * Ex: "40.650,00" -> 40650; "40,650.00" -> 40650; "US$ 114.55" -> 114.55; 500 -> 500
+ */
+function parseInvoiceNumber(str) {
+    if (typeof str === 'number') return isNaN(str) ? 0 : str;
+    if (!str || typeof str !== 'string') return 0;
+    let s = str.trim().replace(/^[^\d]+/, '').replace(/[^\d.,]+$/, '').trim();
+    if (!s) return 0;
+    if (s.includes('.') && s.includes(',')) {
+        if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+            // Formato europeu/brasileiro: 40.650,00 (ponto milhar, vírgula decimal)
+            s = s.replace(/\./g, '').replace(',', '.');
+        } else {
+            // Formato americano/internacional: 40,650.00 (vírgula milhar, ponto decimal)
+            s = s.replace(/,/g, '');
+        }
+    } else if (s.includes(',')) {
+        const parts = s.split(',');
+        if (parts.length === 2 && parts[1].length <= 2) {
+            s = s.replace(',', '.');
+        } else {
+            s = s.replace(/,/g, '');
+        }
+    } else if (s.includes('.')) {
+        const parts = s.split('.');
+        if (parts.length > 2) {
+            s = parts.slice(0, -1).join('') + '.' + parts[parts.length - 1];
+        }
+    }
+    const val = parseFloat(s);
+    return isNaN(val) ? 0 : val;
+}
+
+/**
  * Função utilitária para extração multimodal com Gemini IA / OCR de faturas e proformas.
  */
 async function extractInvoiceDataFromFile(filePath, originalName = 'invoice.pdf', fileMime = 'application/pdf') {
@@ -10989,6 +11023,20 @@ Responda APENAS o JSON puro. Não utilize blocos markdown (\`\`\`json).
         aiResult.payment_terms_type = matchedSupplier.payment_terms_type;
     }
 
+    // Blindagem de Total FOB: se a IA ou regex retornar 0 ou nulo, mas houver itens válidos, soma os itens
+    if (aiResult) {
+        let currentFob = parseInvoiceNumber(aiResult.total_fob_value);
+        if (currentFob <= 0 && Array.isArray(aiResult.items) && aiResult.items.length > 0) {
+            currentFob = aiResult.items.reduce((acc, it) => {
+                const itTotal = parseInvoiceNumber(it.total_price_fob);
+                const itUnit = parseInvoiceNumber(it.unit_price_fob);
+                const qty = parseInt(it.qty_ordered) || 1;
+                return acc + (itTotal > 0 ? itTotal : (itUnit * qty));
+            }, 0);
+        }
+        aiResult.total_fob_value = Math.round(currentFob * 100) / 100;
+    }
+
     return aiResult;
 }
 
@@ -11062,7 +11110,7 @@ async function applyExtractedInvoiceToOrder(orderId, aiResult, user = 'Sistema')
 
     // Sincronizar itens na tabela stock_order_items
     if (Array.isArray(aiResult.items) && aiResult.items.length > 0) {
-        const project = order.project_code ? await dbGet('SELECT * FROM projects WHERE code = ? OR code LIKE ?', [order.project_code, `%${order.project_code}%`]) : null;
+        const project = order.project_code ? await dbGet('SELECT * FROM projects WHERE code = ? OR code = ?', [order.project_code, order.project_code.replace(/^PRJTEC0+/, 'PRJ')]) : null;
         await syncStockOrderItems(order.id, aiResult.items, project);
     }
 
@@ -11072,17 +11120,22 @@ async function applyExtractedInvoiceToOrder(orderId, aiResult, user = 'Sistema')
         const pUpdates = ['lastUpdate = ?'];
         const pParams = [now];
 
-        if (supplierName) {
-            pUpdates.push('import_supplier = ?', 'supplier = ?');
-            pParams.push(supplierName, supplierName);
-        }
-        if (invoiceNum) {
-            pUpdates.push('import_invoice_number = ?');
-            pParams.push(invoiceNum);
-        }
-        if (totalFob > 0) {
-            pUpdates.push('import_total_fob_value = ?');
-            pParams.push(totalFob);
+        // Só atualiza os campos de resumo do projeto se esta for a única ordem daquele projeto
+        // garantindo que não sobrescreva nem contamine dados de outros fornecedores/cards
+        const otherOrders = await dbAll('SELECT id FROM stock_orders WHERE (project_code = ? OR project_code = ?) AND id != ?', [prjCode, prjCode.replace(/^PRJTEC0+/, 'PRJ'), order.id]);
+        if (!otherOrders || otherOrders.length === 0) {
+            if (supplierName) {
+                pUpdates.push('import_supplier = ?');
+                pParams.push(supplierName);
+            }
+            if (invoiceNum) {
+                pUpdates.push('import_invoice_number = ?');
+                pParams.push(invoiceNum);
+            }
+            if (totalFob > 0) {
+                pUpdates.push('import_total_fob_value = ?');
+                pParams.push(totalFob);
+            }
         }
         pParams.push(prjCode);
         await dbRun(`UPDATE projects SET ${pUpdates.join(', ')} WHERE code = ?`, pParams);
@@ -11276,6 +11329,16 @@ app.delete('/api/supply-chain/orders/:id/invoice', authenticateToken, restrictTo
         const order = await resolveOrMaterializeStockOrder(id, user);
         if (!order) return res.status(404).json({ error: 'Ordem não encontrada.' });
 
+        if (order.invoice_file_path) {
+            const rel = order.invoice_file_path.replace(/^\//, '');
+            const fullPath = path.isAbsolute(rel) ? rel : path.join(__dirname, rel);
+            try {
+                if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+            } catch (fsErr) {
+                console.warn('[DELETE INVOICE FILE]', fsErr.message);
+            }
+        }
+
         const now = new Date().toISOString();
         await dbRun('UPDATE stock_orders SET invoice_file_path = NULL, updated_at = ? WHERE id = ?', [now, order.id]);
 
@@ -11286,15 +11349,28 @@ app.delete('/api/supply-chain/orders/:id/invoice', authenticateToken, restrictTo
                   AND (phase = 'proforma' OR phase = 'invoice')
                   AND fileName LIKE ?
             `, [order.project_code, order.project_code.replace(/^PRJTEC0+/, 'PRJ'), `%${order.po_number}%`]);
+
+            const otherWithInv = await dbGet(`SELECT COUNT(*) as count FROM stock_orders WHERE project_code = ? AND id != ? AND invoice_file_path IS NOT NULL`, [order.project_code, order.id]);
+            if (!otherWithInv || otherWithInv.count === 0) {
+                const p = await dbGet('SELECT checklist FROM projects WHERE code = ?', [order.project_code]);
+                if (p) {
+                    let chk = {};
+                    try { chk = JSON.parse(p.checklist || '{}'); } catch(e) {}
+                    chk.proforma = false;
+                    await dbRun('UPDATE projects SET checklist = ?, lastUpdate = ? WHERE code = ?', [JSON.stringify(chk), now, order.project_code]);
+                }
+            }
+
             await recordAuditLog(order.project_code, user, `Proforma Invoice desanexada da ordem ${order.po_number}`);
         }
 
-        res.json({ success: true, message: 'Proforma Invoice desanexada com sucesso desta ordem!' });
+        res.json({ success: true, message: 'Proforma Invoice desanexada e excluída com sucesso desta ordem!' });
     } catch (err) {
         console.error('[REMOVE INVOICE ERROR]', err);
         res.status(500).json({ error: 'Erro ao desanexar fatura: ' + err.message });
     }
 });
+
 
 // POST /api/projects/:code/import-orders - Cria uma nova ordem/fornecedor adicional para o projeto (Multi-Fornecedor & Contêiner Misto)
 app.post('/api/projects/:code/import-orders', authenticateToken, restrictToSupplyChain, upload.single('invoice_file'), async (req, res) => {
@@ -12848,7 +12924,7 @@ app.post('/api/projects/:code/transfer-to-import', authenticateToken, async (req
 
         const totalVal = (parseFloat(total_fob_value) > 0) ? parseFloat(total_fob_value) : (parseFloat(project.import_total_fob_value) || 0);
         const finalSupplier = supplier_name || project.import_supplier || 'Fornecedor Internacional';
-        const finalInvoiceNum = invoice_number || project.import_invoice_number || ('PI-' + code);
+        const finalInvoiceNum = (invoice_number && invoice_number.trim()) ? invoice_number.trim() : ('PI-' + poNumber);
         const finalCurrency = currency || project.import_currency || 'USD';
         const finalInvoiceDate = invoice_date || project.import_invoice_date || null;
 
@@ -15108,28 +15184,43 @@ app.get('/api/supply-chain/payments', authenticateToken, restrictToSupplyChain, 
 app.put('/api/supply-chain/payments/:id', authenticateToken, restrictToSupplyChain, supplyChainUpload.single('swift_file'), async (req, res) => {
     const paymentId = req.params.id;
     const user = req.user ? req.user.username : 'Sistema';
-    const { status, payment_date, exchange_rate_brl, amount_brl, notes, due_date } = req.body;
+    const { status, payment_date, exchange_rate_brl, amount_brl, notes, due_date, remove_swift } = req.body;
 
     try {
-        const payment = await dbGet('SELECT p.*, o.po_number FROM stock_order_payments p JOIN stock_orders o ON p.order_id = o.id WHERE p.id = ?', [paymentId]);
+        const payment = await dbGet('SELECT p.*, o.po_number, o.project_code FROM stock_order_payments p JOIN stock_orders o ON p.order_id = o.id WHERE p.id = ?', [paymentId]);
         if (!payment) {
             return res.status(404).json({ error: 'Parcela de pagamento não encontrada.' });
         }
 
         let swiftPath = payment.swift_file_path;
-        if (req.file) {
+        const isRemovingSwift = remove_swift === true || remove_swift === 'true';
+
+        if (isRemovingSwift) {
+            if (payment.swift_file_path) {
+                const rel = payment.swift_file_path.replace(/^\//, '');
+                const fullPath = path.isAbsolute(rel) ? rel : path.join(__dirname, rel);
+                try {
+                    if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+                } catch (err) {
+                    console.warn('[DELETE SWIFT FILE]', err.message);
+                }
+            }
+            swiftPath = null;
+        } else if (req.file) {
             swiftPath = 'uploads/' + req.file.filename;
         }
 
-        // Se anexou arquivo de SWIFT ou selecionou PAID, marca como PAID
+        // Se anexou arquivo de SWIFT ou selecionou PAID, marca como PAID. Se removeu, volta para PENDING a menos que especificado.
         let newStatus = status || payment.status;
         if (req.file || status === 'PAID') {
             newStatus = 'PAID';
+        } else if (isRemovingSwift) {
+            newStatus = (status && status !== 'PAID') ? status : 'PENDING';
         }
 
         const newPaymentDate = newStatus === 'PAID' ? (payment_date || payment.payment_date || new Date().toISOString().split('T')[0]) : null;
-        const rate = parseFloat(exchange_rate_brl) || payment.exchange_rate_brl || null;
-        const brl = rate ? (parseFloat(amount_brl) || (payment.amount_currency * rate)) : (payment.amount_brl || null);
+        const rate = (isRemovingSwift && newStatus === 'PENDING') ? null : (parseFloat(exchange_rate_brl) || payment.exchange_rate_brl || null);
+        const brl = (isRemovingSwift && newStatus === 'PENDING') ? null : (rate ? (parseFloat(amount_brl) || (payment.amount_currency * rate)) : (payment.amount_brl || null));
 
         await dbRun(`UPDATE stock_order_payments SET 
             status = ?, payment_date = ?, exchange_rate_brl = ?, amount_brl = ?,
@@ -15138,7 +15229,26 @@ app.put('/api/supply-chain/payments/:id', authenticateToken, restrictToSupplyCha
             newStatus, newPaymentDate, rate, brl, swiftPath, notes !== undefined ? notes : payment.notes, due_date || null, paymentId
         ]);
 
-        if (newStatus === 'PAID' && payment.status !== 'PAID') {
+        if (isRemovingSwift) {
+            if (payment.project_code) {
+                const otherPaid = await dbGet(`SELECT COUNT(*) as count FROM stock_order_payments p JOIN stock_orders o ON p.order_id = o.id WHERE o.project_code = ? AND p.id != ? AND p.status = 'PAID'`, [payment.project_code, paymentId]);
+                if (!otherPaid || otherPaid.count === 0) {
+                    const p = await dbGet('SELECT checklist FROM projects WHERE code = ?', [payment.project_code]);
+                    if (p) {
+                        let chk = {};
+                        try { chk = JSON.parse(p.checklist || '{}'); } catch(e) {}
+                        chk.swift_pagamento = false;
+                        await dbRun('UPDATE projects SET checklist = ?, lastUpdate = ? WHERE code = ?', [JSON.stringify(chk), new Date().toISOString(), payment.project_code]);
+                    }
+                }
+            }
+
+            await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
+                new Date().toISOString(),
+                '#f59e0b',
+                `<strong>[SWIFT EXCLUÍDO]</strong> Comprovante SWIFT da parcela <strong>${payment.description}</strong> da PO <strong>${payment.po_number}</strong> foi excluído e o status retornou para PENDENTE por <strong>${user}</strong>.`
+            ]);
+        } else if (newStatus === 'PAID' && payment.status !== 'PAID') {
             await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
                 new Date().toISOString(),
                 '#10b981',
@@ -15150,6 +15260,58 @@ app.put('/api/supply-chain/payments/:id', authenticateToken, restrictToSupplyCha
         res.json(updated);
     } catch (err) {
         res.status(500).json({ error: 'Erro ao atualizar pagamento: ' + err.message });
+    }
+});
+
+// DELETE /api/supply-chain/payments/:id/swift - Remove o comprovante SWIFT anexado e reverte a parcela para PENDING
+app.delete('/api/supply-chain/payments/:id/swift', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const paymentId = req.params.id;
+    const user = req.user ? req.user.username : 'Sistema';
+
+    try {
+        const payment = await dbGet('SELECT p.*, o.po_number, o.project_code FROM stock_order_payments p JOIN stock_orders o ON p.order_id = o.id WHERE p.id = ?', [paymentId]);
+        if (!payment) {
+            return res.status(404).json({ error: 'Parcela de pagamento não encontrada.' });
+        }
+
+        if (payment.swift_file_path) {
+            const rel = payment.swift_file_path.replace(/^\//, '');
+            const fullPath = path.isAbsolute(rel) ? rel : path.join(__dirname, rel);
+            try {
+                if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+            } catch (err) {
+                console.warn('[DELETE SWIFT FILE]', err.message);
+            }
+        }
+
+        await dbRun(`UPDATE stock_order_payments SET 
+            status = 'PENDING', payment_date = NULL, exchange_rate_brl = NULL, amount_brl = NULL,
+            swift_file_path = NULL
+            WHERE id = ?`, [paymentId]);
+
+        if (payment.project_code) {
+            const otherPaid = await dbGet(`SELECT COUNT(*) as count FROM stock_order_payments p JOIN stock_orders o ON p.order_id = o.id WHERE o.project_code = ? AND p.id != ? AND p.status = 'PAID'`, [payment.project_code, paymentId]);
+            if (!otherPaid || otherPaid.count === 0) {
+                const p = await dbGet('SELECT checklist FROM projects WHERE code = ?', [payment.project_code]);
+                if (p) {
+                    let chk = {};
+                    try { chk = JSON.parse(p.checklist || '{}'); } catch(e) {}
+                    chk.swift_pagamento = false;
+                    await dbRun('UPDATE projects SET checklist = ?, lastUpdate = ? WHERE code = ?', [JSON.stringify(chk), new Date().toISOString(), payment.project_code]);
+                }
+            }
+        }
+
+        await dbRun(`INSERT INTO logs (timestamp, color, text) VALUES (?, ?, ?)`, [
+            new Date().toISOString(),
+            '#f59e0b',
+            `<strong>[SWIFT EXCLUÍDO]</strong> Comprovante SWIFT da parcela <strong>${payment.description}</strong> da PO <strong>${payment.po_number}</strong> foi excluído e o status retornou para PENDENTE por <strong>${user}</strong>.`
+        ]);
+
+        const updated = await dbGet('SELECT * FROM stock_order_payments WHERE id = ?', [paymentId]);
+        res.json({ success: true, message: 'Comprovante SWIFT excluído com sucesso e parcela revertida para Pendente.', payment: updated });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao excluir comprovante SWIFT: ' + err.message });
     }
 });
 
@@ -15238,6 +15400,96 @@ app.post('/api/supply-chain/orders/:id/reconfigure-payments', authenticateToken,
     } catch (err) {
         console.error('[RECONFIGURE PAYMENTS ERROR]', err);
         res.status(500).json({ error: 'Erro ao reconfigurar parcelas: ' + err.message });
+    }
+});
+
+// PATCH /api/supply-chain/orders/:id/fob - Atualização manual rápida do Valor Total FOB da Ordem
+app.patch('/api/supply-chain/orders/:id/fob', authenticateToken, restrictToSupplyChain, async (req, res) => {
+    const { id } = req.params;
+    const user = req.user ? req.user.username : 'Sistema';
+    try {
+        const order = await resolveOrMaterializeStockOrder(id, user);
+        if (!order) return res.status(404).json({ error: 'Ordem não encontrada.' });
+
+        const rawFob = req.body.total_fob_value;
+        const newTotalFob = parseFloat(rawFob);
+        if (isNaN(newTotalFob) || newTotalFob < 0) {
+            return res.status(400).json({ error: 'Valor FOB inválido. Por favor, forneça um número válido maior ou igual a zero.' });
+        }
+
+        const recalculatePending = req.body.recalculate_pending === true || req.body.recalculate_pending === 'true';
+        const now = new Date().toISOString();
+        const oldFob = order.total_fob_value || 0;
+
+        // 1. Atualizar ordem
+        await dbRun('UPDATE stock_orders SET total_fob_value = ?, updated_at = ? WHERE id = ?', [newTotalFob, now, order.id]);
+
+        // 2. Se a ordem tiver apenas 1 item em stock_order_items, sincronizar o item unitário/total para manter integridade
+        const items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [order.id]);
+        if (items && items.length === 1) {
+            const singleItem = items[0];
+            const qty = singleItem.qty_ordered > 0 ? singleItem.qty_ordered : 1;
+            const newUnitPrice = Math.round((newTotalFob / qty) * 100) / 100;
+            await dbRun('UPDATE stock_order_items SET unit_price_fob = ?, total_price_fob = ? WHERE id = ?', [newUnitPrice, newTotalFob, singleItem.id]);
+        }
+
+        // 3. Se solicitado, recalcular apenas parcelas PENDENTES (nunca alterar parcelas PAGAS ou com SWIFT)
+        if (recalculatePending) {
+            const payments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [order.id]);
+            if (payments && payments.length > 0) {
+                // Calcular total já pago
+                let paidTotal = 0;
+                let pendingPctSum = 0;
+                for (const p of payments) {
+                    if (p.status === 'PAID' || p.swift_file_path) {
+                        paidTotal += (parseFloat(p.amount_currency) || 0);
+                    } else {
+                        pendingPctSum += (parseFloat(p.percentage) || 0);
+                    }
+                }
+                const remainingFob = Math.max(0, newTotalFob - paidTotal);
+
+                for (const p of payments) {
+                    if (p.status !== 'PAID' && !p.swift_file_path) {
+                        let newAmt = 0;
+                        if (pendingPctSum > 0) {
+                            newAmt = Math.round((remainingFob * (parseFloat(p.percentage) / pendingPctSum)) * 100) / 100;
+                        } else {
+                            newAmt = Math.round((newTotalFob * (parseFloat(p.percentage || 100) / 100)) * 100) / 100;
+                        }
+                        await dbRun('UPDATE stock_order_payments SET amount_currency = ? WHERE id = ?', [newAmt, p.id]);
+                    }
+                }
+            }
+        }
+
+        // 4. Se a ordem pertencer a um projeto e for a única ordem do projeto, atualizar import_total_fob_value do projeto
+        if (order.project_code) {
+            const prjCode = order.project_code;
+            const otherOrders = await dbAll('SELECT id FROM stock_orders WHERE (project_code = ? OR project_code = ?) AND id != ?', [prjCode, prjCode.replace(/^PRJTEC0+/, 'PRJ'), order.id]);
+            if (!otherOrders || otherOrders.length === 0) {
+                await dbRun('UPDATE projects SET import_total_fob_value = ?, lastUpdate = ? WHERE code = ?', [newTotalFob, now, prjCode]);
+            }
+        }
+
+        await recordAuditLog(
+            order.project_code || `ORD-${order.id}`,
+            user,
+            `Valor FOB da ordem ${order.po_number} atualizado de ${order.currency || 'USD'} ${oldFob} para ${order.currency || 'USD'} ${newTotalFob}${recalculatePending ? ' (parcelas pendentes recalculadas)' : ''}.`
+        );
+
+        const updatedOrder = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [order.id]);
+        updatedOrder.items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [order.id]);
+        updatedOrder.payments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [order.id]);
+
+        res.json({
+            success: true,
+            message: `Valor Total FOB atualizado com sucesso para ${order.currency || 'USD'} ${newTotalFob.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}!`,
+            order: updatedOrder
+        });
+    } catch (err) {
+        console.error('[UPDATE FOB ERROR]', err);
+        res.status(500).json({ error: 'Erro ao atualizar Valor FOB: ' + err.message });
     }
 });
 
@@ -15577,14 +15829,14 @@ function parseInvoiceTextHeuristically(text, suppliers) {
     let lineIdx = 1;
     for (const line of lines) {
         // Suportar linhas com ou sem número sequencial na frente (ex: "1. FR-770 ...", "1 FR-770 ...", "FR-770 ...")
-        const itemMatch = line.match(/^(?:(?:item\s*)?(\d{1,3})[\.\)\-]?\s+)?([A-Za-z0-9\-_/]{2,25})\s+(.+?)\s+(\d+)\s*(?:PCS|SETS|UN|UNITS|PCS\.)?\s+[\$€¥]?\s*([\d,]+\.?\d*)\s+[\$€¥]?\s*([\d,]+\.?\d*)/i);
+        const itemMatch = line.match(/^(?:(?:item\s*)?(\d{1,3})[\.\)\-]?\s+)?([A-Za-z0-9\-_/]{2,25})\s+(.+?)\s+(\d+)\s*(?:PCS|SETS|UN|UNITS|PCS\.)?\s+[\$€¥]?\s*([\d,.]+)\s+[\$€¥]?\s*([\d,.]+)/i);
         if (itemMatch) {
             const itemSeq = itemMatch[1] ? parseInt(itemMatch[1]) : lineIdx++;
             const sku = itemMatch[2].trim().toUpperCase();
             const desc = itemMatch[3].trim();
             const qty = parseInt(itemMatch[4]) || 1;
-            const unitPrice = parseFloat(itemMatch[5].replace(/,/g, '')) || 0;
-            const itemTotal = parseFloat(itemMatch[6].replace(/,/g, '')) || (qty * unitPrice);
+            const unitPrice = parseInvoiceNumber(itemMatch[5]);
+            const itemTotal = parseInvoiceNumber(itemMatch[6]) || (qty * unitPrice);
 
             items.push({
                 item_no: itemSeq,
@@ -15598,11 +15850,32 @@ function parseInvoiceTextHeuristically(text, suppliers) {
         }
     }
 
-    // Identificar Total FOB se não calculado
+    // Identificar Total FOB:
+    // 1. Se calculou pela soma dos itens identificados
+    if (totalFob === 0 && items.length > 0) {
+        totalFob = items.reduce((sum, it) => sum + (it.total_price_fob || 0), 0);
+    }
+
+    // 2. Se não calculou, buscar regex ampliado de TOTAL / GRAND TOTAL / AMOUNT / SAY TOTAL
     if (totalFob === 0) {
-        const totalMatch = text.match(/(?:TOTAL\s*(?:FOB|AMOUNT|VALUE|SUM)?)\s*[:.]?\s*[\$€¥]?\s*([\d,]+\.?\d*)/i);
+        const totalMatch = text.match(/(?:TOTAL(?:\s+AMOUNT|\s+FOB|\s+VALUE|\s+SUM|\s+PRICE)?|GRAND\s*TOTAL|NET\s*TOTAL|FOB\s*TOTAL|SAY\s*TOTAL)\s*[:.\-]?\s*(?:USD|US\$|RMB|EUR|BRL|\$|€|¥)?\s*([0-9.,]+)/i);
         if (totalMatch && totalMatch[1]) {
-            totalFob = parseFloat(totalMatch[1].replace(/,/g, '')) || 0;
+            totalFob = parseInvoiceNumber(totalMatch[1]);
+        }
+    }
+
+    // 3. Se ainda for 0, buscar nas linhas finais (rodapé da tabela) se há menção a US$ ou USD seguido de valor
+    if (totalFob === 0) {
+        for (let i = lines.length - 1; i >= 0; i--) {
+            const line = lines[i];
+            const footerMatch = line.match(/(?:USD|US\$|\$)\s*([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})?)/i);
+            if (footerMatch && footerMatch[1]) {
+                const parsedFooter = parseInvoiceNumber(footerMatch[1]);
+                if (parsedFooter > 0) {
+                    totalFob = parsedFooter;
+                    break;
+                }
+            }
         }
     }
 
@@ -15611,7 +15884,7 @@ function parseInvoiceTextHeuristically(text, suppliers) {
         invoice_number: invoiceNumber || `INV-${Date.now().toString().slice(-6)}`,
         invoice_date: invoiceDate,
         currency: currency,
-        total_fob_value: totalFob,
+        total_fob_value: Math.round(totalFob * 100) / 100,
         payment_terms_desc: '',
         items: items
     };
