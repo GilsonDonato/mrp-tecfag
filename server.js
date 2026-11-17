@@ -278,6 +278,20 @@ db.run("UPDATE projects SET import_stage = NULL WHERE (fase IS NULL OR fase <= 2
         db.run("ALTER TABLE comments ADD COLUMN attachmentPath TEXT", (err) => {});
         db.run("ALTER TABLE comments ADD COLUMN attachmentName TEXT", (err) => {});
 
+        // Sanitizar SKUs gigantes herdados indevidamente em stock_order_items
+        db.run(`
+            UPDATE stock_order_items 
+            SET sku = CASE 
+                WHEN description LIKE '%conveyor%' OR description LIKE '%esteira%' THEN 'CONVEYOR'
+                WHEN description LIKE '%labeling%' OR description LIKE '%rotuladora%' THEN 'ROTULADORA'
+                WHEN description LIKE '%capping%' OR description LIKE '%rosqueadora%' THEN 'ROSQUEADORA'
+                WHEN description LIKE '%sealer%' OR description LIKE '%seladora%' THEN 'SELADORA'
+                WHEN description LIKE '%cartoning%' OR description LIKE '%encartuchadora%' THEN 'ENCARTUCHADORA'
+                ELSE SUBSTR(sku, 1, 25)
+            END
+            WHERE LENGTH(sku) > 40
+        `, () => {});
+
         // Tabela de Logs de Auditoria
         db.run(`CREATE TABLE IF NOT EXISTS logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1352,6 +1366,31 @@ async function resolveOrMaterializeStockOrder(orderId, user = 'Sistema') {
 /**
  * Sincronizador Atômico de Itens de Importação (Etapa 3 da Estabilização)
  * Garante que a tabela filha stock_order_items reflita com precisão os itens
+/**
+ * Higieniza o SKU do item para evitar que parágrafos inteiros ou descrições comerciais de CRM
+ * sejam inseridos na coluna SKU.
+ */
+function resolveCleanItemSku(itSku, itDesc, project) {
+    if (itSku && typeof itSku === 'string') {
+        const trimmed = itSku.trim();
+        if (trimmed && trimmed.length <= 40) return trimmed;
+        if (trimmed && trimmed.length > 40) {
+            const firstWord = trimmed.split(/[\s,\-_]+/)[0];
+            if (firstWord && firstWord.length >= 2 && firstWord.length <= 25) return firstWord.toUpperCase();
+        }
+    }
+    if (itDesc && typeof itDesc === 'string') {
+        const firstWords = itDesc.trim().split(/\s+/).slice(0, 2).join('-').toUpperCase().replace(/[^A-Z0-9\-_]/g, '');
+        if (firstWords && firstWords.length >= 2) return firstWords.slice(0, 25);
+    }
+    if (project && project.code) {
+        return project.code.replace(/^PRJTEC0+/, 'PRJ-');
+    }
+    return 'SKU-ITEM';
+}
+
+/**
+ * Sincroniza os itens da fatura (stock_order_items) vinculados a uma ordem específica,
  * lidos pela IA ou salvos pelo operador, respeitando a integridade referencial do EADI.
  */
 async function syncStockOrderItems(orderId, items, project) {
@@ -1379,11 +1418,12 @@ async function syncStockOrderItems(orderId, items, project) {
                 const qty = parseFloat(it.qty_ordered) || 1;
                 const unitFob = parseFloat(it.unit_price_fob) || 0;
                 const totalFob = parseFloat(it.total_price_fob) || (qty * unitFob);
+                const cleanSku = resolveCleanItemSku(it.sku, it.description, project);
                 await dbRun(`INSERT INTO stock_order_items (
                     order_id, sku, description, ncm, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at, project_code, client_name
                 ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'PENDING', ?, ?, ?)`, [
                     orderId,
-                    it.sku || (project ? (project.sku || project.code) : 'SKU-ITEM'),
+                    cleanSku,
                     it.description || (project ? (project.project_name || 'Item de Importação') : 'Item de Importação'),
                     it.ncm || '',
                     qty,
@@ -1401,12 +1441,13 @@ async function syncStockOrderItems(orderId, items, project) {
                 const qty = parseFloat(it.qty_ordered) || 1;
                 const unitFob = parseFloat(it.unit_price_fob) || 0;
                 const totalFob = parseFloat(it.total_price_fob) || (qty * unitFob);
+                const cleanSku = resolveCleanItemSku(it.sku, it.description, project);
 
                 if (existingItems[i]) {
                     await dbRun(`UPDATE stock_order_items SET 
                         sku = ?, description = ?, ncm = ?, qty_ordered = ?, unit_price_fob = ?, total_price_fob = ?, project_code = COALESCE(?, project_code), client_name = COALESCE(?, client_name)
                         WHERE id = ?`, [
-                        it.sku || existingItems[i].sku,
+                        cleanSku || existingItems[i].sku,
                         it.description || existingItems[i].description,
                         it.ncm !== undefined ? it.ncm : existingItems[i].ncm,
                         qty,
@@ -1421,7 +1462,7 @@ async function syncStockOrderItems(orderId, items, project) {
                         order_id, sku, description, ncm, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at, project_code, client_name
                     ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'PENDING', ?, ?, ?)`, [
                         orderId,
-                        it.sku || (project ? (project.sku || project.code) : 'SKU-ITEM'),
+                        cleanSku,
                         it.description || (project ? (project.project_name || 'Item de Importação') : 'Item de Importação'),
                         it.ncm || '',
                         qty,

@@ -7544,19 +7544,19 @@
                         </div>
 
                         <div id="sc-det-subtab-items" style="display: block;">
-                            <div style="overflow-x: auto;">
-                                <table class="table" style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
-                                    <thead>
-                                        <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color); text-align: left;">
-                                            <th style="padding: 6px;">SKU Fornecedor</th>
-                                            <th style="padding: 6px;">Descrição</th>
-                                            <th style="padding: 6px;">Código Tecfag (De-Para)</th>
-                                            <th style="padding: 6px; text-align: center;">Destino / Projeto</th>
-                                            <th style="padding: 6px; text-align: center;">Qtd Solicitada</th>
-                                            <th style="padding: 6px; text-align: center;">Qtd Embarcada</th>
-                                            <th style="padding: 6px; text-align: center;">Saldo Salvo</th>
-                                            <th style="padding: 6px; text-align: right;">Unit. FOB</th>
-                                            <th style="padding: 6px; text-align: right;">Total FOB</th>
+                            <div style="overflow-x: auto; max-height: 520px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;">
+                                <table class="table" style="width: 100%; font-size: 0.78rem; border-collapse: separate; border-spacing: 0; min-width: 960px;">
+                                    <thead style="position: sticky; top: 0; background: #0b1120; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.6);">
+                                        <tr style="color: #94a3b8; border-bottom: 2px solid rgba(56, 189, 248, 0.4); text-align: left; font-size: 0.73rem;">
+                                            <th style="padding: 8px 6px; width: 130px; min-width: 130px;">SKU Fornecedor</th>
+                                            <th style="padding: 8px 6px; min-width: 250px;">Descrição do Equipamento</th>
+                                            <th style="padding: 8px 6px; width: 125px; min-width: 125px; text-align: center;">Código Tecfag</th>
+                                            <th style="padding: 8px 6px; width: 165px; min-width: 165px; text-align: center;">Destino / Projeto</th>
+                                            <th style="padding: 8px 6px; width: 65px; min-width: 65px; text-align: center;">Qtd Sol.</th>
+                                            <th style="padding: 8px 6px; width: 65px; min-width: 65px; text-align: center;">Embarcado</th>
+                                            <th style="padding: 8px 6px; width: 65px; min-width: 65px; text-align: center;">Saldo</th>
+                                            <th style="padding: 8px 6px; width: 105px; min-width: 105px; text-align: right;">Unit. FOB</th>
+                                            <th style="padding: 8px 6px; width: 115px; min-width: 115px; text-align: right;">Total FOB</th>
                                         </tr>
                                     </thead>
                                     <tbody id="sc-details-items-tbody">
@@ -33408,16 +33408,44 @@ function renderKanban() {
                     </select>
                 `;
 
+                // Higienizar e encurtar exibição de SKU
+                const rawSku = (it.sku || '').trim();
+                let displaySku = rawSku;
+                let skuTooltip = '';
+                if (rawSku.length > 25) {
+                    const firstWord = rawSku.split(/[\s,\-_]+/)[0];
+                    if (firstWord && firstWord.length >= 2 && firstWord.length <= 20) {
+                        displaySku = firstWord;
+                    } else {
+                        displaySku = rawSku.slice(0, 22) + '...';
+                    }
+                    skuTooltip = `title="${rawSku.replace(/"/g, '&quot;')}"`;
+                }
+
+                // Descrição com rolagem suave se for longa
+                const rawDesc = (it.description || '-').trim();
+                const descHtml = `
+                    <div style="max-height: 56px; overflow-y: auto; font-size: 0.73rem; line-height: 1.35; padding-right: 4px; word-break: break-word; color: #cbd5e1;" title="${rawDesc.replace(/"/g, '&quot;')}">
+                        ${rawDesc}
+                    </div>
+                `;
+
+                // Preços formatados sempre com 2 casas decimais no padrão financeiro
+                const unitVal = parseFloat(it.unit_price_fob) || 0;
+                const totalVal = parseFloat(it.total_price_fob) || (parseFloat(it.qty_ordered || 1) * unitVal);
+                const unitStr = unitVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const totalStr = totalVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
                 tr.innerHTML = `
-                    <td style="padding: 6px; font-weight: bold; color: #38bdf8;">${it.sku}</td>
-                    <td style="padding: 6px;">${it.description || '-'}</td>
-                    <td style="padding: 6px;">${tecfagSkuBadge}</td>
+                    <td style="padding: 6px; font-weight: bold; color: #38bdf8; max-width: 130px; word-break: break-word; font-size: 0.74rem;" ${skuTooltip}>${displaySku}</td>
+                    <td style="padding: 6px; min-width: 250px;">${descHtml}</td>
+                    <td style="padding: 6px; text-align: center;">${tecfagSkuBadge}</td>
                     <td style="padding: 6px; text-align: center;">${prjSelectorHtml}</td>
-                    <td style="padding: 6px; text-align: center;">${it.qty_ordered}</td>
+                    <td style="padding: 6px; text-align: center; font-weight: bold;">${it.qty_ordered}</td>
                     <td style="padding: 6px; text-align: center; font-weight: bold; color: #4ade80;">${qtyShipped}</td>
                     <td style="padding: 6px; text-align: center;">${backorderBadge}</td>
-                    <td style="padding: 6px; text-align: right;">$ ${formatFobPrice(it.unit_price_fob)}</td>
-                    <td style="padding: 6px; text-align: right; font-weight: bold;">$ ${(it.total_price_fob || (it.qty_ordered * it.unit_price_fob)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td style="padding: 6px; text-align: right; white-space: nowrap; font-size: 0.75rem;">$ ${unitStr}</td>
+                    <td style="padding: 6px; text-align: right; font-weight: bold; white-space: nowrap; font-size: 0.78rem; color: #f8fafc;">$ ${totalStr}</td>
                 `;
                 tbody.appendChild(tr);
             });
