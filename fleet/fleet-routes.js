@@ -953,6 +953,22 @@ module.exports = function registerFleetModule({
                     company: 'TECFAG',
                     department: 'Operacional',
                     mrp_username: null
+                },
+                {
+                    login_key: 'walifer',
+                    full_name: 'WALIFER EDUARDO FERREIRA SILVA',
+                    cpf: '42389451829',
+                    rg: '40455230 SSP SP',
+                    cnh_number: '06326004869',
+                    cnh_category: 'B',
+                    cnh_issue_date: '2024-06-03',
+                    cnh_expiry_date: '2034-05-29',
+                    first_license_date: '2015-03-19',
+                    birth_date: '1995-01-08',
+                    uf_city: 'BAURU, SP',
+                    company: 'TECFAG',
+                    department: 'Operacional',
+                    mrp_username: null
                 }
             ];
 
