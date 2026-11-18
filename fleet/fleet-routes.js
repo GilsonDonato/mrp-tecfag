@@ -888,6 +888,22 @@ module.exports = function registerFleetModule({
                     company: 'TECFAG',
                     department: 'Operacional',
                     mrp_username: null
+                },
+                {
+                    login_key: 'gustavo',
+                    full_name: 'GUSTAVO AUGUSTO SESSILIO DA SILVA',
+                    cpf: '47317622869',
+                    rg: '558663369 SSP SP',
+                    cnh_number: '08307567955',
+                    cnh_category: 'B',
+                    cnh_issue_date: '2024-09-27',
+                    cnh_expiry_date: '2033-01-24',
+                    first_license_date: '2023-09-26',
+                    birth_date: '2004-12-11',
+                    uf_city: 'BAURU, SP',
+                    company: 'TECFAG',
+                    department: 'Operacional',
+                    mrp_username: null
                 }
             ];
 
