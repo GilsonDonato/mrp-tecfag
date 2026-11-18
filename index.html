@@ -2191,6 +2191,18 @@
                     🚢 Importações & Estoque
                 </button>
             </li>
+            <li class="nav-item" id="menu-fleet-manager" onclick="window.open('/frota', '_blank')" style="display: none;">
+                <button style="color: #34d399; font-weight: 700;" title="Abrir Central de Gestão de Frota em nova aba">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>
+                    🚗 Gestão de Frota ↗
+                </button>
+            </li>
+            <li class="nav-item" id="menu-fleet-driver" onclick="window.open('/motorista', '_blank')" style="display: none;">
+                <button style="color: #a78bfa; font-weight: 700;" title="Abrir Check-in / Devolução de Veículos em nova aba">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>
+                    🚗 Retirar / Devolver Carro ↗
+                </button>
+            </li>
         </ul>
 
         <!-- Widget de Câmbio Comercial -->
@@ -9646,11 +9658,20 @@
                 menuSettings.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'DIRETOR') ? 'block' : 'none';
             }
             const menuSupplyChain = document.getElementById('menu-supply-chain');
+            const username = (currentUser.username || '').toLowerCase();
+            const isGilson = username === 'gilson' || username === 'gilson@tecfag.com.br';
+            const isJhenifer = username === 'adm@tecfag.com.br' || username === 'jhenifer';
             if (menuSupplyChain) {
-                const username = (currentUser.username || '').toLowerCase();
-                const isGilson = username === 'gilson' || username === 'gilson@tecfag.com.br';
-                const isJhenifer = username === 'adm@tecfag.com.br' || username === 'jhenifer';
                 menuSupplyChain.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'COMPRAS' || role === 'DIRETOR' || isGilson || isJhenifer) ? 'block' : 'none';
+            }
+            const menuFleetManager = document.getElementById('menu-fleet-manager');
+            const isFleetMgr = (role === 'ALL' || role === 'GERENTE' || role === 'DIRETOR' || isGilson || isJhenifer || username === 'admin');
+            if (menuFleetManager) {
+                menuFleetManager.style.display = isFleetMgr ? 'block' : 'none';
+            }
+            const menuFleetDriver = document.getElementById('menu-fleet-driver');
+            if (menuFleetDriver) {
+                menuFleetDriver.style.display = (!isFleetMgr && !!role) ? 'block' : 'none';
             }
             
             // If active tab gets hidden, switch to dashboard
@@ -9672,7 +9693,8 @@
                 'TECNICO': 'Técnico Instalador',
                 'GERENTE': 'Gerente de Contratos (PM)',
                 'GERENTE_COMERCIAL': 'Gerente Comercial',
-                'DIRETOR': 'Diretor (Acompanhamento)'
+                'DIRETOR': 'Diretor (Acompanhamento)',
+                'RH': 'Recursos Humanos'
             };
             return labels[role] || role;
         }

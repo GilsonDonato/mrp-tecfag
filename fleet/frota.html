@@ -1,0 +1,1912 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Frota Tecfag • Telemetria & Vistoria</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="/fleet-assets/qrcode.js"></script>
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --surface: #151c2c;
+            --surface-2: #1e293b;
+            --border: #2b3950;
+            --primary: #0ea5e9;
+            --green: #10b981;
+            --amber: #f59e0b;
+            --purple: #8b5cf6;
+            --red: #ef4444;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body {
+            background: radial-gradient(circle at 20% 0%, rgba(14, 165, 233, 0.08), transparent 45%), var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Top Bar */
+        .topbar {
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 26px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+        }
+        .brand-wrap { display: flex; align-items: center; gap: 12px; }
+        .brand-logo {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            color: #fff;
+            font-weight: 900;
+            padding: 7px 11px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            letter-spacing: 0.8px;
+        }
+        .brand-title { font-size: 1.15rem; font-weight: 900; letter-spacing: -0.3px; }
+        .brand-sub { font-size: 0.75rem; color: var(--muted); }
+        .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+        .btn {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+        .btn:hover { border-color: var(--primary); }
+        .btn-primary { background: linear-gradient(135deg, #0ea5e9, #0284c7); border-color: #38bdf8; color: #fff; }
+        .btn-green { background: linear-gradient(135deg, #10b981, #059669); border-color: #34d399; color: #fff; }
+        .btn-red { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.45); color: #fca5a5; }
+        .btn-amber { background: rgba(245, 158, 11, 0.16); border-color: rgba(245, 158, 11, 0.45); color: #fcd34d; }
+
+        .page { max-width: 1440px; margin: 0 auto; padding: 22px 26px 50px; }
+
+        /* HUD Telemetry Bar */
+        .hud-bar {
+            background: rgba(21, 28, 44, 0.85);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--green);
+            border-radius: 10px;
+            padding: 10px 16px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.76rem;
+        }
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .kpi-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px 18px;
+        }
+        .kpi-label { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: var(--muted); letter-spacing: 0.5px; }
+        .kpi-val { font-size: 1.7rem; font-weight: 900; margin: 4px 0 2px; }
+        .kpi-sub { font-size: 0.73rem; color: var(--muted); }
+
+        /* Nav Tabs */
+        .tabs-nav {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid var(--border);
+            padding: 6px;
+            border-radius: 12px;
+            margin-bottom: 22px;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .tab-btn.active { background: var(--primary); color: #fff; box-shadow: 0 3px 12px rgba(14, 165, 233, 0.3); }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* Placa Mercosul */
+        .mercosul-plate {
+            display: inline-flex;
+            flex-direction: column;
+            background: #ffffff;
+            color: #0f172a;
+            border: 2px solid #0f172a;
+            border-radius: 6px;
+            overflow: hidden;
+            min-width: 116px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        }
+        .mercosul-top {
+            background: #003399;
+            color: #ffffff;
+            font-size: 0.5rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            padding: 2px 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .mercosul-num {
+            font-family: 'Courier New', monospace;
+            font-weight: 900;
+            font-size: 1.02rem;
+            letter-spacing: 1.5px;
+            text-align: center;
+            padding: 3px 8px;
+            color: #0f172a;
+        }
+
+        /* Cards dos 6 Veículos */
+        .fleet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 16px;
+        }
+        .vehicle-card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .vehicle-card.st-NO_PATIO { border-top: 4px solid var(--green); }
+        .vehicle-card.st-EM_USO { border-top: 4px solid var(--primary); }
+        .vehicle-card.st-PERNOITE_CASA { border-top: 4px solid var(--purple); }
+        .vehicle-card.st-MANUTENCAO { border-top: 4px solid var(--amber); }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 99px;
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+        .b-green { background: rgba(16, 185, 129, 0.16); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+        .b-blue { background: rgba(14, 165, 233, 0.16); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.35); }
+        .b-purple { background: rgba(139, 92, 246, 0.18); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.4); }
+        .b-amber { background: rgba(245, 158, 11, 0.16); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .b-red { background: rgba(239, 68, 68, 0.16); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+
+        .fuel-bar-bg { height: 7px; background: #0b0f19; border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
+        .fuel-bar-fill { height: 100%; border-radius: 99px; transition: width 0.3s ease; }
+
+        /* Tabelas e Formulários */
+        .card-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 18px;
+        }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        th, td { padding: 11px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+        th { background: rgba(11, 15, 25, 0.7); color: var(--muted); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        .input {
+            background: #0b0f19;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 0.84rem;
+            outline: none;
+            width: 100%;
+        }
+        .input:focus { border-color: var(--primary); }
+        label.lbl { display: block; font-size: 0.72rem; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 5px; }
+
+        /* Mapa Leaflet */
+        #fleet-map {
+            width: 100%;
+            height: 510px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            z-index: 10;
+        }
+
+        /* Modais */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 8, 15, 0.82);
+            backdrop-filter: blur(5px);
+            z-index: 500;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 980px;
+            max-height: 92vh;
+            overflow-y: auto;
+            padding: 22px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.65);
+        }
+        .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .photo-thumbs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .photo-thumbs a {
+            display: block;
+            background: #0b0f19;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            text-decoration: none;
+            color: var(--text);
+        }
+        .photo-thumbs img { width: 100%; height: 150px; object-fit: cover; display: block; }
+        .photo-thumbs span { display: block; padding: 6px 8px; font-size: 0.72rem; font-weight: 700; color: var(--muted); }
+
+        /* Adesivos QR Code para Impressão A4 */
+        .qr-stickers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+            gap: 18px;
+        }
+        .qr-sticker {
+            background: #ffffff;
+            color: #0f172a;
+            border: 3px solid #0f172a;
+            border-radius: 14px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 10px;
+        }
+        .qr-sticker-header {
+            width: 100%;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 900;
+            font-size: 0.82rem;
+        }
+        .qr-box { width: 165px; height: 165px; display: flex; align-items: center; justify-content: center; }
+        .qr-box svg, .qr-box img { width: 100%; height: 100%; }
+
+        @media (max-width: 820px) {
+            .fleet-grid, .compare-grid { grid-template-columns: 1fr; }
+            .page { padding: 14px; }
+        }
+
+        @media print {
+            body { background: #ffffff !important; color: #000000 !important; }
+            .topbar, .hud-bar, .kpi-row, .tabs-nav, .no-print, .modal-overlay { display: none !important; }
+            .page { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+            .tab-pane { display: none !important; }
+            #tab-qrcodes { display: block !important; }
+            .card-panel { border: none !important; padding: 0 !important; background: #fff !important; }
+            .qr-stickers-grid {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 14px !important;
+            }
+            .qr-sticker { break-inside: avoid; page-break-inside: avoid; border: 2.5px solid #000 !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="brand-wrap">
+            <span class="brand-logo">TECFAG</span>
+            <div>
+                <div class="brand-title">🚗 Central de Gestão de Frota & Telemetria</div>
+                <div class="brand-sub">Módulo isolado (`tecfag_frota.db`) • Posse, Vistoria Antes x Depois, Multas e Rastreamento 4G</div>
+            </div>
+        </div>
+        <div class="top-actions">
+            <a href="/motorista" target="_blank" class="btn">📱 Abrir Tela do Motorista ↗</a>
+            <button type="button" class="btn btn-primary" onclick="refreshDashboard()">🔄 Atualizar Agora</button>
+            <a href="/" class="btn">⬅ Voltar ao MRP</a>
+        </div>
+    </div>
+
+    <!-- TELA DE LOGIN CASO ACESSE DIRETO SEM SESSÃO -->
+    <div id="manager-login-box" style="display:none;max-width:420px;margin:60px auto;padding:20px;">
+        <div class="card-panel">
+            <h3 style="margin-bottom:8px;">🔐 Login da Gestão Tecfag</h3>
+            <p style="font-size:0.8rem;color:var(--muted);margin-bottom:16px;">Use sua credencial de Diretoria / Gerência do MRP.</p>
+            <form onsubmit="handleManagerLogin(event)" style="display:flex;flex-direction:column;gap:12px;">
+                <input type="text" id="mgr-user" class="input" placeholder="Usuário (ex: gilson, admin)" required>
+                <input type="password" id="mgr-pass" class="input" placeholder="Senha" required>
+                <div id="mgr-err" style="display:none;color:#f87171;font-size:0.8rem;font-weight:700;"></div>
+                <button type="submit" class="btn btn-primary" style="justify-content:center;padding:12px;">Entrar no Painel de Frota</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="page" id="manager-main-content" style="display:none;">
+        <!-- HUD DE ISOLAMENTO E PROTEÇÃO DO DISCO DO MRP -->
+        <div class="hud-bar" id="hud-protection-bar">
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <span style="color:#34d399;font-weight:800;">🛡️ BLINDAGEM DO MRP: ATIVA</span>
+                <span style="color:var(--muted);">|</span>
+                <span>Banco Frota: <strong id="hud-db-size">-- KB</strong></span>
+                <span style="color:var(--muted);">|</span>
+                <span>Fotos Frota: <strong id="hud-photos-size">-- MB</strong></span>
+                <span style="color:var(--muted);">|</span>
+                <span>Disco Geral Servidor: <strong id="hud-disk-pct">--%</strong> (<span id="hud-disk-free">-- MB livres</span>)</span>
+            </div>
+            <div style="color:var(--muted);font-weight:600;" id="hud-retention-info">
+                Limpeza automática: fotos s/ avaria > 45 dias
+            </div>
+        </div>
+
+        <!-- FAIXA DE ALERTAS PENDENTES -->
+        <div id="alerts-banner-container" style="margin-bottom: 18px; display: none;"></div>
+
+        <!-- KPIs -->
+        <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-label">🟢 Disponíveis no Pátio</div>
+                <div class="kpi-val" style="color:#34d399;" id="kpi-yard">0</div>
+                <div class="kpi-sub">Prontos para saída</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">🔵 Na Rua Agora</div>
+                <div class="kpi-val" style="color:#38bdf8;" id="kpi-road">0</div>
+                <div class="kpi-sub">Em atendimento externo</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">🌙 Em Pernoite (Casa)</div>
+                <div class="kpi-val" style="color:#c4b5fd;" id="kpi-overnight">0</div>
+                <div class="kpi-sub">Chegada noturna autorizada</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">🛣️ Rodagem no Mês</div>
+                <div class="kpi-val" id="kpi-month-km">0 km</div>
+                <div class="kpi-sub" id="kpi-month-trips">0 viagens registradas</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">⛽ Combustível no Mês</div>
+                <div class="kpi-val" style="color:#fbbf24;" id="kpi-month-fuel">R$ 0</div>
+                <div class="kpi-sub" id="kpi-month-kml">Média geral: -- km/L</div>
+            </div>
+        </div>
+
+        <!-- NAVEGAÇÃO DE ABAS -->
+        <div class="tabs-nav">
+            <button type="button" class="tab-btn active" onclick="switchTab('live', this)">🚗 Frota ao Vivo (6 Carros)</button>
+            <button type="button" class="tab-btn" onclick="switchTab('drivers', this)">🪪 Condutores & CNH (<span id="tab-drv-count">4</span>)</button>
+            <button type="button" class="tab-btn" onclick="switchTab('map', this)">🗺️ Mapa, Velocidade & Trechos</button>
+            <button type="button" class="tab-btn" onclick="switchTab('trips', this)">📸 Vistorias (Antes x Depois)</button>
+            <button type="button" class="tab-btn" onclick="switchTab('fines', this)">🔎 Multas, Revisões & Combustível</button>
+            <button type="button" class="tab-btn" onclick="switchTab('qrcodes', this)">🏷️ Adesivos QR Code (Imprimir)</button>
+        </div>
+
+        <!-- ABA 1: OS 6 VEÍCULOS AO VIVO -->
+        <div id="tab-live" class="tab-pane active">
+            <div class="fleet-grid" id="live-vehicles-grid"></div>
+        </div>
+
+        <!-- ABA 2: MAPA AO VIVO, VELOCIDADE E HISTÓRICO DE TRECHO -->
+        <div id="tab-map" class="tab-pane">
+            <div class="card-panel">
+                <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+                        <div>
+                            <label class="lbl">Veículo para Ver Trecho</label>
+                            <select id="map-vehicle-select" class="input" style="min-width:230px;"></select>
+                        </div>
+                        <div>
+                            <label class="lbl">Data do Trajeto</label>
+                            <input type="date" id="map-date-input" class="input" style="width:165px;">
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="loadRouteOnMap()">🛣️ Traçar Trecho e Velocidades</button>
+                        <button type="button" class="btn" onclick="showAllVehiclesOnMap()">📍 Ver Todos os 6 no Mapa</button>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button type="button" class="btn btn-amber" onclick="simulateRouteDemo()" title="Gera um trajeto exemplo no mapa para você testar antes dos rastreadores chegarem">🧪 Testar Rota Demo</button>
+                        <button type="button" class="btn" onclick="openTrackerConfigModal()">📡 Configurar Rastreadores 4G & Pátio</button>
+                    </div>
+                </div>
+
+                <div id="route-summary-strip" style="display:none;background:#0b0f19;border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:0.8rem;justify-content:space-between;flex-wrap:wrap;gap:10px;"></div>
+
+                <div id="fleet-map"></div>
+                <div style="margin-top:10px;font-size:0.75rem;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                    <span>🟢 Pino Verde: No Pátio / Início • 🔵 Azul: Em Uso • 🌙 Roxo: Pernoite • 🔴 Ponto Vermelho: Excesso de Velocidade</span>
+                    <span>Enquanto os rastreadores 4G não estiverem instalados, o mapa exibe os pontos GPS exatos dos Check-ins/Check-outs pelo celular.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 3: HISTÓRICO DE VIAGENS & COMPARATIVO COMO PEGOU X COMO ENTREGOU -->
+        <div id="tab-trips" class="tab-pane">
+            <div class="card-panel">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;">
+                    <div style="min-width:200px;">
+                        <label class="lbl">Veículo</label>
+                        <select id="flt-trip-veh" class="input" onchange="loadFilteredTrips()">
+                            <option value="ALL">Todos os 6 Veículos</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;min-width:200px;">
+                        <label class="lbl">Motorista ou Destino</label>
+                        <input type="text" id="flt-trip-driver" class="input" placeholder="Buscar por nome, login ou cliente..." oninput="loadFilteredTrips()">
+                    </div>
+                    <div>
+                        <label class="lbl">Status</label>
+                        <select id="flt-trip-status" class="input" onchange="loadFilteredTrips()">
+                            <option value="ALL">Todos</option>
+                            <option value="OPEN">🔵 Na Rua</option>
+                            <option value="OVERNIGHT_HOME">🌙 Em Pernoite</option>
+                            <option value="CLOSED">✅ Concluídas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="lbl">Filtro Avaria</label>
+                        <select id="flt-trip-damage" class="input" onchange="loadFilteredTrips()">
+                            <option value="0">Todas as Vistorias</option>
+                            <option value="1">⚠️ Com Avaria / Travadas</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn" onclick="exportTripsCsv()">📥 Exportar CSV</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Veículo / Placa</th>
+                                <th>Motorista</th>
+                                <th>Motivo & Destino</th>
+                                <th>Saída (KM)</th>
+                                <th>Pernoite / Entrega (KM)</th>
+                                <th>Rodado / Vel. Máx</th>
+                                <th>Condição</th>
+                                <th>Vistoria</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trips-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 4: MULTAS (QUEM ESTAVA DIRIGINDO?), MANUTENÇÕES & ABASTECIMENTOS -->
+        <div id="tab-fines" class="tab-pane">
+            <!-- Buscador Instantâneo de Responsável por Multa -->
+            <div class="card-panel" style="border-color:rgba(56,189,248,0.4);">
+                <h3 style="font-size:1rem;font-weight:900;color:#38bdf8;margin-bottom:6px;">🔎 Identificador Instantâneo de Multa ou Sinistro por Data e Hora</h3>
+                <p style="font-size:0.78rem;color:var(--muted);margin-bottom:14px;">
+                    Chegou uma notificação de multa? Informe a placa e o minuto exato do auto de infração para descobrir na hora com quem o veículo estava.
+                </p>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+                    <div style="min-width:220px;">
+                        <label class="lbl">Veículo da Multa</label>
+                        <select id="fine-search-veh" class="input"></select>
+                    </div>
+                    <div>
+                        <label class="lbl">Data e Hora Exata da Infração</label>
+                        <input type="datetime-local" id="fine-search-dt" class="input" style="width:230px;">
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="searchFineResponsible()">🎯 Descobrir Quem Estava Dirigindo</button>
+                    <button type="button" class="btn btn-green" style="margin-left:auto;" onclick="openNewFineModal()">➕ Lançar Multa ou Revisão Manual</button>
+                </div>
+                <div id="fine-search-result" style="display:none;margin-top:14px;"></div>
+            </div>
+
+            <div class="compare-grid">
+                <div class="card-panel">
+                    <h4 style="margin-bottom:12px;font-size:0.92rem;">📋 Multas, Trocas de Óleo & Ocorrências</h4>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Placa</th>
+                                    <th>Tipo / Descrição</th>
+                                    <th>Responsável</th>
+                                    <th>Valor</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fines-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card-panel">
+                    <h4 style="margin-bottom:12px;font-size:0.92rem;">⛽ Histórico de Abastecimentos & Consumo (km/L)</h4>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Placa</th>
+                                    <th>Motorista</th>
+                                    <th>Litros / R$</th>
+                                    <th>Média</th>
+                                    <th>Cupom</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fuel-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 5: ADESIVOS QR CODE PRONTOS PARA IMPRIMIR E COLAR NOS 6 CARROS -->
+        <div id="tab-qrcodes" class="tab-pane">
+            <div class="card-panel no-print" style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+                    <div>
+                        <h3 style="font-size:1.02rem;font-weight:900;">🏷️ Adesivos Oficiais com QR Code dos 6 Veículos</h3>
+                        <p style="font-size:0.8rem;color:var(--muted);margin-top:3px;">
+                            Imprima esta folha, plastifique ou passe papel contact e cole no painel ou quebra-sol de cada carro. Ao apontar a câmera, o celular já abre o veículo exato!
+                        </p>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="window.print()">🖨️ Imprimir os 6 Adesivos (Folha A4)</button>
+                </div>
+
+                <div id="qr-local-warning" style="display:none;background:rgba(245,158,11,0.14);border:1px solid #f59e0b;border-radius:10px;padding:12px 14px;font-size:0.8rem;line-height:1.5;color:#fde68a;"></div>
+
+                <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;background:#0b0f19;padding:10px 12px;border-radius:10px;border:1px solid var(--border);">
+                    <div style="flex:1;min-width:260px;">
+                        <label class="lbl">🌐 Endereço Gravado nos QR Codes</label>
+                        <input type="text" id="qr-custom-origin" class="input" oninput="renderQrStickers(true)" value="https://tecfag-mrp.onrender.com">
+                    </div>
+                    <button type="button" class="btn btn-green" onclick="setQrOriginMode('CLOUD')">☁️ Oficial p/ Imprimir (Definitivo)</button>
+                    <button type="button" class="btn" onclick="setQrOriginMode('LAN')">📶 Teste Local (Wi-Fi)</button>
+                </div>
+            </div>
+            <div class="qr-stickers-grid" id="qr-stickers-container"></div>
+        </div>
+
+        <!-- ABA 6: GESTÃO DE CONDUTORES HABILITADOS & VALIDADE DE CNH -->
+        <div id="tab-drivers" class="tab-pane">
+            <div class="card-panel">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+                    <div>
+                        <h3 style="font-size:1.05rem;font-weight:900;color:#38bdf8;">🪪 Condutores Habilitados (Tecfag & Valem)</h3>
+                        <p style="font-size:0.8rem;color:var(--muted);margin-top:3px;">
+                            Controle oficial de CNH, validade (bloqueio automático de CNH vencida) e acesso individual no celular (senha inicial = 6 primeiros dígitos do CPF).
+                        </p>
+                    </div>
+                    <button type="button" class="btn btn-green" onclick="openDriverModal()">➕ Cadastrar Novo Condutor</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Condutor / Empresa</th>
+                                <th>Setor / WhatsApp</th>
+                                <th>CPF</th>
+                                <th>Nº Registro CNH</th>
+                                <th>Categoria</th>
+                                <th>Validade CNH</th>
+                                <th>Login no Celular</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="drivers-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CONDUTOR / CNH -->
+    <div class="modal-overlay" id="modal-driver-form" onclick="if(event.target===this)this.style.display='none'">
+        <div class="modal" style="max-width:640px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                <h3 style="font-size:1.05rem;font-weight:900;" id="drv-modal-title">🪪 Cadastro de Condutor & CNH</h3>
+                <button type="button" class="btn" onclick="document.getElementById('modal-driver-form').style.display='none'">✕</button>
+            </div>
+            <form onsubmit="saveDriverForm(event)" style="display:flex;flex-direction:column;gap:12px;">
+                <input type="hidden" id="drv-id">
+                <div style="display:grid;grid-template-columns:1.5fr 0.7fr;gap:10px;">
+                    <div>
+                        <label class="lbl">Nome Completo (Igual na CNH) *</label>
+                        <input type="text" id="drv-name" class="input" required placeholder="Ex: ADRIANO DE CARVALHO ORDONHO">
+                    </div>
+                    <div>
+                        <label class="lbl">Empresa *</label>
+                        <select id="drv-company" class="input">
+                            <option value="TECFAG">Tecfag</option>
+                            <option value="VALEM">Valem</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 0.6fr;gap:10px;">
+                    <div>
+                        <label class="lbl">CPF (Somente números ou com pontos) *</label>
+                        <input type="text" id="drv-cpf" class="input" required placeholder="000.000.000-00">
+                    </div>
+                    <div>
+                        <label class="lbl">Nº Registro CNH *</label>
+                        <input type="text" id="drv-cnh" class="input" required placeholder="Ex: 03232759616">
+                    </div>
+                    <div>
+                        <label class="lbl">Cat. CNH *</label>
+                        <input type="text" id="drv-cat" class="input" required value="AB" placeholder="B / AB / AE">
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                    <div>
+                        <label class="lbl">Validade da CNH *</label>
+                        <input type="date" id="drv-expiry" class="input" required>
+                    </div>
+                    <div>
+                        <label class="lbl">Setor / Função</label>
+                        <input type="text" id="drv-dept" class="input" placeholder="Ex: Técnico, Vendas, Compras, RH">
+                    </div>
+                    <div>
+                        <label class="lbl">Celular / WhatsApp</label>
+                        <input type="text" id="drv-phone" class="input" placeholder="(14) 99999-9999">
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                    <div>
+                        <label class="lbl">Usuário Curto Celular</label>
+                        <input type="text" id="drv-login" class="input" placeholder="Ex: adriano">
+                    </div>
+                    <div>
+                        <label class="lbl">Vínculo Usuário MRP (Opcional)</label>
+                        <input type="text" id="drv-mrp" class="input" placeholder="Ex: fernando, vendas1">
+                    </div>
+                    <div>
+                        <label class="lbl">Status</label>
+                        <select id="drv-active" class="input">
+                            <option value="1">🟢 Liberado</option>
+                            <option value="0">⛔ Bloqueado</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="lbl">Redefinir Senha Celular (Em branco = mantém atual / 6 primeiros dígitos do CPF)</label>
+                    <input type="text" id="drv-pin" class="input" placeholder="Deixe vazio para usar os 6 primeiros números do CPF">
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px;">
+                    <button type="button" class="btn" onclick="document.getElementById('modal-driver-form').style.display='none'">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">💾 Salvar Condutor</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 1: COMPARADOR VISUAL ANTES X DEPOIS ("COMO PEGOU X COMO ENTREGOU") -->
+    <div class="modal-overlay" id="modal-trip-compare" onclick="if(event.target===this)this.style.display='none'">
+        <div class="modal">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px;">
+                <h3 id="cmp-modal-title" style="font-size:1.05rem;font-weight:900;">📸 Auditoria de Vistoria</h3>
+                <button type="button" class="btn" onclick="document.getElementById('modal-trip-compare').style.display='none'">✕ Fechar</button>
+            </div>
+            <div id="cmp-modal-body"></div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: EDITAR VEÍCULO / KM / RASTREADOR 4G -->
+    <div class="modal-overlay" id="modal-edit-vehicle" onclick="if(event.target===this)this.style.display='none'">
+        <div class="modal" style="max-width:620px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 style="font-size:1.05rem;font-weight:900;">⚙️ Configurar Veículo & Rastreador</h3>
+                <button type="button" class="btn" onclick="document.getElementById('modal-edit-vehicle').style.display='none'">✕</button>
+            </div>
+            <form onsubmit="saveVehicleEdit(event)" style="display:flex;flex-direction:column;gap:12px;">
+                <input type="hidden" id="ev-id">
+                <div style="display:grid;grid-template-columns:1.3fr 0.7fr;gap:12px;">
+                    <div>
+                        <label class="lbl">Identificação / Apelido do Carro *</label>
+                        <input type="text" id="ev-name" class="input" required>
+                    </div>
+                    <div>
+                        <label class="lbl">Placa *</label>
+                        <input type="text" id="ev-plate" class="input" required>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                    <div>
+                        <label class="lbl">KM Atual</label>
+                        <input type="number" id="ev-km" class="input">
+                    </div>
+                    <div>
+                        <label class="lbl">Próxima Troca Óleo (KM)</label>
+                        <input type="number" id="ev-oil-km" class="input" placeholder="Ex: 55000">
+                    </div>
+                    <div>
+                        <label class="lbl">Limite Velocidade (km/h)</label>
+                        <input type="number" id="ev-speed-limit" class="input" value="110">
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                    <div>
+                        <label class="lbl">Combustível</label>
+                        <select id="ev-fuel-type" class="input">
+                            <option value="FLEX">Flex</option>
+                            <option value="GASOLINA">Gasolina</option>
+                            <option value="DIESEL">Diesel</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="lbl">IMEI do Rastreador 4G</label>
+                        <input type="text" id="ev-imei" class="input" placeholder="Ex: 86418005...">
+                    </div>
+                    <div>
+                        <label class="lbl">Disponibilidade</label>
+                        <select id="ev-status" class="input">
+                            <option value="NO_PATIO">🟢 Ativo / No Pátio</option>
+                            <option value="MANUTENCAO">🛠️ Bloqueado em Oficina</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="lbl">Avarias Antigas Já Conhecidas (Aparece p/ o motorista na saída)</label>
+                    <input type="text" id="ev-damages" class="input" placeholder="Ex: Pequeno risco antigo no para-choque traseiro direito">
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px;">
+                    <button type="button" class="btn" onclick="document.getElementById('modal-edit-vehicle').style.display='none'">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">💾 Salvar Veículo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: CONFIGURAR GATEWAY DE RASTREADORES 4G & CERCA VIRTUAL DO PÁTIO -->
+    <div class="modal-overlay" id="modal-tracker-config" onclick="if(event.target===this)this.style.display='none'">
+        <div class="modal" style="max-width:680px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                <h3 style="font-size:1.05rem;font-weight:900;">📡 Integração dos Rastreadores 4G & Cerca Virtual do Pátio</h3>
+                <button type="button" class="btn" onclick="document.getElementById('modal-tracker-config').style.display='none'">✕</button>
+            </div>
+            <div style="background:#0b0f19;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;font-size:0.8rem;line-height:1.55;">
+                <strong style="color:#38bdf8;">Passo a passo quando os 6 rastreadores (ex: J16 4G) estiverem instalados:</strong>
+                <ol style="padding-left:18px;margin-top:6px;color:#cbd5e1;">
+                    <li>Cadastre o número <strong>IMEI</strong> de cada aparelho clicando em <em>"Editar / Rastreador"</em> no card de cada um dos 6 carros.</li>
+                    <li>No seu gateway gratuito (<strong>Flespi.io</strong> HTTP Stream ou <strong>Traccar</strong>), cole o endereço de Webhook seguro abaixo:</li>
+                </ol>
+                <div style="margin-top:10px;display:flex;gap:8px;">
+                    <input type="text" id="cfg-webhook-url" class="input" readonly style="font-family:monospace;font-size:0.76rem;color:#34d399;">
+                    <button type="button" class="btn btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('cfg-webhook-url').value);alert('URL copiada!')">📋 Copiar</button>
+                </div>
+            </div>
+
+            <form onsubmit="saveFleetSettings(event)" style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <label class="lbl" style="margin:0;">📍 Coordenadas do Pátio Tecfag (Para Alerta de Saída sem Check-in)</label>
+                    <button type="button" class="btn" style="padding:4px 10px;font-size:0.72rem;" onclick="fillCurrentGpsAsYard()">📍 Usar Minha Localização Atual</button>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                    <div>
+                        <label class="lbl">Latitude Pátio</label>
+                        <input type="text" id="cfg-yard-lat" class="input" placeholder="-22.3145">
+                    </div>
+                    <div>
+                        <label class="lbl">Longitude Pátio</label>
+                        <input type="text" id="cfg-yard-lng" class="input" placeholder="-49.0587">
+                    </div>
+                    <div>
+                        <label class="lbl">Raio do Pátio (Metros)</label>
+                        <input type="number" id="cfg-yard-radius" class="input" value="200">
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div>
+                        <label class="lbl">Retenção Fotos s/ Avaria (Dias)</label>
+                        <input type="number" id="cfg-retention" class="input" min="15" max="365" value="45">
+                    </div>
+                    <div>
+                        <label class="lbl">Limite Padrão Velocidade (km/h)</label>
+                        <input type="number" id="cfg-def-speed" class="input" value="110">
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-top:8px;">
+                    <button type="button" class="btn btn-red" onclick="clearSimulatedTelemetry()">🧹 Limpar Rotas Demo</button>
+                    <button type="submit" class="btn btn-primary">💾 Salvar Configurações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: LANÇAR MULTA / MANUTENÇÃO / REVISÃO -->
+    <div class="modal-overlay" id="modal-new-fine" onclick="if(event.target===this)this.style.display='none'">
+        <div class="modal" style="max-width:560px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                <h3 style="font-size:1.05rem;font-weight:900;">➕ Registrar Multa, Revisão ou Ocorrência</h3>
+                <button type="button" class="btn" onclick="document.getElementById('modal-new-fine').style.display='none'">✕</button>
+            </div>
+            <form onsubmit="submitNewFineRecord(event)" style="display:flex;flex-direction:column;gap:12px;">
+                <input type="hidden" id="nf-trip-id">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div>
+                        <label class="lbl">Tipo de Registro *</label>
+                        <select id="nf-type" class="input" onchange="document.getElementById('nf-oil-box').style.display=this.value==='MANUTENCAO'?'block':'none'">
+                            <option value="MULTA">🚨 Multa de Trânsito</option>
+                            <option value="MANUTENCAO">🛠️ Troca de Óleo / Oficina</option>
+                            <option value="SINISTRO">💥 Sinistro / Avaria</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="lbl">Veículo *</label>
+                        <select id="nf-veh" class="input" required></select>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div>
+                        <label class="lbl">Data e Hora *</label>
+                        <input type="datetime-local" id="nf-dt" class="input" required>
+                    </div>
+                    <div>
+                        <label class="lbl">Motorista / Responsável</label>
+                        <input type="text" id="nf-driver" class="input" placeholder="Ex: Alex (Vendas)">
+                    </div>
+                </div>
+                <div>
+                    <label class="lbl">Descrição (Infração ou Serviço Executado) *</label>
+                    <input type="text" id="nf-title" class="input" placeholder="Ex: Excesso de velocidade acima de 20% - Rod. Marechal Rondon" required>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                    <div>
+                        <label class="lbl">Valor (R$)</label>
+                        <input type="number" step="0.01" id="nf-amount" class="input" placeholder="195.23">
+                    </div>
+                    <div>
+                        <label class="lbl">Pontos CNH</label>
+                        <input type="number" id="nf-points" class="input" placeholder="5">
+                    </div>
+                    <div>
+                        <label class="lbl">Status</label>
+                        <select id="nf-status" class="input">
+                            <option value="PENDENTE">Pendente</option>
+                            <option value="IDENTIFICADO">Condutor Assinado</option>
+                            <option value="PAGO_CONCLUIDO">Pago / Concluído</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="nf-oil-box" style="display:none;">
+                    <label class="lbl">Atualizar Meta da Próxima Troca de Óleo para (KM):</label>
+                    <input type="number" id="nf-next-oil" class="input" placeholder="Ex: 60000">
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px;">
+                    <button type="button" class="btn" onclick="document.getElementById('modal-new-fine').style.display='none'">Cancelar</button>
+                    <button type="submit" class="btn btn-green">💾 Salvar Registro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let dashState = { vehicles: [], openAlerts: [], recentTrips: [], settings: {}, disk: {} };
+        let filteredTripsCache = [];
+        let leafletMap = null;
+        let mapLayerGroup = null;
+
+        const PURPOSE_NAMES = {
+            VISITA_COMERCIAL: 'Visita Comercial',
+            INSTALACAO_SAT: 'Instalação / SAT',
+            COMPRAS_RUA: 'Compras / Coleta',
+            PORTO_EADI: 'Porto / EADI',
+            ENTREGA_COLETA: 'Entrega / Expedição',
+            RH_ADMIN: 'RH / Administrativo',
+            MANUTENCAO: 'Oficina / Manutenção',
+            OUTRO: 'Outro'
+        };
+
+        function getToken() {
+            return localStorage.getItem('tecfag_session_token');
+        }
+
+        async function apiFetch(url, options = {}) {
+            const token = getToken();
+            const headers = Object.assign({}, options.headers || {});
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+            if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+                headers['Content-Type'] = 'application/json';
+            }
+            const res = await fetch(url, Object.assign({}, options, { headers }));
+            if (res.status === 401 || res.status === 403) {
+                const errData = await res.json().catch(() => ({}));
+                if (res.status === 401) {
+                    document.getElementById('manager-main-content').style.display = 'none';
+                    document.getElementById('manager-login-box').style.display = 'block';
+                }
+                throw new Error(errData.error || 'Acesso restrito.');
+            }
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Erro na requisição.');
+            return data;
+        }
+
+        async function handleManagerLogin(e) {
+            e.preventDefault();
+            const errEl = document.getElementById('mgr-err');
+            errEl.style.display = 'none';
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('mgr-user').value.trim(),
+                        password: document.getElementById('mgr-pass').value
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.token) throw new Error(data.error || 'Credenciais inválidas.');
+                localStorage.setItem('tecfag_session_token', data.token);
+                localStorage.setItem('tecfag_user', JSON.stringify(data.user));
+                await refreshDashboard();
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.style.display = 'block';
+            }
+        }
+
+        function renderPlate(plate) {
+            return `
+                <div class="mercosul-plate">
+                    <div class="mercosul-top"><span>BRASIL</span><span>🇧🇷</span></div>
+                    <div class="mercosul-num">${plate}</div>
+                </div>
+            `;
+        }
+
+        function fmtDt(iso) {
+            if (!iso) return '-';
+            const d = new Date(iso);
+            return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' ' +
+                   d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function elapsedSince(iso) {
+            if (!iso) return '';
+            const mins = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+            if (mins < 60) return `${mins} min`;
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            return `${h}h ${m}min`;
+        }
+
+        function switchTab(tabId, btnEl) {
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            if (btnEl) btnEl.classList.add('active');
+
+            if (tabId === 'map') {
+                setTimeout(() => {
+                    initMapIfNeeded();
+                    leafletMap.invalidateSize();
+                    showAllVehiclesOnMap();
+                }, 80);
+            } else if (tabId === 'trips') {
+                loadFilteredTrips();
+            } else if (tabId === 'fines') {
+                loadFinesAndFuel();
+            } else if (tabId === 'qrcodes') {
+                renderQrStickers();
+            } else if (tabId === 'drivers') {
+                renderDriversTable();
+            }
+        }
+
+        async function refreshDashboard() {
+            if (!getToken()) {
+                document.getElementById('manager-login-box').style.display = 'block';
+                return;
+            }
+            try {
+                const data = await apiFetch('/api/fleet/dashboard');
+                dashState = data;
+                document.getElementById('manager-login-box').style.display = 'none';
+                document.getElementById('manager-main-content').style.display = 'block';
+
+                // Atualizar HUD de proteção de disco
+                const d = data.disk || {};
+                document.getElementById('hud-db-size').textContent = ((d.fleetDbBytes || 0) / 1024).toFixed(0) + ' KB';
+                document.getElementById('hud-photos-size').textContent = ((d.fleetUploadsBytes || 0) / (1024 * 1024)).toFixed(2) + ' MB';
+                document.getElementById('hud-disk-pct').textContent = (d.usedPercent || 0) + '%';
+                document.getElementById('hud-disk-free').textContent = ((d.freeBytes || 0) / (1024 * 1024)).toFixed(0) + ' MB livres';
+                document.getElementById('hud-retention-info').textContent =
+                    `Faxina automática: fotos s/ avaria > ${(data.settings && data.settings.photo_retention_days) || 45} dias`;
+
+                // KPIs
+                const m = data.metrics || {};
+                document.getElementById('kpi-yard').textContent = m.inYard ?? 0;
+                document.getElementById('kpi-road').textContent = m.onRoad ?? 0;
+                document.getElementById('kpi-overnight').textContent = m.overnight ?? 0;
+                document.getElementById('kpi-month-km').textContent = (m.monthKm || 0).toLocaleString('pt-BR') + ' km';
+                document.getElementById('kpi-month-trips').textContent = `${m.monthTrips || 0} viagens no mês`;
+                document.getElementById('kpi-month-fuel').textContent = 'R$ ' + (m.monthFuelCostBrl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                document.getElementById('kpi-month-kml').textContent = m.monthAvgKmL ? `Média: ${m.monthAvgKmL} km/L` : 'Média: aguardando 2º tanque cheio';
+                const drvCountEl = document.getElementById('tab-drv-count');
+                if (drvCountEl) drvCountEl.textContent = (data.drivers || []).length;
+
+                populateVehicleSelects(data.vehicles);
+                renderAlertsBanner(data.openAlerts || []);
+                renderLiveVehicles(data.vehicles || []);
+                renderDriversTable();
+
+                if (document.getElementById('tab-qrcodes').classList.contains('active')) {
+                    renderQrStickers();
+                }
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        function populateVehicleSelects(vehicles) {
+            const opts = vehicles.map(v => `<option value="${v.id}">${v.name} — ${v.plate}</option>`).join('');
+            ['map-vehicle-select', 'fine-search-veh', 'nf-veh'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !el.value) el.innerHTML = opts;
+                else if (el) {
+                    const prev = el.value;
+                    el.innerHTML = opts;
+                    el.value = prev;
+                }
+            });
+            const fltVeh = document.getElementById('flt-trip-veh');
+            if (fltVeh) {
+                const prev = fltVeh.value || 'ALL';
+                fltVeh.innerHTML = `<option value="ALL">Todos os 6 Veículos</option>` + opts;
+                fltVeh.value = prev;
+            }
+            const mapDate = document.getElementById('map-date-input');
+            if (mapDate && !mapDate.value) {
+                mapDate.value = new Date().toISOString().split('T')[0];
+            }
+        }
+
+        function renderAlertsBanner(alerts) {
+            const box = document.getElementById('alerts-banner-container');
+            if (!alerts.length) {
+                box.style.display = 'none';
+                return;
+            }
+            box.style.display = 'flex';
+            box.style.flexDirection = 'column';
+            box.style.gap = '8px';
+            box.innerHTML = alerts.slice(0, 5).map(a => `
+                <div style="background:${a.severity === 'CRITICAL' ? 'rgba(239,68,68,0.14)' : 'rgba(245,158,11,0.13)'};border:1px solid ${a.severity === 'CRITICAL' ? '#ef4444' : '#f59e0b'};border-radius:10px;padding:11px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <div style="font-size:0.82rem;">
+                        <strong>${a.severity === 'CRITICAL' ? '🚨' : '⚠️'} ${a.title}</strong>
+                        <span style="color:#cbd5e1;margin-left:6px;">${a.description}</span>
+                        <span style="color:var(--muted);font-size:0.72rem;margin-left:8px;">(${fmtDt(a.created_at)})</span>
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        ${a.trip_id ? `<button type="button" class="btn" style="padding:5px 10px;font-size:0.74rem;" onclick="openTripCompareModal(${a.trip_id})">📸 Ver Vistoria</button>` : ''}
+                        <button type="button" class="btn" style="padding:5px 10px;font-size:0.74rem;" onclick="resolveAlert(${a.id})">✓ Ciente / Resolver</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function resolveAlert(id) {
+            await apiFetch(`/api/fleet/alerts/${id}/resolve`, { method: 'PUT' });
+            refreshDashboard();
+        }
+
+        function renderLiveVehicles(vehicles) {
+            const grid = document.getElementById('live-vehicles-grid');
+            grid.innerHTML = vehicles.map(v => {
+                let badgeHtml = '';
+                let possessionHtml = '';
+
+                if (v.status === 'NO_PATIO') {
+                    badgeHtml = `<span class="badge b-green">🟢 Estacionado no Pátio</span>`;
+                    possessionHtml = `<div style="font-size:0.8rem;color:var(--muted);">Disponível para retirada via QR Code no pátio.</div>`;
+                } else if (v.status === 'EM_USO') {
+                    badgeHtml = `<span class="badge b-blue">🔵 Em Uso • há ${elapsedSince(v.active_checkout_at)}</span>`;
+                    possessionHtml = `
+                        <div style="background:rgba(14,165,233,0.09);border:1px solid rgba(14,165,233,0.3);border-radius:10px;padding:10px 12px;font-size:0.8rem;line-height:1.45;">
+                            <div>👤 <strong>Condutor:</strong> <span style="color:#38bdf8;font-weight:800;">${v.current_driver_name}</span></div>
+                            <div>📍 <strong>Destino:</strong> ${v.active_destination || '-'} ${v.active_project_code ? `<code style="color:#c4b5fd;">[${v.active_project_code}]</code>` : ''}</div>
+                            <div>🕒 <strong>Saída:</strong> ${fmtDt(v.active_checkout_at)} (${(v.active_start_km || 0).toLocaleString('pt-BR')} km)</div>
+                        </div>
+                    `;
+                } else if (v.status === 'PERNOITE_CASA') {
+                    badgeHtml = `<span class="badge b-purple">🌙 Em Pernoite na Casa do Funcionário</span>`;
+                    possessionHtml = `
+                        <div style="background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.35);border-radius:10px;padding:10px 12px;font-size:0.8rem;line-height:1.45;">
+                            <div>👤 <strong>Responsável:</strong> <span style="color:#c4b5fd;font-weight:800;">${v.current_driver_name}</span></div>
+                            <div>🏠 <strong>Parada Noturna:</strong> ${fmtDt(v.active_overnight_at)} com <strong>${(v.active_overnight_km || 0).toLocaleString('pt-BR')} km</strong></div>
+                            <div>📍 <strong>Último Destino:</strong> ${v.active_destination || '-'}</div>
+                        </div>
+                    `;
+                } else {
+                    badgeHtml = `<span class="badge b-amber">🛠️ Em Oficina / Manutenção</span>`;
+                    possessionHtml = `<div style="font-size:0.8rem;color:#fbbf24;">Veículo temporariamente bloqueado para check-in.</div>`;
+                }
+
+                const fuelPct = v.current_fuel_level ?? 100;
+                const fuelColor = fuelPct <= 25 ? '#ef4444' : (fuelPct <= 50 ? '#f59e0b' : '#10b981');
+
+                let oilWarn = '';
+                if (v.next_oil_km) {
+                    const rem = v.next_oil_km - (v.current_km || 0);
+                    if (rem <= 0) {
+                        oilWarn = `<span class="badge b-red">🛢️ Óleo Vencido (${Math.abs(rem)} km)</span>`;
+                    } else if (rem <= 800) {
+                        oilWarn = `<span class="badge b-amber">🛢️ Óleo em ${rem} km</span>`;
+                    }
+                }
+
+                const trackerInfo = v.tracker_imei
+                    ? `<span style="color:#34d399;font-weight:700;">📡 4G Ativo (${Math.round(v.last_speed_kmh || 0)} km/h)</span>`
+                    : `<span style="color:var(--muted);">📡 Sem rastreador 4G (GPS via Check-in)</span>`;
+
+                return `
+                    <div class="vehicle-card st-${v.status}">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+                            <div>
+                                <div style="font-size:0.7rem;color:var(--muted);font-weight:800;text-transform:uppercase;">${v.code} • ${v.category} • ${v.fuel_type}</div>
+                                <div style="font-size:1.12rem;font-weight:900;margin:2px 0 6px;">${v.name}</div>
+                                <div style="display:flex;gap:6px;flex-wrap:wrap;">${badgeHtml} ${oilWarn}</div>
+                            </div>
+                            ${renderPlate(v.plate)}
+                        </div>
+
+                        ${possessionHtml}
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center;background:#0b0f19;padding:10px 12px;border-radius:10px;border:1px solid var(--border);font-size:0.78rem;">
+                            <div>
+                                <div style="color:var(--muted);font-size:0.68rem;font-weight:700;text-transform:uppercase;">Odômetro Atual</div>
+                                <div style="font-size:0.98rem;font-weight:900;">${(v.current_km || 0).toLocaleString('pt-BR')} km</div>
+                            </div>
+                            <div>
+                                <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--muted);font-weight:700;margin-bottom:4px;">
+                                    <span>COMBUSTÍVEL</span><span>${fuelPct}%</span>
+                                </div>
+                                <div class="fuel-bar-bg"><div class="fuel-bar-fill" style="width:${Math.max(8, fuelPct)}%;background:${fuelColor};"></div></div>
+                            </div>
+                        </div>
+
+                        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.73rem;padding-top:2px;flex-wrap:wrap;gap:8px;">
+                            ${trackerInfo}
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                                ${v.current_trip_id ? `<button type="button" class="btn" style="padding:5px 10px;font-size:0.73rem;" onclick="openTripCompareModal(${v.current_trip_id})">📸 Fotos Saída</button>` : ''}
+                                ${v.current_trip_id ? `<button type="button" class="btn btn-red" style="padding:5px 10px;font-size:0.73rem;" onclick="forceCloseTrip(${v.current_trip_id}, '${v.name}', ${v.current_km || 0})">⏹️ Dar Baixa</button>` : ''}
+                                <button type="button" class="btn" style="padding:5px 10px;font-size:0.73rem;" onclick="openEditVehicleModal(${v.id})">⚙️ Editar / Rastreador</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openEditVehicleModal(id) {
+            const v = dashState.vehicles.find(x => x.id === id);
+            if (!v) return;
+            document.getElementById('ev-id').value = v.id;
+            document.getElementById('ev-name').value = v.name;
+            document.getElementById('ev-plate').value = v.plate;
+            document.getElementById('ev-km').value = v.current_km || 0;
+            document.getElementById('ev-oil-km').value = v.next_oil_km || '';
+            document.getElementById('ev-speed-limit').value = v.speed_limit_kmh || 110;
+            document.getElementById('ev-fuel-type').value = v.fuel_type || 'FLEX';
+            document.getElementById('ev-imei').value = v.tracker_imei || '';
+            document.getElementById('ev-status').value = v.status === 'MANUTENCAO' ? 'MANUTENCAO' : 'NO_PATIO';
+            document.getElementById('ev-damages').value = v.known_damages_notes || '';
+            document.getElementById('modal-edit-vehicle').style.display = 'flex';
+        }
+
+        async function saveVehicleEdit(e) {
+            e.preventDefault();
+            const id = document.getElementById('ev-id').value;
+            await apiFetch(`/api/fleet/vehicles/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    name: document.getElementById('ev-name').value.trim(),
+                    plate: document.getElementById('ev-plate').value.trim(),
+                    current_km: document.getElementById('ev-km').value,
+                    next_oil_km: document.getElementById('ev-oil-km').value,
+                    speed_limit_kmh: document.getElementById('ev-speed-limit').value,
+                    fuel_type: document.getElementById('ev-fuel-type').value,
+                    tracker_imei: document.getElementById('ev-imei').value.trim(),
+                    status: document.getElementById('ev-status').value,
+                    known_damages_notes: document.getElementById('ev-damages').value.trim()
+                })
+            });
+            document.getElementById('modal-edit-vehicle').style.display = 'none';
+            refreshDashboard();
+        }
+
+        async function forceCloseTrip(tripId, vehName, curKm) {
+            const km = prompt(`Encerrar manualmente a viagem de ${vehName}.\nInforme o KM atual no pátio:`, curKm);
+            if (km === null) return;
+            const notes = prompt('Motivo da baixa administrativa:', 'Motorista esqueceu de finalizar no celular');
+            await apiFetch(`/api/fleet/trips/${tripId}/force-checkin`, {
+                method: 'POST',
+                body: JSON.stringify({ end_km: km, notes })
+            });
+            refreshDashboard();
+        }
+
+        // ==========================================
+        // ABA 2: MAPA LEAFLET & REPLAY DE TRECHO / VELOCIDADE
+        // ==========================================
+        function initMapIfNeeded() {
+            if (leafletMap) return;
+            leafletMap = L.map('fleet-map').setView([-22.3145, -49.0587], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(leafletMap);
+            mapLayerGroup = L.layerGroup().addTo(leafletMap);
+        }
+
+        function showAllVehiclesOnMap() {
+            initMapIfNeeded();
+            mapLayerGroup.clearLayers();
+            document.getElementById('route-summary-strip').style.display = 'none';
+
+            const bounds = [];
+            const s = dashState.settings || {};
+            if (s.yard_lat && s.yard_lng) {
+                const yLat = parseFloat(s.yard_lat);
+                const yLng = parseFloat(s.yard_lng);
+                if (!isNaN(yLat) && !isNaN(yLng)) {
+                    L.circle([yLat, yLng], {
+                        radius: parseFloat(s.yard_radius_meters) || 200,
+                        color: '#10b981',
+                        fillColor: '#10b981',
+                        fillOpacity: 0.12
+                    }).bindPopup('🏭 Pátio Tecfag (Cerca Virtual)').addTo(mapLayerGroup);
+                    bounds.push([yLat, yLng]);
+                }
+            }
+
+            (dashState.vehicles || []).forEach(v => {
+                if (v.last_lat && v.last_lng) {
+                    const color = v.status === 'EM_USO' ? '#0ea5e9' : (v.status === 'PERNOITE_CASA' ? '#8b5cf6' : '#10b981');
+                    const marker = L.circleMarker([v.last_lat, v.last_lng], {
+                        radius: 10,
+                        color: '#ffffff',
+                        weight: 2,
+                        fillColor: color,
+                        fillOpacity: 0.95
+                    }).bindPopup(`
+                        <div style="font-family:Inter,sans-serif;min-width:190px;">
+                            <strong>${v.name} (${v.plate})</strong><br>
+                            Status: <b>${v.status}</b><br>
+                            ${v.current_driver_name ? `Condutor: <b>${v.current_driver_name}</b><br>` : ''}
+                            Velocidade: <b>${Math.round(v.last_speed_kmh || 0)} km/h</b><br>
+                            Atualizado: ${fmtDt(v.last_telemetry_at || v.updated_at)}
+                        </div>
+                    `);
+                    marker.addTo(mapLayerGroup);
+                    bounds.push([v.last_lat, v.last_lng]);
+                }
+            });
+
+            if (bounds.length > 0) {
+                leafletMap.fitBounds(bounds, { padding: [45, 45], maxZoom: 15 });
+            }
+        }
+
+        async function loadRouteOnMap() {
+            initMapIfNeeded();
+            const vehicleId = document.getElementById('map-vehicle-select').value;
+            const date = document.getElementById('map-date-input').value;
+            const veh = dashState.vehicles.find(x => String(x.id) === String(vehicleId));
+            const limitKmh = veh ? (veh.speed_limit_kmh || 110) : 110;
+
+            const data = await apiFetch(`/api/fleet/telemetry/route?vehicle_id=${vehicleId}&date=${date}`);
+            mapLayerGroup.clearLayers();
+
+            const strip = document.getElementById('route-summary-strip');
+            strip.style.display = 'flex';
+
+            if (!data.points || data.points.length === 0) {
+                strip.innerHTML = `<span style="color:#fbbf24;">ℹ️ Nenhum ponto de GPS registrado para <strong>${veh ? veh.name : ''}</strong> em ${date.split('-').reverse().join('/')}. Dica: clique em "🧪 Testar Rota Demo" para simular um trecho no mapa!</span>`;
+                return;
+            }
+
+            const coords = data.points.map(p => [p.lat, p.lng]);
+            L.polyline(coords, { color: '#0ea5e9', weight: 5, opacity: 0.85 }).addTo(mapLayerGroup);
+
+            data.points.forEach((p, idx) => {
+                const isFirst = idx === 0;
+                const isLast = idx === data.points.length - 1;
+                const isSpeeding = (p.speed_kmh || 0) > limitKmh;
+
+                if (isFirst || isLast || isSpeeding || p.source.includes('MOBILE')) {
+                    const fill = isSpeeding ? '#ef4444' : (isFirst ? '#10b981' : (isLast ? '#f59e0b' : '#38bdf8'));
+                    L.circleMarker([p.lat, p.lng], {
+                        radius: isSpeeding ? 9 : 7,
+                        color: '#fff',
+                        weight: 2,
+                        fillColor: fill,
+                        fillOpacity: 1
+                    }).bindPopup(`
+                        <div style="font-family:Inter,sans-serif;">
+                            <strong>${isSpeeding ? '🚨 EXCESSO DE VELOCIDADE' : (isFirst ? '🟢 Início do Trecho' : (isLast ? '🏁 Último Ponto' : '📍 Registro'))}</strong><br>
+                            Horário: <b>${fmtDt(p.recorded_at)}</b><br>
+                            Velocidade: <b style="color:${isSpeeding ? '#dc2626' : '#0f172a'};">${Math.round(p.speed_kmh || 0)} km/h</b><br>
+                            Origem: ${p.source}
+                        </div>
+                    `).addTo(mapLayerGroup);
+                }
+            });
+
+            leafletMap.fitBounds(coords, { padding: [40, 40], maxZoom: 15 });
+
+            const drivers = (data.matchingTrips || []).map(t => `${t.driver_name} (${t.destination})`).join(' • ') || 'Sem check-in vinculado no período';
+            strip.innerHTML = `
+                <span>🚗 <strong>${veh ? veh.name : ''} (${veh ? veh.plate : ''})</strong> • Pontos GPS: <strong>${data.summary.pointsCount}</strong></span>
+                <span>⚡ Velocidade Máxima no Dia: <strong style="color:${data.summary.maxSpeedKmh > limitKmh ? '#f87171' : '#34d399'};">${data.summary.maxSpeedKmh} km/h</strong> (Limite: ${limitKmh} km/h)</span>
+                <span>👤 Condutor(es): <strong>${drivers}</strong></span>
+            `;
+        }
+
+        async function simulateRouteDemo() {
+            const vehicleId = document.getElementById('map-vehicle-select').value;
+            const res = await apiFetch('/api/fleet/telemetry/simulate', {
+                method: 'POST',
+                body: JSON.stringify({ vehicle_id: vehicleId })
+            });
+            document.getElementById('map-date-input').value = res.date;
+            await refreshDashboard();
+            await loadRouteOnMap();
+        }
+
+        async function clearSimulatedTelemetry() {
+            await apiFetch('/api/fleet/telemetry/simulate', {
+                method: 'POST',
+                body: JSON.stringify({ action: 'CLEAR' })
+            });
+            document.getElementById('modal-tracker-config').style.display = 'none';
+            await refreshDashboard();
+            showAllVehiclesOnMap();
+        }
+
+        function openTrackerConfigModal() {
+            const s = dashState.settings || {};
+            const base = window.location.origin;
+            document.getElementById('cfg-webhook-url').value = `${base}/api/fleet/webhook/telemetry/${s.webhook_secret || ''}`;
+            document.getElementById('cfg-yard-lat').value = s.yard_lat || '';
+            document.getElementById('cfg-yard-lng').value = s.yard_lng || '';
+            document.getElementById('cfg-yard-radius').value = s.yard_radius_meters || '200';
+            document.getElementById('cfg-retention').value = s.photo_retention_days || '45';
+            document.getElementById('cfg-def-speed').value = s.default_speed_limit_kmh || '110';
+            document.getElementById('modal-tracker-config').style.display = 'flex';
+        }
+
+        function fillCurrentGpsAsYard() {
+            if (!navigator.geolocation) return alert('Geolocalização não disponível neste navegador.');
+            navigator.geolocation.getCurrentPosition(pos => {
+                document.getElementById('cfg-yard-lat').value = pos.coords.latitude.toFixed(6);
+                document.getElementById('cfg-yard-lng').value = pos.coords.longitude.toFixed(6);
+            }, err => alert('Permita o acesso à localização para capturar o pátio: ' + err.message));
+        }
+
+        async function saveFleetSettings(e) {
+            e.preventDefault();
+            await apiFetch('/api/fleet/settings', {
+                method: 'PUT',
+                body: JSON.stringify({
+                    yard_lat: document.getElementById('cfg-yard-lat').value.trim(),
+                    yard_lng: document.getElementById('cfg-yard-lng').value.trim(),
+                    yard_radius_meters: document.getElementById('cfg-yard-radius').value,
+                    photo_retention_days: document.getElementById('cfg-retention').value,
+                    default_speed_limit_kmh: document.getElementById('cfg-def-speed').value
+                })
+            });
+            document.getElementById('modal-tracker-config').style.display = 'none';
+            refreshDashboard();
+        }
+
+        // ==========================================
+        // ABA 3: HISTÓRICO & ANTES X DEPOIS
+        // ==========================================
+        async function loadFilteredTrips() {
+            const veh = document.getElementById('flt-trip-veh').value;
+            const drv = document.getElementById('flt-trip-driver').value;
+            const st = document.getElementById('flt-trip-status').value;
+            const dmg = document.getElementById('flt-trip-damage').value;
+
+            const qs = new URLSearchParams({ vehicle_id: veh, driver: drv, status: st, only_damage: dmg });
+            const data = await apiFetch('/api/fleet/trips?' + qs.toString());
+            filteredTripsCache = data.trips || [];
+
+            const tbody = document.getElementById('trips-tbody');
+            if (!filteredTripsCache.length) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:26px;">Nenhuma viagem encontrada com os filtros atuais.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filteredTripsCache.map(t => {
+                const stBadge = t.status === 'OPEN'
+                    ? `<span class="badge b-blue">🔵 Na Rua</span>`
+                    : (t.status === 'OVERNIGHT_HOME' ? `<span class="badge b-purple">🌙 Pernoite</span>` : `<span class="badge b-green">✅ Entregue</span>`);
+
+                const dmgBadge = t.has_damage
+                    ? `<span class="badge b-red">⚠️ Com Avaria</span>`
+                    : (t.keep_forever ? `<span class="badge b-amber">🔒 Travada</span>` : `<span style="color:#34d399;font-size:0.76rem;font-weight:700;">Sem Avaria</span>`);
+
+                return `
+                    <tr>
+                        <td><strong>${t.vehicle_name}</strong><br><code style="color:#38bdf8;">${t.plate}</code></td>
+                        <td><strong>${t.driver_name}</strong><br><span style="font-size:0.72rem;color:var(--muted);">${t.driver_username}</span></td>
+                        <td>
+                            <span style="font-size:0.72rem;color:var(--muted);font-weight:700;">${PURPOSE_NAMES[t.purpose_type] || t.purpose_type}</span><br>
+                            <strong>${t.destination}</strong> ${t.project_code ? `<code style="color:#c4b5fd;">[${t.project_code}]</code>` : ''}
+                        </td>
+                        <td>${fmtDt(t.checkout_at)}<br><strong>${(t.start_km || 0).toLocaleString('pt-BR')} km</strong> (${t.start_fuel_level}%)</td>
+                        <td>
+                            ${t.overnight_at ? `<span style="color:#c4b5fd;font-size:0.73rem;">🌙 Casa: ${(t.overnight_km || 0).toLocaleString('pt-BR')} km</span><br>` : ''}
+                            ${t.checkin_at ? `${fmtDt(t.checkin_at)}<br><strong>${(t.end_km || 0).toLocaleString('pt-BR')} km</strong> (${t.end_fuel_level}%)` : stBadge}
+                        </td>
+                        <td>
+                            <strong>${t.distance_km !== null && t.distance_km !== undefined ? `+${t.distance_km.toLocaleString('pt-BR')} km` : '-'}</strong><br>
+                            <span style="font-size:0.72rem;color:${(t.max_speed_kmh || 0) > 110 ? '#f87171' : 'var(--muted)'};">Máx: ${Math.round(t.max_speed_kmh || 0)} km/h</span>
+                        </td>
+                        <td>${dmgBadge}</td>
+                        <td>
+                            <button type="button" class="btn btn-primary" style="padding:6px 11px;font-size:0.74rem;" onclick="openTripCompareModal(${t.id})">
+                                📸 Antes x Depois
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function openTripCompareModal(tripId) {
+            const data = await apiFetch(`/api/fleet/trips/${tripId}`);
+            const t = data.trip;
+            const startPhotos = JSON.parse(t.start_photos_json || '[]');
+            const endPhotos = JSON.parse(t.end_photos_json || '[]');
+
+            document.getElementById('cmp-modal-title').textContent =
+                `📸 Vistoria #${t.id} • ${t.vehicle_name} (${t.plate}) • Condutor: ${t.driver_name}`;
+
+            const overnightSection = t.overnight_at ? `
+                <div style="background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.4);border-radius:12px;padding:14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+                    <div style="font-size:0.82rem;line-height:1.5;">
+                        <strong style="color:#c4b5fd;">🌙 Registro de Pernoite em Casa (${fmtDt(t.overnight_at)})</strong><br>
+                        KM ao estacionar à noite: <strong>${(t.overnight_km || 0).toLocaleString('pt-BR')} km</strong> •
+                        Deslocamento Casa ➔ Pátio pela manhã: <strong>${t.overnight_to_yard_km !== null ? `${t.overnight_to_yard_km} km` : 'Aguardando chegada'}</strong><br>
+                        Justificativa: <em>${t.overnight_notes || '-'}</em>
+                    </div>
+                    ${t.overnight_photo_url ? `<a href="${t.overnight_photo_url}" target="_blank" class="btn">🔎 Ver Foto do Painel Noturno ↗</a>` : ''}
+                </div>
+            ` : '';
+
+            document.getElementById('cmp-modal-body').innerHTML = `
+                ${overnightSection}
+                <div class="compare-grid">
+                    <!-- LADO ESQUERDO: COMO PEGOU -->
+                    <div style="background:#0b0f19;border:1px solid var(--border);border-top:4px solid var(--primary);border-radius:12px;padding:16px;">
+                        <h4 style="color:#38bdf8;margin-bottom:8px;">🔑 COMO PEGOU (Retirada no Pátio)</h4>
+                        <div style="font-size:0.8rem;line-height:1.55;color:#cbd5e1;">
+                            <div><strong>Data/Hora:</strong> ${fmtDt(t.checkout_at)}</div>
+                            <div><strong>KM Inicial:</strong> ${(t.start_km || 0).toLocaleString('pt-BR')} km • <strong>Combustível:</strong> ${t.start_fuel_level}%</div>
+                            <div><strong>Limpeza na saída:</strong> ${t.start_cleanliness || 'LIMPO'}</div>
+                            <div><strong>Destino:</strong> ${t.destination} ${t.project_code ? `[${t.project_code}]` : ''}</div>
+                            ${t.start_damage_reported ? `<div style="color:#fbbf24;margin-top:4px;"><strong>⚠️ Avaria prévia apontada:</strong> ${t.start_damage_notes || 'Sim'}</div>` : ''}
+                        </div>
+                        <div class="photo-thumbs">
+                            ${startPhotos.length ? startPhotos.map(p => `
+                                <a href="${p.url}" target="_blank">
+                                    <img src="${p.url}" alt="${p.label}">
+                                    <span>🔍 ${p.label}</span>
+                                </a>
+                            `).join('') : '<div style="color:var(--muted);font-size:0.78rem;">Sem fotos disponíveis.</div>'}
+                        </div>
+                    </div>
+
+                    <!-- LADO DIREITO: COMO ENTREGOU -->
+                    <div style="background:#0b0f19;border:1px solid var(--border);border-top:4px solid var(--green);border-radius:12px;padding:16px;">
+                        <h4 style="color:#34d399;margin-bottom:8px;">🏁 COMO ENTREGOU (Devolução no Pátio)</h4>
+                        ${t.checkin_at ? `
+                            <div style="font-size:0.8rem;line-height:1.55;color:#cbd5e1;">
+                                <div><strong>Data/Hora:</strong> ${fmtDt(t.checkin_at)}</div>
+                                <div><strong>KM Final:</strong> ${(t.end_km || 0).toLocaleString('pt-BR')} km (<strong>+${(t.distance_km || 0).toLocaleString('pt-BR')} km rodados</strong>)</div>
+                                <div><strong>Combustível na entrega:</strong> ${t.end_fuel_level}% • <strong>Limpeza:</strong> ${t.end_cleanliness || '-'}</div>
+                                <div><strong>Velocidade Máxima Registrada:</strong> ${Math.round(t.max_speed_kmh || 0)} km/h</div>
+                                ${t.end_damage_reported ? `<div style="color:#f87171;margin-top:4px;"><strong>🚨 Ocorrência na entrega:</strong> ${t.end_damage_notes || 'Sim'}</div>` : `<div style="color:#34d399;">✅ Entregue sem novas avarias apontadas</div>`}
+                            </div>
+                            <div class="photo-thumbs">
+                                ${endPhotos.length ? endPhotos.map(p => `
+                                    <a href="${p.url}" target="_blank">
+                                        <img src="${p.url}" alt="${p.label}">
+                                        <span>🔍 ${p.label}</span>
+                                    </a>
+                                `).join('') : '<div style="color:var(--muted);font-size:0.78rem;margin-top:10px;">Sem fotos de devolução (baixa administrativa ou arquivada).</div>'}
+                            </div>
+                        ` : `<div style="padding:30px 10px;text-align:center;color:var(--muted);font-size:0.85rem;">⏳ Veículo ainda não devolvido ao pátio.</div>`}
+                    </div>
+                </div>
+
+                <div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding-top:12px;border-top:1px solid var(--border);">
+                    <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;font-weight:700;cursor:pointer;">
+                        <input type="checkbox" ${t.keep_forever || t.has_damage ? 'checked' : ''} ${t.has_damage ? 'disabled' : ''} onchange="toggleLockTripPhotos(${t.id}, this.checked)" style="width:17px;height:17px;">
+                        🔒 Proteger fotos desta viagem permanentemente (nunca apagar na limpeza de 45 dias)
+                    </label>
+                    <span style="font-size:0.75rem;color:var(--muted);">Clique em qualquer foto acima para ampliar em tela cheia com carimbo de data/hora.</span>
+                </div>
+            `;
+
+            document.getElementById('modal-trip-compare').style.display = 'flex';
+        }
+
+        async function toggleLockTripPhotos(tripId, checked) {
+            await apiFetch(`/api/fleet/trips/${tripId}/lock-photos`, {
+                method: 'PUT',
+                body: JSON.stringify({ keep_forever: checked ? 1 : 0 })
+            });
+            loadFilteredTrips();
+        }
+
+        function exportTripsCsv() {
+            if (!filteredTripsCache.length) return alert('Nenhuma viagem na lista para exportar.');
+            const headers = ['ID', 'Placa', 'Veiculo', 'Motorista', 'Motivo', 'Destino', 'Projeto', 'Saida', 'KM_Inicial', 'Pernoite_KM', 'Devolucao', 'KM_Final', 'KM_Rodado', 'Vel_Max', 'Avaria'];
+            const rows = filteredTripsCache.map(t => [
+                t.id, t.plate, `"${t.vehicle_name}"`, `"${t.driver_name}"`, t.purpose_type, `"${(t.destination || '').replace(/"/g, '""')}"`,
+                t.project_code || '', t.checkout_at || '', t.start_km || 0, t.overnight_km || '', t.checkin_at || '', t.end_km || '', t.distance_km ?? '', t.max_speed_kmh || 0, t.has_damage ? 'SIM' : 'NAO'
+            ].join(';'));
+            const blob = new Blob(['\uFEFF' + headers.join(';') + '\n' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `relatorio_frota_tecfag_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        // ==========================================
+        // ABA 4: MULTAS, REVISÕES E COMBUSTÍVEL
+        // ==========================================
+        async function searchFineResponsible() {
+            const vehId = document.getElementById('fine-search-veh').value;
+            const dt = document.getElementById('fine-search-dt').value;
+            if (!dt) return alert('Escolha a data e a hora exata que constam na multa.');
+
+            const data = await apiFetch(`/api/fleet/fine-lookup?vehicle_id=${vehId}&datetime=${encodeURIComponent(dt)}`);
+            const box = document.getElementById('fine-search-result');
+            box.style.display = 'block';
+
+            if (data.exactTrip) {
+                const t = data.exactTrip;
+                box.innerHTML = `
+                    <div style="background:rgba(16,185,129,0.13);border:1.5px solid #10b981;border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+                        <div style="font-size:0.85rem;line-height:1.5;">
+                            <div style="color:#34d399;font-weight:900;font-size:0.95rem;">🎯 CONDUTOR IDENTIFICADO: ${t.driver_name}</div>
+                            <div>Estava com <strong>${t.vehicle_name} (${t.plate})</strong> de <strong>${fmtDt(t.checkout_at)}</strong> até <strong>${t.checkin_at ? fmtDt(t.checkin_at) : 'Em aberto'}</strong></div>
+                            <div>Destino declarado: <strong>${t.destination}</strong> ${data.nearestTelemetry ? `• Velocidade GPS próxima ao horário: <strong>${Math.round(data.nearestTelemetry.speed_kmh)} km/h</strong>` : ''}</div>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button type="button" class="btn" onclick="openTripCompareModal(${t.id})">📸 Ver Vistoria</button>
+                            <button type="button" class="btn btn-green" onclick="openNewFineModal(${t.vehicle_id}, '${dt}', '${t.driver_name.replace(/'/g, '')}', ${t.id})">➕ Lançar Multa p/ ${t.driver_name}</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const nearHtml = (data.nearbyTrips || []).map(nt =>
+                    `<li>${nt.driver_name}: saiu ${fmtDt(nt.checkout_at)} e entregou ${fmtDt(nt.checkin_at)} (${nt.destination})</li>`
+                ).join('');
+                box.innerHTML = `
+                    <div style="background:rgba(245,158,11,0.12);border:1px solid #f59e0b;border-radius:12px;padding:14px 16px;font-size:0.83rem;">
+                        <strong style="color:#fbbf24;">⚠️ Nenhuma viagem consta aberta no minuto exato informado.</strong>
+                        ${nearHtml ? `<div style="margin-top:6px;">Viagens mais próximas deste veículo:<ul style="padding-left:18px;margin-top:4px;">${nearHtml}</ul></div>` : ''}
+                    </div>
+                `;
+            }
+        }
+
+        function openNewFineModal(vehId, dt, driverName, tripId) {
+            if (vehId) document.getElementById('nf-veh').value = vehId;
+            document.getElementById('nf-dt').value = dt || new Date().toISOString().slice(0, 16);
+            document.getElementById('nf-driver').value = driverName || '';
+            document.getElementById('nf-trip-id').value = tripId || '';
+            document.getElementById('nf-title').value = '';
+            document.getElementById('nf-amount').value = '';
+            document.getElementById('nf-points').value = '';
+            document.getElementById('modal-new-fine').style.display = 'flex';
+        }
+
+        async function submitNewFineRecord(e) {
+            e.preventDefault();
+            await apiFetch('/api/fleet/fines', {
+                method: 'POST',
+                body: JSON.stringify({
+                    record_type: document.getElementById('nf-type').value,
+                    vehicle_id: document.getElementById('nf-veh').value,
+                    occurred_at: document.getElementById('nf-dt').value,
+                    responsible_driver: document.getElementById('nf-driver').value.trim(),
+                    matched_trip_id: document.getElementById('nf-trip-id').value || null,
+                    title: document.getElementById('nf-title').value.trim(),
+                    amount_brl: document.getElementById('nf-amount').value,
+                    points_cnh: document.getElementById('nf-points').value,
+                    status: document.getElementById('nf-status').value,
+                    next_oil_km: document.getElementById('nf-next-oil').value
+                })
+            });
+            document.getElementById('modal-new-fine').style.display = 'none';
+            await loadFinesAndFuel();
+            refreshDashboard();
+        }
+
+        async function loadFinesAndFuel() {
+            const data = await apiFetch('/api/fleet/fines');
+            const finesTb = document.getElementById('fines-tbody');
+            const fuelTb = document.getElementById('fuel-tbody');
+
+            finesTb.innerHTML = (data.records || []).length ? data.records.map(r => `
+                <tr>
+                    <td>${fmtDt(r.occurred_at)}</td>
+                    <td><code>${r.plate}</code></td>
+                    <td><strong>[${r.record_type}]</strong> ${r.title}</td>
+                    <td>${r.responsible_driver || '-'}</td>
+                    <td>R$ ${(r.amount_brl || 0).toFixed(2)}</td>
+                    <td>
+                        <select class="input" style="padding:4px 6px;font-size:0.74rem;width:auto;" onchange="updateFineStatus(${r.id}, this.value)">
+                            <option value="PENDENTE" ${r.status === 'PENDENTE' ? 'selected' : ''}>Pendente</option>
+                            <option value="IDENTIFICADO" ${r.status === 'IDENTIFICADO' ? 'selected' : ''}>Assinado</option>
+                            <option value="PAGO_CONCLUIDO" ${r.status === 'PAGO_CONCLUIDO' ? 'selected' : ''}>Concluído</option>
+                        </select>
+                    </td>
+                </tr>
+            `).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Nenhuma multa ou revisão cadastrada.</td></tr>`;
+
+            fuelTb.innerHTML = (data.fuelLogs || []).length ? data.fuelLogs.map(fl => `
+                <tr>
+                    <td>${fmtDt(fl.created_at)}<br><span style="font-size:0.7rem;color:var(--muted);">${fl.km_at_fuel.toLocaleString('pt-BR')} km</span></td>
+                    <td><code>${fl.plate}</code></td>
+                    <td>${fl.driver_name}</td>
+                    <td>${fl.liters} L (${fl.fuel_kind})<br><strong>R$ ${(fl.total_cost_brl || 0).toFixed(2)}</strong></td>
+                    <td>${fl.calculated_km_per_liter ? `<strong style="color:#34d399;">${fl.calculated_km_per_liter} km/L</strong>` : '<span style="color:var(--muted);">-</span>'}</td>
+                    <td>${fl.receipt_photo_url ? `<a href="${fl.receipt_photo_url}" target="_blank" style="color:#38bdf8;font-weight:700;">🧾 Ver</a>` : '-'}</td>
+                </tr>
+            `).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Nenhum abastecimento lançado ainda.</td></tr>`;
+        }
+
+        async function updateFineStatus(id, status) {
+            await apiFetch(`/api/fleet/fines/${id}`, { method: 'PUT', body: JSON.stringify({ status }) });
+        }
+
+        // ==========================================
+        // ABA 5: GERADOR DE ADESIVOS QR CODE DOS 6 CARROS
+        // ==========================================
+        const OFFICIAL_CLOUD_ORIGIN = 'https://tecfag-mrp.onrender.com';
+
+        function getAutoQrOrigin() {
+            return dashState.publicCloudUrl || OFFICIAL_CLOUD_ORIGIN;
+        }
+
+        function setQrOriginMode(mode) {
+            const inp = document.getElementById('qr-custom-origin');
+            if (!inp) return;
+            if (mode === 'LAN' && dashState.localLanIp) {
+                const portPart = window.location.port ? `:${window.location.port}` : ':3000';
+                inp.value = `http://${dashState.localLanIp}${portPart}`;
+            } else {
+                inp.value = dashState.publicCloudUrl || OFFICIAL_CLOUD_ORIGIN;
+            }
+            renderQrStickers(true);
+        }
+
+        function buildQrElementHtml(targetUrl) {
+            if (typeof window.qrcode === 'function') {
+                try {
+                    const qr = window.qrcode(0, 'M');
+                    qr.addData(targetUrl);
+                    qr.make();
+                    const dataUrl = qr.createDataURL(6, 4);
+                    return `<img src="${dataUrl}" alt="QR Code" style="width:165px;height:165px;image-rendering:pixelated;background:#fff;border-radius:6px;">`;
+                } catch (e) {}
+            }
+            return `<img src="/api/fleet/qr.svg?text=${encodeURIComponent(targetUrl)}" alt="QR Code" style="width:165px;height:165px;background:#fff;border-radius:6px;">`;
+        }
+
+        function renderQrStickers(fromInput = false) {
+            const container = document.getElementById('qr-stickers-container');
+            const inp = document.getElementById('qr-custom-origin');
+            const warn = document.getElementById('qr-local-warning');
+
+            if (inp && (!fromInput && !inp.value)) {
+                inp.value = getAutoQrOrigin();
+            }
+            const origin = ((inp && inp.value.trim()) ? inp.value.trim() : getAutoQrOrigin()).replace(/\/$/, '');
+
+            if (warn) {
+                const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1') || /192\.168\.|10\.|172\./.test(origin);
+                warn.style.display = 'block';
+                if (isLocal) {
+                    warn.style.background = 'rgba(239,68,68,0.14)';
+                    warn.style.borderColor = '#ef4444';
+                    warn.style.color = '#fecaca';
+                    warn.innerHTML = `
+                        ⛔ <strong>NÃO IMPRIMA neste modo (${origin}):</strong> Este endereço serve apenas para teste temporário no Wi-Fi interno. Antes de mandar imprimir para colar nos carros, clique no botão verde <strong>"☁️ Oficial p/ Imprimir (Definitivo)"</strong>!
+                    `;
+                } else {
+                    warn.style.background = 'rgba(16,185,129,0.13)';
+                    warn.style.borderColor = '#10b981';
+                    warn.style.color = '#a7f3d0';
+                    warn.innerHTML = `
+                        ✅ <strong>PRONTO PARA IMPRIMIR DEFINITIVO (${origin}):</strong> Estes QR Codes já apontam para o endereço oficial da nuvem e <strong>nunca precisarão ser trocados</strong> (nem ao cadastrar motoristas, nem ao instalar rastreadores). Obs: eles passarão a abrir no celular assim que publicarmos esta atualização no Render!
+                    `;
+                }
+            }
+
+            container.innerHTML = (dashState.vehicles || []).map(v => {
+                const url = `${origin}/motorista?placa=${v.plate}`;
+                return `
+                    <div class="qr-sticker">
+                        <div class="qr-sticker-header">
+                            <span>GRUPO TECFAG • FROTA</span>
+                            <span>${v.code}</span>
+                        </div>
+                        <div style="font-size:1.1rem;font-weight:900;color:#0f172a;">${v.brand_model}</div>
+                        ${renderPlate(v.plate)}
+                        <div class="qr-box">${buildQrElementHtml(url)}</div>
+                        <div style="font-size:0.74rem;font-weight:800;color:#0f172a;line-height:1.4;background:#f1f5f9;padding:8px 10px;border-radius:8px;width:100%;">
+                            1️⃣ Aponte a câmera do celular antes de sair<br>
+                            2️⃣ Fotografe o painel + lataria e informe o destino<br>
+                            3️⃣ Leia novamente ao devolver no pátio (ou pernoite)
+                        </div>
+                        <div style="font-size:0.62rem;color:#475569;font-family:monospace;word-break:break-all;">${url}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==========================================
+        // ABA 6: CONDUTORES HABILITADOS & CONTROLE DE CNH
+        // ==========================================
+        function formatCpfDisplay(cpf) {
+            const c = String(cpf || '').replace(/\D/g, '');
+            if (c.length !== 11) return cpf || '-';
+            return `${c.slice(0, 3)}.${c.slice(3, 6)}.${c.slice(6, 9)}-${c.slice(9)}`;
+        }
+
+        function renderDriversTable() {
+            const tb = document.getElementById('drivers-tbody');
+            if (!tb) return;
+            const list = dashState.drivers || [];
+            if (!list.length) {
+                tb.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px;">Nenhum condutor cadastrado ainda.</td></tr>`;
+                return;
+            }
+
+            tb.innerHTML = list.map(d => {
+                const expBr = d.cnh_expiry_date ? d.cnh_expiry_date.split('-').reverse().join('/') : '-';
+                let cnhBadge = `<span class="badge b-green">🟢 Válida (${expBr})</span>`;
+                if (d.cnh_status === 'EXPIRED') {
+                    cnhBadge = `<span class="badge b-red">⛔ VENCIDA (${expBr})</span>`;
+                } else if (d.cnh_status === 'EXPIRING_SOON') {
+                    cnhBadge = `<span class="badge b-amber">⚠️ Vence em ${d.cnh_days_left}d (${expBr})</span>`;
+                }
+
+                const stPill = d.active === 0
+                    ? `<span class="badge b-red" style="margin-left:6px;">Bloqueado</span>`
+                    : '';
+
+                return `
+                    <tr style="${d.active === 0 ? 'opacity:0.55;' : ''}">
+                        <td>
+                            <strong>${d.full_name}</strong> ${stPill}<br>
+                            <span style="font-size:0.72rem;color:#38bdf8;font-weight:700;">${d.company || 'TECFAG'}</span>
+                            ${d.uf_city ? `<span style="font-size:0.7rem;color:var(--muted);"> • ${d.uf_city}</span>` : ''}
+                        </td>
+                        <td>
+                            <strong>${d.department || 'Operacional'}</strong><br>
+                            <span style="font-size:0.74rem;color:var(--muted);">${d.phone || 'Sem telefone'}</span>
+                        </td>
+                        <td><code>${formatCpfDisplay(d.cpf)}</code></td>
+                        <td><code>${d.cnh_number}</code></td>
+                        <td><span class="badge b-blue">${d.cnh_category}</span></td>
+                        <td>${cnhBadge}</td>
+                        <td>
+                            <span style="font-size:0.74rem;color:#34d399;font-weight:800;">Tocar no nome</span><br>
+                            <span style="font-size:0.7rem;color:var(--muted);">4 finais CPF: <code>${d.cpf ? d.cpf.slice(-4) : '----'}</code></span>
+                        </td>
+                        <td>
+                            <button type="button" class="btn" style="padding:5px 10px;font-size:0.74rem;" onclick="openDriverModal(${d.id})">✏️ Editar</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openDriverModal(driverId) {
+            const d = driverId ? (dashState.drivers || []).find(x => x.id === driverId) : null;
+            document.getElementById('drv-modal-title').textContent = d ? `✏️ Editar Condutor: ${d.full_name}` : '🪪 Cadastrar Novo Condutor';
+            document.getElementById('drv-id').value = d ? d.id : '';
+            document.getElementById('drv-name').value = d ? d.full_name : '';
+            document.getElementById('drv-company').value = d ? (d.company || 'TECFAG') : 'TECFAG';
+            document.getElementById('drv-cpf').value = d ? formatCpfDisplay(d.cpf) : '';
+            document.getElementById('drv-cnh').value = d ? d.cnh_number : '';
+            document.getElementById('drv-cat').value = d ? d.cnh_category : 'AB';
+            document.getElementById('drv-expiry').value = d ? d.cnh_expiry_date : '';
+            document.getElementById('drv-dept').value = d ? (d.department || '') : '';
+            document.getElementById('drv-phone').value = d ? (d.phone || '') : '';
+            document.getElementById('drv-login').value = d ? d.login_key : '';
+            document.getElementById('drv-mrp').value = d ? (d.mrp_username || '') : '';
+            document.getElementById('drv-active').value = d ? String(d.active ?? 1) : '1';
+            document.getElementById('drv-pin').value = '';
+            document.getElementById('modal-driver-form').style.display = 'flex';
+        }
+
+        async function saveDriverForm(e) {
+            e.preventDefault();
+            const id = document.getElementById('drv-id').value;
+            const payload = {
+                full_name: document.getElementById('drv-name').value.trim(),
+                company: document.getElementById('drv-company').value,
+                cpf: document.getElementById('drv-cpf').value.trim(),
+                cnh_number: document.getElementById('drv-cnh').value.trim(),
+                cnh_category: document.getElementById('drv-cat').value.trim(),
+                cnh_expiry_date: document.getElementById('drv-expiry').value,
+                department: document.getElementById('drv-dept').value.trim(),
+                phone: document.getElementById('drv-phone').value.trim(),
+                login_key: document.getElementById('drv-login').value.trim(),
+                mrp_username: document.getElementById('drv-mrp').value.trim(),
+                active: document.getElementById('drv-active').value === '1',
+                custom_pin: document.getElementById('drv-pin').value.trim(),
+                new_pin: document.getElementById('drv-pin').value.trim()
+            };
+
+            if (id) {
+                await apiFetch(`/api/fleet/drivers/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+            } else {
+                const res = await apiFetch('/api/fleet/drivers', { method: 'POST', body: JSON.stringify(payload) });
+                alert(`Condutor cadastrado!\nUsuário no celular: ${res.login_key}\nSenha inicial: ${res.initial_pin}`);
+            }
+            document.getElementById('modal-driver-form').style.display = 'none';
+            refreshDashboard();
+        }
+
+        refreshDashboard();
+        // Atualização silenciosa a cada 45 segundos quando a aba estiver visível
+        setInterval(() => {
+            if (!document.hidden && getToken() && document.getElementById('manager-main-content').style.display !== 'none') {
+                refreshDashboard();
+            }
+        }, 45000);
+    </script>
+</body>
+</html>

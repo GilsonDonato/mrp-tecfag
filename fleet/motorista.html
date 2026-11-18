@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0b0f19">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Frota Tecfag • Check-in do Motorista</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --card: #151c2c;
+            --card-hover: #1e293b;
+            --border: #2a374e;
+            --primary: #0ea5e9;
+            --primary-dark: #0284c7;
+            --green: #10b981;
+            --amber: #f59e0b;
+            --purple: #8b5cf6;
+            --red: #ef4444;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(11, 15, 25, 0.92);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .brand { display: flex; align-items: center; gap: 10px; }
+        .brand-badge {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            color: #fff;
+            font-weight: 900;
+            font-size: 0.72rem;
+            padding: 5px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.5px;
+        }
+        .brand-title { font-size: 0.95rem; font-weight: 800; line-height: 1.1; }
+        .brand-sub { font-size: 0.7rem; color: var(--muted); }
+        .header-right { display: flex; align-items: center; gap: 8px; }
+        .btn-sm {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 7px 11px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .container { max-width: 540px; margin: 0 auto; padding: 16px; }
+
+        /* Placa Padrão Mercosul */
+        .mercosul-plate {
+            display: inline-flex;
+            flex-direction: column;
+            background: #ffffff;
+            color: #0f172a;
+            border: 2px solid #0f172a;
+            border-radius: 6px;
+            overflow: hidden;
+            min-width: 118px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+            flex-shrink: 0;
+        }
+        .mercosul-top {
+            background: #003399;
+            color: #ffffff;
+            font-size: 0.52rem;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            padding: 2px 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mercosul-num {
+            font-family: 'Courier New', monospace;
+            font-weight: 900;
+            font-size: 1.08rem;
+            letter-spacing: 1.5px;
+            text-align: center;
+            padding: 3px 8px;
+            color: #0f172a;
+        }
+
+        /* Cards de Veículos */
+        .section-label {
+            font-size: 0.74rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--muted);
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .vehicle-list { display: flex; flex-direction: column; gap: 12px; }
+        .veh-card {
+            background: var(--card);
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            cursor: pointer;
+            transition: transform 0.12s ease, border-color 0.15s ease;
+        }
+        .veh-card:active { transform: scale(0.985); }
+        .veh-card.status-NO_PATIO { border-left: 5px solid var(--green); }
+        .veh-card.status-EM_USO { border-left: 5px solid var(--primary); }
+        .veh-card.status-PERNOITE_CASA { border-left: 5px solid var(--purple); }
+        .veh-card.status-MANUTENCAO { border-left: 5px solid var(--amber); opacity: 0.78; }
+
+        .veh-info { flex: 1; min-width: 0; }
+        .veh-name { font-size: 1rem; font-weight: 800; margin-bottom: 4px; }
+        .veh-meta { font-size: 0.76rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 3px 9px;
+            border-radius: 99px;
+            margin-top: 6px;
+        }
+        .pill-patio { background: rgba(16, 185, 129, 0.16); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+        .pill-uso { background: rgba(14, 165, 233, 0.16); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.35); }
+        .pill-pernoite { background: rgba(139, 92, 246, 0.18); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.4); }
+        .pill-manut { background: rgba(245, 158, 11, 0.16); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+
+        /* Painel do Veículo Selecionado */
+        .panel-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .back-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .form-group { margin-bottom: 14px; }
+        .form-group label {
+            display: block;
+            font-size: 0.74rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #cbd5e1;
+            margin-bottom: 6px;
+        }
+        .input {
+            width: 100%;
+            background: #0b0f19;
+            border: 1.5px solid var(--border);
+            color: var(--text);
+            padding: 13px 14px;
+            border-radius: 10px;
+            font-size: 0.96rem;
+            font-weight: 600;
+            outline: none;
+        }
+        .input:focus { border-color: var(--primary); }
+        .hint { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+
+        /* Seletores em Pílulas (Combustível e Limpeza) */
+        .pill-group { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+        .pill-group-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .choice-btn {
+            background: #0b0f19;
+            border: 1.5px solid var(--border);
+            color: var(--muted);
+            padding: 10px 4px;
+            border-radius: 10px;
+            font-size: 0.76rem;
+            font-weight: 800;
+            text-align: center;
+            cursor: pointer;
+        }
+        .choice-btn.active {
+            background: rgba(14, 165, 233, 0.2);
+            border-color: var(--primary);
+            color: #fff;
+        }
+
+        /* Grade de Fotos Ao Vivo */
+        .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .photo-slot {
+            position: relative;
+            background: #0b0f19;
+            border: 2px dashed #3b4c6b;
+            border-radius: 12px;
+            min-height: 118px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        .photo-slot.captured { border-style: solid; border-color: var(--green); padding: 0; }
+        .photo-slot input[type="file"] { display: none; }
+        .photo-slot-icon { font-size: 1.55rem; margin-bottom: 4px; }
+        .photo-slot-title { font-size: 0.74rem; font-weight: 800; color: #e2e8f0; line-height: 1.25; }
+        .photo-slot-req { font-size: 0.65rem; color: var(--primary); font-weight: 700; margin-top: 3px; }
+        .photo-preview { width: 100%; height: 118px; object-fit: cover; display: block; }
+        .photo-badge-ok {
+            position: absolute;
+            bottom: 6px;
+            right: 6px;
+            background: rgba(16, 185, 129, 0.92);
+            color: #052e16;
+            font-size: 0.66rem;
+            font-weight: 900;
+            padding: 2px 7px;
+            border-radius: 6px;
+        }
+
+        /* Botões Principais */
+        .btn-primary {
+            width: 100%;
+            border: none;
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 0.98rem;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: #fff;
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.3);
+        }
+        .btn-primary.green { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3); }
+        .btn-primary.purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); box-shadow: 0 6px 20px rgba(139, 92, 246, 0.3); }
+        .btn-primary.amber { background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; }
+        .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+        .action-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 16px; }
+        .action-tab {
+            padding: 10px 6px;
+            border-radius: 10px;
+            border: 1.5px solid var(--border);
+            background: #0b0f19;
+            color: var(--muted);
+            font-size: 0.74rem;
+            font-weight: 800;
+            text-align: center;
+            cursor: pointer;
+        }
+        .action-tab.active-checkin { border-color: var(--green); background: rgba(16, 185, 129, 0.16); color: #34d399; }
+        .action-tab.active-overnight { border-color: var(--purple); background: rgba(139, 92, 246, 0.18); color: #c4b5fd; }
+        .action-tab.active-fuel { border-color: var(--amber); background: rgba(245, 158, 11, 0.16); color: #fbbf24; }
+
+        .alert-box {
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 0.78rem;
+            line-height: 1.45;
+            margin-bottom: 14px;
+        }
+        .alert-amber { background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); color: #fde68a; }
+        .alert-blue { background: rgba(14, 165, 233, 0.12); border: 1px solid rgba(14, 165, 233, 0.35); color: #bae6fd; }
+        .alert-purple { background: rgba(139, 92, 246, 0.14); border: 1px solid rgba(139, 92, 246, 0.4); color: #ddd6fe; }
+
+        .chk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .chk-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #0b0f19;
+            border: 1px solid var(--border);
+            padding: 9px 10px;
+            border-radius: 9px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .chk-item input { width: 17px; height: 17px; accent-color: var(--green); }
+
+        #toast {
+            position: fixed;
+            bottom: 18px;
+            left: 16px;
+            right: 16px;
+            max-width: 500px;
+            margin: 0 auto;
+            background: #1e293b;
+            border: 1.5px solid var(--primary);
+            color: #fff;
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            z-index: 999;
+            display: none;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <span class="brand-badge">TECFAG</span>
+            <div>
+                <div class="brand-title">Controle de Frota</div>
+                <div class="brand-sub" id="hdr-user-label">Identificando condutor...</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <a href="/frota" id="btn-goto-manager" class="btn-sm" style="display:none;border-color:rgba(56,189,248,0.45);color:#38bdf8;">🖥️ Gestor</a>
+            <button type="button" class="btn-sm" id="btn-logout" onclick="logoutDriver()" style="display:none;color:#fca5a5;">Trocar</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- TELA DE RECONHECIMENTO DE 1º USO (Tocou no nome + 4 finais do CPF = Celular gravado por 1 ano!) -->
+        <div id="view-login" style="display:none; margin-top: 16px;">
+            <div class="panel-box">
+                <h2 style="font-size:1.12rem;font-weight:900;margin-bottom:6px;">👋 Quem está com este celular?</h2>
+                <p style="font-size:0.79rem;color:var(--muted);margin-bottom:14px;line-height:1.45;">
+                    Toque no seu nome abaixo <strong>apenas nesta 1ª vez</strong>. Nas próximas leituras de QR Code, seu celular já será reconhecido automaticamente!
+                </p>
+
+                <input type="search" id="drv-quick-search" class="input" placeholder="🔍 Buscar meu nome..." oninput="filterPublicDriverButtons(this.value)" style="margin-bottom:10px;padding:10px 12px;font-size:0.88rem;">
+
+                <div id="public-drivers-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;max-height:290px;overflow-y:auto;padding-right:2px;">
+                    <div style="color:var(--muted);font-size:0.8rem;">Carregando condutores habilitados...</div>
+                </div>
+
+                <!-- Caixa de confirmação rápida dos 4 últimos números do CPF -->
+                <form id="bind-device-form" onsubmit="submitBindDevice(event)" style="display:none;background:#0b0f19;border:1.5px solid var(--primary);border-radius:12px;padding:14px;margin-top:10px;">
+                    <input type="hidden" id="bind-driver-id">
+                    <div style="font-size:0.82rem;font-weight:800;color:#38bdf8;margin-bottom:8px;" id="bind-driver-label"></div>
+                    <div class="form-group" style="margin-bottom:10px;">
+                        <label>Confirme os 4 ÚLTIMOS números do seu CPF *</label>
+                        <input type="tel" id="bind-cpf-last4" class="input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" style="font-size:1.35rem;letter-spacing:8px;text-align:center;font-weight:900;" required>
+                    </div>
+                    <div id="bind-err" style="display:none;color:#f87171;font-size:0.78rem;font-weight:700;margin-bottom:10px;"></div>
+                    <button type="submit" class="btn-primary green" id="btn-bind-submit">✅ Reconhecer Meu Celular Sempre</button>
+                </form>
+
+                <!-- Alternativa para quem usa login do MRP e ainda não enviou CNH -->
+                <details style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+                    <summary style="font-size:0.75rem;color:var(--muted);cursor:pointer;font-weight:700;">Outras formas de acesso (Usuário e Senha do MRP)</summary>
+                    <form onsubmit="submitDriverLogin(event)" style="margin-top:12px;">
+                        <div class="form-group">
+                            <label>Usuário MRP</label>
+                            <input type="text" id="login-user" class="input" placeholder="Ex: vendas1, compras, rh..." required>
+                        </div>
+                        <div class="form-group">
+                            <label>Senha</label>
+                            <input type="password" id="login-pass" class="input" placeholder="••••••••" required>
+                        </div>
+                        <div id="login-err" style="display:none;color:#f87171;font-size:0.8rem;font-weight:700;margin-bottom:12px;"></div>
+                        <button type="submit" class="btn-primary" id="btn-login-submit">Entrar com Senha MRP</button>
+                    </form>
+                </details>
+            </div>
+        </div>
+
+        <!-- TELA 1: SELEÇÃO RÁPIDA DOS 6 VEÍCULOS -->
+        <div id="view-vehicles" style="display:none;">
+            <div class="alert-box alert-blue" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                <span>📷 <strong>Dica rápida:</strong> Aponte a câmera para o QR Code no painel do carro ou toque no veículo abaixo.</span>
+                <button type="button" class="btn-sm" onclick="loadAppContext()">🔄</button>
+            </div>
+
+            <div class="section-label">
+                <span>Frota Tecfag (6 Veículos)</span>
+                <span id="yard-counter-label"></span>
+            </div>
+            <div class="vehicle-list" id="vehicles-container"></div>
+        </div>
+
+        <!-- TELA 2: AÇÃO NO VEÍCULO SELECIONADO -->
+        <div id="view-vehicle-detail" style="display:none;">
+            <button type="button" class="back-btn" onclick="backToVehicleList()">⬅ Todos os 6 Veículos</button>
+            <div id="selected-vehicle-header"></div>
+            <div id="selected-vehicle-body"></div>
+        </div>
+    </div>
+
+    <datalist id="mrp-projects-datalist"></datalist>
+    <div id="toast"></div>
+
+    <script>
+        let currentUser = null;
+        let vehiclesList = [];
+        let activeProjects = [];
+        let selectedVehicle = null;
+        let activeSubMode = 'CHECKIN'; // CHECKIN (devolução), OVERNIGHT (pernoite), FUEL (abastecimento)
+        let compressedPhotos = {}; // slot -> Blob
+
+        const PURPOSE_LABELS = {
+            VISITA_COMERCIAL: '💼 Visita Comercial / Cliente',
+            INSTALACAO_SAT: '🔧 Instalação / Assistência / SAT',
+            COMPRAS_RUA: '🛒 Compras / Coleta Local',
+            PORTO_EADI: '🚢 Porto Seco / EADI / Logística',
+            ENTREGA_COLETA: '📦 Entrega / Expedição',
+            RH_ADMIN: '🏢 RH / Administrativo / Banco',
+            MANUTENCAO: '🛠️ Oficina / Lavagem / Pneus',
+            OUTRO: '📍 Outro Deslocamento'
+        };
+
+        function showToast(msg, isError = false) {
+            const el = document.getElementById('toast');
+            el.style.borderColor = isError ? '#ef4444' : '#10b981';
+            el.textContent = msg;
+            el.style.display = 'block';
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => { el.style.display = 'none'; }, 4500);
+        }
+
+        function getToken() {
+            return localStorage.getItem('tecfag_session_token');
+        }
+
+        async function apiFetch(url, options = {}) {
+            const token = getToken();
+            const headers = Object.assign({}, options.headers || {});
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+            if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+                headers['Content-Type'] = 'application/json';
+            }
+            const res = await fetch(url, Object.assign({ credentials: 'same-origin' }, options, { headers }));
+            if (res.status === 401) {
+                showLoginScreen();
+                throw new Error('Identifique seu aparelho para continuar.');
+            }
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(data.error || 'Falha na comunicação com o servidor.');
+            }
+            return data;
+        }
+
+        async function showLoginScreen() {
+            document.getElementById('view-login').style.display = 'block';
+            document.getElementById('view-vehicles').style.display = 'none';
+            document.getElementById('view-vehicle-detail').style.display = 'none';
+            document.getElementById('btn-logout').style.display = 'none';
+            document.getElementById('btn-goto-manager').style.display = 'none';
+            document.getElementById('hdr-user-label').textContent = 'Toque no seu nome (1º acesso)';
+
+            const listEl = document.getElementById('public-drivers-list');
+            try {
+                const res = await fetch('/api/fleet/public-drivers');
+                const data = await res.json();
+                const drvs = data.drivers || [];
+                if (!drvs.length) {
+                    listEl.innerHTML = `<div style="color:var(--muted);font-size:0.8rem;">Nenhum condutor cadastrado ainda.</div>`;
+                    return;
+                }
+                listEl.innerHTML = drvs.map(d => `
+                    <button type="button" class="driver-pick-btn" data-id="${d.id}" onclick="selectDriverToBind(${d.id}, '${d.full_name.replace(/'/g, '')}', this)" style="width:100%;background:#0b0f19;border:1.5px solid var(--border);color:var(--text);padding:12px 14px;border-radius:11px;text-align:left;display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <div>
+                            <div style="font-size:0.9rem;font-weight:800;">👤 ${d.full_name}</div>
+                            <div style="font-size:0.7rem;color:var(--muted);margin-top:2px;">${d.company || 'TECFAG'} • ${d.department || 'Condutor Habilitado'}</div>
+                        </div>
+                        <span style="color:#38bdf8;font-weight:900;font-size:0.85rem;">Sou eu ➔</span>
+                    </button>
+                `).join('');
+            } catch (e) {
+                listEl.innerHTML = `<div style="color:#f87171;font-size:0.8rem;">Erro ao carregar lista de condutores.</div>`;
+            }
+        }
+
+        function filterPublicDriverButtons(query) {
+            const q = String(query || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+            document.querySelectorAll('.driver-pick-btn').forEach(btn => {
+                const txt = btn.innerText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                btn.style.display = (!q || txt.includes(q)) ? 'flex' : 'none';
+            });
+        }
+
+        function selectDriverToBind(id, fullName, btnEl) {
+            document.querySelectorAll('.driver-pick-btn').forEach(b => {
+                b.style.borderColor = 'var(--border)';
+                b.style.background = '#0b0f19';
+            });
+            if (btnEl) {
+                btnEl.style.borderColor = '#10b981';
+                btnEl.style.background = 'rgba(16, 185, 129, 0.14)';
+            }
+            document.getElementById('bind-driver-id').value = id;
+            document.getElementById('bind-driver-label').textContent = `🪪 Condutor selecionado: ${fullName}`;
+            document.getElementById('bind-cpf-last4').value = '';
+            document.getElementById('bind-err').style.display = 'none';
+            const form = document.getElementById('bind-device-form');
+            form.style.display = 'block';
+            setTimeout(() => {
+                form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                document.getElementById('bind-cpf-last4').focus();
+            }, 80);
+        }
+
+        async function submitBindDevice(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-bind-submit');
+            const errEl = document.getElementById('bind-err');
+            errEl.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Vinculando celular...';
+            try {
+                const res = await fetch('/api/fleet/auth/bind-device', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        driver_id: document.getElementById('bind-driver-id').value,
+                        cpf_last4: document.getElementById('bind-cpf-last4').value
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.token) {
+                    throw new Error(data.error || 'Não foi possível confirmar os dígitos do CPF.');
+                }
+                localStorage.setItem('tecfag_session_token', data.token);
+                localStorage.setItem('tecfag_user', JSON.stringify(data.user));
+                document.getElementById('bind-device-form').style.display = 'none';
+                showToast('✅ Aparelho vinculado! Nas próximas leituras você já entrará direto.');
+                await loadAppContext();
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '✅ Reconhecer Meu Celular Sempre';
+            }
+        }
+
+        async function submitDriverLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-login-submit');
+            const errEl = document.getElementById('login-err');
+            errEl.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Autenticando...';
+            try {
+                const username = document.getElementById('login-user').value.trim();
+                const password = document.getElementById('login-pass').value;
+
+                const fRes = await fetch('/api/fleet/auth/login', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const fData = await fRes.json().catch(() => ({}));
+                if (fRes.ok && fData.token) {
+                    localStorage.setItem('tecfag_session_token', fData.token);
+                    localStorage.setItem('tecfag_user', JSON.stringify(fData.user));
+                    await loadAppContext();
+                    return;
+                }
+                if (fRes.status === 403) {
+                    throw new Error(fData.error || 'Condutor bloqueado.');
+                }
+
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.token) {
+                    throw new Error('Usuário ou senha incorretos.');
+                }
+                localStorage.setItem('tecfag_session_token', data.token);
+                localStorage.setItem('tecfag_user', JSON.stringify(data.user));
+                await loadAppContext();
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Entrar com Senha MRP';
+            }
+        }
+
+        async function logoutDriver() {
+            if (!confirm('Deseja desvincular este celular para trocar de motorista?')) return;
+            await fetch('/api/fleet/auth/unbind-device', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+            localStorage.removeItem('tecfag_session_token');
+            showLoginScreen();
+        }
+
+        function renderPlateHtml(plate) {
+            return `
+                <div class="mercosul-plate">
+                    <div class="mercosul-top"><span>BRASIL</span><span>🇧🇷</span></div>
+                    <div class="mercosul-num">${plate}</div>
+                </div>
+            `;
+        }
+
+        function formatDateTimeShort(iso) {
+            if (!iso) return '-';
+            const d = new Date(iso);
+            return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' às ' +
+                   d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function loadAppContext() {
+            try {
+                const meData = await apiFetch('/api/fleet/me');
+                const vehData = await apiFetch('/api/fleet/vehicles');
+                currentUser = meData.user;
+                activeProjects = meData.activeProjects || [];
+                vehiclesList = vehData.vehicles || [];
+
+                document.getElementById('view-login').style.display = 'none';
+                document.getElementById('btn-logout').style.display = 'inline-flex';
+                document.getElementById('btn-goto-manager').style.display = currentUser.isManager ? 'inline-flex' : 'none';
+
+                const savedRealName = localStorage.getItem('tecfag_fleet_driver_name_' + currentUser.username) || '';
+                document.getElementById('hdr-user-label').textContent = savedRealName
+                    ? `${savedRealName} (${currentUser.username})`
+                    : currentUser.friendlyName;
+
+                // Popular datalist de projetos do MRP
+                const dl = document.getElementById('mrp-projects-datalist');
+                dl.innerHTML = activeProjects.map(p =>
+                    `<option value="${p.code}">${p.client || ''} - ${p.project_name || p.sku || ''}</option>`
+                ).join('');
+
+                renderVehicleList();
+
+                // Se abriu via QR Code no para-brisa (?placa=UPC3J60 ou ?v=VEIC-01), abre direto o carro!
+                const params = new URLSearchParams(window.location.search);
+                const qPlaca = (params.get('placa') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+                const qCode = (params.get('v') || '').toUpperCase().trim();
+                if (selectedVehicle) {
+                    const refreshed = vehiclesList.find(v => v.id === selectedVehicle.id);
+                    if (refreshed) openVehicleDetail(refreshed.id);
+                } else if (qPlaca || qCode) {
+                    const target = vehiclesList.find(v => v.plate === qPlaca || v.code === qCode);
+                    if (target) openVehicleDetail(target.id);
+                }
+            } catch (err) {
+                console.warn(err);
+            }
+        }
+
+        function renderVehicleList() {
+            document.getElementById('view-vehicles').style.display = 'block';
+            document.getElementById('view-vehicle-detail').style.display = 'none';
+
+            const inYard = vehiclesList.filter(v => v.status === 'NO_PATIO').length;
+            document.getElementById('yard-counter-label').textContent = `${inYard} de ${vehiclesList.length} disponíveis no pátio`;
+
+            const container = document.getElementById('vehicles-container');
+            container.innerHTML = vehiclesList.map(v => {
+                let statusPill = '';
+                if (v.status === 'NO_PATIO') {
+                    statusPill = `<span class="status-pill pill-patio">🟢 Disponível no Pátio</span>`;
+                } else if (v.status === 'EM_USO') {
+                    statusPill = `<span class="status-pill pill-uso">🔵 Com ${v.current_driver_name || v.current_driver_username}</span>`;
+                } else if (v.status === 'PERNOITE_CASA') {
+                    statusPill = `<span class="status-pill pill-pernoite">🌙 Pernoite (${v.current_driver_name || v.current_driver_username})</span>`;
+                } else {
+                    statusPill = `<span class="status-pill pill-manut">🛠️ Em Manutenção</span>`;
+                }
+
+                return `
+                    <div class="veh-card status-${v.status}" onclick="openVehicleDetail(${v.id})">
+                        <div class="veh-info">
+                            <div class="veh-name">${v.name}</div>
+                            <div class="veh-meta">
+                                <span>📍 ${(v.current_km || 0).toLocaleString('pt-BR')} km</span>
+                                <span>•</span>
+                                <span>⛽ ${v.current_fuel_level ?? 100}%</span>
+                            </div>
+                            ${statusPill}
+                        </div>
+                        ${renderPlateHtml(v.plate)}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function backToVehicleList() {
+            selectedVehicle = null;
+            compressedPhotos = {};
+            const url = new URL(window.location.href);
+            url.searchParams.delete('placa');
+            url.searchParams.delete('v');
+            window.history.replaceState({}, '', url.pathname);
+            renderVehicleList();
+        }
+
+        function openVehicleDetail(vehicleId) {
+            const v = vehiclesList.find(x => x.id === vehicleId);
+            if (!v) return;
+            selectedVehicle = v;
+            compressedPhotos = {};
+            activeSubMode = 'CHECKIN';
+
+            document.getElementById('view-vehicles').style.display = 'none';
+            document.getElementById('view-vehicle-detail').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            renderSelectedVehicle();
+        }
+
+        function renderSelectedVehicle() {
+            const v = selectedVehicle;
+            const hdr = document.getElementById('selected-vehicle-header');
+            const body = document.getElementById('selected-vehicle-body');
+
+            hdr.innerHTML = `
+                <div class="panel-box" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                    <div>
+                        <div style="font-size:0.7rem;color:var(--muted);font-weight:800;text-transform:uppercase;">${v.code} • ${v.fuel_type}</div>
+                        <div style="font-size:1.15rem;font-weight:900;margin:2px 0 4px 0;">${v.name}</div>
+                        <div style="font-size:0.78rem;color:var(--muted);">Odômetro registrado: <strong style="color:#fff;">${(v.current_km || 0).toLocaleString('pt-BR')} km</strong></div>
+                    </div>
+                    ${renderPlateHtml(v.plate)}
+                </div>
+            `;
+
+            if (v.status === 'MANUTENCAO') {
+                body.innerHTML = `
+                    <div class="panel-box">
+                        <div class="alert-box alert-amber" style="margin-bottom:0;">
+                            🛠️ <strong>Veículo em Manutenção:</strong> Este carro está temporariamente bloqueado pela gestão para oficina/revisão. Escolha outro veículo disponível no pátio.
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            if (v.status === 'NO_PATIO') {
+                renderCheckoutForm(v, body);
+            } else {
+                renderActiveTripActions(v, body);
+            }
+        }
+
+        // ==========================================
+        // FORMULÁRIO 1: RETIRADA DO PÁTIO (COMO PEGOU)
+        // ==========================================
+        function renderCheckoutForm(v, container) {
+            const dp = currentUser.driverProfile || null;
+            if (dp && dp.cnh_status === 'EXPIRED') {
+                const expBr = dp.cnh_expiry_date.split('-').reverse().join('/');
+                container.innerHTML = `
+                    <div class="panel-box">
+                        <div class="alert-box" style="background:rgba(239,68,68,0.16);border:1.5px solid #ef4444;color:#fecaca;margin-bottom:0;">
+                            ⛔ <strong>Retirada Bloqueada — CNH Vencida:</strong><br>
+                            Condutor: <strong>${dp.full_name}</strong><br>
+                            CNH nº <code>${dp.cnh_number}</code> venceu em <strong>${expBr}</strong>.<br>
+                            Envie a CNH renovada para o RH/Diretoria para liberar seu acesso aos veículos.
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const savedName = dp
+                ? dp.full_name
+                : (localStorage.getItem('tecfag_fleet_driver_name_' + currentUser.username) ||
+                   (currentUser.requiresDriverRealName ? '' : currentUser.friendlyName));
+
+            const cnhBadgeHtml = dp
+                ? `<div class="alert-box alert-blue" style="margin-bottom:12px;">
+                       🪪 <strong>CNH Validada:</strong> ${dp.full_name}<br>
+                       Registro: <code>${dp.cnh_number}</code> • Cat. <strong>${dp.cnh_category}</strong> • Validade: <strong>${dp.cnh_expiry_date.split('-').reverse().join('/')}</strong>
+                   </div>`
+                : '';
+
+            const knownNotesBanner = v.known_damages_notes
+                ? `<div class="alert-box alert-amber">ℹ️ <strong>Observação/avaria já conhecida neste carro:</strong> ${v.known_damages_notes}</div>`
+                : '';
+
+            container.innerHTML = `
+                <form class="panel-box" onsubmit="submitCheckout(event)">
+                    <h3 style="font-size:1rem;font-weight:900;color:#34d399;margin-bottom:12px;">🔑 Retirar Veículo (Como estou pegando)</h3>
+                    ${cnhBadgeHtml}
+                    ${knownNotesBanner}
+
+                    <div class="form-group" style="${dp ? 'display:none;' : ''}">
+                        <label>Seu Nome (Condutor Responsável) *</label>
+                        <input type="text" id="co-driver-name" class="input" value="${savedName}" placeholder="Digite seu nome e sobrenome..." ${dp ? 'readonly' : 'required'}>
+                    </div>
+
+                    <div class="form-group">
+                        <label>KM Atual no Painel *</label>
+                        <input type="number" id="co-start-km" class="input" inputmode="numeric" value="${v.current_km > 0 ? v.current_km : ''}" min="${v.current_km || 0}" placeholder="Ex: 48250" required>
+                        <div class="hint">Último KM deste carro: ${(v.current_km || 0).toLocaleString('pt-BR')} km</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nível de Combustível no Painel *</label>
+                        <input type="hidden" id="co-fuel-val" value="${v.current_fuel_level ?? 100}">
+                        <div class="pill-group" id="co-fuel-pills">
+                            ${[0, 25, 50, 75, 100].map(lvl => `
+                                <button type="button" class="choice-btn ${(v.current_fuel_level ?? 100) === lvl ? 'active' : ''}" onclick="selectFuelPill('co-fuel', ${lvl}, this)">
+                                    ${lvl === 0 ? 'Reserva' : (lvl === 100 ? 'Cheio' : (lvl === 25 ? '1/4' : (lvl === 50 ? '1/2' : '3/4')))}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Estado de Limpeza Interna/Externa</label>
+                        <input type="hidden" id="co-clean-val" value="LIMPO">
+                        <div class="pill-group-3">
+                            <button type="button" class="choice-btn active" onclick="selectSimplePill('co-clean-val', 'LIMPO', this)">✨ Limpo</button>
+                            <button type="button" class="choice-btn" onclick="selectSimplePill('co-clean-val', 'REGULAR', this)">👌 Regular</button>
+                            <button type="button" class="choice-btn" onclick="selectSimplePill('co-clean-val', 'SUJO', this)">⚠️ Sujo</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Motivo da Saída *</label>
+                        <select id="co-purpose" class="input" required>
+                            ${Object.entries(PURPOSE_LABELS).map(([k, lbl]) => `<option value="${k}">${lbl}</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Destino / Cliente / Cidade *</label>
+                        <input type="text" id="co-destination" class="input" placeholder="Ex: Cliente Laticínios Vale Real - Bauru/SP" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Vincular a Projeto do MRP (Opcional)</label>
+                        <input type="text" id="co-project" class="input" list="mrp-projects-datalist" placeholder="Ex: PRJTEC000000056 (se for visita/SAT)">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Conferência Rápida de Segurança</label>
+                        <div class="chk-grid">
+                            <label class="chk-item"><input type="checkbox" id="chk-doc" checked> Doc. / Chave OK</label>
+                            <label class="chk-item"><input type="checkbox" id="chk-tires" checked> Pneus / Estepe OK</label>
+                            <label class="chk-item"><input type="checkbox" id="chk-lights" checked> Faróis / Setas OK</label>
+                            <label class="chk-item"><input type="checkbox" id="chk-oil" checked> Sem luz alerta painel</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📸 Fotos Ao Vivo da Retirada (Câmera na Hora) *</label>
+                        <div class="photo-grid">
+                            ${renderPhotoSlotHtml('photo_panel', '1. Painel Ligado (KM)', 'Obrigatória *')}
+                            ${renderPhotoSlotHtml('photo_front', '2. Frente + Lat. Esq.', 'Obrigatória *')}
+                            ${renderPhotoSlotHtml('photo_rear', '3. Traseira + Lat. Dir.', 'Obrigatória *')}
+                            ${renderPhotoSlotHtml('photo_interior', '4. Interior / Detalhe', 'Opcional')}
+                        </div>
+                        <div class="hint">As fotos recebem data/hora automática e são comprimidas para envio instantâneo no 4G.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notou algum ralado ou avaria NOVA antes de sair?</label>
+                        <select id="co-has-damage" class="input" onchange="document.getElementById('co-damage-box').style.display = this.value === '1' ? 'block' : 'none'">
+                            <option value="0">✅ Não, veículo sem avaria nova</option>
+                            <option value="1">⚠️ Sim, quero registrar uma avaria existente</option>
+                        </select>
+                        <div id="co-damage-box" style="display:none;margin-top:8px;">
+                            <input type="text" id="co-damage-notes" class="input" placeholder="Descreva onde está o risco/amassado...">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary green" id="btn-submit-checkout">
+                        🚀 Confirmar Retirada e Assumir Veículo
+                    </button>
+                </form>
+            `;
+        }
+
+        // ==========================================
+        // FORMULÁRIO 2: EM USO / PERNOITE / DEVOLUÇÃO / ABASTECIMENTO
+        // ==========================================
+        function renderActiveTripActions(v, container) {
+            const isMine = (v.current_driver_username === currentUser.username) || currentUser.isManager;
+            const isOvernight = v.status === 'PERNOITE_CASA';
+
+            let statusBanner = `
+                <div class="alert-box ${isOvernight ? 'alert-purple' : 'alert-blue'}">
+                    <div><strong>${isOvernight ? '🌙 Em Pernoite na Residência:' : '🔵 Veículo em Uso na Rua:'}</strong> ${v.current_driver_name || v.current_driver_username}</div>
+                    <div style="margin-top:4px;"><strong>Saída:</strong> ${formatDateTimeShort(v.active_checkout_at)} (${(v.active_start_km || 0).toLocaleString('pt-BR')} km)</div>
+                    <div><strong>Destino:</strong> ${v.active_destination || '-'}${v.active_project_code ? ` • <code>${v.active_project_code}</code>` : ''}</div>
+                    ${isOvernight ? `<div style="margin-top:4px;color:#fde68a;"><strong>Parada Noturna:</strong> ${formatDateTimeShort(v.active_overnight_at)} com ${(v.active_overnight_km || 0).toLocaleString('pt-BR')} km</div>` : ''}
+                </div>
+            `;
+
+            if (!isMine) {
+                container.innerHTML = `
+                    <div class="panel-box">
+                        ${statusBanner}
+                        <p style="font-size:0.82rem;color:var(--muted);line-height:1.5;">
+                            ⚠️ Este veículo está atualmente sob responsabilidade de <strong>${v.current_driver_name}</strong>. Para você retirá-lo, peça para ${v.current_driver_name} concluir a devolução no celular dele (ou solicite baixa à gestão).
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            const tabsHtml = `
+                <div class="action-tabs">
+                    <button type="button" class="action-tab ${activeSubMode === 'CHECKIN' ? 'active-checkin' : ''}" onclick="switchSubMode('CHECKIN')">
+                        🏁 Devolver Pátio
+                    </button>
+                    <button type="button" class="action-tab ${activeSubMode === 'OVERNIGHT' ? 'active-overnight' : ''}" onclick="switchSubMode('OVERNIGHT')" ${isOvernight ? 'disabled style="opacity:0.4;"' : ''}>
+                        🌙 Pernoite Casa
+                    </button>
+                    <button type="button" class="action-tab ${activeSubMode === 'FUEL' ? 'active-fuel' : ''}" onclick="switchSubMode('FUEL')">
+                        ⛽ Abasteci
+                    </button>
+                </div>
+            `;
+
+            let subFormHtml = '';
+            const minReturnKm = v.active_overnight_km ? Math.max(v.active_start_km || 0, v.active_overnight_km) : (v.active_start_km || v.current_km || 0);
+
+            if (activeSubMode === 'CHECKIN') {
+                subFormHtml = `
+                    <form onsubmit="submitCheckin(event)">
+                        <h3 style="font-size:1rem;font-weight:900;color:#34d399;margin-bottom:12px;">🏁 Devolver Veículo no Pátio (Como estou entregando)</h3>
+
+                        <div class="form-group">
+                            <label>KM Final no Painel (Chegada na Tecfag) *</label>
+                            <input type="number" id="ci-end-km" class="input" inputmode="numeric" min="${minReturnKm}" placeholder="Ex: ${minReturnKm + 45}" oninput="updateLiveDistance(${v.active_start_km || 0})" required>
+                            <div class="hint" id="ci-live-dist-hint">KM na saída: ${(v.active_start_km || 0).toLocaleString('pt-BR')} km</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Nível de Combustível na Entrega *</label>
+                            <input type="hidden" id="ci-fuel-val" value="${v.current_fuel_level ?? 50}">
+                            <div class="pill-group">
+                                ${[0, 25, 50, 75, 100].map(lvl => `
+                                    <button type="button" class="choice-btn ${(v.current_fuel_level ?? 50) === lvl ? 'active' : ''}" onclick="selectFuelPill('ci-fuel', ${lvl}, this)">
+                                        ${lvl === 0 ? 'Reserva' : (lvl === 100 ? 'Cheio' : (lvl === 25 ? '1/4' : (lvl === 50 ? '1/2' : '3/4')))}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Limpeza na Entrega</label>
+                            <input type="hidden" id="ci-clean-val" value="LIMPO">
+                            <div class="pill-group-3">
+                                <button type="button" class="choice-btn active" onclick="selectSimplePill('ci-clean-val', 'LIMPO', this)">✨ Limpo</button>
+                                <button type="button" class="choice-btn" onclick="selectSimplePill('ci-clean-val', 'REGULAR', this)">👌 Regular</button>
+                                <button type="button" class="choice-btn" onclick="selectSimplePill('ci-clean-val', 'SUJO', this)">⚠️ Sujo</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>📸 Fotos Ao Vivo da Entrega no Pátio *</label>
+                            <div class="photo-grid">
+                                ${renderPhotoSlotHtml('photo_panel', '1. Painel (KM Final)', 'Obrigatória *')}
+                                ${renderPhotoSlotHtml('photo_front', '2. Frente + Lat. Esq.', 'Obrigatória *')}
+                                ${renderPhotoSlotHtml('photo_rear', '3. Traseira + Lat. Dir.', 'Obrigatória *')}
+                                ${renderPhotoSlotHtml('photo_interior', '4. Interior / Caçamba', 'Opcional')}
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Aconteceu alguma avaria, batida ou defeito mecânico?</label>
+                            <select id="ci-has-damage" class="input" onchange="document.getElementById('ci-damage-box').style.display = this.value === '1' ? 'block' : 'none'">
+                                <option value="0">✅ Não, entregue em perfeito estado</option>
+                                <option value="1">🚨 Sim, houve avaria ou problema mecânico</option>
+                            </select>
+                            <div id="ci-damage-box" style="display:none;margin-top:8px;">
+                                <input type="text" id="ci-damage-notes" class="input" placeholder="Descreva o que aconteceu (ralado, pneu, luz de injeção)...">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary green" id="btn-submit-checkin">
+                            ✅ Finalizar Viagem e Devolver ao Pátio
+                        </button>
+                    </form>
+                `;
+            } else if (activeSubMode === 'OVERNIGHT') {
+                subFormHtml = `
+                    <form onsubmit="submitOvernight(event)">
+                        <h3 style="font-size:1rem;font-weight:900;color:#c4b5fd;margin-bottom:8px;">🌙 Pernoite em Casa (Chegada Tarde)</h3>
+                        <p style="font-size:0.78rem;color:var(--muted);line-height:1.45;margin-bottom:14px;">
+                            Chegou tarde de viagem e vai guardar o carro em casa? Registre abaixo apenas a <strong>foto do painel aceso</strong>. Amanhã cedo, já no claro no pátio da Tecfag, você faz a devolução final.
+                        </p>
+
+                        <div class="form-group">
+                            <label>KM Atual ao Estacionar em Casa *</label>
+                            <input type="number" id="ov-km" class="input" inputmode="numeric" min="${v.active_start_km || 0}" placeholder="Ex: ${(v.active_start_km || 0) + 120}" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Nível de Combustível *</label>
+                            <input type="hidden" id="ov-fuel-val" value="${v.current_fuel_level ?? 50}">
+                            <div class="pill-group">
+                                ${[0, 25, 50, 75, 100].map(lvl => `
+                                    <button type="button" class="choice-btn ${(v.current_fuel_level ?? 50) === lvl ? 'active' : ''}" onclick="selectFuelPill('ov-fuel', ${lvl}, this)">
+                                        ${lvl === 0 ? 'Reserva' : (lvl === 100 ? 'Cheio' : (lvl === 25 ? '1/4' : (lvl === 50 ? '1/2' : '3/4')))}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>📸 Foto do Painel Aceso (Mostrando KM) *</label>
+                            <div class="photo-grid" style="grid-template-columns:1fr;">
+                                ${renderPhotoSlotHtml('photo_overnight_panel', 'Painel Aceso na Garagem / Casa', 'Obrigatória *')}
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Justificativa Rápida</label>
+                            <input type="text" id="ov-notes" class="input" value="Retorno de cliente após expediente - devolução amanhã cedo">
+                        </div>
+
+                        <button type="submit" class="btn-primary purple" id="btn-submit-overnight">
+                            🌙 Confirmar Veículo Estacionado em Pernoite
+                        </button>
+                    </form>
+                `;
+            } else {
+                subFormHtml = `
+                    <form onsubmit="submitFuel(event)">
+                        <h3 style="font-size:1rem;font-weight:900;color:#fbbf24;margin-bottom:12px;">⛽ Registrar Abastecimento</h3>
+
+                        <div class="form-group">
+                            <label>KM no Momento do Abastecimento *</label>
+                            <input type="number" id="fl-km" class="input" inputmode="numeric" min="${v.current_km || 0}" value="${v.current_km || ''}" required>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            <div class="form-group">
+                                <label>Litros (L) *</label>
+                                <input type="number" step="0.01" id="fl-liters" class="input" inputmode="decimal" placeholder="Ex: 38.5" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Valor Total (R$) *</label>
+                                <input type="number" step="0.01" id="fl-cost" class="input" inputmode="decimal" placeholder="Ex: 230.00" required>
+                            </div>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            <div class="form-group">
+                                <label>Combustível</label>
+                                <select id="fl-kind" class="input">
+                                    <option value="GASOLINA" ${v.fuel_type !== 'DIESEL' ? 'selected' : ''}>Gasolina</option>
+                                    <option value="ETANOL">Etanol</option>
+                                    <option value="DIESEL" ${v.fuel_type === 'DIESEL' ? 'selected' : ''}>Diesel S10</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Encheu o Tanque?</label>
+                                <select id="fl-full" class="input">
+                                    <option value="1" selected>Sim (Tanque Cheio)</option>
+                                    <option value="0">Não (Parcial)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>📸 Foto do Cupom Fiscal / Bomba (Opcional)</label>
+                            <div class="photo-grid" style="grid-template-columns:1fr;">
+                                ${renderPhotoSlotHtml('receipt_photo', 'Cupom ou Visor da Bomba', 'Recomendado')}
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary amber" id="btn-submit-fuel">
+                            💾 Salvar Abastecimento
+                        </button>
+                    </form>
+                `;
+            }
+
+            container.innerHTML = `
+                <div class="panel-box">
+                    ${statusBanner}
+                    ${tabsHtml}
+                    ${subFormHtml}
+                </div>
+            `;
+        }
+
+        function switchSubMode(mode) {
+            compressedPhotos = {};
+            activeSubMode = mode;
+            renderSelectedVehicle();
+        }
+
+        function updateLiveDistance(startKm) {
+            const val = parseInt(document.getElementById('ci-end-km')?.value);
+            const hint = document.getElementById('ci-live-dist-hint');
+            if (!hint) return;
+            if (!isNaN(val) && val >= startKm) {
+                hint.innerHTML = `KM na saída: ${startKm.toLocaleString('pt-BR')} km • <strong style="color:#34d399;">Trecho rodado: +${(val - startKm).toLocaleString('pt-BR')} km</strong>`;
+            } else {
+                hint.textContent = `KM na saída: ${startKm.toLocaleString('pt-BR')} km`;
+            }
+        }
+
+        function selectFuelPill(prefix, val, btn) {
+            document.getElementById(prefix + '-val').value = val;
+            btn.parentElement.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function selectSimplePill(inputId, val, btn) {
+            document.getElementById(inputId).value = val;
+            btn.parentElement.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function renderPhotoSlotHtml(slot, title, reqLabel) {
+            return `
+                <label class="photo-slot" id="slot-box-${slot}">
+                    <input type="file" accept="image/*" capture="environment" onchange="handlePhotoCapture('${slot}', this)">
+                    <div class="photo-slot-icon">📷</div>
+                    <div class="photo-slot-title">${title}</div>
+                    <div class="photo-slot-req">${reqLabel}</div>
+                </label>
+            `;
+        }
+
+        // Compressão automática no celular (~90 KB) + carimbo inviolável de Placa / Data / Hora na imagem!
+        async function handlePhotoCapture(slot, inputEl) {
+            const file = inputEl.files && inputEl.files[0];
+            if (!file) return;
+
+            const box = document.getElementById('slot-box-' + slot);
+            box.innerHTML = `<div style="font-size:0.75rem;color:#38bdf8;font-weight:700;">⏳ Otimizando foto...</div>`;
+
+            try {
+                const blob = await compressAndWatermarkImage(file, selectedVehicle ? selectedVehicle.plate : 'FROTA');
+                compressedPhotos[slot] = blob;
+                const previewUrl = URL.createObjectURL(blob);
+                const kb = Math.max(1, Math.round(blob.size / 1024));
+
+                box.classList.add('captured');
+                box.innerHTML = `
+                    <input type="file" accept="image/*" capture="environment" onchange="handlePhotoCapture('${slot}', this)">
+                    <img src="${previewUrl}" class="photo-preview" alt="${slot}">
+                    <span class="photo-badge-ok">✓ ${kb} KB</span>
+                `;
+            } catch (err) {
+                showToast('Erro ao processar foto: ' + err.message, true);
+                box.classList.remove('captured');
+                box.innerHTML = `
+                    <input type="file" accept="image/*" capture="environment" onchange="handlePhotoCapture('${slot}', this)">
+                    <div class="photo-slot-icon">📷</div>
+                    <div class="photo-slot-title">Tentar novamente</div>
+                `;
+            }
+        }
+
+        function compressAndWatermarkImage(file, plate) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error('Falha ao ler foto da câmera.'));
+                reader.onload = (ev) => {
+                    const img = new Image();
+                    img.onerror = () => reject(new Error('Formato de imagem inválido.'));
+                    img.onload = () => {
+                        const MAX_SIDE = 1280;
+                        let w = img.width;
+                        let h = img.height;
+                        if (w > h && w > MAX_SIDE) {
+                            h = Math.round((h * MAX_SIDE) / w);
+                            w = MAX_SIDE;
+                        } else if (h >= w && h > MAX_SIDE) {
+                            w = Math.round((w * MAX_SIDE) / h);
+                            h = MAX_SIDE;
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+
+                        // Carimbo de auditoria no rodapé da foto
+                        const barH = Math.max(30, Math.round(h * 0.045));
+                        ctx.fillStyle = 'rgba(11, 15, 25, 0.76)';
+                        ctx.fillRect(0, h - barH, w, barH);
+                        ctx.fillStyle = '#f8fafc';
+                        ctx.font = `bold ${Math.max(13, Math.round(barH * 0.48))}px sans-serif`;
+                        const stamp = `TECFAG • ${plate} • ${new Date().toLocaleString('pt-BR')} • ${currentUser ? currentUser.username : ''}`;
+                        ctx.fillText(stamp, 12, h - Math.round(barH * 0.3));
+
+                        canvas.toBlob((blob) => {
+                            if (!blob) return reject(new Error('Erro ao comprimir imagem.'));
+                            resolve(blob);
+                        }, 'image/jpeg', 0.72);
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function captureQuickGps() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) return resolve({ lat: null, lng: null });
+                let done = false;
+                const timer = setTimeout(() => {
+                    if (!done) { done = true; resolve({ lat: null, lng: null }); }
+                }, 4000);
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        if (!done) {
+                            done = true;
+                            clearTimeout(timer);
+                            resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                        }
+                    },
+                    () => {
+                        if (!done) { done = true; clearTimeout(timer); resolve({ lat: null, lng: null }); }
+                    },
+                    { enableHighAccuracy: true, timeout: 3800, maximumAge: 30000 }
+                );
+            });
+        }
+
+        async function submitCheckout(e) {
+            e.preventDefault();
+            if (!compressedPhotos.photo_panel || !compressedPhotos.photo_front || !compressedPhotos.photo_rear) {
+                showToast('Tire as 3 fotos obrigatórias (Painel, Frente/Lateral e Traseira/Lateral).', true);
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit-checkout');
+            btn.disabled = true;
+            btn.textContent = '📍 Registrando saída...';
+
+            try {
+                const driverName = document.getElementById('co-driver-name').value.trim();
+                localStorage.setItem('tecfag_fleet_driver_name_' + currentUser.username, driverName);
+
+                const gps = await captureQuickGps();
+                const fd = new FormData();
+                fd.append('vehicle_id', selectedVehicle.id);
+                fd.append('driver_real_name', driverName);
+                fd.append('start_km', document.getElementById('co-start-km').value);
+                fd.append('start_fuel_level', document.getElementById('co-fuel-val').value);
+                fd.append('start_cleanliness', document.getElementById('co-clean-val').value);
+                fd.append('purpose_type', document.getElementById('co-purpose').value);
+                fd.append('destination', document.getElementById('co-destination').value.trim());
+                fd.append('project_code', document.getElementById('co-project').value.trim());
+                fd.append('start_checklist_json', JSON.stringify({
+                    doc: document.getElementById('chk-doc').checked,
+                    tires: document.getElementById('chk-tires').checked,
+                    lights: document.getElementById('chk-lights').checked,
+                    oil: document.getElementById('chk-oil').checked
+                }));
+                fd.append('start_damage_reported', document.getElementById('co-has-damage').value);
+                fd.append('start_damage_notes', document.getElementById('co-damage-notes').value);
+                if (gps.lat !== null) { fd.append('lat', gps.lat); fd.append('lng', gps.lng); }
+
+                ['photo_panel', 'photo_front', 'photo_rear', 'photo_interior'].forEach(slot => {
+                    if (compressedPhotos[slot]) fd.append(slot, compressedPhotos[slot], `${slot}.jpg`);
+                });
+
+                const res = await apiFetch('/api/fleet/trips/checkout', { method: 'POST', body: fd });
+                showToast(res.message || 'Retirada registrada!');
+                compressedPhotos = {};
+                await loadAppContext();
+            } catch (err) {
+                showToast(err.message, true);
+                btn.disabled = false;
+                btn.textContent = '🚀 Confirmar Retirada e Assumir Veículo';
+            }
+        }
+
+        async function submitOvernight(e) {
+            e.preventDefault();
+            if (!compressedPhotos.photo_overnight_panel) {
+                showToast('Tire a foto do painel aceso mostrando o KM ao estacionar em casa.', true);
+                return;
+            }
+            const btn = document.getElementById('btn-submit-overnight');
+            btn.disabled = true;
+            btn.textContent = '🌙 Salvando pernoite...';
+
+            try {
+                const gps = await captureQuickGps();
+                const fd = new FormData();
+                fd.append('overnight_km', document.getElementById('ov-km').value);
+                fd.append('overnight_fuel_level', document.getElementById('ov-fuel-val').value);
+                fd.append('overnight_notes', document.getElementById('ov-notes').value.trim());
+                if (gps.lat !== null) { fd.append('lat', gps.lat); fd.append('lng', gps.lng); }
+                fd.append('photo_overnight_panel', compressedPhotos.photo_overnight_panel, 'overnight_panel.jpg');
+
+                const res = await apiFetch(`/api/fleet/trips/${selectedVehicle.current_trip_id}/overnight`, { method: 'POST', body: fd });
+                showToast(res.message);
+                compressedPhotos = {};
+                activeSubMode = 'CHECKIN';
+                await loadAppContext();
+            } catch (err) {
+                showToast(err.message, true);
+                btn.disabled = false;
+                btn.textContent = '🌙 Confirmar Veículo Estacionado em Pernoite';
+            }
+        }
+
+        async function submitCheckin(e) {
+            e.preventDefault();
+            if (!compressedPhotos.photo_panel || !compressedPhotos.photo_front || !compressedPhotos.photo_rear) {
+                showToast('Tire as 3 fotos obrigatórias de devolução (Painel, Frente/Lateral e Traseira/Lateral).', true);
+                return;
+            }
+            const btn = document.getElementById('btn-submit-checkin');
+            btn.disabled = true;
+            btn.textContent = '🏁 Concluindo devolução...';
+
+            try {
+                const gps = await captureQuickGps();
+                const fd = new FormData();
+                fd.append('end_km', document.getElementById('ci-end-km').value);
+                fd.append('end_fuel_level', document.getElementById('ci-fuel-val').value);
+                fd.append('end_cleanliness', document.getElementById('ci-clean-val').value);
+                fd.append('end_damage_reported', document.getElementById('ci-has-damage').value);
+                fd.append('end_damage_notes', document.getElementById('ci-damage-notes').value);
+                if (gps.lat !== null) { fd.append('lat', gps.lat); fd.append('lng', gps.lng); }
+
+                ['photo_panel', 'photo_front', 'photo_rear', 'photo_interior'].forEach(slot => {
+                    if (compressedPhotos[slot]) fd.append(slot, compressedPhotos[slot], `${slot}.jpg`);
+                });
+
+                const res = await apiFetch(`/api/fleet/trips/${selectedVehicle.current_trip_id}/checkin`, { method: 'POST', body: fd });
+                showToast(res.message);
+                compressedPhotos = {};
+                selectedVehicle = null;
+                await loadAppContext();
+            } catch (err) {
+                showToast(err.message, true);
+                btn.disabled = false;
+                btn.textContent = '✅ Finalizar Viagem e Devolver ao Pátio';
+            }
+        }
+
+        async function submitFuel(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-fuel');
+            btn.disabled = true;
+            btn.textContent = '⛽ Salvando...';
+
+            try {
+                const fd = new FormData();
+                fd.append('vehicle_id', selectedVehicle.id);
+                fd.append('km_at_fuel', document.getElementById('fl-km').value);
+                fd.append('liters', document.getElementById('fl-liters').value);
+                fd.append('total_cost_brl', document.getElementById('fl-cost').value);
+                fd.append('fuel_kind', document.getElementById('fl-kind').value);
+                fd.append('full_tank', document.getElementById('fl-full').value);
+                if (compressedPhotos.receipt_photo) {
+                    fd.append('receipt_photo', compressedPhotos.receipt_photo, 'cupom.jpg');
+                }
+
+                const res = await apiFetch('/api/fleet/fuel', { method: 'POST', body: fd });
+                showToast(res.message);
+                compressedPhotos = {};
+                activeSubMode = 'CHECKIN';
+                await loadAppContext();
+            } catch (err) {
+                showToast(err.message, true);
+                btn.disabled = false;
+                btn.textContent = '💾 Salvar Abastecimento';
+            }
+        }
+
+        loadAppContext();
+    </script>
+</body>
+</html>

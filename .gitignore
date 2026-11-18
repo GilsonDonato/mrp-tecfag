@@ -4,7 +4,11 @@ data/backups/
 data/tecfag_mrp.db
 uploads/
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
+data/uploads_frota/
+uploads_frota/
 *.xls
 *.xlsx
 *.csv

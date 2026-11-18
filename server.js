@@ -16874,6 +16874,23 @@ function calculateProjectValidationStatus(project) {
     return 'HOMOLOGADO';
 }
 
+// ==========================================
+// MÓDULO ISOLADO DE GESTÃO DE FROTA TECFAG (/frota, /motorista, /api/fleet/*)
+// ==========================================
+try {
+    const registerFleetModule = require('./fleet/fleet-routes');
+    registerFleetModule({
+        app,
+        mrpDb: db,
+        authenticateToken,
+        hashPassword,
+        DB_DIR,
+        getDirectorySize
+    });
+} catch (fleetInitErr) {
+    console.error('[FLEET MODULE INIT ERROR] Falha isolada no módulo de frota (MRP segue 100% ativo):', fleetInitErr);
+}
+
 // Middleware de tratamento global de erros (Multer, JSON parsing, etc.) garantindo respostas em JSON
 app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError) {
