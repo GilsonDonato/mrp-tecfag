@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestão de Frota Tecfag • Telemetria & Vistoria</title>
+    <link rel="icon" type="image/png" href="/media/tecfag_emblem.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -44,15 +45,27 @@
             top: 0;
             z-index: 200;
         }
-        .brand-wrap { display: flex; align-items: center; gap: 12px; }
+        .brand-wrap { display: flex; align-items: center; gap: 16px; }
         .brand-logo {
-            background: linear-gradient(135deg, #ef4444, #b91c1c);
-            color: #fff;
-            font-weight: 900;
-            padding: 7px 11px;
-            border-radius: 8px;
-            font-size: 0.82rem;
-            letter-spacing: 0.8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            padding-right: 16px;
+            border-right: 1px solid var(--border);
+        }
+        .brand-logo-emblem {
+            width: 38px;
+            height: 38px;
+            object-fit: contain;
+            display: block;
+        }
+        .brand-logo-text {
+            height: 21px;
+            width: auto;
+            object-fit: contain;
+            filter: brightness(0) invert(1);
+            display: block;
         }
         .brand-title { font-size: 1.15rem; font-weight: 900; letter-spacing: -0.3px; }
         .brand-sub { font-size: 0.75rem; color: var(--muted); }
@@ -340,7 +353,10 @@
 <body>
     <div class="topbar">
         <div class="brand-wrap">
-            <span class="brand-logo">TECFAG</span>
+            <a href="/" class="brand-logo" title="Grupo Tecfag • Voltar ao MRP">
+                <img src="/media/tecfag_emblem.png" class="brand-logo-emblem" alt="Tecfag Emblem">
+                <img src="/media/tecfag_text.png" class="brand-logo-text" alt="TECFAG">
+            </a>
             <div>
                 <div class="brand-title">🚗 Central de Gestão de Frota & Telemetria</div>
                 <div class="brand-sub">Módulo isolado (`tecfag_frota.db`) • Posse, Vistoria Antes x Depois, Multas e Rastreamento 4G</div>
@@ -356,6 +372,10 @@
     <!-- TELA DE LOGIN CASO ACESSE DIRETO SEM SESSÃO -->
     <div id="manager-login-box" style="display:none;max-width:420px;margin:60px auto;padding:20px;">
         <div class="card-panel">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                <img src="/media/tecfag_emblem.png" alt="Tecfag" style="height:36px;width:36px;object-fit:contain;">
+                <img src="/media/tecfag_text.png" alt="TECFAG" style="height:20px;width:auto;filter:brightness(0) invert(1);">
+            </div>
             <h3 style="margin-bottom:8px;">🔐 Login da Gestão Tecfag</h3>
             <p style="font-size:0.8rem;color:var(--muted);margin-bottom:16px;">Use sua credencial de Diretoria / Gerência do MRP.</p>
             <form onsubmit="handleManagerLogin(event)" style="display:flex;flex-direction:column;gap:12px;">
@@ -1767,7 +1787,7 @@
                     warn.style.borderColor = '#10b981';
                     warn.style.color = '#a7f3d0';
                     warn.innerHTML = `
-                        ✅ <strong>PRONTO PARA IMPRIMIR DEFINITIVO (${origin}):</strong> Estes QR Codes já apontam para o endereço oficial da nuvem e <strong>nunca precisarão ser trocados</strong> (nem ao cadastrar motoristas, nem ao instalar rastreadores). Obs: eles passarão a abrir no celular assim que publicarmos esta atualização no Render!
+                        ✅ <strong>ATIVO NA NUVEM OFICIAL (${origin}):</strong> Estes QR Codes apontam para o endereço oficial definitivo e <strong>nunca precisarão ser trocados</strong> (nem ao cadastrar motoristas, nem ao instalar rastreadores).
                     `;
                 }
             }
@@ -1777,7 +1797,11 @@
                 return `
                     <div class="qr-sticker">
                         <div class="qr-sticker-header">
-                            <span>GRUPO TECFAG • FROTA</span>
+                            <span style="display:inline-flex;align-items:center;gap:6px;">
+                                <img src="/media/tecfag_emblem.png" alt="Tecfag" style="height:18px;width:18px;object-fit:contain;">
+                                <img src="/media/tecfag_text.png" alt="TECFAG" style="height:11px;width:auto;filter:brightness(0) invert(1);">
+                                <span>• FROTA</span>
+                            </span>
                             <span>${v.code}</span>
                         </div>
                         <div style="font-size:1.1rem;font-weight:900;color:#0f172a;">${v.brand_model}</div>

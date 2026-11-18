@@ -7,6 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Frota Tecfag • Check-in do Motorista</title>
+    <link rel="icon" type="image/png" href="/media/tecfag_emblem.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -43,15 +44,27 @@
             justify-content: space-between;
             gap: 10px;
         }
-        .brand { display: flex; align-items: center; gap: 10px; }
+        .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
         .brand-badge {
-            background: linear-gradient(135deg, #ef4444, #b91c1c);
-            color: #fff;
-            font-weight: 900;
-            font-size: 0.72rem;
-            padding: 5px 8px;
-            border-radius: 6px;
-            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding-right: 10px;
+            border-right: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .brand-badge-emblem {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+            display: block;
+        }
+        .brand-badge-text {
+            height: 15px;
+            width: auto;
+            object-fit: contain;
+            filter: brightness(0) invert(1);
+            display: block;
         }
         .brand-title { font-size: 0.95rem; font-weight: 800; line-height: 1.1; }
         .brand-sub { font-size: 0.7rem; color: var(--muted); }
@@ -343,10 +356,13 @@
 <body>
     <header>
         <div class="brand">
-            <span class="brand-badge">TECFAG</span>
-            <div>
+            <div class="brand-badge">
+                <img src="/media/tecfag_emblem.png" class="brand-badge-emblem" alt="Tecfag">
+                <img src="/media/tecfag_text.png" class="brand-badge-text" alt="TECFAG">
+            </div>
+            <div style="min-width:0;">
                 <div class="brand-title">Controle de Frota</div>
-                <div class="brand-sub" id="hdr-user-label">Identificando condutor...</div>
+                <div class="brand-sub" id="hdr-user-label" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Identificando condutor...</div>
             </div>
         </div>
         <div class="header-right">
