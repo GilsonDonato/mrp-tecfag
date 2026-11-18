@@ -404,6 +404,9 @@
             </div>
         </div>
 
+        <!-- FAIXA DE RESERVAS PENDENTES DE APROVAÇÃO -->
+        <div id="pending-reservations-banner" style="margin-bottom: 14px; display: none;"></div>
+
         <!-- FAIXA DE ALERTAS PENDENTES -->
         <div id="alerts-banner-container" style="margin-bottom: 18px; display: none;"></div>
 
@@ -438,8 +441,9 @@
 
         <!-- NAVEGAÇÃO DE ABAS -->
         <div class="tabs-nav">
-            <button type="button" class="tab-btn active" onclick="switchTab('live', this)">🚗 Frota ao Vivo (6 Carros)</button>
-            <button type="button" class="tab-btn" onclick="switchTab('drivers', this)">🪪 Condutores & CNH (<span id="tab-drv-count">4</span>)</button>
+            <button type="button" class="tab-btn active" id="tab-btn-live" onclick="switchTab('live', this)">🚗 Frota ao Vivo (6 Carros)</button>
+            <button type="button" class="tab-btn" id="tab-btn-reservations" onclick="switchTab('reservations', this)">📅 Agenda & Reservas <span id="tab-res-badge"></span></button>
+            <button type="button" class="tab-btn" onclick="switchTab('drivers', this)">🪪 Condutores & CNH (<span id="tab-drv-count">20</span>)</button>
             <button type="button" class="tab-btn" onclick="switchTab('map', this)">🗺️ Mapa, Velocidade & Trechos</button>
             <button type="button" class="tab-btn" onclick="switchTab('trips', this)">📸 Vistorias (Antes x Depois)</button>
             <button type="button" class="tab-btn" onclick="switchTab('fines', this)">🔎 Multas, Revisões & Combustível</button>
@@ -657,6 +661,111 @@
                     </table>
                 </div>
             </div>
+        </div>
+
+        <!-- ABA 7: AGENDA & RESERVAS ANTECIPADAS DE VEÍCULOS -->
+        <div id="tab-reservations" class="tab-pane">
+            <div class="card-panel" style="margin-bottom:18px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+                    <div>
+                        <h3 style="font-size:1.05rem;font-weight:900;color:#fbbf24;">⏳ Solicitações Pendentes de Aprovação</h3>
+                        <p style="font-size:0.8rem;color:var(--muted);margin-top:3px;">
+                            Quando um motorista solicita reserva pelo celular para visita futura, você aprova (podendo inclusive remanejar o carro) ou recusa abaixo.
+                        </p>
+                    </div>
+                    <button type="button" class="btn btn-green" onclick="openManagerReservationModal()">➕ Agendar Reserva Direta (Gestão)</button>
+                </div>
+                <div id="pending-reservations-cards"></div>
+            </div>
+
+            <div class="card-panel">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+                    <h3 style="font-size:1.02rem;font-weight:900;color:#38bdf8;">📅 Cronograma de Reservas (Aprovadas & Histórico)</h3>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <select id="flt-res-status" class="input" style="width:210px;" onchange="renderReservationsTab()">
+                            <option value="ACTIVE">Próximas (Aprovadas + Pendentes)</option>
+                            <option value="ALL">Todas (Incluindo Histórico)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Veículo / Placa</th>
+                                <th>Condutor</th>
+                                <th>Período Reservado</th>
+                                <th>Motivo & Cliente/Destino</th>
+                                <th>Status</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reservations-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL NOVA RESERVA DIRETA PELA GESTÃO -->
+    <div class="modal-overlay" id="modal-manager-reservation" onclick="if(event.target===this)this.style.display='none'">
+        <div class="modal" style="max-width:580px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                <h3 style="font-size:1.05rem;font-weight:900;">📅 Agendar Reserva Direta (Já entra Aprovada)</h3>
+                <button type="button" class="btn" onclick="document.getElementById('modal-manager-reservation').style.display='none'">✕</button>
+            </div>
+            <form onsubmit="saveManagerReservation(event)" style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div>
+                        <label class="lbl">Veículo *</label>
+                        <select id="mres-veh" class="input" required></select>
+                    </div>
+                    <div>
+                        <label class="lbl">Condutor Habilitado *</label>
+                        <select id="mres-driver" class="input" required></select>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div>
+                        <label class="lbl">Saída Prevista *</label>
+                        <input type="datetime-local" id="mres-start" class="input" required>
+                    </div>
+                    <div>
+                        <label class="lbl">Retorno Previsto *</label>
+                        <input type="datetime-local" id="mres-end" class="input" required>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div>
+                        <label class="lbl">Motivo *</label>
+                        <select id="mres-purpose" class="input">
+                            <option value="VISITA_COMERCIAL">💼 Visita Comercial / Cliente</option>
+                            <option value="INSTALACAO_SAT">🔧 Instalação / Assistência / SAT</option>
+                            <option value="COMPRAS_RUA">🛒 Compras / Coleta Local</option>
+                            <option value="PORTO_EADI">🚢 Porto Seco / EADI / Logística</option>
+                            <option value="ENTREGA_COLETA">📦 Entrega / Expedição</option>
+                            <option value="RH_ADMIN">🏢 RH / Administrativo</option>
+                            <option value="OUTRO">📍 Outro Deslocamento</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="lbl">Projeto MRP (Opcional)</label>
+                        <input type="text" id="mres-project" class="input" placeholder="Ex: PRJTEC000000056">
+                    </div>
+                </div>
+                <div>
+                    <label class="lbl">Cliente / Cidade / Destino *</label>
+                    <input type="text" id="mres-dest" class="input" required placeholder="Ex: Visita Cliente - Campinas/SP">
+                </div>
+                <div>
+                    <label class="lbl">Observação (Opcional)</label>
+                    <input type="text" id="mres-notes" class="input" placeholder="Ex: Reservado p/ viagem comercial de manhã">
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:4px;">
+                    <button type="button" class="btn" onclick="document.getElementById('modal-manager-reservation').style.display='none'">Cancelar</button>
+                    <button type="submit" class="btn btn-green">✅ Criar e Aprovar Reserva</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1035,6 +1144,10 @@
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
             if (btnEl) btnEl.classList.add('active');
+            else {
+                const fallbackBtn = document.getElementById('tab-btn-' + tabId);
+                if (fallbackBtn) fallbackBtn.classList.add('active');
+            }
 
             if (tabId === 'map') {
                 setTimeout(() => {
@@ -1050,6 +1163,8 @@
                 renderQrStickers();
             } else if (tabId === 'drivers') {
                 renderDriversTable();
+            } else if (tabId === 'reservations') {
+                renderReservationsTab();
             }
         }
 
@@ -1085,10 +1200,25 @@
                 const drvCountEl = document.getElementById('tab-drv-count');
                 if (drvCountEl) drvCountEl.textContent = (data.drivers || []).length;
 
+                const pendCount = m.pendingReservationsCount || 0;
+                const upApprCount = m.upcomingApprovedCount || 0;
+                const resBadgeEl = document.getElementById('tab-res-badge');
+                if (resBadgeEl) {
+                    if (pendCount > 0) {
+                        resBadgeEl.innerHTML = `<span style="background:#f59e0b;color:#0f172a;padding:1px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;margin-left:4px;">⏳ ${pendCount} pendente${pendCount > 1 ? 's' : ''}</span>`;
+                    } else if (upApprCount > 0) {
+                        resBadgeEl.innerHTML = `<span style="background:rgba(16,185,129,0.2);color:#34d399;padding:1px 6px;border-radius:10px;font-size:0.72rem;font-weight:800;margin-left:4px;">${upApprCount}</span>`;
+                    } else {
+                        resBadgeEl.innerHTML = '';
+                    }
+                }
+
+                renderPendingReservationsBanner(data.reservations || []);
                 populateVehicleSelects(data.vehicles);
                 renderAlertsBanner(data.openAlerts || []);
                 renderLiveVehicles(data.vehicles || []);
                 renderDriversTable();
+                renderReservationsTab();
 
                 if (document.getElementById('tab-qrcodes').classList.contains('active')) {
                     renderQrStickers();
@@ -1100,7 +1230,7 @@
 
         function populateVehicleSelects(vehicles) {
             const opts = vehicles.map(v => `<option value="${v.id}">${v.name} — ${v.plate}</option>`).join('');
-            ['map-vehicle-select', 'fine-search-veh', 'nf-veh'].forEach(id => {
+            ['map-vehicle-select', 'fine-search-veh', 'nf-veh', 'mres-veh'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el && !el.value) el.innerHTML = opts;
                 else if (el) {
@@ -1182,6 +1312,19 @@
                     possessionHtml = `<div style="font-size:0.8rem;color:#fbbf24;">Veículo temporariamente bloqueado para check-in.</div>`;
                 }
 
+                const nextRes = v.imminent_reservation || v.next_approved_reservation;
+                let resCardInfo = '';
+                if (nextRes) {
+                    const isAppr = nextRes.status === 'APPROVED';
+                    resCardInfo = `
+                        <div style="background:${isAppr ? 'rgba(239,68,68,0.11)' : 'rgba(245,158,11,0.12)'};border:1px solid ${isAppr ? 'rgba(239,68,68,0.4)' : 'rgba(245,158,11,0.4)'};border-radius:9px;padding:8px 10px;font-size:0.76rem;line-height:1.4;">
+                            <strong style="color:${isAppr ? '#fca5a5' : '#fde68a'};">${isAppr ? '📅 Reserva Aprovada:' : '⏳ Reserva Pendente:'}</strong>
+                            <strong>${nextRes.driver_name}</strong><br>
+                            <span>${fmtDt(nextRes.start_at)} até ${fmtDt(nextRes.end_at)} • ${nextRes.destination}</span>
+                        </div>
+                    `;
+                }
+
                 const fuelPct = v.current_fuel_level ?? 100;
                 const fuelColor = fuelPct <= 25 ? '#ef4444' : (fuelPct <= 50 ? '#f59e0b' : '#10b981');
 
@@ -1211,6 +1354,7 @@
                         </div>
 
                         ${possessionHtml}
+                        ${resCardInfo}
 
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:center;background:#0b0f19;padding:10px 12px;border-radius:10px;border:1px solid var(--border);font-size:0.78rem;">
                             <div>
@@ -1922,6 +2066,212 @@
             }
             document.getElementById('modal-driver-form').style.display = 'none';
             refreshDashboard();
+        }
+
+        // ==========================================
+        // ABA 7: GESTÃO DE RESERVAS ANTECIPADAS (APROVAR / REMANEJAR / RECUSAR)
+        // ==========================================
+        function renderPendingReservationsBanner(reservations) {
+            const box = document.getElementById('pending-reservations-banner');
+            if (!box) return;
+            const pendings = (reservations || []).filter(r => r.status === 'PENDING');
+            if (!pendings.length) {
+                box.style.display = 'none';
+                return;
+            }
+            box.style.display = 'block';
+            box.innerHTML = `
+                <div style="background:rgba(245,158,11,0.16);border:1.5px solid #f59e0b;border-radius:11px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <div style="font-size:0.86rem;">
+                        <strong style="color:#fde68a;">⏳ ${pendings.length} Solicitaç${pendings.length > 1 ? 'ões' : 'ão'} de Reserva Aguardando sua Aprovação:</strong>
+                        <span style="color:#e2e8f0;margin-left:6px;">
+                            ${pendings.slice(0, 2).map(p => `${p.driver_name} → ${p.vehicle_name} (${fmtDt(p.start_at)})`).join(' • ')}
+                        </span>
+                    </div>
+                    <button type="button" class="btn btn-amber" onclick="switchTab('reservations')">📅 Revisar e Aprovar Agora ➔</button>
+                </div>
+            `;
+        }
+
+        function renderMgrResBadge(status) {
+            if (status === 'PENDING') return `<span class="badge b-amber">⏳ Pendente</span>`;
+            if (status === 'APPROVED') return `<span class="badge b-green">✅ Aprovada</span>`;
+            if (status === 'FULFILLED') return `<span class="badge b-blue">🏁 Retirado / Em Curso</span>`;
+            if (status === 'REJECTED') return `<span class="badge b-red">❌ Recusada</span>`;
+            return `<span class="badge" style="background:#1e293b;color:#94a3b8;">🚫 Cancelada</span>`;
+        }
+
+        function renderReservationsTab() {
+            const allRes = dashState.reservations || [];
+            const vehicles = dashState.vehicles || [];
+            const pendings = allRes.filter(r => r.status === 'PENDING');
+
+            const pendBox = document.getElementById('pending-reservations-cards');
+            if (pendBox) {
+                if (!pendings.length) {
+                    pendBox.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted);font-size:0.84rem;background:#0b0f19;border-radius:10px;border:1px dashed var(--border);">✅ Nenhuma solicitação pendente de aprovação no momento.</div>`;
+                } else {
+                    pendBox.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(420px, 1fr));gap:14px;">` + pendings.map(r => {
+                        const vehOptions = vehicles.map(v =>
+                            `<option value="${v.id}" ${v.id === r.vehicle_id ? 'selected' : ''}>${v.name} (${v.plate})</option>`
+                        ).join('');
+                        return `
+                            <div style="background:#0b0f19;border:1.5px solid #f59e0b;border-radius:12px;padding:15px;display:flex;flex-direction:column;gap:10px;">
+                                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+                                    <div>
+                                        <div style="font-size:0.96rem;font-weight:900;color:#fff;">👤 ${r.driver_name}</div>
+                                        <div style="font-size:0.78rem;color:#38bdf8;font-weight:700;margin-top:2px;">📍 ${r.destination} ${r.project_code ? `• <code>[${r.project_code}]</code>` : ''}</div>
+                                    </div>
+                                    <span class="badge b-amber">⏳ Pendente</span>
+                                </div>
+                                <div style="font-size:0.8rem;color:#cbd5e1;background:#151c2c;padding:9px 11px;border-radius:8px;line-height:1.45;">
+                                    <div>📅 <strong>Saída:</strong> ${fmtDt(r.start_at)} &nbsp;➔&nbsp; <strong>Retorno:</strong> ${fmtDt(r.end_at)}</div>
+                                    <div>🏷️ <strong>Motivo:</strong> ${PURPOSE_NAMES[r.purpose_type] || r.purpose_type}</div>
+                                    ${r.notes ? `<div style="color:#fde68a;margin-top:3px;">📝 <strong>Obs. Motorista:</strong> ${r.notes}</div>` : ''}
+                                </div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                                    <div>
+                                        <label class="lbl">Veículo p/ Aprovar (pode trocar)</label>
+                                        <select id="pend-veh-${r.id}" class="input" style="padding:7px 10px;font-size:0.8rem;">${vehOptions}</select>
+                                    </div>
+                                    <div>
+                                        <label class="lbl">Retorno / Obs. da Gestão (opcional)</label>
+                                        <input type="text" id="pend-note-${r.id}" class="input" style="padding:7px 10px;font-size:0.8rem;" placeholder="Ex: Liberado / Troquei p/ outro Kwid">
+                                    </div>
+                                </div>
+                                <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:2px;">
+                                    <button type="button" class="btn btn-red" onclick="decideReservation(${r.id}, 'REJECT')">❌ Recusar</button>
+                                    <button type="button" class="btn btn-green" onclick="decideReservation(${r.id}, 'APPROVE')">✅ Aprovar Reserva</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('') + `</div>`;
+                }
+            }
+
+            const tbody = document.getElementById('reservations-tbody');
+            if (!tbody) return;
+            const flt = (document.getElementById('flt-res-status') || {}).value || 'ACTIVE';
+            const nowIso = new Date().toISOString();
+            const list = flt === 'ACTIVE'
+                ? allRes.filter(r => ['APPROVED', 'PENDING'].includes(r.status) && r.end_at >= nowIso)
+                : allRes;
+
+            if (!list.length) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px;">Nenhuma reserva encontrada para este filtro.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = list.map(r => `
+                <tr>
+                    <td>
+                        <strong>${r.vehicle_name}</strong><br>
+                        <code style="color:#38bdf8;">${r.plate}</code>
+                    </td>
+                    <td>
+                        <strong>${r.driver_name}</strong>
+                        ${r.reviewed_by ? `<br><span style="font-size:0.7rem;color:var(--muted);">Revisado por: ${r.reviewed_by}</span>` : ''}
+                    </td>
+                    <td>
+                        <div><strong>Saída:</strong> ${fmtDt(r.start_at)}</div>
+                        <div style="color:var(--muted);font-size:0.76rem;"><strong>Retorno:</strong> ${fmtDt(r.end_at)}</div>
+                    </td>
+                    <td>
+                        <div><strong>${r.destination}</strong> ${r.project_code ? `<code>[${r.project_code}]</code>` : ''}</div>
+                        <div style="font-size:0.74rem;color:var(--muted);">${PURPOSE_NAMES[r.purpose_type] || r.purpose_type}</div>
+                        ${r.notes ? `<div style="font-size:0.72rem;color:#fde68a;">📝 ${r.notes}</div>` : ''}
+                        ${r.manager_notes ? `<div style="font-size:0.72rem;color:#38bdf8;">💬 Gestão: ${r.manager_notes}</div>` : ''}
+                    </td>
+                    <td>${renderMgrResBadge(r.status)}</td>
+                    <td>
+                        ${r.status === 'PENDING'
+                            ? `<button type="button" class="btn btn-green" style="padding:5px 10px;font-size:0.74rem;" onclick="decideReservation(${r.id}, 'APPROVE')">✅ Aprovar</button>`
+                            : ''}
+                        ${['PENDING', 'APPROVED'].includes(r.status)
+                            ? `<button type="button" class="btn btn-red" style="padding:5px 10px;font-size:0.74rem;" onclick="decideReservation(${r.id}, 'CANCEL')">🚫 Cancelar</button>`
+                            : '-'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function decideReservation(id, action) {
+            if (action === 'CANCEL' && !confirm('Deseja cancelar esta reserva?')) return;
+            const vehEl = document.getElementById(`pend-veh-${id}`);
+            const noteEl = document.getElementById(`pend-note-${id}`);
+            let mgrNotes = noteEl ? noteEl.value.trim() : undefined;
+            if (action === 'REJECT' && !mgrNotes) {
+                const typed = prompt('Motivo da recusa p/ o motorista visualizar (opcional):', '');
+                if (typed === null) return;
+                mgrNotes = typed.trim();
+            }
+            try {
+                await apiFetch(`/api/fleet/reservations/${id}/status`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        action,
+                        vehicle_id: vehEl ? parseInt(vehEl.value) : undefined,
+                        manager_notes: mgrNotes
+                    })
+                });
+                await refreshDashboard();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        function toLocalDtString(d) {
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        function openManagerReservationModal() {
+            const drvSel = document.getElementById('mres-driver');
+            if (drvSel) {
+                drvSel.innerHTML = (dashState.drivers || [])
+                    .filter(d => d.active === 1)
+                    .map(d => `<option value="${d.id}">${d.full_name} (${d.department || 'Tecfag'})</option>`)
+                    .join('');
+            }
+            const sInp = document.getElementById('mres-start');
+            const eInp = document.getElementById('mres-end');
+            if (sInp && !sInp.value) {
+                const s = new Date(); s.setDate(s.getDate() + 1); s.setHours(7, 30, 0, 0);
+                sInp.value = toLocalDtString(s);
+            }
+            if (eInp && !eInp.value) {
+                const e = new Date(); e.setDate(e.getDate() + 1); e.setHours(18, 0, 0, 0);
+                eInp.value = toLocalDtString(e);
+            }
+            document.getElementById('mres-dest').value = '';
+            document.getElementById('mres-project').value = '';
+            document.getElementById('mres-notes').value = '';
+            document.getElementById('modal-manager-reservation').style.display = 'flex';
+        }
+
+        async function saveManagerReservation(e) {
+            e.preventDefault();
+            try {
+                const sVal = document.getElementById('mres-start').value;
+                const eVal = document.getElementById('mres-end').value;
+                await apiFetch('/api/fleet/reservations', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        vehicle_id: parseInt(document.getElementById('mres-veh').value),
+                        driver_id: parseInt(document.getElementById('mres-driver').value),
+                        purpose_type: document.getElementById('mres-purpose').value,
+                        project_code: document.getElementById('mres-project').value.trim(),
+                        destination: document.getElementById('mres-dest').value.trim(),
+                        notes: document.getElementById('mres-notes').value.trim(),
+                        start_at: sVal ? new Date(sVal).toISOString() : '',
+                        end_at: eVal ? new Date(eVal).toISOString() : ''
+                    })
+                });
+                document.getElementById('modal-manager-reservation').style.display = 'none';
+                await refreshDashboard();
+            } catch (err) {
+                alert(err.message);
+            }
         }
 
         refreshDashboard();

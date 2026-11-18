@@ -489,6 +489,32 @@ module.exports = function registerFleetModule({
             fleetDb.run("ALTER TABLE fleet_trips ADD COLUMN driver_cpf TEXT", () => {});
             fleetDb.run("ALTER TABLE fleet_trips ADD COLUMN driver_cnh TEXT", () => {});
 
+            fleetDb.run(`CREATE TABLE IF NOT EXISTS fleet_reservations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                vehicle_id INTEGER NOT NULL,
+                plate TEXT NOT NULL,
+                vehicle_name TEXT NOT NULL,
+                driver_id INTEGER,
+                driver_username TEXT NOT NULL,
+                driver_name TEXT NOT NULL,
+                purpose_type TEXT NOT NULL,
+                destination TEXT NOT NULL,
+                project_code TEXT,
+                start_at TEXT NOT NULL,
+                end_at TEXT NOT NULL,
+                notes TEXT,
+                status TEXT DEFAULT 'PENDING',
+                reviewed_by TEXT,
+                reviewed_at TEXT,
+                manager_notes TEXT,
+                fulfilled_trip_id INTEGER,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(vehicle_id) REFERENCES fleet_vehicles(id)
+            )`);
+            fleetDb.run(`CREATE INDEX IF NOT EXISTS idx_fleet_res_veh_time ON fleet_reservations(vehicle_id, status, start_at, end_at)`);
+            fleetDb.run(`CREATE INDEX IF NOT EXISTS idx_fleet_res_status ON fleet_reservations(status, start_at)`);
+
             fleetDb.run(`CREATE TABLE IF NOT EXISTS fleet_settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
@@ -1254,7 +1280,61 @@ module.exports = function registerFleetModule({
         });
     }));
 
-    // 2. Listar os 6 veículos com detalhes da viagem ativa (para celular /motorista e painel /frota)
+    function normalizeIsoTimestamp(val) {
+        if (!val) return null;
+        const s = String(val).trim();
+        if (!s) return null;
+        let d;
+        if (/Z$|[+-]\d{2}:\d{2}$/.test(s)) {
+            d = new Date(s);
+        } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)) {
+            d = new Date(s + ':00-03:00');
+        } else {
+            d = new Date(s);
+        }
+        return isNaN(d.getTime()) ? null : d.toISOString();
+    }
+
+    function formatIsoBr(iso) {
+        if (!iso) return '-';
+        try {
+            return new Date(iso).toLocaleString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+            });
+        } catch (e) {
+            return iso;
+        }
+    }
+
+    async function attachReservationsToVehicles(vehicles) {
+        const nowIso = new Date().toISOString();
+        const in36hIso = new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString();
+        const upcoming = await fAll(
+            `SELECT * FROM fleet_reservations
+             WHERE status IN ('APPROVED', 'PENDING')
+               AND end_at >= ?
+             ORDER BY CASE status WHEN 'APPROVED' THEN 0 ELSE 1 END, start_at ASC`,
+            [nowIso]
+        );
+        const byVeh = new Map();
+        for (const r of upcoming) {
+            if (!byVeh.has(r.vehicle_id)) byVeh.set(r.vehicle_id, []);
+            byVeh.get(r.vehicle_id).push(r);
+        }
+        for (const v of vehicles) {
+            const list = byVeh.get(v.id) || [];
+            v.upcoming_reservations = list.slice(0, 6);
+            v.next_approved_reservation = list.find(r => r.status === 'APPROVED') || null;
+            v.imminent_reservation =
+                list.find(r => r.status === 'APPROVED' && r.start_at <= in36hIso) ||
+                list.find(r => r.status === 'PENDING' && r.start_at <= in36hIso) ||
+                null;
+        }
+        return vehicles;
+    }
+
+    // 2. Listar os 6 veículos com detalhes da viagem ativa + reservas próximas (para celular /motorista e painel /frota)
     router.get('/vehicles', authenticateFleet, asyncSafe(async (req, res) => {
         const vehicles = await fAll(
             `SELECT v.*,
@@ -1271,6 +1351,7 @@ module.exports = function registerFleetModule({
              WHERE v.active = 1
              ORDER BY v.code ASC`
         );
+        await attachReservationsToVehicles(vehicles);
         res.json({ success: true, vehicles });
     }));
 
@@ -1538,6 +1619,38 @@ module.exports = function registerFleetModule({
                     veh.id, tripId, veh.plate,
                     `Avaria prévia apontada na retirada (${veh.plate})`,
                     `${finalDriverName} apontou avaria ao retirar ${veh.name}: "${start_damage_notes || 'Ver fotos de retirada'}". Fotos protegidas permanentemente.`,
+                    finalDriverName, now
+                ]
+            );
+        }
+
+        // Integração com Reservas: Baixar reserva aprovada do próprio motorista ou avisar gestão se outro condutor pegou p/ corrida rápida
+        const in8hIso = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
+        const activeOrNearRes = await fAll(
+            `SELECT * FROM fleet_reservations
+             WHERE vehicle_id = ? AND status = 'APPROVED' AND start_at <= ? AND end_at >= ?
+             ORDER BY start_at ASC`,
+            [veh.id, in8hIso, now]
+        );
+        const ownRes = activeOrNearRes.find(r =>
+            (drv && r.driver_id === drv.id) ||
+            String(r.driver_username || '').toLowerCase() === uname ||
+            String(r.driver_name || '').toUpperCase() === finalDriverName.toUpperCase()
+        );
+        if (ownRes) {
+            await fRun(
+                `UPDATE fleet_reservations SET status = 'FULFILLED', fulfilled_trip_id = ?, updated_at = ? WHERE id = ?`,
+                [tripId, now, ownRes.id]
+            );
+        } else if (activeOrNearRes.length > 0) {
+            const otherRes = activeOrNearRes[0];
+            await fRun(
+                `INSERT INTO fleet_alerts (vehicle_id, trip_id, plate, alert_type, severity, title, description, driver_name, created_at)
+                 VALUES (?, ?, ?, 'RESERVA_CORRIDA_RAPIDA', 'WARNING', ?, ?, ?, ?)`,
+                [
+                    veh.id, tripId, veh.plate,
+                    `Veículo reservado retirado p/ corrida rápida (${veh.plate})`,
+                    `${finalDriverName} retirou ${veh.name} (${veh.plate}) p/ "${String(destination).trim()}" ciente da reserva aprovada de ${otherRes.driver_name} (${formatIsoBr(otherRes.start_at)} até ${formatIsoBr(otherRes.end_at)}).`,
                     finalDriverName, now
                 ]
             );
@@ -1993,6 +2106,22 @@ module.exports = function registerFleetModule({
             });
         });
 
+        await attachReservationsToVehicles(vehicles);
+
+        const cutoffHistoryIso = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
+        const reservations = await fAll(
+            `SELECT * FROM fleet_reservations
+             WHERE status IN ('PENDING', 'APPROVED') OR start_at >= ?
+             ORDER BY
+               CASE status WHEN 'PENDING' THEN 0 WHEN 'APPROVED' THEN 1 ELSE 2 END,
+               start_at ASC
+             LIMIT 120`,
+            [cutoffHistoryIso]
+        );
+        const nowIso = new Date().toISOString();
+        const pendingReservationsCount = reservations.filter(r => r.status === 'PENDING').length;
+        const upcomingApprovedCount = reservations.filter(r => r.status === 'APPROVED' && r.end_at >= nowIso).length;
+
         const settings = await getSettingsMap();
         const disk = checkDiskSafetyBreaker();
         const localLanIp = detectLocalLanIp();
@@ -2002,6 +2131,7 @@ module.exports = function registerFleetModule({
             success: true,
             vehicles,
             drivers,
+            reservations,
             openAlerts,
             recentTrips,
             metrics: {
@@ -2010,6 +2140,8 @@ module.exports = function registerFleetModule({
                 overnight: vehicles.filter(v => v.status === 'PERNOITE_CASA').length,
                 maintenance: vehicles.filter(v => v.status === 'MANUTENCAO').length,
                 openAlertsCount: openAlerts.length,
+                pendingReservationsCount,
+                upcomingApprovedCount,
                 driversCount: drivers.filter(d => d.active === 1).length,
                 cnhAttentionCount: drivers.filter(d => d.active === 1 && d.cnh_status !== 'VALID').length,
                 monthKm: monthKm ? monthKm.km_month : 0,
@@ -2022,6 +2154,204 @@ module.exports = function registerFleetModule({
             localLanIp,
             publicCloudUrl
         });
+    }));
+
+    // 10A. AGENDA & RESERVA ANTECIPADA DE VEÍCULOS (Solicitação pelo Motorista -> Aprovação pela Gestão)
+    router.get('/reservations', authenticateFleet, asyncSafe(async (req, res) => {
+        const cutoffIso = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
+        const rows = await fAll(
+            `SELECT * FROM fleet_reservations
+             WHERE status IN ('PENDING', 'APPROVED') OR start_at >= ?
+             ORDER BY
+               CASE status WHEN 'PENDING' THEN 0 WHEN 'APPROVED' THEN 1 ELSE 2 END,
+               start_at ASC
+             LIMIT 120`,
+            [cutoffIso]
+        );
+        res.json({ success: true, reservations: rows });
+    }));
+
+    router.post('/reservations', authenticateFleet, asyncSafe(async (req, res) => {
+        const {
+            vehicle_id, driver_id, driver_real_name, purpose_type, destination,
+            project_code, start_at, end_at, notes
+        } = req.body;
+
+        const veh = await fGet('SELECT * FROM fleet_vehicles WHERE id = ? AND active = 1', [vehicle_id]);
+        if (!veh) return res.status(404).json({ error: 'Selecione um veículo válido.' });
+
+        const startIso = normalizeIsoTimestamp(start_at);
+        const endIso = normalizeIsoTimestamp(end_at);
+        const nowIso = new Date().toISOString();
+
+        if (!startIso || !endIso) {
+            return res.status(400).json({ error: 'Informe a data/hora inicial e a previsão de retorno da reserva.' });
+        }
+        if (endIso <= startIso) {
+            return res.status(400).json({ error: 'A data/hora de retorno deve ser posterior à data/hora de saída.' });
+        }
+        if (endIso <= nowIso) {
+            return res.status(400).json({ error: 'O período informado já passou. Escolha uma data/hora futura.' });
+        }
+        if (!destination || !String(destination).trim()) {
+            return res.status(400).json({ error: 'Informe o cliente ou destino da visita agendada.' });
+        }
+
+        const isMgr = isFleetManagerUser(req.user);
+        let targetDrv = req.fleetDriver || null;
+        if (isMgr && driver_id) {
+            const found = await fGet('SELECT * FROM fleet_drivers WHERE id = ?', [parseInt(driver_id)]);
+            if (found) targetDrv = found;
+        }
+
+        if (targetDrv) {
+            if (targetDrv.active === 0) {
+                return res.status(403).json({ error: 'Condutor desativado pela gestão.' });
+            }
+            const startDayStr = startIso.slice(0, 10);
+            if (targetDrv.cnh_expiry_date && targetDrv.cnh_expiry_date < startDayStr) {
+                const expBr = targetDrv.cnh_expiry_date.split('-').reverse().join('/');
+                return res.status(403).json({
+                    error: `⛔ A CNH de ${targetDrv.full_name} vence em ${expBr} (antes da data da viagem agendada). Regularize a CNH primeiro.`
+                });
+            }
+        }
+
+        // Impedir choque direto com outra reserva JÁ APROVADA no mesmo veículo e horário
+        const conflictApproved = await fGet(
+            `SELECT * FROM fleet_reservations
+             WHERE vehicle_id = ?
+               AND status = 'APPROVED'
+               AND NOT (end_at <= ? OR start_at >= ?)
+             ORDER BY start_at ASC LIMIT 1`,
+            [veh.id, startIso, endIso]
+        );
+        if (conflictApproved) {
+            return res.status(409).json({
+                error: `⚠️ Este veículo (${veh.name} - ${veh.plate}) já possui reserva APROVADA para ${conflictApproved.driver_name} de ${formatIsoBr(conflictApproved.start_at)} até ${formatIsoBr(conflictApproved.end_at)} (${conflictApproved.destination}). Escolha outro veículo ou outro horário.`
+            });
+        }
+
+        const finalDriverName = targetDrv
+            ? targetDrv.full_name
+            : (String(driver_real_name || '').trim() || getFriendlyUserName(req.user.username));
+        const finalDriverUsername = targetDrv
+            ? (targetDrv.mrp_username || targetDrv.login_key)
+            : req.user.username;
+
+        // Se o próprio Gestor cadastrar pelo painel /frota, já nasce APROVADA; se o motorista solicitar pelo celular, nasce PENDENTE!
+        const initialStatus = isMgr ? 'APPROVED' : 'PENDING';
+        const r = await fRun(
+            `INSERT INTO fleet_reservations (
+                vehicle_id, plate, vehicle_name, driver_id, driver_username, driver_name,
+                purpose_type, destination, project_code, start_at, end_at, notes,
+                status, reviewed_by, reviewed_at, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                veh.id, veh.plate, veh.name,
+                targetDrv ? targetDrv.id : null,
+                finalDriverUsername, finalDriverName,
+                purpose_type || 'VISITA_COMERCIAL',
+                String(destination).trim(),
+                project_code ? String(project_code).trim() : null,
+                startIso, endIso,
+                notes ? String(notes).trim() : null,
+                initialStatus,
+                isMgr ? req.user.username : null,
+                isMgr ? nowIso : null,
+                nowIso, nowIso
+            ]
+        );
+
+        const created = await fGet('SELECT * FROM fleet_reservations WHERE id = ?', [r.lastID]);
+        res.json({
+            success: true,
+            reservation: created,
+            message: isMgr
+                ? `✅ Reserva criada e já APROVADA para ${finalDriverName} (${veh.plate})!`
+                : `📨 Solicitação enviada! Sua reserva do ${veh.name} (${veh.plate}) está PENDENTE aguardando aprovação da Gestão.`
+        });
+    }));
+
+    router.put('/reservations/:id/status', authenticateFleet, requireFleetManager, asyncSafe(async (req, res) => {
+        const resRow = await fGet('SELECT * FROM fleet_reservations WHERE id = ?', [req.params.id]);
+        if (!resRow) return res.status(404).json({ error: 'Reserva não encontrada.' });
+
+        const { action, vehicle_id, manager_notes } = req.body;
+        const nowIso = new Date().toISOString();
+
+        let targetVeh = await fGet('SELECT * FROM fleet_vehicles WHERE id = ?', [vehicle_id || resRow.vehicle_id]);
+        if (!targetVeh) return res.status(404).json({ error: 'Veículo selecionado não encontrado.' });
+
+        let nextStatus = resRow.status;
+        if (action === 'APPROVE') {
+            const conflict = await fGet(
+                `SELECT * FROM fleet_reservations
+                 WHERE id != ?
+                   AND vehicle_id = ?
+                   AND status = 'APPROVED'
+                   AND NOT (end_at <= ? OR start_at >= ?)
+                 LIMIT 1`,
+                [resRow.id, targetVeh.id, resRow.start_at, resRow.end_at]
+            );
+            if (conflict) {
+                return res.status(409).json({
+                    error: `Conflito: ${targetVeh.name} (${targetVeh.plate}) já está APROVADO para ${conflict.driver_name} (${formatIsoBr(conflict.start_at)} até ${formatIsoBr(conflict.end_at)}). Troque o veículo ou cancele a outra reserva primeiro.`
+                });
+            }
+            nextStatus = 'APPROVED';
+        } else if (action === 'REJECT') {
+            nextStatus = 'REJECTED';
+        } else if (action === 'CANCEL') {
+            nextStatus = 'CANCELLED';
+        } else {
+            return res.status(400).json({ error: 'Ação inválida.' });
+        }
+
+        await fRun(
+            `UPDATE fleet_reservations SET
+                vehicle_id = ?,
+                plate = ?,
+                vehicle_name = ?,
+                status = ?,
+                reviewed_by = ?,
+                reviewed_at = ?,
+                manager_notes = COALESCE(?, manager_notes),
+                updated_at = ?
+             WHERE id = ?`,
+            [
+                targetVeh.id, targetVeh.plate, targetVeh.name,
+                nextStatus, req.user.username, nowIso,
+                manager_notes !== undefined ? String(manager_notes).trim() : null,
+                nowIso, resRow.id
+            ]
+        );
+
+        const updated = await fGet('SELECT * FROM fleet_reservations WHERE id = ?', [resRow.id]);
+        res.json({ success: true, reservation: updated });
+    }));
+
+    router.post('/reservations/:id/cancel', authenticateFleet, asyncSafe(async (req, res) => {
+        const resRow = await fGet('SELECT * FROM fleet_reservations WHERE id = ?', [req.params.id]);
+        if (!resRow) return res.status(404).json({ error: 'Reserva não encontrada.' });
+
+        const isMgr = isFleetManagerUser(req.user);
+        const uname = String(req.user.username || '').toLowerCase().trim();
+        const drv = req.fleetDriver || null;
+        const isOwner =
+            (drv && resRow.driver_id === drv.id) ||
+            String(resRow.driver_username || '').toLowerCase() === uname;
+
+        if (!isMgr && !isOwner) {
+            return res.status(403).json({ error: 'Somente o solicitante ou a Gestão podem cancelar esta reserva.' });
+        }
+
+        const nowIso = new Date().toISOString();
+        await fRun(
+            `UPDATE fleet_reservations SET status = 'CANCELLED', updated_at = ? WHERE id = ?`,
+            [nowIso, resRow.id]
+        );
+        res.json({ success: true, message: 'Reserva cancelada.' });
     }));
 
     // 10B. Gestão de Condutores Habilitados & CNH (Tecfag e Valem)
