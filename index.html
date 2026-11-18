@@ -9665,7 +9665,9 @@
                 menuSupplyChain.style.display = (role === 'ALL' || role === 'GERENTE' || role === 'COMPRAS' || role === 'DIRETOR' || isGilson || isJhenifer) ? 'block' : 'none';
             }
             const menuFleetManager = document.getElementById('menu-fleet-manager');
-            const isFleetMgr = (role === 'ALL' || role === 'GERENTE' || role === 'DIRETOR' || isGilson || isJhenifer || username === 'admin');
+            const isPatricia = username === 'vendas6' || username === 'vendas6@tecfag.com.br' || username === 'patricia';
+            const isJerlayne = username === 'jerlayne' || username === 'rh' || role === 'RH';
+            const isFleetMgr = (role === 'ALL' || role === 'GERENTE' || role === 'DIRETOR' || isGilson || isJhenifer || isPatricia || isJerlayne || username === 'admin');
             if (menuFleetManager) {
                 menuFleetManager.style.display = isFleetMgr ? 'block' : 'none';
             }

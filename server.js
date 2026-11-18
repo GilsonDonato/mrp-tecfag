@@ -1519,7 +1519,8 @@ function seedDefaultUsers() {
         { username: 'suporte2', password: 'tarcisio#tecfag99', role: 'ALL' },
         { username: 'suporte2@tecfag.com.br', password: 'tarcisio#tecfag99', role: 'ALL' },
         { username: 'adm@tecfag.com.br', email: 'adm@tecfag.com.br', password: 'jhenifer#tecfag99', role: 'COMPRAS' },
-        { username: 'jhenifer', email: 'adm@tecfag.com.br', password: 'jhenifer#tecfag99', role: 'COMPRAS' }
+        { username: 'jhenifer', email: 'adm@tecfag.com.br', password: 'jhenifer#tecfag99', role: 'COMPRAS' },
+        { username: 'jerlayne', password: 'jerlayne#tecfag99', role: 'RH' }
     ];
 
     defaultUsers.forEach((u) => {
@@ -2293,7 +2294,9 @@ app.post('/api/auth/login', async (req, res) => {
             'nardeli': 'vendas3',
             'lucas': 'vendas4',
             'patricia': 'vendas6',
-            'patrícia': 'vendas6'
+            'patrícia': 'vendas6',
+            'lerlayne': 'jerlayne',
+            'rh@tecfag.com.br': 'jerlayne'
         };
         if (aliasMap[cleanUser]) {
             cleanUser = aliasMap[cleanUser];

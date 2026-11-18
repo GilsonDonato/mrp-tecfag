@@ -100,14 +100,16 @@ module.exports = function registerFleetModule({
         'vendas2': 'Jhordan (Vendas)',
         'vendas3': 'Nardeli (Vendas)',
         'vendas4': 'Lucas (Vendas)',
-        'vendas6': 'Patrícia (Técnico/Vendas)',
-        'vendas6@tecfag.com.br': 'Patrícia (Técnico/Vendas)',
+        'vendas6': 'Patrícia (Gestão de Frota)',
+        'vendas6@tecfag.com.br': 'Patrícia (Gestão de Frota)',
+        'patricia': 'Patrícia (Gestão de Frota)',
         'heilio': 'Heilio (Assistência)',
         'assistencia6@tecfag.com.br': 'Heilio (Assistência)',
         'suporte2': 'Tarcísio (Suporte)',
         'suporte2@tecfag.com.br': 'Tarcísio (Suporte)',
         'jhenifer': 'Jhenifer (Compras/Adm)',
         'adm@tecfag.com.br': 'Jhenifer (Compras/Adm)',
+        'jerlayne': 'Jerlayne (RH • CNH & Multas)',
         'joao.lanza': 'João Lanza (Diretor)',
         'gerente': 'Gerente de Projetos',
         'gerente_comercial': 'Gerente Comercial',
@@ -115,7 +117,7 @@ module.exports = function registerFleetModule({
         'compras': 'Setor de Compras',
         'estoque': 'Almoxarifado / Estoque',
         'tecnico': 'Equipe Técnica',
-        'rh': 'RH Tecfag'
+        'rh': 'Jerlayne / RH Tecfag'
     };
 
     const GENERIC_SHARED_LOGINS = new Set([
@@ -128,7 +130,14 @@ module.exports = function registerFleetModule({
         return USER_DISPLAY_NAMES[clean] || username;
     }
 
-    function isFleetManagerUser(user) {
+    function isRhFleetUser(user) {
+        if (!user) return false;
+        const role = String(user.role || '').toUpperCase();
+        const uname = String(user.username || '').toLowerCase().trim();
+        return role === 'RH' || uname === 'jerlayne' || uname === 'lerlayne' || uname === 'rh' || uname === 'rh@tecfag.com.br';
+    }
+
+    function canManageVehiclesAndReservations(user) {
         if (!user) return false;
         const role = String(user.role || '').toUpperCase();
         const uname = String(user.username || '').toLowerCase().trim();
@@ -138,16 +147,30 @@ module.exports = function registerFleetModule({
             role === 'GERENTE' ||
             uname === 'gilson' ||
             uname === 'gilson@tecfag.com.br' ||
+            uname === 'patricia' ||
+            uname === 'vendas6' ||
+            uname === 'vendas6@tecfag.com.br' ||
             uname === 'adm@tecfag.com.br' ||
             uname === 'jhenifer' ||
             uname === 'admin'
         );
     }
 
+    function isFleetManagerUser(user) {
+        return canManageVehiclesAndReservations(user) || isRhFleetUser(user);
+    }
+
     function requireFleetManager(req, res, next) {
         if (isFleetManagerUser(req.user)) return next();
         return res.status(403).json({
-            error: 'Acesso restrito à Diretoria / Gestão de Frota. Para retirar ou devolver veículos, use o painel /motorista.'
+            error: 'Acesso restrito à Diretoria / Gestão de Frota / RH. Para retirar ou devolver veículos, use o painel /motorista.'
+        });
+    }
+
+    function requireVehicleReservationManager(req, res, next) {
+        if (canManageVehiclesAndReservations(req.user)) return next();
+        return res.status(403).json({
+            error: 'Aprovação de reservas e gestão direta dos veículos é responsabilidade de Patrícia / Diretoria.'
         });
     }
 
@@ -2129,6 +2152,12 @@ module.exports = function registerFleetModule({
 
         res.json({
             success: true,
+            managerProfile: {
+                username: req.user.username,
+                friendlyName: getFriendlyUserName(req.user.username),
+                isRhOnly: isRhFleetUser(req.user) && !canManageVehiclesAndReservations(req.user),
+                canApproveReservations: canManageVehiclesAndReservations(req.user)
+            },
             vehicles,
             drivers,
             reservations,
@@ -2197,9 +2226,9 @@ module.exports = function registerFleetModule({
             return res.status(400).json({ error: 'Informe o cliente ou destino da visita agendada.' });
         }
 
-        const isMgr = isFleetManagerUser(req.user);
+        const isResMgr = canManageVehiclesAndReservations(req.user);
         let targetDrv = req.fleetDriver || null;
-        if (isMgr && driver_id) {
+        if (isResMgr && driver_id) {
             const found = await fGet('SELECT * FROM fleet_drivers WHERE id = ?', [parseInt(driver_id)]);
             if (found) targetDrv = found;
         }
@@ -2239,8 +2268,8 @@ module.exports = function registerFleetModule({
             ? (targetDrv.mrp_username || targetDrv.login_key)
             : req.user.username;
 
-        // Se o próprio Gestor cadastrar pelo painel /frota, já nasce APROVADA; se o motorista solicitar pelo celular, nasce PENDENTE!
-        const initialStatus = isMgr ? 'APPROVED' : 'PENDING';
+        // Se o Gestor de Frota (Patrícia / Gilson / Diretoria) cadastrar, já nasce APROVADA; se o motorista solicitar, nasce PENDENTE!
+        const initialStatus = isResMgr ? 'APPROVED' : 'PENDING';
         const r = await fRun(
             `INSERT INTO fleet_reservations (
                 vehicle_id, plate, vehicle_name, driver_id, driver_username, driver_name,
@@ -2257,8 +2286,8 @@ module.exports = function registerFleetModule({
                 startIso, endIso,
                 notes ? String(notes).trim() : null,
                 initialStatus,
-                isMgr ? req.user.username : null,
-                isMgr ? nowIso : null,
+                isResMgr ? req.user.username : null,
+                isResMgr ? nowIso : null,
                 nowIso, nowIso
             ]
         );
@@ -2267,13 +2296,13 @@ module.exports = function registerFleetModule({
         res.json({
             success: true,
             reservation: created,
-            message: isMgr
+            message: isResMgr
                 ? `✅ Reserva criada e já APROVADA para ${finalDriverName} (${veh.plate})!`
                 : `📨 Solicitação enviada! Sua reserva do ${veh.name} (${veh.plate}) está PENDENTE aguardando aprovação da Gestão.`
         });
     }));
 
-    router.put('/reservations/:id/status', authenticateFleet, requireFleetManager, asyncSafe(async (req, res) => {
+    router.put('/reservations/:id/status', authenticateFleet, requireVehicleReservationManager, asyncSafe(async (req, res) => {
         const resRow = await fGet('SELECT * FROM fleet_reservations WHERE id = ?', [req.params.id]);
         if (!resRow) return res.status(404).json({ error: 'Reserva não encontrada.' });
 

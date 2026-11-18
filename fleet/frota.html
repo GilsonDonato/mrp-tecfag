@@ -363,23 +363,25 @@
             </div>
         </div>
         <div class="top-actions">
+            <span id="mgr-logged-badge" style="display:none;background:#1e293b;border:1px solid var(--border);color:#38bdf8;padding:7px 12px;border-radius:8px;font-size:0.76rem;font-weight:800;"></span>
             <a href="/motorista" target="_blank" class="btn">📱 Abrir Tela do Motorista ↗</a>
             <button type="button" class="btn btn-primary" onclick="refreshDashboard()">🔄 Atualizar Agora</button>
             <a href="/" class="btn">⬅ Voltar ao MRP</a>
+            <button type="button" id="btn-mgr-logout" class="btn btn-red" style="display:none;" onclick="logoutManager()">🚪 Sair</button>
         </div>
     </div>
 
     <!-- TELA DE LOGIN CASO ACESSE DIRETO SEM SESSÃO -->
-    <div id="manager-login-box" style="display:none;max-width:420px;margin:60px auto;padding:20px;">
+    <div id="manager-login-box" style="display:none;max-width:430px;margin:60px auto;padding:20px;">
         <div class="card-panel">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
                 <img src="/media/tecfag_emblem.png" alt="Tecfag" style="height:36px;width:36px;object-fit:contain;">
                 <img src="/media/tecfag_text.png" alt="TECFAG" style="height:20px;width:auto;filter:brightness(0) invert(1);">
             </div>
-            <h3 style="margin-bottom:8px;">🔐 Login da Gestão Tecfag</h3>
-            <p style="font-size:0.8rem;color:var(--muted);margin-bottom:16px;">Use sua credencial de Diretoria / Gerência do MRP.</p>
+            <h3 style="margin-bottom:8px;">🔐 Acesso Gestão de Frota & RH</h3>
+            <p style="font-size:0.8rem;color:var(--muted);margin-bottom:16px;">Entre com seu usuário autorizado (Diretoria, Gestão de Frota ou RH).</p>
             <form onsubmit="handleManagerLogin(event)" style="display:flex;flex-direction:column;gap:12px;">
-                <input type="text" id="mgr-user" class="input" placeholder="Usuário (ex: gilson, admin)" required>
+                <input type="text" id="mgr-user" class="input" placeholder="Usuário (ex: patricia, jerlayne, gilson)" required>
                 <input type="password" id="mgr-pass" class="input" placeholder="Senha" required>
                 <div id="mgr-err" style="display:none;color:#f87171;font-size:0.8rem;font-weight:700;"></div>
                 <button type="submit" class="btn btn-primary" style="justify-content:center;padding:12px;">Entrar no Painel de Frota</button>
@@ -673,7 +675,7 @@
                             Quando um motorista solicita reserva pelo celular para visita futura, você aprova (podendo inclusive remanejar o carro) ou recusa abaixo.
                         </p>
                     </div>
-                    <button type="button" class="btn btn-green" onclick="openManagerReservationModal()">➕ Agendar Reserva Direta (Gestão)</button>
+                    <button type="button" id="btn-mgr-new-res" class="btn btn-green" onclick="openManagerReservationModal()">➕ Agendar Reserva Direta (Gestão)</button>
                 </div>
                 <div id="pending-reservations-cards"></div>
             </div>
@@ -1076,12 +1078,21 @@
             if (!(options.body instanceof FormData) && !headers['Content-Type']) {
                 headers['Content-Type'] = 'application/json';
             }
-            const res = await fetch(url, Object.assign({}, options, { headers }));
+            const res = await fetch(url, Object.assign({ credentials: 'same-origin' }, options, { headers }));
             if (res.status === 401 || res.status === 403) {
                 const errData = await res.json().catch(() => ({}));
-                if (res.status === 401) {
+                if (res.status === 401 || url.includes('/api/fleet/dashboard')) {
                     document.getElementById('manager-main-content').style.display = 'none';
+                    document.getElementById('mgr-logged-badge').style.display = 'none';
+                    document.getElementById('btn-mgr-logout').style.display = 'none';
                     document.getElementById('manager-login-box').style.display = 'block';
+                    if (res.status === 403) {
+                        const errEl = document.getElementById('mgr-err');
+                        if (errEl) {
+                            errEl.textContent = 'A sessão atual deste navegador não tem permissão de Gestão/RH. Entre abaixo com patricia, jerlayne ou gilson.';
+                            errEl.style.display = 'block';
+                        }
+                    }
                 }
                 throw new Error(errData.error || 'Acesso restrito.');
             }
@@ -1107,11 +1118,23 @@
                 if (!res.ok || !data.token) throw new Error(data.error || 'Credenciais inválidas.');
                 localStorage.setItem('tecfag_session_token', data.token);
                 localStorage.setItem('tecfag_user', JSON.stringify(data.user));
+                document.getElementById('mgr-pass').value = '';
                 await refreshDashboard();
             } catch (err) {
                 errEl.textContent = err.message;
                 errEl.style.display = 'block';
             }
+        }
+
+        async function logoutManager() {
+            await fetch('/api/fleet/auth/unbind-device', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+            localStorage.removeItem('tecfag_session_token');
+            localStorage.removeItem('tecfag_user');
+            document.getElementById('manager-main-content').style.display = 'none';
+            document.getElementById('mgr-logged-badge').style.display = 'none';
+            document.getElementById('btn-mgr-logout').style.display = 'none';
+            document.getElementById('mgr-err').style.display = 'none';
+            document.getElementById('manager-login-box').style.display = 'block';
         }
 
         function renderPlate(plate) {
@@ -1169,15 +1192,19 @@
         }
 
         async function refreshDashboard() {
-            if (!getToken()) {
-                document.getElementById('manager-login-box').style.display = 'block';
-                return;
-            }
             try {
                 const data = await apiFetch('/api/fleet/dashboard');
                 dashState = data;
                 document.getElementById('manager-login-box').style.display = 'none';
                 document.getElementById('manager-main-content').style.display = 'block';
+
+                const mp = data.managerProfile || {};
+                const badgeEl = document.getElementById('mgr-logged-badge');
+                if (badgeEl && mp.friendlyName) {
+                    badgeEl.textContent = `👤 ${mp.friendlyName}`;
+                    badgeEl.style.display = 'inline-flex';
+                }
+                document.getElementById('btn-mgr-logout').style.display = 'inline-flex';
 
                 // Atualizar HUD de proteção de disco
                 const d = data.disk || {};
@@ -1224,7 +1251,9 @@
                     renderQrStickers();
                 }
             } catch (err) {
-                alert(err.message);
+                if (document.getElementById('manager-login-box').style.display !== 'block') {
+                    alert(err.message);
+                }
             }
         }
 
@@ -2074,8 +2103,9 @@
         function renderPendingReservationsBanner(reservations) {
             const box = document.getElementById('pending-reservations-banner');
             if (!box) return;
+            const canAppr = !dashState.managerProfile || dashState.managerProfile.canApproveReservations !== false;
             const pendings = (reservations || []).filter(r => r.status === 'PENDING');
-            if (!pendings.length) {
+            if (!pendings.length || !canAppr) {
                 box.style.display = 'none';
                 return;
             }
@@ -2104,11 +2134,16 @@
         function renderReservationsTab() {
             const allRes = dashState.reservations || [];
             const vehicles = dashState.vehicles || [];
+            const canAppr = !dashState.managerProfile || dashState.managerProfile.canApproveReservations !== false;
             const pendings = allRes.filter(r => r.status === 'PENDING');
+            const newResBtn = document.getElementById('btn-mgr-new-res');
+            if (newResBtn) newResBtn.style.display = canAppr ? 'inline-flex' : 'none';
 
             const pendBox = document.getElementById('pending-reservations-cards');
             if (pendBox) {
-                if (!pendings.length) {
+                if (!canAppr) {
+                    pendBox.innerHTML = `<div style="padding:14px;text-align:center;color:var(--muted);font-size:0.83rem;background:#0b0f19;border-radius:10px;border:1px dashed var(--border);">ℹ️ Aprovação e remanejamento de reservas sob responsabilidade de <strong>Patrícia / Diretoria</strong> (${pendings.length} pendente${pendings.length === 1 ? '' : 's'} no momento).</div>`;
+                } else if (!pendings.length) {
                     pendBox.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted);font-size:0.84rem;background:#0b0f19;border-radius:10px;border:1px dashed var(--border);">✅ Nenhuma solicitação pendente de aprovação no momento.</div>`;
                 } else {
                     pendBox.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(420px, 1fr));gap:14px;">` + pendings.map(r => {
@@ -2184,10 +2219,10 @@
                     </td>
                     <td>${renderMgrResBadge(r.status)}</td>
                     <td>
-                        ${r.status === 'PENDING'
+                        ${canAppr && r.status === 'PENDING'
                             ? `<button type="button" class="btn btn-green" style="padding:5px 10px;font-size:0.74rem;" onclick="decideReservation(${r.id}, 'APPROVE')">✅ Aprovar</button>`
                             : ''}
-                        ${['PENDING', 'APPROVED'].includes(r.status)
+                        ${canAppr && ['PENDING', 'APPROVED'].includes(r.status)
                             ? `<button type="button" class="btn btn-red" style="padding:5px 10px;font-size:0.74rem;" onclick="decideReservation(${r.id}, 'CANCEL')">🚫 Cancelar</button>`
                             : '-'}
                     </td>
