@@ -969,6 +969,54 @@ module.exports = function registerFleetModule({
                     company: 'TECFAG',
                     department: 'Operacional',
                     mrp_username: null
+                },
+                {
+                    login_key: 'lucas',
+                    full_name: 'LUCAS AUGUSTO EVARISTO SPIRI',
+                    cpf: '34987832895',
+                    rg: '531945868 SSP SP',
+                    cnh_number: '08254900439',
+                    cnh_category: 'B',
+                    cnh_issue_date: '2026-04-05',
+                    cnh_expiry_date: '2033-02-23',
+                    first_license_date: '2023-08-03',
+                    birth_date: '1998-04-27',
+                    uf_city: 'BAURU, SP',
+                    company: 'TECFAG',
+                    department: 'Vendas / Comercial',
+                    mrp_username: 'vendas4'
+                },
+                {
+                    login_key: 'henrique',
+                    full_name: 'HENRIQUE TAVARES DA SILVA',
+                    cpf: '47910140819',
+                    rg: '54587947 SSP SP',
+                    cnh_number: '07171567858',
+                    cnh_category: 'AB',
+                    cnh_issue_date: '2025-02-05',
+                    cnh_expiry_date: '2033-08-14',
+                    first_license_date: '2018-11-29',
+                    birth_date: '1999-01-07',
+                    uf_city: 'SAO PAULO, SP',
+                    company: 'TECFAG',
+                    department: 'Operacional',
+                    mrp_username: null
+                },
+                {
+                    login_key: 'humberto',
+                    full_name: 'HUMBERTO DOS SANTOS LOPES',
+                    cpf: '22811361839',
+                    rg: '50900801X SSP SP',
+                    cnh_number: '07758885006',
+                    cnh_category: 'B',
+                    cnh_issue_date: '2023-02-23',
+                    cnh_expiry_date: '2031-08-11',
+                    first_license_date: '2022-02-18',
+                    birth_date: '1999-12-18',
+                    uf_city: 'SAO PAULO, SP',
+                    company: 'TECFAG',
+                    department: 'Operacional',
+                    mrp_username: null
                 }
             ];
 
