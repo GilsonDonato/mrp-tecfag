@@ -21801,12 +21801,17 @@ function renderKanban() {
                     }
 
                     // Layouts e Memoriais
+                    html += `
+                        <div>
+                            <div style="font-size: 0.68rem; color: var(--primary); font-weight: bold; text-transform: uppercase; margin-bottom: 6px; border-bottom: 1px solid rgba(59, 130, 246, 0.2); padding-bottom: 4px; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center;">
+                                <span>📐 Desenhos Industriais / Layout / Memorial</span>
+                                <button type="button" onclick="openEspecialFilesUploader('${project.code}')" style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); color: var(--primary); font-size: 0.65rem; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;" title="Reenviar ou adicionar novos desenhos técnicos e memoriais para disco permanente">
+                                    🔄 Reenviar / Adicionar Arquivos
+                                </button>
+                            </div>
+                    `;
                     if (parsed.especialFiles && parsed.especialFiles.length > 0) {
-                        html += `
-                            <div>
-                                <div style="font-size: 0.68rem; color: var(--primary); font-weight: bold; text-transform: uppercase; margin-bottom: 6px; border-bottom: 1px solid rgba(59, 130, 246, 0.2); padding-bottom: 2px; letter-spacing: 0.5px;">📐 Desenhos Industriais / Layout / Memorial</div>
-                                <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
-                        `;
+                        html += `<div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">`;
                         parsed.especialFiles.forEach(att => {
                             html += `
                                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; background: rgba(59, 130, 246, 0.04); border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.1);">
@@ -21815,8 +21820,11 @@ function renderKanban() {
                                 </div>
                             `;
                         });
-                        html += `</div></div>`;
+                        html += `</div>`;
+                    } else {
+                        html += `<div style="font-size: 0.68rem; color: var(--text-secondary); font-style: italic; padding: 4px 0;">Nenhum desenho técnico ou memorial vinculado. Clique no botão acima para adicionar.</div>`;
                     }
+                    html += `</div>`;
 
                     // Mídias do Produto em Ação
                     if (parsed.mediaFiles && parsed.mediaFiles.length > 0) {
@@ -22580,6 +22588,130 @@ function renderKanban() {
                 alert('Erro de conexão ao excluir observação.');
             }
         }
+
+        // Reenvio e atualização de arquivos técnicos / desenhos industriais salvos permanentemente
+        window.openEspecialFilesUploader = function(projectCode) {
+            const prjCode = projectCode || activeProjectCode;
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.multiple = true;
+            fileInput.accept = '.dwg,.pdf,image/*';
+
+            fileInput.onchange = async (e) => {
+                const files = Array.from(e.target.files);
+                if (!files.length) return;
+
+                const prj = (state.projects && Array.isArray(state.projects)) ? state.projects.find(p => p.code === prjCode) : null;
+                if (!prj) {
+                    alert('Projeto não encontrado!');
+                    return;
+                }
+
+                const token = localStorage.getItem('tecfag_session_token');
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                // Notificação / Toast de Progresso
+                let toast = document.getElementById('upload-progress-toast');
+                if (!toast) {
+                    toast = document.createElement('div');
+                    toast.id = 'upload-progress-toast';
+                    document.body.appendChild(toast);
+                }
+                toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#0f172a;border:1px solid #3b82f6;color:#f8fafc;padding:14px 20px;border-radius:10px;z-index:999999;box-shadow:0 12px 30px rgba(0,0,0,0.6);font-size:0.85rem;display:flex;align-items:center;gap:12px;';
+                toast.innerHTML = `<span style="font-size:1.3rem;">⏳</span> <span>Enviando arquivos para o disco persistente: <strong>0/${files.length}</strong>...</span>`;
+
+                try {
+                    let uploadedCount = 0;
+                    const newAttachments = [];
+
+                    for (const file of files) {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        formData.append('projectCode', prjCode);
+                        formData.append('phase', 'diagnostico');
+
+                        const res = await fetch('/api/attachments', {
+                            method: 'POST',
+                            headers,
+                            body: formData
+                        });
+
+                        if (res.ok) {
+                            const data = await res.json();
+                            newAttachments.push({
+                                fileName: file.name,
+                                filePath: data.fileData || ('/' + data.filePath)
+                            });
+                            uploadedCount++;
+                            toast.innerHTML = `<span style="font-size:1.3rem;">⏳</span> <span>Enviando arquivos para o disco persistente: <strong>${uploadedCount}/${files.length}</strong>...</span>`;
+                        } else {
+                            console.warn('[ESPECIAL UPLOAD] Falha no upload de:', file.name);
+                        }
+                    }
+
+                    if (newAttachments.length > 0) {
+                        let parsedSpecs = {};
+                        try {
+                            parsedSpecs = typeof prj.setup_specs === 'string' ? JSON.parse(prj.setup_specs || '{}') : (prj.setup_specs || {});
+                        } catch(e) { parsedSpecs = {}; }
+
+                        let parsedDiag = {};
+                        try {
+                            parsedDiag = typeof prj.diagnostico === 'string' ? JSON.parse(prj.diagnostico || '{}') : (prj.diagnostico || {});
+                        } catch(e) { parsedDiag = {}; }
+
+                        // Substitui pelo mesmo nome ou acrescenta novos
+                        const existingFiles = (parsedSpecs.especialFiles || parsedDiag.especialFiles || []).filter(ef => 
+                            !newAttachments.some(na => na.fileName.toLowerCase() === ef.fileName.toLowerCase())
+                        );
+                        const updatedList = [...existingFiles, ...newAttachments];
+
+                        parsedSpecs.especialFiles = updatedList;
+                        if (parsedDiag.isStructured) {
+                            parsedDiag.especialFiles = updatedList;
+                        }
+
+                        const updateRes = await fetch(`/api/projects/${encodeURIComponent(prjCode)}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...headers
+                            },
+                            body: JSON.stringify({
+                                setup_specs: JSON.stringify(parsedSpecs),
+                                diagnostico: parsedDiag.isStructured ? JSON.stringify(parsedDiag) : prj.diagnostico
+                            })
+                        });
+
+                        if (updateRes.ok) {
+                            prj.setup_specs = parsedSpecs;
+                            if (parsedDiag.isStructured) prj.diagnostico = JSON.stringify(parsedDiag);
+
+                            toast.style.borderColor = '#10b981';
+                            toast.innerHTML = `<span style="font-size:1.3rem;">✅</span> <span><strong>${newAttachments.length}</strong> arquivo(s) salvos permanentemente com sucesso!</span>`;
+                            setTimeout(() => { if (toast && toast.parentNode) toast.remove(); }, 4000);
+
+                            if (typeof openProjectModal === 'function') {
+                                openProjectModal(prjCode);
+                            }
+                        } else {
+                            throw new Error('Falha ao atualizar dados do projeto no banco de dados.');
+                        }
+                    } else {
+                        toast.style.borderColor = '#ef4444';
+                        toast.innerHTML = `<span style="font-size:1.3rem;">❌</span> <span>Nenhum arquivo pôde ser enviado. Verifique a conexão.</span>`;
+                        setTimeout(() => { if (toast && toast.parentNode) toast.remove(); }, 4000);
+                    }
+                } catch (err) {
+                    console.error('Erro no reenvio de arquivos técnicos:', err);
+                    toast.style.borderColor = '#ef4444';
+                    toast.innerHTML = `<span style="font-size:1.3rem;">❌</span> <span>Erro: ${err.message}</span>`;
+                    setTimeout(() => { if (toast && toast.parentNode) toast.remove(); }, 4000);
+                }
+            };
+
+            fileInput.click();
+        };
 
         // Render attachments lists inside modal for the current active project
         function renderAttachments() {

@@ -2601,8 +2601,26 @@ if (process.env.DATABASE_PATH) {
 app.use('/uploads', express.static(UPLOADS_DIR));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Fallback amigável caso um arquivo de upload tenha sido apagado em redeploy antigo
+// Fallback inteligente caso express.static não tenha servido o arquivo imediatamente
 app.get('/uploads/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const candidateDirs = [
+        UPLOADS_DIR,
+        process.env.DATABASE_PATH ? path.join(DB_DIR, 'uploads') : null,
+        path.join(__dirname, 'uploads'),
+        '/data/uploads',
+        path.join(DB_DIR, 'uploads')
+    ].filter(Boolean);
+
+    for (const dir of candidateDirs) {
+        try {
+            const p = path.join(dir, filename);
+            if (fs.existsSync(p) && fs.statSync(p).isFile()) {
+                return res.sendFile(p);
+            }
+        } catch (e) {}
+    }
+
     res.status(404).send(`
         <!DOCTYPE html>
         <html>
@@ -4622,6 +4640,45 @@ app.post('/api/system-storage/optimize', authenticateToken, async (req, res) => 
                 try {
                     const resRows = await dbAll('SELECT url FROM supplier_resources WHERE url IS NOT NULL');
                     resRows.forEach(r => addPathToSet(r.url));
+                } catch(e) {}
+
+                try {
+                    const prjRows = await dbAll('SELECT setup_specs, checklist FROM projects WHERE setup_specs IS NOT NULL OR checklist IS NOT NULL');
+                    prjRows.forEach(r => {
+                        if (r.setup_specs) {
+                            try {
+                                const parsed = typeof r.setup_specs === 'string' ? JSON.parse(r.setup_specs) : r.setup_specs;
+                                if (Array.isArray(parsed.especialFiles)) {
+                                    parsed.especialFiles.forEach(f => {
+                                        if (f && f.filePath) addPathToSet(f.filePath);
+                                    });
+                                }
+                                if (Array.isArray(parsed.mediaFiles)) {
+                                    parsed.mediaFiles.forEach(f => {
+                                        if (f && f.filePath) addPathToSet(f.filePath);
+                                    });
+                                }
+                                if (Array.isArray(parsed.variations)) {
+                                    parsed.variations.forEach(v => {
+                                        if (v && Array.isArray(v.attachments)) {
+                                            v.attachments.forEach(f => {
+                                                if (f && f.filePath) addPathToSet(f.filePath);
+                                            });
+                                        }
+                                    });
+                                }
+                            } catch(e) {}
+                        }
+                        if (r.checklist) {
+                            try {
+                                const chkStr = typeof r.checklist === 'string' ? r.checklist : JSON.stringify(r.checklist);
+                                const matches = chkStr.match(/uploads\/[^"'\\]+/g);
+                                if (matches) {
+                                    matches.forEach(m => addPathToSet(m));
+                                }
+                            } catch(e) {}
+                        }
+                    });
                 } catch(e) {}
 
                 const uploadFiles = fs.readdirSync(uplDir);

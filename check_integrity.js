@@ -185,7 +185,11 @@ async function main() {
         await dbRun(`CREATE TABLE stock_order_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             order_id INTEGER,
+            project_code TEXT,
+            client_name TEXT,
+            is_project_item INTEGER DEFAULT 1,
             sku TEXT,
+            tecfag_sku TEXT,
             description TEXT,
             ncm TEXT,
             qty_ordered REAL,
@@ -208,8 +212,11 @@ async function main() {
 
         const syncFuncMatch = serverCode.match(/async function syncStockOrderItems\(orderId, items, project\) \{([\s\S]*?)\n\}/);
         assert(syncFuncMatch, 'syncStockOrderItems deve estar definida em server.js');
+        const resolveSkuMatch = serverCode.match(/function resolveCleanItemSku[\s\S]*?\n\}/);
+        assert(resolveSkuMatch, 'resolveCleanItemSku deve estar definida em server.js');
 
         const syncStockOrderItems = new Function('dbGet', 'dbAll', 'dbRun', `
+            ${resolveSkuMatch[0]}
             return async function(orderId, items, project) {
                 ${syncFuncMatch[1]}
             }
