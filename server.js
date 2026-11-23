@@ -14284,6 +14284,26 @@ app.post('/api/supply-chain/orders/:id/eadi-clearance', authenticateToken, restr
         const order = await resolveOrMaterializeStockOrder(orderId, user);
         if (!order) return res.status(404).json({ error: 'Ordem não encontrada.' });
 
+        // Trava de Segurança: Impedir duplicidade de D.I. / DUIMP no sistema
+        const cleanDi = di_number.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        if (cleanDi) {
+            const existingClearance = await dbGet(`
+                SELECT c.*, o.po_number, o.container_id 
+                FROM stock_eadi_clearances c
+                LEFT JOIN stock_orders o ON c.order_id = o.id
+                WHERE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(c.di_number, '/', ''), '-', ''), '.', ''), ' ', '')) = ?
+                LIMIT 1
+            `, [cleanDi]);
+
+            if (existingClearance) {
+                const orderRef = existingClearance.po_number || existingClearance.container_id || `ID #${existingClearance.order_id}`;
+                const dataRef = existingClearance.di_date ? new Date(existingClearance.di_date + 'T12:00:00Z').toLocaleDateString('pt-BR') : 'data anterior';
+                return res.status(400).json({
+                    error: `Bloqueio de Duplicidade: A D.I. "${di_number}" já foi registrada anteriormente no sistema em ${dataRef} para a ordem ${orderRef}. Não é permitido registrar a mesma D.I. duas vezes.`
+                });
+            }
+        }
+
         // Validação de saldos disponíveis
         const orderItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ?', [order.id]);
         const itemMap = {};
@@ -16352,13 +16372,39 @@ Responda APENAS o JSON puro. Não utilize blocos markdown (\`\`\`json).
             });
         }
 
+        let alreadyRegistered = false;
+        let existingClearance = null;
+        if (aiResult.di_number) {
+            const cleanDi = String(aiResult.di_number).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            if (cleanDi) {
+                const found = await dbGet(`
+                    SELECT c.*, o.po_number, o.container_id 
+                    FROM stock_eadi_clearances c
+                    LEFT JOIN stock_orders o ON c.order_id = o.id
+                    WHERE LOWER(REPLACE(REPLACE(REPLACE(REPLACE(c.di_number, '/', ''), '-', ''), '.', ''), ' ', '')) = ?
+                    LIMIT 1
+                `, [cleanDi]);
+                if (found) {
+                    alreadyRegistered = true;
+                    existingClearance = {
+                        di_number: found.di_number,
+                        di_date: found.di_date,
+                        po_number: found.po_number || found.container_id || `ID #${found.order_id}`,
+                        created_at: found.created_at
+                    };
+                }
+            }
+        }
+
         aiResult.file_path = 'uploads/' + req.file.filename;
         aiResult.original_name = req.file.originalname;
 
         res.json({
             success: true,
             extracted: aiResult,
-            suggested_order_id: effectiveOrderId
+            suggested_order_id: effectiveOrderId,
+            already_registered: alreadyRegistered,
+            existing_clearance: existingClearance
         });
 
     } catch (err) {

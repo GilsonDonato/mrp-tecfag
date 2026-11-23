@@ -36029,6 +36029,33 @@ function renderKanban() {
                     }
                 });
 
+                if (data.already_registered) {
+                    if (statusBox) {
+                        statusBox.style.display = 'block';
+                        statusBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                        statusBox.style.borderColor = '#ef4444';
+                        statusBox.style.color = '#fca5a5';
+                    }
+                    if (statusText) {
+                        const orderLabel = data.existing_clearance?.po_number || 'existente';
+                        const dateLabel = data.existing_clearance?.di_date ? new Date(data.existing_clearance.di_date + 'T12:00:00Z').toLocaleDateString('pt-BR') : 'data anterior';
+                        statusText.innerHTML = `⛔ <strong>BLOQUEIO DE DUPLICIDADE:</strong> A D.I. <strong>${ext.di_number}</strong> já foi registrada no sistema para a ordem <strong>${orderLabel}</strong> em <strong>${dateLabel}</strong>.<br><span style="font-size: 0.72rem; color: #fecaca;">Não é permitido registrar a mesma D.I. duas vezes. O botão de confirmação foi desabilitado para prevenir baixa dupla de estoque e duplicidade de impostos.</span>`;
+                    }
+                    const submitBtn = document.querySelector('#eadi-clearance-form button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.style.opacity = '0.5';
+                        submitBtn.style.cursor = 'not-allowed';
+                        submitBtn.title = 'D.I. já registrada anteriormente no sistema';
+                    }
+                    const diNumInput = document.getElementById('eadi-cl-di-number');
+                    if (diNumInput) {
+                        diNumInput.style.borderColor = '#ef4444';
+                        diNumInput.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.5)';
+                    }
+                    return;
+                }
+
                 if (statusBox) {
                     statusBox.style.background = 'rgba(16, 185, 129, 0.15)';
                     statusBox.style.borderColor = 'rgba(16, 185, 129, 0.4)';
@@ -36066,6 +36093,20 @@ function renderKanban() {
             try {
                 const form = document.getElementById('eadi-clearance-form');
                 if (form) form.reset();
+
+                // Resetar trava de duplicidade e estilos
+                const submitBtn = document.querySelector('#eadi-clearance-form button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                    submitBtn.style.cursor = 'pointer';
+                    submitBtn.title = '';
+                }
+                const diNumInput = document.getElementById('eadi-cl-di-number');
+                if (diNumInput) {
+                    diNumInput.style.borderColor = '';
+                    diNumInput.style.boxShadow = '';
+                }
 
                 // Resetar campos de leitura de D.I. via IA
                 const diStatusBox = document.getElementById('eadi-cl-di-status-box');
@@ -36232,6 +36273,22 @@ function renderKanban() {
             if (!diNumber || !diDate) {
                 alert('Preencha o Número e a Data da D.I. / DUIMP.');
                 return;
+            }
+
+            // Pré-validação client-side contra duplicidade de D.I.
+            const cleanDiInput = diNumber.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            if (cleanDiInput && Array.isArray(supplyChainState.orders)) {
+                for (const ord of supplyChainState.orders) {
+                    if (ord.clearances && Array.isArray(ord.clearances)) {
+                        const dup = ord.clearances.find(c => (c.di_number || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === cleanDiInput);
+                        if (dup) {
+                            const ordLabel = ord.po_number || ord.container_id || `ID #${ord.id}`;
+                            const dtLabel = dup.di_date ? new Date(dup.di_date + 'T12:00:00Z').toLocaleDateString('pt-BR') : '';
+                            alert(`⛔ BLOQUEIO DE DUPLICIDADE:\nA D.I. "${diNumber}" já consta registrada para o lote/ordem ${ordLabel}${dtLabel ? ' em ' + dtLabel : ''}.\n\nNão é permitido cadastrar a mesma D.I. duas vezes no sistema.`);
+                            return;
+                        }
+                    }
+                }
             }
 
             const inputs = document.querySelectorAll('.eadi-clear-qty-input');
