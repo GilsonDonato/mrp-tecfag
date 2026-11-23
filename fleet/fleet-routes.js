@@ -1017,6 +1017,22 @@ module.exports = function registerFleetModule({
                     company: 'TECFAG',
                     department: 'Operacional',
                     mrp_username: null
+                },
+                {
+                    login_key: 'jonathas',
+                    full_name: 'JONATHAS MARTINS SEGURA',
+                    cpf: '31281991830',
+                    rg: '40013936 SSP SP',
+                    cnh_number: '02607201483',
+                    cnh_category: 'D',
+                    cnh_issue_date: '2024-01-31',
+                    cnh_expiry_date: '2034-01-26',
+                    first_license_date: '2002-11-12',
+                    birth_date: '1983-04-05',
+                    uf_city: 'BAURU, SP',
+                    company: 'TECFAG',
+                    department: 'Operacional',
+                    mrp_username: null
                 }
             ];
 
