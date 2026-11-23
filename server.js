@@ -321,6 +321,18 @@ db.run("UPDATE projects SET import_stage = NULL WHERE (fase IS NULL OR fase <= 2
             FOREIGN KEY(projectCode) REFERENCES projects(code) ON DELETE CASCADE
         )`);
 
+        // Tabela de Backup Redundante de Anexos para Autocura (Self-Healing)
+        db.run(`CREATE TABLE IF NOT EXISTS attachment_backups (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            filename TEXT UNIQUE NOT NULL,
+            original_name TEXT,
+            mime_type TEXT,
+            file_data TEXT, -- Conteúdo comprimido em Base64
+            size_bytes INTEGER,
+            created_at TEXT NOT NULL
+        )`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_attachment_backups_filename ON attachment_backups(filename)`);
+
         // Tabela de Usuários
         db.run(`CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
@@ -1124,6 +1136,33 @@ const dbRun = (sql, params = []) => new Promise((resolve, reject) => {
         err ? reject(err) : resolve(this);
     });
 });
+
+// Utilitário de Autocura (Self-Healing): Armazena backup de segurança de arquivos no SQLite
+async function backupUploadedFileToDb(filePath, originalName, mimeType) {
+    if (!filePath) return;
+    try {
+        if (!fs.existsSync(filePath)) return;
+        const stats = fs.statSync(filePath);
+        // Backup seguro no SQLite para arquivos até 8MB (cobre 100% de imagens comprimidas, PDFs e DWGs)
+        if (stats.size > 8 * 1024 * 1024) return;
+        const filename = path.basename(filePath);
+        const fileBuffer = fs.readFileSync(filePath);
+        const base64Data = fileBuffer.toString('base64');
+        await dbRun(`INSERT OR REPLACE INTO attachment_backups (
+            filename, original_name, mime_type, file_data, size_bytes, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?)`, [
+            filename,
+            originalName || filename,
+            mimeType || 'application/octet-stream',
+            base64Data,
+            stats.size,
+            new Date().toISOString()
+        ]);
+        console.log(`[AUTOCURA] Backup redundante gravado no SQLite: ${filename} (${(stats.size / 1024).toFixed(1)} KB)`);
+    } catch (e) {
+        console.warn(`[AUTOCURA] Aviso: Não foi possível salvar cópia redundante no banco:`, e.message);
+    }
+}
 
 /**
  * Utilitário Canônico de Construção Dinâmica de UPDATE SQL (Etapa 1 da Estabilização)
@@ -2601,8 +2640,8 @@ if (process.env.DATABASE_PATH) {
 app.use('/uploads', express.static(UPLOADS_DIR));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Fallback inteligente caso express.static não tenha servido o arquivo imediatamente
-app.get('/uploads/:filename', (req, res) => {
+// Fallback inteligente com AUTOCURA: se o arquivo físico não estiver no disco, busca no backup do banco de dados SQLite
+app.get('/uploads/:filename', async (req, res) => {
     const filename = req.params.filename;
     const candidateDirs = [
         UPLOADS_DIR,
@@ -2619,6 +2658,29 @@ app.get('/uploads/:filename', (req, res) => {
                 return res.sendFile(p);
             }
         } catch (e) {}
+    }
+
+    // MECANISMO DE AUTOCURA: Buscar cópia redundante no banco de dados SQLite
+    try {
+        const backup = await dbGet('SELECT mime_type, file_data, original_name FROM attachment_backups WHERE filename = ?', [filename]);
+        if (backup && backup.file_data) {
+            const buffer = Buffer.from(backup.file_data, 'base64');
+            // Tentar restaurar o arquivo físico no disco persistente para acelerar acessos futuros
+            try {
+                const restoreTarget = path.join(UPLOADS_DIR, filename);
+                fs.writeFileSync(restoreTarget, buffer);
+                console.log(`[AUTOCURA] Arquivo ${filename} restaurado fisicamente no disco a partir do banco de dados SQLite!`);
+            } catch (writeErr) {
+                console.warn(`[AUTOCURA] Não foi possível regravar fisicamente no disco, entregando direto da memória:`, writeErr.message);
+            }
+            if (backup.mime_type) {
+                res.type(backup.mime_type);
+            }
+            res.set('Cache-Control', 'public, max-age=86400');
+            return res.send(buffer);
+        }
+    } catch (dbErr) {
+        console.error('[AUTOCURA ERROR]', dbErr.message);
     }
 
     res.status(404).send(`
@@ -10190,7 +10252,8 @@ app.post('/api/attachments', authenticateToken, upload.single('file'), async (re
 
         const newRecord = await dbGet('SELECT * FROM attachments WHERE id = ?', [runResult.lastID]);
         
-        // Se o anexo for para uma etapa do checklist do projeto (ex: contrato, aprovacao, etc.), marca a etapa automaticamente como concluída
+        // Autocura: Gravar cópia redundante no banco de dados SQLite
+        await backupUploadedFileToDb(file.path, file.originalname, file.mimetype);
         const validChecklistSteps = [
             'diagnostico', 'customizacao', 'cotacao', 'fluxograma', 'planta_baixa',
             'aprovacao', 'contrato', 'proforma', 'cambio_sinal', 'swift_pagamento',
@@ -10324,12 +10387,16 @@ app.delete('/api/attachments/:id', authenticateToken, async (req, res) => {
         }
 
         // Excluir arquivo físico
-        const fullPath = path.join(__dirname, attachment.filePath);
-        if (fs.existsSync(fullPath)) {
-            fs.unlinkSync(fullPath);
+        const fullPath = getAbsoluteUploadPath(attachment.filePath);
+        if (fullPath && fs.existsSync(fullPath)) {
+            try { fs.unlinkSync(fullPath); } catch(e) {}
         }
 
-        // Excluir registro do banco de dados
+        // Excluir registro do banco de dados e da tabela de backup redundante
+        const fname = path.basename(attachment.filePath || '');
+        if (fname) {
+            await dbRun('DELETE FROM attachment_backups WHERE filename = ?', [fname]).catch(() => {});
+        }
         await dbRun('DELETE FROM attachments WHERE id = ?', [req.params.id]);
         res.json({ success: true, message: 'Anexo excluído com sucesso.' });
     } catch (err) {
