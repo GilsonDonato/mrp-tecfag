@@ -2080,6 +2080,67 @@ module.exports = function registerFleetModule({
         res.json({ success: true });
     }));
 
+    // 8B. Corrigir KM Inicial / KM Final de uma viagem (caso motorista digite um dígito a menos/mais) e recalcular distância
+    router.put('/trips/:id/adjust-km', authenticateFleet, requireFleetManager, asyncSafe(async (req, res) => {
+        const trip = await fGet('SELECT * FROM fleet_trips WHERE id = ?', [req.params.id]);
+        if (!trip) return res.status(404).json({ error: 'Viagem não encontrada.' });
+
+        const newStart = parseInt(req.body.start_km);
+        if (isNaN(newStart) || newStart < 0) {
+            return res.status(400).json({ error: 'Informe um KM Inicial válido.' });
+        }
+
+        let newEnd = trip.end_km;
+        if (req.body.end_km !== undefined && req.body.end_km !== null && req.body.end_km !== '') {
+            newEnd = parseInt(req.body.end_km);
+            if (isNaN(newEnd) || newEnd < newStart) {
+                return res.status(400).json({ error: 'O KM Final deve ser maior ou igual ao KM Inicial.' });
+            }
+        } else if (trip.status === 'CLOSED' && newEnd !== null && newEnd < newStart) {
+            return res.status(400).json({ error: 'O KM Final não pode ficar menor que o novo KM Inicial.' });
+        }
+
+        const newDist = (newEnd !== null && newEnd !== undefined) ? (newEnd - newStart) : null;
+        const newOvernightDist = (trip.overnight_km && newEnd !== null && newEnd !== undefined)
+            ? Math.max(0, newEnd - trip.overnight_km)
+            : trip.overnight_to_yard_km;
+
+        const reasonStr = req.body.reason ? ` (${String(req.body.reason).trim()})` : '';
+        const auditLog = `[KM corrigido por ${req.user.username}: ${trip.start_km}->${trip.end_km ?? '-'} p/ ${newStart}->${newEnd ?? '-'}${reasonStr}]`;
+        const mergedNotes = trip.manager_notes ? `${trip.manager_notes} | ${auditLog}` : auditLog;
+
+        await fRun(
+            `UPDATE fleet_trips SET
+                start_km = ?,
+                end_km = ?,
+                distance_km = ?,
+                overnight_to_yard_km = ?,
+                manager_notes = ?
+             WHERE id = ?`,
+            [newStart, newEnd, newDist, newOvernightDist, mergedNotes, trip.id]
+        );
+
+        const latestTrip = await fGet(
+            'SELECT id, start_km, end_km FROM fleet_trips WHERE vehicle_id = ? ORDER BY id DESC LIMIT 1',
+            [trip.vehicle_id]
+        );
+        if (latestTrip && latestTrip.id === trip.id) {
+            const targetVehKm = (latestTrip.end_km !== null && latestTrip.end_km !== undefined)
+                ? latestTrip.end_km
+                : latestTrip.start_km;
+            await fRun('UPDATE fleet_vehicles SET current_km = ?, updated_at = ? WHERE id = ?', [
+                targetVehKm, new Date().toISOString(), trip.vehicle_id
+            ]);
+        }
+
+        const updated = await fGet('SELECT * FROM fleet_trips WHERE id = ?', [trip.id]);
+        res.json({
+            success: true,
+            trip: updated,
+            message: 'Quilometragem corrigida e rodagem do mês recalculada com sucesso!'
+        });
+    }));
+
     // 9. Registrar Abastecimento + cálculo automático de média km/L
     router.post('/fuel', authenticateFleet, fleetUpload.single('receipt_photo'), asyncSafe(async (req, res) => {
         const disk = checkDiskSafetyBreaker();

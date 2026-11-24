@@ -1756,7 +1756,27 @@
                     </div>
                 </div>
 
-                <div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding-top:12px;border-top:1px solid var(--border);">
+                <div style="margin-top:16px;background:#0b0f19;border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+                    <div style="font-size:0.8rem;font-weight:800;color:#38bdf8;margin-bottom:8px;">✏️ Corrigir KM da Viagem (Caso haja erro de digitação no painel)</div>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+                        <div style="width:150px;">
+                            <label class="lbl">KM Inicial *</label>
+                            <input type="number" id="adj-start-km" class="input" value="${t.start_km ?? 0}">
+                        </div>
+                        <div style="width:150px;${t.status === 'CLOSED' ? '' : 'display:none;'}">
+                            <label class="lbl">KM Final *</label>
+                            <input type="number" id="adj-end-km" class="input" value="${t.end_km ?? ''}">
+                        </div>
+                        <div style="flex:1;min-width:200px;">
+                            <label class="lbl">Motivo do Ajuste (Auditoria)</label>
+                            <input type="text" id="adj-km-reason" class="input" placeholder="Ex: Faltou 1 dígito na digitação do odômetro">
+                        </div>
+                        <button type="button" class="btn btn-amber" onclick="saveTripKmAdjustment(${t.id}, '${t.status}')">💾 Recalcular KM</button>
+                    </div>
+                    ${t.manager_notes ? `<div style="margin-top:8px;font-size:0.73rem;color:var(--muted);">📝 Histórico de auditoria: ${t.manager_notes}</div>` : ''}
+                </div>
+
+                <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding-top:12px;border-top:1px solid var(--border);">
                     <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;font-weight:700;cursor:pointer;">
                         <input type="checkbox" ${t.keep_forever || t.has_damage ? 'checked' : ''} ${t.has_damage ? 'disabled' : ''} onchange="toggleLockTripPhotos(${t.id}, this.checked)" style="width:17px;height:17px;">
                         🔒 Proteger fotos desta viagem permanentemente (nunca apagar na limpeza de 45 dias)
@@ -1766,6 +1786,33 @@
             `;
 
             document.getElementById('modal-trip-compare').style.display = 'flex';
+        }
+
+        async function saveTripKmAdjustment(tripId, status) {
+            const startVal = document.getElementById('adj-start-km').value;
+            const endEl = document.getElementById('adj-end-km');
+            const reasonVal = document.getElementById('adj-km-reason').value.trim();
+            try {
+                const payload = {
+                    start_km: parseInt(startVal),
+                    reason: reasonVal
+                };
+                if (status === 'CLOSED' && endEl && endEl.value !== '') {
+                    payload.end_km = parseInt(endEl.value);
+                }
+                const res = await apiFetch(`/api/fleet/trips/${tripId}/adjust-km`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+                alert(res.message || 'KM atualizado!');
+                await refreshDashboard();
+                if (document.getElementById('tab-trips').classList.contains('active')) {
+                    await loadFilteredTrips();
+                }
+                await openTripCompareModal(tripId);
+            } catch (err) {
+                alert(err.message);
+            }
         }
 
         async function toggleLockTripPhotos(tripId, checked) {
