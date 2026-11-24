@@ -983,69 +983,70 @@
         </div>
     </div>
 
-    <!-- MODAL 4: MANUAL OPERACIONAL INTEGRADO -->
+    <!-- MODAL 4: MANUAL OPERACIONAL INTEGRADO (V2.0 ATUALIZADO) -->
     <div class="modal-overlay" id="modal-user-manual" style="z-index:1300;">
-        <div class="modal-box" style="max-width:980px;">
+        <div class="modal-box" style="max-width:1000px;">
             <div class="modal-head">
                 <div>
-                    <h3 style="font-size:1.12rem;">📖 Manual Operacional — Gestão de Peças Sob Encomenda & Reposição</h3>
-                    <div style="font-size:0.75rem; color:var(--muted);">Guia rápido por setor: Guilherme Bertola • Engenharia • Compras • Jhenifer (ERP) • Estoque</div>
+                    <h3 style="font-size:1.12rem;">📖 Manual Operacional v2.0 — Gestão de Peças Sob Encomenda & Reposição</h3>
+                    <div style="font-size:0.75rem; color:var(--muted);">Matriz Oficial Ativa: Abertura & Etapa 3 (Guilherme Bertola) • Etapas 1, 2, 4, 5 e 6 (Jhenifer) • Chave-Mestra Admin (Gilson & Fernando)</div>
                 </div>
                 <button class="btn btn-sm" onclick="closeModal('modal-user-manual')">✕ Fechar</button>
             </div>
-            <div class="modal-body" style="line-height:1.6; font-size:0.84rem;">
-                <div style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.45); border-left:4px solid #f59e0b; padding:12px 16px; border-radius:8px; margin-bottom:16px;">
-                    <strong style="color:#fbbf24;">⚡ A Nova Regra de Ouro Tecfag:</strong> Nenhuma cotação fica esperando 5 dias de cadastro no ERP! Na abertura, peças novas ganham um <strong>Pré-SKU automático (<code>TMP-PEC-XXXX</code>)</strong> para cotação imediata. O cadastro oficial no ERP (Jhenifer) <strong>só ocorre quando o cliente aprova o orçamento</strong>!
+            <div class="modal-body" style="line-height:1.6; font-size:0.83rem;">
+                <div style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.45); border-left:4px solid #f59e0b; padding:12px 16px; border-radius:8px; margin-bottom:12px;">
+                    <strong style="color:#fbbf24;">⚡ Regra de Ouro Tecfag:</strong> Nenhuma cotação fica esperando 5 dias de cadastro no ERP! Peças novas ganham <strong>Pré-SKU automático (<code>TMP-PEC-XXXX</code>)</strong> para cotação imediata, e o cadastro oficial no ERP <strong>só ocorre quando o cliente aprova a proposta</strong>!
+                </div>
+
+                <div style="background:rgba(236,72,153,0.10); border:1px solid rgba(244,114,182,0.4); border-left:4px solid #ec4899; padding:11px 16px; border-radius:8px; margin-bottom:14px;">
+                    <strong style="color:#f9a8d4;">🔒 Governança & Trava por Etapa:</strong> Todos os usuários podem abrir os cards para consultar andamento, copiar textos e mandar mensagens no <strong>Chat Interno</strong>, mas <strong>somente o responsável da etapa atual pode alterar dados ou avançar o card</strong> (indicado pelas tags <strong>✏️ Sua Etapa</strong> ou <strong>🔒 Consulta</strong>). Administradores Master (<strong>Gilson</strong> e <strong>Fernando</strong>) possuem acesso total e podem alterar responsáveis no botão <strong>🛡️ Responsáveis por Etapa</strong>.
                 </div>
 
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
                     <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:14px;">
-                        <h4 style="color:#38bdf8; margin-bottom:6px;">1️⃣ Abrir Solicitação (Guilherme / Vendas)</h4>
-                        <p style="color:#cbd5e1; font-size:0.8rem;">
+                        <h4 style="color:#38bdf8; margin-bottom:6px;">➕ Abertura da Solicitação (Guilherme Bertola)</h4>
+                        <p style="color:#cbd5e1; font-size:0.79rem;">
                             • Clique em <strong>➕ Nova Solicitação de Peça</strong>.<br>
-                            • Selecione o <strong>Cliente</strong> e a urgência (use <strong>🔥 Máquina Parada</strong> em emergências).<br>
-                            • Busque a <strong>Máquina</strong>: o sistema puxa sozinho o <strong>🏷️ Cód. Antigo (Fornecedor)</strong> e o <strong>🏭 Nome do Fabricante</strong> da base do ERP.<br>
-                            • Anexe a <strong>📷 Foto da Peça</strong> e deixe o SKU ERP vazio caso seja peça nova.
+                            • Informe o <strong>Cliente</strong> e o <strong>📧 E-mail do Cliente</strong> (puxado automático do ERP se já cadastrado).<br>
+                            • Busque a <strong>Máquina Principal</strong> (puxa automático o <strong>🏷️ Cód. Antigo</strong> e o <strong>🏭 Fabricante</strong>).<br>
+                            • <strong>Peças de mais de uma máquina?</strong> Clique em <strong>🔄 Peça de OUTRA Máquina?</strong> na linha do item para vincular outra máquina no mesmo pedido! Anexe a <strong>📷 Foto</strong> de cada peça.
                         </p>
                     </div>
                     <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:14px;">
-                        <h4 style="color:#0ea5e9; margin-bottom:6px;">2️⃣ Triagem Técnica (Engenharia — SLA 4h)</h4>
-                        <p style="color:#cbd5e1; font-size:0.8rem;">
-                            • Defina a rota da peça: <strong>🇧🇷 Compra Nacional</strong> (sensores, resistências, correias, usinagem), <strong>🌎 Cotar Ambos</strong> ou <strong>🇨🇳 Importação Obrigatória</strong>.<br>
-                            • Preencha o <strong>Nome em Inglês</strong> (para e-mail internacional) ou a <strong>Especificação de Equivalente Nacional</strong>.<br>
-                            • Clique em <strong>➡️ Concluir Triagem & Liberar p/ Compras</strong>.
+                        <h4 style="color:#0ea5e9; margin-bottom:6px;">1️⃣ Etapa 1 — Triagem Técnica (Jhenifer)</h4>
+                        <p style="color:#cbd5e1; font-size:0.79rem;">
+                            • Confira a máquina vinculada em cada peça, o <strong>🏷️ Cód. Antigo</strong> e o <strong>Nome em Inglês</strong>.<br>
+                            • Defina a rota: <strong>🇧🇷 Compra Nacional</strong> (sensores, resistências, correias, usinagem), <strong>🌎 Cotar Ambos</strong> ou <strong>🇨🇳 Importação Obrigatória</strong>.<br>
+                            • Clique em <strong>➡️ Concluir Triagem & Liberar p/ Cotação (Etapa 2)</strong>.
                         </p>
                     </div>
                     <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:14px;">
-                        <h4 style="color:#f59e0b; margin-bottom:6px;">3️⃣ Cotação & E-mail c/ Fotos (Compras — SLA 24-48h)</h4>
-                        <p style="color:#cbd5e1; font-size:0.8rem;">
-                            • Na aba 2 do card, clique em <strong>📧 Enviar E-mail c/ Fotos ao Fornecedor</strong>: envia exclusivamente o <strong>Cód. Antigo (ex: ARLM-160B)</strong> + fotos visíveis no corpo do e-mail e em anexo.<br>
-                            • Informe o <strong>Preço FOB (US$)</strong>: o sistema calcula automático <code>FOB × Dólar × 2 × 2</code> (ou custo nacional <code>R$ × 2</code>).<br>
-                            • Clique em <strong>📤 Enviar p/ Proposta Cliente</strong>.
+                        <h4 style="color:#f59e0b; margin-bottom:6px;">2️⃣ Etapa 2 — E-mail Agrupado & Preço (Jhenifer)</h4>
+                        <p style="color:#cbd5e1; font-size:0.79rem;">
+                            • Clique em <strong>📧 Enviar E-mail c/ Fotos ao Fornecedor</strong>: usa estritamente o <strong>Cód. Antigo</strong> e <strong>agrupa descrições e fotos por máquina</strong> (<code>MACHINE 1</code>, <code>MACHINE 2</code>). Se houver fábricas diferentes, filtre pelos botões no topo do modal!<br>
+                            • Digite o <strong>FOB (US$)</strong> ➔ cálculo automático <code>FOB × Dólar × 2 × 2</code>.<br>
+                            • Clique em <strong>📤 Concluir & Liberar p/ Guilherme</strong> ou <strong>⚡ Concluir & Já Enviar E-mail p/ Cliente (c/ Cópia Guilherme)</strong>.
                         </p>
                     </div>
                     <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:14px;">
-                        <h4 style="color:#6366f1; margin-bottom:6px;">4️⃣ Orçamento & Decisão Cliente (Guilherme)</h4>
-                        <p style="color:#cbd5e1; font-size:0.8rem;">
-                            • Na aba 3 do card, clique em <strong>📋 Copiar Orçamento</strong> e encaminhe ao cliente.<br>
-                            • Se <strong>Aprovar</strong>: clique em <strong>✅ Confirmar Venda Aprovada</strong> (cai na fila da Jhenifer se faltar SKU ERP, ou vai direto p/ Compra se já tiver SKU).<br>
-                            • Se <strong>Declinar</strong>: encerre sem gerar cadastro inútil no ERP (o preço fica salvo na Árvore da Máquina!).
+                        <h4 style="color:#6366f1; margin-bottom:6px;">3️⃣ Etapa 3 — Proposta Direta & Decisão (Guilherme)</h4>
+                        <p style="color:#cbd5e1; font-size:0.79rem;">
+                            • Na Aba 3, clique em <strong>📧 Enviar Proposta Oficial p/ E-mail do Cliente Agora</strong> (sem copiar e colar!): vai com tabela formatada, fotos das peças, <strong>Resposta Direta (Reply-To) e Cópia (CC) automáticas p/ <code>vendas18@tecfag.com.br</code></strong>! (Opcional: conecte sua senha em <strong>🔑 Meu E-mail</strong>).<br>
+                            • Se o cliente <strong>Aprovar</strong>: clique em <strong>✅ Confirmar Venda Aprovada</strong>. Se <strong>Declinar</strong>: encerre sem gastar tempo no ERP!
                         </p>
                     </div>
                     <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:14px;">
-                        <h4 style="color:#ec4899; margin-bottom:6px;">5️⃣ Fila Expressa ERP (Jhenifer — SLA 4h)</h4>
-                        <p style="color:#cbd5e1; font-size:0.8rem;">
-                            • Acesse a aba superior <strong>📋 Fila Expressa Cadastro ERP (Jhenifer)</strong>.<br>
-                            • Clique em <strong>📋 Copiar Ficha Completa p/ ERP</strong> (descrição padrão, NCM, origem fiscal e máquina pai).<br>
-                            • Cadastre no ERP, digite o <strong>SKU Oficial gerado</strong> e clique em <strong>✅ Confirmar SKU & Liberar Compra</strong> (nunca mais precisará recadastrar essa peça!).
+                        <h4 style="color:#ec4899; margin-bottom:6px;">4️⃣ Etapa 4 — Fila Expressa ERP (Jhenifer)</h4>
+                        <p style="color:#cbd5e1; font-size:0.79rem;">
+                            • Acesse a aba superior <strong>📋 Fila Expressa Cadastro ERP (Jhenifer)</strong> (só vendas ganhas!).<br>
+                            • Clique em <strong>📋 Copiar Ficha Completa p/ ERP</strong>, cadastre no ERP, informe o <strong>SKU Oficial</strong> e clique em <strong>✅ Confirmar SKU & Liberar Compra</strong> (grava na Árvore da Máquina para sempre).
                         </p>
                     </div>
                     <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:14px;">
-                        <h4 style="color:#10b981; margin-bottom:6px;">6️⃣ Compra, Carona Comex & Doca (Estoque)</h4>
-                        <p style="color:#cbd5e1; font-size:0.8rem;">
-                            • Na aba 4 do card, registre OC/Rastreio ou use <strong>🚢 Incluir no Container</strong> para aproveitar container aberto no Comex.<br>
-                            • Na chegada física: clique em <strong>📦 Chegou na Doca!</strong> e imprima a <strong>🏷️ Etiqueta de Peça Reservada p/ Cliente</strong>.<br>
-                            • Após emitir a NF de saída, clique em <strong>✅ Marcar Faturado & Entregue</strong>.
+                        <h4 style="color:#10b981; margin-bottom:6px;">5️⃣ e 6️⃣ Compra, Carona Comex & Doca (Jhenifer)</h4>
+                        <p style="color:#cbd5e1; font-size:0.79rem;">
+                            • Na Aba 4 do card, registre OC/Rastreio ou use <strong>🚢 Incluir no Container</strong> para embarcar de carona no Comex.<br>
+                            • Na chegada física: clique em <strong>📦 Chegou na Doca!</strong>, imprima a <strong>🏷️ Etiqueta de Reserva do Cliente</strong> e, após faturar, clique em <strong>✅ Marcar Faturado & Entregue</strong>.
                         </p>
                     </div>
                 </div>
@@ -1053,7 +1054,7 @@
             <div class="modal-foot">
                 <span style="font-size:0.74rem; color:var(--muted);">💡 Peças pedidas 3+ vezes ganham selo automático <strong>🔥 SUGERIDO ESTOQUE</strong> na aba Árvore de Peças!</span>
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <a href="/manual-pecas.pdf" class="btn btn-green">⬇️ Baixar Manual em PDF</a>
+                    <a href="/manual-pecas.pdf" class="btn btn-green">⬇️ Baixar Manual v2.0 em PDF</a>
                     <a href="/manual-pecas" target="_blank" class="btn">🖨️ Versão p/ Impressão ↗</a>
                     <button class="btn btn-primary" onclick="closeModal('modal-user-manual')">Fechar</button>
                 </div>
