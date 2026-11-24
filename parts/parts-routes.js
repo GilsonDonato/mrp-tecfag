@@ -661,6 +661,19 @@ module.exports = function registerPartsModule({
         res.sendFile(path.join(__dirname, 'pecas.html'));
     });
 
+    app.get('/manual-pecas', (req, res) => {
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        res.sendFile(path.join(__dirname, 'manual-pecas.html'));
+    });
+
+    app.get('/manual-pecas.pdf', (req, res) => {
+        const pdfPath = path.join(__dirname, 'Manual_Gestao_Pecas_Tecfag.pdf');
+        if (fs.existsSync(pdfPath)) {
+            return res.download(pdfPath, 'Manual_Gestao_Pecas_Tecfag.pdf');
+        }
+        res.redirect('/manual-pecas');
+    });
+
     const router = express.Router();
     const asyncSafe = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
