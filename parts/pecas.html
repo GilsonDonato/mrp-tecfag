@@ -487,6 +487,7 @@
                 ➕ Nova Solicitação de Peça
             </button>
             <span id="logged-user-pill" style="display:none; background:rgba(14,165,233,0.14); border:1px solid rgba(56,189,248,0.35); padding:6px 12px; border-radius:8px; font-size:0.76rem; font-weight:700; color:#7dd3fc;"></span>
+            <button class="btn btn-sm" id="btn-my-email" style="display:none;" onclick="openMySmtpModal()" title="Conectar sua caixa @tecfag.com.br para envio direto">🔑 Meu E-mail</button>
             <button class="btn btn-red btn-sm" id="btn-logout" style="display:none;" onclick="handleLogout()">Sair</button>
         </div>
     </header>
@@ -753,7 +754,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="form-grid-4">
+                    <div class="form-grid-4" style="margin-bottom:10px;">
                         <div class="fg">
                             <label>CNPJ</label>
                             <input type="text" id="nr-cnpj" class="form-control" placeholder="00.000.000/0000-00">
@@ -770,6 +771,10 @@
                             <label>Cidade / UF</label>
                             <input type="text" id="nr-city" class="form-control" placeholder="Cidade - UF">
                         </div>
+                    </div>
+                    <div class="fg">
+                        <label style="color:#34d399;">📧 E-mail do Cliente p/ Envio Direto da Proposta (Cópia & Resposta automáticas p/ Guilherme Bertola)</label>
+                        <input type="email" id="nr-email" class="form-control" placeholder="Ex: compras@cliente.com.br (Puxado automático do ERP se cadastrado)" style="border-color:rgba(16,185,129,0.45);">
                     </div>
                 </div>
 
@@ -1043,6 +1048,50 @@
         </div>
     </div>
 
+    <!-- MODAL 5: CONECTAR CONTA DE E-MAIL PRÓPRIA (OPCIONAL - EX: GUILHERME BERTOLA) -->
+    <div class="modal-overlay" id="modal-my-smtp" style="z-index:1350;">
+        <div class="modal-box" style="max-width:540px;">
+            <div class="modal-head">
+                <div>
+                    <h3 style="font-size:1.02rem;">🔑 Conectar Minha Caixa de E-mail (@tecfag.com.br)</h3>
+                    <div style="font-size:0.73rem; color:var(--muted);">Opcional: faça os orçamentos saírem autenticados direto pela sua própria conta de e-mail!</div>
+                </div>
+                <button class="btn btn-sm" onclick="closeModal('modal-my-smtp')">✕</button>
+            </div>
+            <div class="modal-body" style="display:flex; flex-direction:column; gap:12px;">
+                <div style="background:rgba(14,165,233,0.1); border:1px solid rgba(56,189,248,0.3); padding:10px 12px; border-radius:8px; font-size:0.76rem; color:#cbd5e1;">
+                    💡 <strong>Como funciona:</strong> Mesmo sem configurar aqui, o sistema já envia com <strong>Resposta Direta (Reply-To)</strong> e <strong>Cópia (CC)</strong> para <code>vendas18@tecfag.com.br</code>. Se quiser que o envio saia autenticado diretamente pela sua caixa de e-mail pessoal, informe a senha do seu webmail abaixo uma única vez:
+                </div>
+                <div class="fg">
+                    <label>Seu E-mail Corporativo *</label>
+                    <input type="email" id="msmtp-email" class="form-control" placeholder="vendas18@tecfag.com.br">
+                </div>
+                <div class="fg">
+                    <label>Senha do Seu Webmail / E-mail *</label>
+                    <input type="password" id="msmtp-pass" class="form-control" placeholder="Senha da sua conta de e-mail">
+                </div>
+                <div class="form-grid-2">
+                    <div class="fg">
+                        <label>Servidor SMTP</label>
+                        <input type="text" id="msmtp-host" class="form-control" placeholder="Padrão do servidor Tecfag">
+                    </div>
+                    <div class="fg">
+                        <label>Porta SMTP</label>
+                        <input type="number" id="msmtp-port" class="form-control" value="587">
+                    </div>
+                </div>
+                <div id="msmtp-status" style="font-size:0.76rem; color:#34d399; display:none;"></div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-red btn-sm" id="btn-clear-msmtp" style="display:none;" onclick="clearMySmtpConfig()">Desconectar</button>
+                <div style="display:flex; gap:8px; margin-left:auto;">
+                    <button class="btn" onclick="closeModal('modal-my-smtp')">Cancelar</button>
+                    <button class="btn btn-green" id="btn-save-msmtp" onclick="saveMySmtpConfig()">✅ Testar & Salvar Meu E-mail</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <datalist id="intl-suppliers-datalist"></datalist>
     <datalist id="nat-suppliers-datalist"></datalist>
     <datalist id="supplier-emails-datalist"></datalist>
@@ -1216,6 +1265,12 @@
                 document.getElementById('main-app').style.display = 'block';
                 document.getElementById('btn-new-request').style.display = 'inline-flex';
                 document.getElementById('btn-logout').style.display = 'inline-flex';
+
+                const myEmailBtn = document.getElementById('btn-my-email');
+                if (myEmailBtn) {
+                    myEmailBtn.style.display = 'inline-flex';
+                    updateMyEmailButtonBadge();
+                }
 
                 const pill = document.getElementById('logged-user-pill');
                 pill.textContent = '👤 ' + currentUser.display_name;
@@ -1852,6 +1907,7 @@
             document.getElementById('nr-cnpj').value = '';
             document.getElementById('nr-contact').value = '';
             document.getElementById('nr-phone').value = '';
+            document.getElementById('nr-email').value = '';
             document.getElementById('nr-city').value = '';
             document.getElementById('nr-urgency').value = 'NORMAL';
             document.getElementById('nr-machine-search').value = '';
@@ -1977,7 +2033,7 @@
                     box.innerHTML = list.map(c => `
                         <div class="autocomplete-item" onclick='selectErpClient(${JSON.stringify(c)})'>
                             <strong>${esc(c.name)}</strong> ${c.cnpj ? `<span style="color:#38bdf8;">(${esc(c.cnpj)})</span>` : ''}
-                            <div style="font-size:0.7rem; color:var(--muted);">${esc(c.city_uf)} ${c.phone ? '• ' + esc(c.phone) : ''}</div>
+                            <div style="font-size:0.7rem; color:var(--muted);">${esc(c.city_uf)} ${c.phone ? '• ' + esc(c.phone) : ''} ${c.email ? '• 📧 ' + esc(c.email) : ''}</div>
                         </div>
                     `).join('');
                     box.style.display = 'block';
@@ -1989,6 +2045,7 @@
             document.getElementById('nr-client').value = c.name || '';
             document.getElementById('nr-cnpj').value = c.cnpj || '';
             document.getElementById('nr-phone').value = c.phone || '';
+            if (c.email) document.getElementById('nr-email').value = c.email;
             document.getElementById('nr-city').value = c.city_uf || '';
             document.getElementById('nr-client-results').style.display = 'none';
         }
@@ -2100,6 +2157,7 @@
                         client_cnpj: document.getElementById('nr-cnpj').value.trim(),
                         client_contact: document.getElementById('nr-contact').value.trim(),
                         client_phone: document.getElementById('nr-phone').value.trim(),
+                        client_email: document.getElementById('nr-email').value.trim(),
                         client_city_uf: document.getElementById('nr-city').value.trim(),
                         urgency: document.getElementById('nr-urgency').value,
                         machine_sku: document.getElementById('nr-machine-sku').value.trim(),
@@ -2187,6 +2245,10 @@
                             <input type="text" id="ed-phone" class="form-control" value="${esc(r.client_phone || r.client_contact || '')}">
                         </div>
                         <div class="fg">
+                            <label style="color:#34d399;">📧 E-mail do Cliente (Proposta Direta)</label>
+                            <input type="email" id="ed-email" class="form-control" value="${esc(r.client_email || '')}" placeholder="compras@cliente.com.br" style="border-color:rgba(16,185,129,0.4);">
+                        </div>
+                        <div class="fg">
                             <label>Urgência</label>
                             <select id="ed-urgency" class="form-control">
                                 <option value="NORMAL" ${r.urgency === 'NORMAL' ? 'selected' : ''}>🛠️ Normal / Preventiva</option>
@@ -2202,7 +2264,7 @@
                                 <input type="text" id="ed-mvendor" class="form-control" value="${esc(r.machine_vendor_model || '')}" placeholder="Cód. Antigo (Ex: ARLM-160B)" style="font-weight:800; color:#38bdf8; border-color:rgba(56,189,248,0.45);">
                             </div>
                         </div>
-                        <div class="fg" style="grid-column: span 2;">
+                        <div class="fg">
                             <label>Descrição Interna Tecfag (Não enviada ao fornecedor chinês)</label>
                             <input type="text" id="ed-mname" class="form-control" value="${esc(r.machine_name || '')}">
                         </div>
@@ -2300,7 +2362,8 @@
                             <button type="button" class="btn btn-primary btn-sm" onclick="openSupplierEmailModal('EN')">📧 Enviar E-mail c/ Fotos ao Fornecedor</button>
                             <button type="button" class="btn btn-sm" onclick="copySupplierRfq('EN')">🇨🇳 Copiar p/ WeChat</button>
                             <button type="button" class="btn btn-sm" onclick="copySupplierRfq('PT')">🇧🇷 Copiar p/ WhatsApp Brasil</button>
-                            <button type="button" class="btn btn-green btn-sm" onclick="releaseProposalToSales()">📤 Concluir Cotação & Enviar p/ Proposta Cliente</button>
+                            <button type="button" class="btn btn-amber btn-sm" onclick="releaseProposalToSales()" title="Salva a cotação e move para a etapa do Guilherme revisar">📤 Concluir & Liberar p/ Guilherme</button>
+                            <button type="button" class="btn btn-green btn-sm" onclick="releaseAndAutoSendClientEmail()" title="Conclui a cotação e já dispara a proposta por e-mail direto ao cliente com cópia e resposta para Guilherme Bertola!">⚡ Concluir & Já Enviar E-mail p/ Cliente (c/ Cópia Guilherme)</button>
                         </div>
                     </div>
 
@@ -2425,14 +2488,81 @@
                 `;
             } else if (activeDetailSubTab === 3) {
                 const proposalText = buildClientProposalText();
+                const ownerEmail = (currentUser && currentUser.is_guilherme) ? 'vendas18@tecfag.com.br' : ((currentUser && currentUser.role === 'VENDAS' && currentUser.official_email) ? currentUser.official_email : 'vendas18@tecfag.com.br');
+                const isPersonalBox = !!(currentUser && currentUser.personal_smtp_configured);
+                const sentAtBadge = r.proposal_sent_at
+                    ? `<div style="background:rgba(16,185,129,0.14); border:1px solid rgba(16,185,129,0.45); color:#6ee7b7; padding:8px 12px; border-radius:8px; font-size:0.76rem; font-weight:700; margin-bottom:10px;">
+                           ✅ Proposta já enviada ao cliente em ${new Date(r.proposal_sent_at).toLocaleString('pt-BR')} ${r.client_email ? '(' + esc(r.client_email) + ')' : ''}
+                       </div>`
+                    : '';
+
                 box.innerHTML = `
                     <div class="form-grid-2" style="align-items:start;">
-                        <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:12px; padding:16px;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                                <h4 style="font-size:0.92rem; color:#38bdf8;">📲 TEXTO DO ORÇAMENTO PRONTO P/ CLIENTE (WHATSAPP / E-MAIL)</h4>
-                                <button class="btn btn-primary btn-sm" onclick="copyClientProposal()">📋 Copiar Orçamento</button>
+                        <div style="display:flex; flex-direction:column; gap:14px;">
+                            <!-- CARD 1: ENVIO DIRETO POR E-MAIL AO CLIENTE (SEM COPIAR E COLAR!) -->
+                            <div style="background:linear-gradient(145deg, rgba(14,165,233,0.10), rgba(16,185,129,0.06)); border:1px solid rgba(56,189,248,0.42); border-radius:12px; padding:16px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+                                    <h4 style="font-size:0.94rem; color:#38bdf8;">📧 ENVIAR PROPOSTA DIRETO POR E-MAIL AO CLIENTE</h4>
+                                    <button type="button" class="btn btn-sm" onclick="openMySmtpModal()" style="${isPersonalBox ? 'border-color:#34d399; color:#6ee7b7;' : ''}">
+                                        ${isPersonalBox ? '🟢 Caixa Própria Conectada' : '🔑 Conectar Meu E-mail'}
+                                    </button>
+                                </div>
+
+                                ${sentAtBadge}
+
+                                <div style="background:rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:9px 12px; margin-bottom:12px; font-size:0.74rem; color:#cbd5e1; line-height:1.45;">
+                                    ${isPersonalBox
+                                        ? `🚀 <strong>Envio Autenticado Pessoal:</strong> O e-mail sairá diretamente pela sua caixa <strong>${esc(ownerEmail)}</strong> e já ficará salvo nos seus Enviados.`
+                                        : `↩️ <strong>Resposta Direta Garantida:</strong> Ao responder o orçamento, a resposta do cliente cai <strong>direto em ${esc(ownerEmail)}</strong> + <strong>Cópia Automática (CC) para vendas18@tecfag.com.br</strong>!`}
+                                </div>
+
+                                <div class="form-grid-2" style="margin-bottom:10px;">
+                                    <div class="fg">
+                                        <label style="color:#34d399;">📧 Para (E-mail do Cliente) *</label>
+                                        <input type="email" id="cp-to-email" class="form-control" value="${esc(r.client_email || '')}" placeholder="compras@cliente.com.br" style="border-color:rgba(16,185,129,0.45); font-weight:700;">
+                                    </div>
+                                    <div class="fg">
+                                        <label>📋 Cópia Extra (Guilherme já vai em CC automático)</label>
+                                        <input type="text" id="cp-cc-email" class="form-control" placeholder="Opcional: outro@email.com.br">
+                                    </div>
+                                </div>
+
+                                <div class="form-grid-2" style="margin-bottom:10px;">
+                                    <div class="fg">
+                                        <label>Condição de Pagamento na Proposta</label>
+                                        <input type="text" id="cp-pay-terms" class="form-control" value="${esc(r.payment_terms_client || 'À vista / 28 DDL mediante aprovação cadastral')}">
+                                    </div>
+                                    <div class="fg">
+                                        <label>Validade da Proposta (dias)</label>
+                                        <input type="number" id="cp-val-days" class="form-control" value="${r.proposal_validity_days || 7}">
+                                    </div>
+                                </div>
+
+                                <div class="fg" style="margin-bottom:10px;">
+                                    <label>Mensagem de Abertura Personalizada (Opcional)</label>
+                                    <input type="text" id="cp-custom-msg" class="form-control" placeholder="Ex: Olá! Segue conforme conversamos nossa proposta oficial das peças de reposição Tecfag:">
+                                </div>
+
+                                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                                    <label style="display:flex; align-items:center; gap:6px; font-size:0.76rem; color:#cbd5e1; cursor:pointer;">
+                                        <input type="checkbox" id="cp-inc-photos" checked style="width:15px; height:15px; accent-color:#0ea5e9;">
+                                        📷 Incluir foto(s) técnica(s) da(s) peça(s) no corpo do e-mail
+                                    </label>
+                                </div>
+
+                                <button type="button" class="btn btn-primary" id="btn-send-client-prop" style="width:100%; justify-content:center; padding:12px; font-size:0.88rem; font-weight:800;" onclick="sendProposalEmailToClient()">
+                                    📧 Enviar Proposta Oficial p/ E-mail do Cliente Agora
+                                </button>
                             </div>
-                            <textarea id="client-proposal-preview" class="form-control" rows="15" style="font-family:monospace; font-size:0.78rem; line-height:1.5;">${esc(proposalText)}</textarea>
+
+                            <!-- CARD 2: TEXTO PRONTO P/ WHATSAPP -->
+                            <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:12px; padding:14px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                    <h4 style="font-size:0.84rem; color:#94a3b8;">📲 OU COPIAR RESUMO P/ WHATSAPP</h4>
+                                    <button class="btn btn-sm" onclick="copyClientProposal()">📋 Copiar p/ WhatsApp</button>
+                                </div>
+                                <textarea id="client-proposal-preview" class="form-control" rows="8" style="font-family:monospace; font-size:0.75rem; line-height:1.45;">${esc(proposalText)}</textarea>
+                            </div>
                         </div>
 
                         <div style="display:flex; flex-direction:column; gap:14px;">
@@ -2659,6 +2789,7 @@
             if (activeDetailSubTab === 1) {
                 activeDetailReq.client_name = document.getElementById('ed-client')?.value || activeDetailReq.client_name;
                 activeDetailReq.client_phone = document.getElementById('ed-phone')?.value || '';
+                activeDetailReq.client_email = document.getElementById('ed-email')?.value.trim() || '';
                 activeDetailReq.urgency = document.getElementById('ed-urgency')?.value || activeDetailReq.urgency;
                 activeDetailReq.machine_sku = document.getElementById('ed-msku')?.value || '';
                 activeDetailReq.machine_vendor_model = document.getElementById('ed-mvendor')?.value || '';
@@ -2702,6 +2833,16 @@
                     it.promised_lead_days = parseInt(el.querySelector('.qi-prom-days').value) || 15;
                     it.auto_price = false;
                 });
+            } else if (activeDetailSubTab === 3) {
+                if (document.getElementById('cp-to-email')) {
+                    activeDetailReq.client_email = document.getElementById('cp-to-email').value.trim();
+                }
+                if (document.getElementById('cp-pay-terms')) {
+                    activeDetailReq.payment_terms_client = document.getElementById('cp-pay-terms').value.trim();
+                }
+                if (document.getElementById('cp-val-days')) {
+                    activeDetailReq.proposal_validity_days = parseInt(document.getElementById('cp-val-days').value) || 7;
+                }
             } else if (activeDetailSubTab === 4) {
                 activeDetailReq.purchase_modality = document.getElementById('ed-pmod')?.value || activeDetailReq.purchase_modality;
                 activeDetailReq.po_reference = document.getElementById('ed-poref')?.value || '';
@@ -3008,6 +3149,191 @@
             const txt = document.getElementById('client-proposal-preview').value;
             navigator.clipboard.writeText(txt);
             showToast('📲 Orçamento copiado para enviar ao cliente!', '#6366f1');
+        }
+
+        async function sendProposalEmailToClient() {
+            const toEmail = (document.getElementById('cp-to-email')?.value || '').trim();
+            const ccEmail = (document.getElementById('cp-cc-email')?.value || '').trim();
+            const customMsg = (document.getElementById('cp-custom-msg')?.value || '').trim();
+            const incPhotos = document.getElementById('cp-inc-photos') ? document.getElementById('cp-inc-photos').checked : true;
+
+            if (!toEmail || !toEmail.includes('@')) {
+                alert('Informe um e-mail válido do cliente no campo "Para (E-mail do Cliente)"!');
+                document.getElementById('cp-to-email')?.focus();
+                return;
+            }
+
+            const totalVal = activeDetailItems.reduce((acc, it) => acc + ((parseFloat(it.final_unit_price_brl) || 0) * (parseFloat(it.qty) || 1)), 0);
+            if (totalVal <= 0) {
+                alert('Atenção: O valor total do orçamento está R$ 0,00! Defina primeiro o preço final na aba "2️⃣ Cotação & Preço" antes de disparar o e-mail ao cliente.');
+                return;
+            }
+
+            const btn = document.getElementById('btn-send-client-prop');
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '⏳ Enviando Proposta Comercial ao Cliente...';
+            }
+
+            try {
+                await saveDetailChanges();
+                const res = await api(`/api/parts/requests/${activeDetailReq.id}/send-client-proposal`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        to: toEmail,
+                        cc: ccEmail,
+                        custom_message: customMsg,
+                        include_photos: incPhotos
+                    })
+                });
+                showToast(`📧 ${res.message}`, '#10b981');
+                await loadDashboard();
+                await openDetailModal(activeDetailReq.id, 3);
+            } catch (err) {
+                alert('Erro ao enviar proposta por e-mail: ' + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+            }
+        }
+
+        async function releaseAndAutoSendClientEmail() {
+            collectDomEditsIntoState();
+            const totalVal = activeDetailItems.reduce((acc, it) => acc + ((parseFloat(it.final_unit_price_brl) || 0) * (parseFloat(it.qty) || 1)), 0);
+            if (totalVal <= 0) {
+                alert('Atenção: Selecione a Fonte Escolhida / Preço Unit. Final (> R$ 0,00) antes de disparar a proposta ao cliente!');
+                return;
+            }
+
+            let targetEmail = (activeDetailReq.client_email || '').trim();
+            if (!targetEmail || !targetEmail.includes('@')) {
+                const typed = prompt('Informe o e-mail do cliente para envio imediato da proposta (com Cópia e Resposta automáticas para vendas18@tecfag.com.br):', targetEmail);
+                if (!typed) return;
+                targetEmail = typed.trim();
+                if (!targetEmail.includes('@')) {
+                    alert('E-mail inválido.');
+                    return;
+                }
+                activeDetailReq.client_email = targetEmail;
+            } else {
+                if (!confirm(`Confirmar conclusão da cotação (${fmtMoney(totalVal)}) e envio imediato por e-mail para:\n\n📧 Cliente: ${targetEmail}\n📋 Cópia & Resposta: vendas18@tecfag.com.br ?`)) {
+                    return;
+                }
+            }
+
+            try {
+                await saveDetailChanges();
+                const res = await api(`/api/parts/requests/${activeDetailReq.id}/send-client-proposal`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        to: targetEmail,
+                        include_photos: true
+                    })
+                });
+                showToast(`⚡ ${res.message}`, '#10b981');
+                await loadDashboard();
+                await openDetailModal(activeDetailReq.id, 3);
+            } catch (err) {
+                alert('Cotação salva, mas ocorreu erro no disparo de e-mail: ' + err.message);
+            }
+        }
+
+        function updateMyEmailButtonBadge() {
+            const btn = document.getElementById('btn-my-email');
+            if (!btn || !currentUser) return;
+            if (currentUser.personal_smtp_configured) {
+                btn.innerHTML = '🟢 Meu E-mail Conectado';
+                btn.style.borderColor = '#34d399';
+                btn.style.color = '#6ee7b7';
+            } else {
+                btn.innerHTML = '🔑 Meu E-mail';
+                btn.style.borderColor = '';
+                btn.style.color = '';
+            }
+        }
+
+        async function openMySmtpModal() {
+            try {
+                const data = await api('/api/parts/my-smtp');
+                const cfg = data.config || {};
+                document.getElementById('msmtp-email').value = cfg.email_address || data.default_email || '';
+                document.getElementById('msmtp-pass').value = '';
+                document.getElementById('msmtp-host').value = cfg.smtp_host || data.default_host || '';
+                document.getElementById('msmtp-port').value = cfg.smtp_port || data.default_port || 587;
+
+                const stEl = document.getElementById('msmtp-status');
+                const clrBtn = document.getElementById('btn-clear-msmtp');
+                if (data.configured && cfg.email_address) {
+                    stEl.style.display = 'block';
+                    stEl.style.color = '#34d399';
+                    stEl.innerHTML = `✅ Caixa <strong>${esc(cfg.email_address)}</strong> já está conectada e ativa!`;
+                    clrBtn.style.display = 'inline-flex';
+                } else {
+                    stEl.style.display = 'none';
+                    clrBtn.style.display = 'none';
+                }
+                document.getElementById('modal-my-smtp').classList.add('active');
+            } catch (err) {
+                alert('Erro ao carregar configuração de e-mail: ' + err.message);
+            }
+        }
+
+        async function saveMySmtpConfig() {
+            const email_address = document.getElementById('msmtp-email').value.trim();
+            const smtp_pass = document.getElementById('msmtp-pass').value;
+            const smtp_host = document.getElementById('msmtp-host').value.trim();
+            const smtp_port = parseInt(document.getElementById('msmtp-port').value) || 587;
+
+            if (!email_address || !smtp_pass) {
+                alert('Preencha seu e-mail corporativo e a senha do seu e-mail!');
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-msmtp');
+            const orig = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Verificando Servidor SMTP...';
+
+            try {
+                const res = await api('/api/parts/my-smtp', {
+                    method: 'POST',
+                    body: JSON.stringify({ email_address, smtp_pass, smtp_host, smtp_port })
+                });
+                if (currentUser) {
+                    currentUser.personal_smtp_configured = true;
+                    currentUser.official_email = email_address;
+                }
+                updateMyEmailButtonBadge();
+                closeModal('modal-my-smtp');
+                showToast(`✅ ${res.message}`, '#10b981');
+                if (document.getElementById('modal-detail').classList.contains('active') && activeDetailSubTab === 3) {
+                    renderDetailSubTab();
+                }
+            } catch (err) {
+                alert('Falha na autenticação SMTP (confira a senha do webmail e o servidor SMTP): ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = orig;
+            }
+        }
+
+        async function clearMySmtpConfig() {
+            if (!confirm('Desconectar sua caixa de e-mail pessoal? (O sistema continuará enviando normalmente com Resposta e Cópia para vendas18@tecfag.com.br).')) return;
+            try {
+                await api('/api/parts/my-smtp', { method: 'DELETE' });
+                if (currentUser) currentUser.personal_smtp_configured = false;
+                updateMyEmailButtonBadge();
+                closeModal('modal-my-smtp');
+                showToast('Caixa pessoal desconectada.', '#f59e0b');
+                if (document.getElementById('modal-detail').classList.contains('active') && activeDetailSubTab === 3) {
+                    renderDetailSubTab();
+                }
+            } catch (err) {
+                alert(err.message);
+            }
         }
 
         async function injectIntoComexContainer() {

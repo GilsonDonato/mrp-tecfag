@@ -6,6 +6,7 @@ const xlsx = require('xlsx');
 const path = require('path');
 const fs = require('fs');
 const zlib = require('zlib');
+const crypto = require('crypto');
 const https = require('https');
 
 /**
@@ -127,6 +128,47 @@ module.exports = function registerPartsModule({
         if (!user) return false;
         const u = String(user.username || '').toLowerCase().trim();
         return u === 'vendas18' || u === 'vendas18@tecfag.com.br' || u === 'guilherme';
+    }
+
+    function resolveOfficialUserEmail(username) {
+        if (!username) return 'vendas18@tecfag.com.br';
+        const u = String(username).toLowerCase().trim();
+        if (u.includes('@')) return u;
+        const map = {
+            'vendas18': 'vendas18@tecfag.com.br',
+            'guilherme': 'vendas18@tecfag.com.br',
+            'gilson': 'gilson@tecfag.com.br',
+            'admin': 'gilson@tecfag.com.br',
+            'jhenifer': 'adm@tecfag.com.br',
+            'fernando': 'projetos@grupo.tecfag.com.br',
+            'engenharia': 'projetos@grupo.tecfag.com.br',
+            'vendas': 'vendas14@tecfag.com.br',
+            'vendas1': 'vendas21@tecfag.com.br',
+            'vendas2': 'vendas4@tecfag.com.br',
+            'vendas3': 'vendas17@tecfag.com.br',
+            'vendas4': 'vendas19@tecfag.com.br',
+            'vendas6': 'vendas6@tecfag.com.br',
+            'patricia': 'vendas6@tecfag.com.br',
+            'heilio': 'assistencia6@tecfag.com.br',
+            'suporte2': 'suporte2@tecfag.com.br'
+        };
+        return map[u] || 'vendas18@tecfag.com.br';
+    }
+
+    const SMTP_ENC_KEY = crypto.createHash('sha256').update(process.env.SESSION_SECRET || 'tecfag_parts_smtp_secret_2026').digest();
+    function encryptSecret(plain) {
+        const iv = crypto.randomBytes(12);
+        const cipher = crypto.createCipheriv('aes-256-gcm', SMTP_ENC_KEY, iv);
+        const enc = Buffer.concat([cipher.update(String(plain), 'utf8'), cipher.final()]);
+        const tag = cipher.getAuthTag();
+        return `${iv.toString('hex')}:${tag.toString('hex')}:${enc.toString('hex')}`;
+    }
+    function decryptSecret(payload) {
+        if (!payload) return '';
+        const [ivHex, tagHex, encHex] = String(payload).split(':');
+        const decipher = crypto.createDecipheriv('aes-256-gcm', SMTP_ENC_KEY, Buffer.from(ivHex, 'hex'));
+        decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
+        return Buffer.concat([decipher.update(Buffer.from(encHex, 'hex')), decipher.final()]).toString('utf8');
     }
 
     // Cache de Câmbio USD/BRL em memória (15 min)
@@ -404,6 +446,18 @@ module.exports = function registerPartsModule({
                 contact_person TEXT,
                 updated_at TEXT NOT NULL
             )`);
+
+            // 7. Credenciais de E-mail Individual Opcional (p/ envio direto autenticado pela própria conta do vendedor, ex: vendas18@tecfag.com.br)
+            partsDb.run(`CREATE TABLE IF NOT EXISTS parts_user_smtp (
+                username TEXT PRIMARY KEY,
+                email_address TEXT NOT NULL,
+                smtp_host TEXT,
+                smtp_port INTEGER DEFAULT 587,
+                smtp_secure INTEGER DEFAULT 0,
+                smtp_pass_enc TEXT NOT NULL,
+                sender_display_name TEXT,
+                updated_at TEXT NOT NULL
+            )`);
         });
 
         // Garantir cadastro seguro de Guilherme Bertola (vendas18 / vendas18@tecfag.com.br) na tabela users do MRP sem sobrescrever senhas existentes
@@ -677,14 +731,22 @@ module.exports = function registerPartsModule({
     const router = express.Router();
     const asyncSafe = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-    // 1. Dados do Usuário Logado + Câmbio Atual
+    // 1. Dados do Usuário Logado + Câmbio Atual + E-mail Corporativo Oficial
     router.get('/me', authenticateToken, asyncSafe(async (req, res) => {
         const rates = await getLiveExchangeRates(false);
+        const officialEmail = resolveOfficialUserEmail(req.user.username);
+        const personalSmtp = await pGet(
+            'SELECT email_address, smtp_host, smtp_port, sender_display_name FROM parts_user_smtp WHERE LOWER(username) = LOWER(?) OR LOWER(email_address) = LOWER(?)',
+            [req.user.username, officialEmail]
+        ).catch(() => null);
+
         res.json({
             user: {
                 username: req.user.username,
                 role: req.user.role,
                 display_name: getFriendlyUserName(req.user.username),
+                official_email: personalSmtp ? personalSmtp.email_address : officialEmail,
+                personal_smtp_configured: !!personalSmtp,
                 is_jhenifer: isJheniferUser(req.user),
                 is_guilherme: isGuilhermeUser(req.user)
             },
@@ -1970,6 +2032,332 @@ module.exports = function registerPartsModule({
             success: true,
             photos_sent: photoCounter,
             message: `E-mail enviado com sucesso para ${to} (${photoCounter} foto(s) incluída(s))!`
+        });
+    }));
+
+    // 19. Configuração Opcional de Conta de E-mail Própria do Vendedor (ex: vendas18@tecfag.com.br)
+    router.get('/my-smtp', authenticateToken, asyncSafe(async (req, res) => {
+        const officialEmail = resolveOfficialUserEmail(req.user.username);
+        const row = await pGet(
+            'SELECT email_address, smtp_host, smtp_port, smtp_secure, sender_display_name, updated_at FROM parts_user_smtp WHERE LOWER(username) = LOWER(?) OR LOWER(email_address) = LOWER(?)',
+            [req.user.username, officialEmail]
+        );
+        res.json({
+            configured: !!row,
+            default_email: officialEmail,
+            default_host: (process.env.SMTP_HOST && process.env.SMTP_HOST !== 'smtp.exemplo.com') ? process.env.SMTP_HOST : '',
+            default_port: parseInt(process.env.SMTP_PORT) || 587,
+            config: row || null
+        });
+    }));
+
+    router.post('/my-smtp', authenticateToken, asyncSafe(async (req, res) => {
+        const { email_address, smtp_pass, smtp_host, smtp_port = 587, smtp_secure = false, sender_display_name = '' } = req.body || {};
+        const cleanEmail = String(email_address || '').trim().toLowerCase();
+        if (!cleanEmail || !cleanEmail.includes('@')) {
+            return res.status(400).json({ error: 'Informe um endereço de e-mail válido (ex: vendas18@tecfag.com.br).' });
+        }
+        if (!smtp_pass || !String(smtp_pass).trim()) {
+            return res.status(400).json({ error: 'Informe a senha do seu e-mail corporativo.' });
+        }
+        const hostToUse = String(smtp_host || process.env.SMTP_HOST || '').trim();
+        if (!hostToUse || hostToUse === 'smtp.exemplo.com') {
+            return res.status(400).json({ error: 'Informe o servidor SMTP (ex: smtp.tecfag.com.br / email-ssl.com.br / smtp.gmail.com).' });
+        }
+        const portNum = parseInt(smtp_port) || 587;
+        const isSecure = smtp_secure === true || smtp_secure === 'true' || portNum === 465;
+
+        // Testa conexão SMTP na hora para garantir que a senha do e-mail está correta!
+        const testTransport = nodemailer.createTransport({
+            host: hostToUse,
+            port: portNum,
+            secure: isSecure,
+            auth: { user: cleanEmail, pass: String(smtp_pass) },
+            tls: { rejectUnauthorized: false }
+        });
+        await testTransport.verify();
+
+        const encPass = encryptSecret(String(smtp_pass));
+        const now = new Date().toISOString();
+        await pRun(
+            `INSERT OR REPLACE INTO parts_user_smtp (
+                username, email_address, smtp_host, smtp_port, smtp_secure, smtp_pass_enc, sender_display_name, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                req.user.username.toLowerCase(),
+                cleanEmail,
+                hostToUse,
+                portNum,
+                isSecure ? 1 : 0,
+                encPass,
+                sender_display_name || getFriendlyUserName(req.user.username),
+                now
+            ]
+        );
+        res.json({ success: true, message: `Conta ${cleanEmail} conectada e verificada com sucesso! Seus orçamentos sairão diretamente pelo seu próprio e-mail.` });
+    }));
+
+    router.delete('/my-smtp', authenticateToken, asyncSafe(async (req, res) => {
+        const officialEmail = resolveOfficialUserEmail(req.user.username);
+        await pRun('DELETE FROM parts_user_smtp WHERE LOWER(username) = LOWER(?) OR LOWER(email_address) = LOWER(?)', [
+            req.user.username, officialEmail
+        ]);
+        res.json({ success: true });
+    }));
+
+    // 20. Envio Direto da Proposta Comercial ao Cliente (com Resposta Direcionada + Cópia Automática para Guilherme Bertola!)
+    router.post('/requests/:id/send-client-proposal', authenticateToken, asyncSafe(async (req, res) => {
+        const reqId = parseInt(req.params.id);
+        const r = await pGet('SELECT * FROM parts_requests WHERE id = ?', [reqId]);
+        if (!r) return res.status(404).json({ error: 'Solicitação não encontrada.' });
+
+        const items = await pAll('SELECT * FROM parts_request_items WHERE request_id = ? ORDER BY id ASC', [reqId]);
+        if (items.length === 0) {
+            return res.status(400).json({ error: 'Nenhuma peça vinculada a esta solicitação.' });
+        }
+
+        const {
+            to = '',
+            cc = '',
+            subject = '',
+            custom_message = '',
+            include_photos = true
+        } = req.body || {};
+
+        const targetClientEmail = String(to || r.client_email || '').trim();
+        if (!targetClientEmail || !targetClientEmail.includes('@')) {
+            return res.status(400).json({ error: 'Informe o e-mail do cliente para enviar a proposta comercial.' });
+        }
+
+        const now = new Date().toISOString();
+        const guilhermeEmail = 'vendas18@tecfag.com.br';
+        const loggedUserEmail = resolveOfficialUserEmail(req.user.username);
+
+        // Sempre garante que a resposta do cliente caia no e-mail do Guilherme (ou do vendedor logado + Guilherme em cópia!)
+        const primaryOwnerEmail = isGuilhermeUser(req.user) ? guilhermeEmail : (req.user.role === 'VENDAS' ? loggedUserEmail : guilhermeEmail);
+        const primaryOwnerDisplay = primaryOwnerEmail === guilhermeEmail
+            ? 'Guilherme Bertola — Pós-Venda & Peças Tecfag'
+            : `${getFriendlyUserName(req.user.username)} — Grupo Tecfag`;
+
+        // Montar lista de Cópia (CC) garantindo SEMPRE cópia para Guilherme Bertola (vendas18@tecfag.com.br)!
+        const ccSet = new Set();
+        ccSet.add(guilhermeEmail);
+        if (loggedUserEmail && loggedUserEmail.includes('@')) {
+            ccSet.add(loggedUserEmail.toLowerCase());
+        }
+        if (cc && String(cc).trim()) {
+            String(cc).split(/[,;]+/).map(s => s.trim().toLowerCase()).filter(s => s.includes('@')).forEach(s => ccSet.add(s));
+        }
+        // Não duplicar o destinatário principal no CC
+        ccSet.delete(targetClientEmail.toLowerCase());
+        const finalCcString = Array.from(ccSet).join(', ');
+
+        // Verificar se o usuário logado (ou Guilherme) possui conta SMTP própria conectada
+        const personalSmtp = await pGet(
+            'SELECT * FROM parts_user_smtp WHERE LOWER(username) = LOWER(?) OR LOWER(email_address) = LOWER(?)',
+            [req.user.username, primaryOwnerEmail]
+        ).catch(() => null);
+
+        let transporter = null;
+        let fromHeader = '';
+        let sentViaPersonalMailbox = false;
+
+        if (personalSmtp && personalSmtp.smtp_pass_enc) {
+            try {
+                const decPass = decryptSecret(personalSmtp.smtp_pass_enc);
+                transporter = nodemailer.createTransport({
+                    host: personalSmtp.smtp_host,
+                    port: parseInt(personalSmtp.smtp_port) || 587,
+                    secure: personalSmtp.smtp_secure === 1,
+                    auth: { user: personalSmtp.email_address, pass: decPass },
+                    tls: { rejectUnauthorized: false }
+                });
+                fromHeader = `"${personalSmtp.sender_display_name || primaryOwnerDisplay}" <${personalSmtp.email_address}>`;
+                sentViaPersonalMailbox = true;
+            } catch (e) {
+                transporter = null;
+            }
+        }
+
+        if (!transporter) {
+            if (!process.env.SMTP_HOST || !process.env.SMTP_USER || process.env.SMTP_HOST === 'smtp.exemplo.com') {
+                return res.status(500).json({
+                    error: 'Servidor SMTP geral não configurado neste ambiente, ou clique em "🔑 Conectar Meu E-mail" para cadastrar a senha do seu próprio e-mail @tecfag.com.br.'
+                });
+            }
+            transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST,
+                port: parseInt(process.env.SMTP_PORT) || 587,
+                secure: process.env.SMTP_SECURE === 'true',
+                auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+                tls: { rejectUnauthorized: false }
+            });
+            fromHeader = `"${primaryOwnerDisplay}" <${process.env.SMTP_USER}>`;
+        }
+
+        // Anexos e Fotos das Peças p/ Confirmação Visual do Cliente
+        const mailAttachments = [];
+        const inlinePhotosHtml = [];
+        if (include_photos !== false && include_photos !== 'false') {
+            for (let i = 0; i < items.length; i++) {
+                const it = items[i];
+                if (!it.photo_path) continue;
+                const fname = path.basename(String(it.photo_path));
+                const diskPath = path.join(PARTS_UPLOADS_DIR, fname);
+                if (fs.existsSync(diskPath)) {
+                    const ext = path.extname(diskPath).toLowerCase() || '.jpg';
+                    if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext)) {
+                        const cid = `client_prop_part_${i + 1}_${Date.now()}`;
+                        mailAttachments.push({
+                            filename: `Peca_${i + 1}_${it.erp_sku || it.temp_sku}${ext}`,
+                            path: diskPath,
+                            cid,
+                            contentDisposition: 'inline'
+                        });
+                        inlinePhotosHtml.push(`
+                            <div style="display:inline-block; vertical-align:top; width:240px; margin:0 12px 12px 0; border:1px solid #cbd5e1; border-radius:8px; padding:10px; background:#f8fafc;">
+                                <div style="font-size:12px; font-weight:bold; color:#0f172a; margin-bottom:6px;">Item #${i + 1}: ${it.part_name_pt}</div>
+                                <img src="cid:${cid}" alt="Peça ${i + 1}" style="width:100%; height:150px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;" />
+                            </div>
+                        `);
+                    }
+                }
+            }
+        }
+
+        const hasSignatureImg = fs.existsSync(SIGNATURE_IMG_PATH);
+        if (hasSignatureImg) {
+            mailAttachments.push({
+                filename: 'assinatura_tecfag.png',
+                path: SIGNATURE_IMG_PATH,
+                cid: 'tecfag_signature_banner'
+            });
+        }
+
+        let grandTotal = 0;
+        const rowsHtml = items.map((it, idx) => {
+            const unitBrl = parseFloat(it.final_unit_price_brl) || 0;
+            const qty = parseFloat(it.qty) || 1;
+            const subBrl = +(unitBrl * qty).toFixed(2);
+            grandTotal += subBrl;
+            return `
+                <tr>
+                    <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; font-family:monospace; font-weight:bold; color:#0369a1;">${it.erp_sku || it.temp_sku}</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; font-weight:bold; color:#0f172a;">${it.part_name_pt}</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">${qty} ${it.unit || 'UN'}</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">${it.promised_lead_days || 15} dias úteis</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:right;">R$ ${unitBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:right; font-weight:bold; color:#0f172a;">R$ ${subBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+            `;
+        }).join('');
+
+        const finalSubject = String(subject || '').trim() ||
+            `Proposta Comercial de Peças Tecfag — ${r.req_code} (${r.client_name})`;
+
+        const introText = String(custom_message || '').trim() ||
+            `Olá${r.client_contact ? ' ' + r.client_contact : ''}! Conforme solicitado, apresentamos abaixo nossa proposta comercial para fornecimento de peça(s) de reposição originais/homologadas Grupo Tecfag:`;
+
+        const htmlProposal = `
+            <div style="font-family: Arial, Helvetica, sans-serif; color: #1e293b; background-color: #f8fafc; padding: 20px;">
+                <div style="max-width: 720px; margin: 0 auto; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden;">
+                    <div style="background: linear-gradient(135deg, #0b0f19, #1e293b); color: #ffffff; padding: 20px 26px; border-bottom: 4px solid #0ea5e9;">
+                        <div style="font-size: 11px; font-weight: bold; color: #38bdf8; letter-spacing: 1px; text-transform: uppercase;">GRUPO TECFAG • PÓS-VENDA & PEÇAS DE REPOSIÇÃO</div>
+                        <h2 style="margin: 4px 0 0; font-size: 19px;">Proposta Comercial — Protocolo ${r.req_code}</h2>
+                    </div>
+
+                    <div style="padding: 24px 26px;">
+                        <p style="font-size: 14px; line-height: 1.6; margin-bottom: 16px; white-space: pre-wrap;">${introText}</p>
+
+                        <div style="background: #f1f5f9; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; font-size: 13px; line-height: 1.5;">
+                            <strong>🏢 Cliente:</strong> ${r.client_name} ${r.client_cnpj ? `(${r.client_cnpj})` : ''}<br>
+                            ${(r.machine_sku || r.machine_name) ? `<strong>🏭 Equipamento Vinculado:</strong> ${r.machine_sku || ''} ${r.machine_name || ''}${r.machine_serial ? ` (Série: ${r.machine_serial})` : ''}<br>` : ''}
+                            <strong>👤 Consultor Responsável:</strong> ${primaryOwnerDisplay} (&lt;${primaryOwnerEmail}&gt;)
+                        </div>
+
+                        <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 18px;">
+                            <thead>
+                                <tr style="background: #0f172a; color: #ffffff; text-align: left;">
+                                    <th style="padding: 9px 12px;">Código</th>
+                                    <th style="padding: 9px 12px;">Descrição da Peça</th>
+                                    <th style="padding: 9px 12px; text-align:center;">Qtd</th>
+                                    <th style="padding: 9px 12px; text-align:center;">Prazo Est.</th>
+                                    <th style="padding: 9px 12px; text-align:right;">Vlr. Unit.</th>
+                                    <th style="padding: 9px 12px; text-align:right;">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHtml}
+                            </tbody>
+                            <tfoot>
+                                <tr style="background: #ecfdf5;">
+                                    <td colspan="5" style="padding: 12px; text-align: right; font-weight: bold; font-size: 14px; color: #065f46;">VALOR TOTAL DO ORÇAMENTO:</td>
+                                    <td style="padding: 12px; text-align: right; font-weight: bold; font-size: 16px; color: #059669;">R$ ${grandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <div style="font-size: 13px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; color: #78350f;">
+                            <strong>📅 Validade da Proposta:</strong> ${r.proposal_validity_days || 7} dias corridos<br>
+                            <strong>💳 Condição de Pagamento:</strong> ${r.payment_terms_client || 'À vista / 28 DDL mediante aprovação cadastral'}
+                        </div>
+
+                        ${inlinePhotosHtml.length > 0 ? `
+                            <div style="margin-top: 16px; margin-bottom: 18px;">
+                                <div style="font-size: 13px; font-weight: bold; color: #334155; margin-bottom: 8px;">📷 Foto(s) de Referência Técnica da(s) Peça(s):</div>
+                                ${inlinePhotosHtml.join('')}
+                            </div>
+                        ` : ''}
+
+                        <div style="background: #e0f2fe; border-left: 4px solid #0284c7; padding: 12px 16px; border-radius: 6px; font-size: 13px; color: #0c4a6e; margin-bottom: 20px;">
+                            ✅ <strong>Como aprovar este orçamento:</strong> Basta responder diretamente a este e-mail confirmando a aprovação (sua resposta irá direto para <strong>${primaryOwnerEmail}</strong>).
+                        </div>
+
+                        <div style="padding-top: 14px; border-top: 1px solid #e2e8f0;">
+                            ${hasSignatureImg ? `<img src="cid:tecfag_signature_banner" alt="Grupo Tecfag" style="max-width: 620px; width: 100%; height: auto; display: block;" />` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        await transporter.sendMail({
+            from: fromHeader,
+            replyTo: `"${primaryOwnerDisplay}" <${primaryOwnerEmail}>`,
+            to: targetClientEmail,
+            cc: finalCcString || undefined,
+            subject: finalSubject,
+            text: `${introText}\n\nValor Total: R$ ${grandTotal.toFixed(2)}\nResponda a este e-mail (${primaryOwnerEmail}) para aprovar o pedido.`,
+            html: htmlProposal,
+            attachments: mailAttachments
+        });
+
+        // Atualizar e-mail do cliente no card + marcar proposta enviada + garantir etapa 3_PROPOSTA_CLIENTE se estava na 2
+        const nextStage = r.stage === '2_COTACAO_FORNECEDOR' ? '3_PROPOSTA_CLIENTE' : r.stage;
+        await pRun(
+            `UPDATE parts_requests SET
+                client_email = ?,
+                proposal_sent_at = ?,
+                stage = ?,
+                updated_at = ?
+             WHERE id = ?`,
+            [targetClientEmail, now, nextStage, now, reqId]
+        );
+
+        await addTimelineEntry(
+            reqId,
+            req.user,
+            'CLIENT_PROPOSAL_SENT',
+            `📧 Proposta Comercial (R$ ${grandTotal.toFixed(2)}) enviada direto para o cliente (${targetClientEmail}) | Resposta direcionada p/ ${primaryOwnerEmail}${finalCcString ? ` | Cópia: ${finalCcString}` : ''}${sentViaPersonalMailbox ? ' [Via caixa própria]' : ''}!`
+        );
+
+        res.json({
+            success: true,
+            sent_to: targetClientEmail,
+            reply_to: primaryOwnerEmail,
+            cc: finalCcString,
+            via_personal_smtp: sentViaPersonalMailbox,
+            message: `Proposta enviada com sucesso para ${targetClientEmail} (com cópia e resposta direcionadas para ${primaryOwnerEmail})!`
         });
     }));
 
