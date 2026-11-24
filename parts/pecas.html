@@ -790,12 +790,12 @@
                     </div>
                     <div class="form-grid-2" style="margin-top:10px;">
                         <div class="fg">
-                            <label>Modelo no Fabricante (Vendor Code)</label>
-                            <input type="text" id="nr-vendor-model" class="form-control" placeholder="Ex: AFPP1328 / JW-D2">
+                            <label style="color:#38bdf8;">🏷️ Cód. Antigo ERP / Código Original no Fornecedor (Vai no E-mail!)</label>
+                            <input type="text" id="nr-vendor-model" class="form-control" placeholder="Ex: ARLM-160B (Puxado automático da aba Cód. Antigo)" style="border-color:rgba(56,189,248,0.5); font-weight:800;">
                         </div>
                         <div class="fg">
-                            <label>Fornecedor Original da Máquina (China / Brasil)</label>
-                            <input type="text" id="nr-machine-supplier" class="form-control" list="intl-suppliers-datalist" placeholder="Ex: Guangdong Shengwei / Brother / Amy...">
+                            <label style="color:#fbbf24;">🏭 Nome do Fabricante Original (Puxado automático do ERP)</label>
+                            <input type="text" id="nr-machine-supplier" class="form-control" list="intl-suppliers-datalist" placeholder="Ex: ZHEJIANG HAIZHOU PACKING MACHINERY CO.,LTD">
                         </div>
                     </div>
 
@@ -884,8 +884,87 @@
         </div>
     </div>
 
+    <!-- MODAL 3: DISPARO DE E-MAIL AO FORNECEDOR COM FOTOS EMBUTIDAS + CÓD. ANTIGO -->
+    <div class="modal-overlay" id="modal-supplier-email" style="z-index:1200;">
+        <div class="modal-box" style="max-width:860px;">
+            <div class="modal-head">
+                <div>
+                    <h3 style="font-size:1.08rem;">📧 Enviar E-mail de Cotação ao Fornecedor (Com Fotos Embutidas)</h3>
+                    <div style="font-size:0.74rem; color:var(--muted);">Envia exclusivamente o <strong>Código Original do Fornecedor (Aba Cód. Antigo)</strong> + fotos visíveis no corpo do e-mail e em anexo!</div>
+                </div>
+                <button class="btn btn-sm" onclick="closeModal('modal-supplier-email')">✕ Fechar</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-grid-3" style="margin-bottom:12px; background:var(--surface-3); padding:12px; border-radius:10px; border:1px solid var(--border);">
+                    <div class="fg">
+                        <label>Idioma do E-mail</label>
+                        <select id="em-lang" class="form-control" onchange="rebuildSupplierEmailTemplate()">
+                            <option value="EN">🇨🇳 Inglês (Fornecedor Internacional)</option>
+                            <option value="PT">🇧🇷 Português (Fornecedor Nacional)</option>
+                        </select>
+                    </div>
+                    <div class="fg">
+                        <label style="color:#38bdf8;">🏷️ Modelo no Fornecedor (Cód. Antigo ERP)</label>
+                        <input type="text" id="em-vendor-code" class="form-control" style="font-weight:900; color:#38bdf8; border-color:rgba(56,189,248,0.5);" placeholder="Ex: ARLM-160B" oninput="rebuildSupplierEmailTemplate()">
+                    </div>
+                    <div class="fg">
+                        <label>Fornecedor Destino</label>
+                        <input type="text" id="em-supplier-name" class="form-control" list="intl-suppliers-datalist" placeholder="Nome do fornecedor">
+                    </div>
+                </div>
+
+                <div id="em-missing-code-alert" style="display:none; background:rgba(245,158,11,0.14); border:1px solid rgba(245,158,11,0.5); color:#fde68a; padding:9px 12px; border-radius:8px; font-size:0.76rem; margin-bottom:12px;">
+                    ⚠️ <strong>Atenção:</strong> O <strong>Cód. Antigo (Código Original no Fornecedor)</strong> está em branco. Preencha acima o código que o fabricante usa (ex: <code>ARLM-160B</code>) para não enviar nomenclatura comercial da Tecfag!
+                </div>
+
+                <div class="form-grid-2" style="margin-bottom:12px;">
+                    <div class="fg">
+                        <label>Para (E-mail do Fornecedor — memoriza automático p/ próximas!) *</label>
+                        <input type="text" id="em-to" class="form-control" list="supplier-emails-datalist" placeholder="sales@supplier.com">
+                    </div>
+                    <div class="fg">
+                        <label>CC / Cópia (Opcional)</label>
+                        <input type="text" id="em-cc" class="form-control" placeholder="Ex: gilson@tecfag.com.br, adm@tecfag.com.br">
+                    </div>
+                </div>
+
+                <div class="fg" style="margin-bottom:12px;">
+                    <label>Assunto do E-mail *</label>
+                    <input type="text" id="em-subject" class="form-control">
+                </div>
+
+                <div class="fg" style="margin-bottom:14px;">
+                    <label>Mensagem do E-mail (Editável)</label>
+                    <textarea id="em-body" class="form-control" rows="8" style="font-family:monospace; font-size:0.8rem; line-height:1.5;"></textarea>
+                </div>
+
+                <!-- Galeria de Fotos que vão junto no E-mail -->
+                <div style="background:rgba(16,185,129,0.07); border:1px solid rgba(16,185,129,0.35); border-radius:10px; padding:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                        <div style="font-size:0.78rem; font-weight:800; color:#34d399;">
+                            📷 FOTOS / IMAGENS QUE IRÃO JUNTO NO E-MAIL (EMBUTIDAS NO CORPO + EM ANEXO):
+                        </div>
+                        <label class="btn btn-sm btn-primary" style="cursor:pointer;">
+                            📎 Adicionar Fotos/Desenhos Extras do PC
+                            <input type="file" id="em-extra-files" multiple accept="image/*,.pdf" style="display:none;" onchange="renderEmailPhotosPreview()">
+                        </label>
+                    </div>
+                    <div id="em-photos-preview" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;"></div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <span style="font-size:0.73rem; color:var(--muted);">✅ As fotos aparecem abertas direto na tela do fornecedor + como arquivo anexo.</span>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn" onclick="closeModal('modal-supplier-email')">Cancelar</button>
+                    <button class="btn btn-green" id="btn-send-sup-email" onclick="submitSupplierEmail()">🚀 Enviar E-mail c/ Fotos Agora</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <datalist id="intl-suppliers-datalist"></datalist>
     <datalist id="nat-suppliers-datalist"></datalist>
+    <datalist id="supplier-emails-datalist"></datalist>
     <div class="toast" id="toast-box"></div>
 
     <script>
@@ -1106,6 +1185,21 @@
 
             const natDl = document.getElementById('nat-suppliers-datalist');
             natDl.innerHTML = (suppliersAndContainers.nat_suppliers || []).map(s => `<option value="${esc(s.name)}">`).join('');
+
+            const emailSet = new Map();
+            (suppliersAndContainers.saved_supplier_emails || []).forEach(e => {
+                if (e.contact_email) emailSet.set(e.contact_email, e.supplier_name || '');
+            });
+            (suppliersAndContainers.intl_suppliers || []).forEach(s => {
+                if (s.contact_email) emailSet.set(s.contact_email, s.name || '');
+            });
+            (suppliersAndContainers.nat_suppliers || []).forEach(s => {
+                if (s.email) emailSet.set(s.email, s.name || '');
+            });
+            const emDl = document.getElementById('supplier-emails-datalist');
+            if (emDl) {
+                emDl.innerHTML = Array.from(emailSet.entries()).map(([em, sup]) => `<option value="${esc(em)}">${esc(sup)}</option>`).join('');
+            }
         }
 
         function updateKpis() {
@@ -1836,8 +1930,15 @@
                     }
                     box.innerHTML = list.map(m => `
                         <div class="autocomplete-item" onclick='selectMachine(${JSON.stringify(m)})'>
-                            <strong style="color:#fbbf24;">${esc(m.sku)}</strong> — ${esc(m.name)}
-                            ${m.vendorCode ? `<span style="color:#7dd3fc;">[${esc(m.vendorCode)}]</span>` : ''}
+                            <div>
+                                <strong style="color:#fbbf24;">${esc(m.sku)}</strong> — ${esc(m.name)}
+                            </div>
+                            <div style="font-size:0.71rem; margin-top:2px; display:flex; gap:10px; flex-wrap:wrap;">
+                                ${m.vendorCode
+                                    ? `<span style="color:#38bdf8; font-weight:800;">🏷️ Cód. Antigo (Fornecedor): ${esc(m.vendorCode)}</span>`
+                                    : `<span style="color:var(--muted);">Sem Cód. Antigo</span>`}
+                                ${m.manufacturer ? `<span style="color:#6ee7b7;">🏭 ${esc(m.manufacturer)}</span>` : ''}
+                            </div>
                         </div>
                     `).join('');
                     box.style.display = 'block';
@@ -1849,11 +1950,17 @@
             document.getElementById('nr-machine-search').value = m.name || '';
             document.getElementById('nr-machine-sku').value = m.sku || '';
             document.getElementById('nr-vendor-model').value = m.vendorCode || '';
+            if (m.manufacturer) {
+                document.getElementById('nr-machine-supplier').value = m.manufacturer;
+            }
             document.getElementById('nr-machine-results').style.display = 'none';
 
             try {
                 const detail = await api('/api/parts/lookup/machines?exact_sku=' + encodeURIComponent(m.sku));
-                if (detail.suggested_supplier && !document.getElementById('nr-machine-supplier').value) {
+                if (detail.suggested_vendor_code && !document.getElementById('nr-vendor-model').value) {
+                    document.getElementById('nr-vendor-model').value = detail.suggested_vendor_code;
+                }
+                if (detail.suggested_supplier) {
                     document.getElementById('nr-machine-supplier').value = detail.suggested_supplier;
                 }
                 const kpBox = document.getElementById('nr-known-parts-box');
@@ -1936,11 +2043,14 @@
         // =========================================================================
         // MODAL 2: CENTRAL DE GESTÃO DA SOLICITAÇÃO (4 SUB-ABAS)
         // =========================================================================
+        let activeSuggestedSupplierEmail = '';
+
         async function openDetailModal(reqId, forceTab = null) {
             const data = await api(`/api/parts/requests/${reqId}`);
             activeDetailReq = data.request;
             activeDetailItems = data.items || [];
             activeDetailTimeline = data.timeline || [];
+            activeSuggestedSupplierEmail = data.suggested_supplier_email || '';
 
             const stMeta = STAGE_META[activeDetailReq.stage] || STAGE_META['1_TRIAGEM_TECNICA'];
             document.getElementById('md-title').textContent = `${activeDetailReq.req_code} — ${activeDetailReq.client_name}`;
@@ -1951,7 +2061,7 @@
 
             document.getElementById('md-urgency-badge').outerHTML = `<span id="md-urgency-badge">${urgencyBadgeHtml(activeDetailReq.urgency)}</span>`;
             document.getElementById('md-subtitle').textContent =
-                `Solicitante: ${activeDetailReq.requester_name || '-'} • Máquina: ${activeDetailReq.machine_sku || ''} ${activeDetailReq.machine_name || 'Não informada'} ${activeDetailReq.machine_vendor_model ? '(' + activeDetailReq.machine_vendor_model + ')' : ''}`;
+                `Solicitante: ${activeDetailReq.requester_name || '-'} • SKU Tecfag: ${activeDetailReq.machine_sku || '-'} • Cód. Antigo (Fornecedor): ${activeDetailReq.machine_vendor_model || 'Não informado'} ${activeDetailReq.machine_supplier_name ? '• Fab: ' + activeDetailReq.machine_supplier_name : ''}`;
             document.getElementById('md-stage-select').value = activeDetailReq.stage;
             document.getElementById('md-total-display').textContent = 'Total Orçado: ' + fmtMoney(activeDetailReq.total_quoted_brl);
 
@@ -2005,18 +2115,18 @@
                             </select>
                         </div>
                         <div class="fg">
-                            <label>SKU Máquina / Modelo Fabricante</label>
+                            <label style="color:#38bdf8;">SKU Tecfag / 🏷️ Cód. Antigo (Fornecedor)</label>
                             <div style="display:flex; gap:6px;">
-                                <input type="text" id="ed-msku" class="form-control" value="${esc(r.machine_sku || '')}" placeholder="SKU Máq">
-                                <input type="text" id="ed-mvendor" class="form-control" value="${esc(r.machine_vendor_model || '')}" placeholder="Vendor Code">
+                                <input type="text" id="ed-msku" class="form-control" value="${esc(r.machine_sku || '')}" placeholder="SKU Tecfag">
+                                <input type="text" id="ed-mvendor" class="form-control" value="${esc(r.machine_vendor_model || '')}" placeholder="Cód. Antigo (Ex: ARLM-160B)" style="font-weight:800; color:#38bdf8; border-color:rgba(56,189,248,0.45);">
                             </div>
                         </div>
                         <div class="fg" style="grid-column: span 2;">
-                            <label>Nome da Máquina</label>
+                            <label>Descrição Interna Tecfag (Não enviada ao fornecedor chinês)</label>
                             <input type="text" id="ed-mname" class="form-control" value="${esc(r.machine_name || '')}">
                         </div>
                         <div class="fg">
-                            <label>Fornecedor Original da Máquina</label>
+                            <label>Fornecedor Original da Máquina (ERP)</label>
                             <input type="text" id="ed-msupplier" class="form-control" list="intl-suppliers-datalist" value="${esc(r.machine_supplier_name || '')}">
                         </div>
                         <div class="fg">
@@ -2053,14 +2163,14 @@
                                         <input type="text" class="form-control ti-pt" value="${esc(it.part_name_pt)}">
                                     </div>
                                     <div class="fg">
-                                        <label>Nome em Inglês (p/ RFQ China)</label>
+                                        <label>Nome em Inglês (p/ E-mail China)</label>
                                         <input type="text" class="form-control ti-en" value="${esc(it.part_name_en || '')}" placeholder="Ex: Heating Tube 220V / Sealing Knife">
                                     </div>
                                     <div class="fg">
-                                        <label>Qtd & Part Number Fabricante</label>
+                                        <label>Qtd & Cód. Peça no Fornecedor (Cód. Antigo)</label>
                                         <div style="display:flex; gap:6px;">
-                                            <input type="number" class="form-control ti-qty" value="${it.qty}" step="any" style="width:38%;">
-                                            <input type="text" class="form-control ti-pn" value="${esc(it.vendor_part_number || '')}" placeholder="Part Number" style="width:62%;">
+                                            <input type="number" class="form-control ti-qty" value="${it.qty}" step="any" style="width:36%;">
+                                            <input type="text" class="form-control ti-pn" value="${esc(it.vendor_part_number || '')}" placeholder="Cód. Fornecedor" style="width:64%;">
                                         </div>
                                     </div>
                                 </div>
@@ -2103,11 +2213,12 @@
                                 <input type="number" step="0.0001" id="ed-usd-rate" class="form-control" style="width:110px; display:inline-block; margin-left:6px; font-weight:900; color:#4ade80;" value="${r.usd_rate_snapshot || liveRates.usd}" oninput="recalcAllQuoteRowsLive()">
                                 <button type="button" class="btn btn-sm" onclick="document.getElementById('ed-usd-rate').value = liveRates.usd; recalcAllQuoteRowsLive();">Usar Hoje (${Number(liveRates.usd).toFixed(2)})</button>
                             </div>
-                            <span class="formula-pill">FOB ($) × Dólar × 2 × 2 = Preço Venda Cliente</span>
+                            <span class="formula-pill">🏷️ Modelo Fornecedor (Cód. Antigo): ${esc(r.machine_vendor_model || 'Conferir!')}</span>
                         </div>
                         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <button type="button" class="btn btn-sm" onclick="copySupplierRfq('EN')">🇨🇳 Copiar RFQ Inglês (WeChat / China)</button>
-                            <button type="button" class="btn btn-sm" onclick="copySupplierRfq('PT')">🇧🇷 Copiar RFQ Nacional (WhatsApp Brasil)</button>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="openSupplierEmailModal('EN')">📧 Enviar E-mail c/ Fotos ao Fornecedor</button>
+                            <button type="button" class="btn btn-sm" onclick="copySupplierRfq('EN')">🇨🇳 Copiar p/ WeChat</button>
+                            <button type="button" class="btn btn-sm" onclick="copySupplierRfq('PT')">🇧🇷 Copiar p/ WhatsApp Brasil</button>
                             <button type="button" class="btn btn-green btn-sm" onclick="releaseProposalToSales()">📤 Concluir Cotação & Enviar p/ Proposta Cliente</button>
                         </div>
                     </div>
@@ -2596,36 +2707,189 @@
             await openDetailModal(res.request.id);
         }
 
+        function buildSupplierRfqContent(lang, overrideVendorCode) {
+            const r = activeDetailReq;
+            // REGRA DE OURO: Usar estritamente o Cód. Antigo (código original no fornecedor, ex: ARLM-160B), NUNCA o SKU/descrição comercial da Tecfag!
+            const vendorModel = String(overrideVendorCode !== undefined ? overrideVendorCode : (r.machine_vendor_model || '')).trim();
+            const hasPhotos = activeDetailItems.some(it => !!it.photo_path);
+
+            if (lang === 'EN') {
+                const subject = `Urgent Spare Parts Quotation${vendorModel ? ' - Machine Model ' + vendorModel : ''} [${r.req_code}]`;
+                const lines = [
+                    `Dear Partner,`,
+                    ``,
+                    `Please send us an urgent Spare Parts quotation (Unit FOB Price in USD + Lead Time + Gross Weight):`,
+                    `• Reference: ${r.req_code}`,
+                    `• Machine Original Model: ${vendorModel || '(Please check attached reference photo)'}`,
+                    r.machine_serial ? `• Machine Serial No.: ${r.machine_serial}` : null,
+                    `--------------------------------------------------`,
+                    ...activeDetailItems.map((it, i) => {
+                        const pCode = it.vendor_part_number ? `[Code: ${it.vendor_part_number}] ` : '';
+                        const pPhotoNote = it.photo_path ? ' (See attached photo below)' : '';
+                        return `${i + 1}) ${pCode}${it.part_name_en || it.part_name_pt} — Qty: ${it.qty} ${it.unit || 'PCS'}${pPhotoNote}`;
+                    }),
+                    `--------------------------------------------------`,
+                    hasPhotos ? `📷 Reference photo(s) of the part(s) are embedded below and attached to this email.` : null,
+                    `Please confirm unit FOB price (USD), stock availability / production lead time, and packing weight for DHL/FedEx courier.`,
+                    ``,
+                    `Best regards,`,
+                    `Grupo Tecfag — Purchasing & Engineering Dept.`
+                ].filter(v => v !== null);
+                return { subject, body: lines.join('\n') };
+            } else {
+                const subject = `Cotação de Peça(s) de Reposição${vendorModel ? ' - Ref. ' + vendorModel : ''} [${r.req_code}]`;
+                const lines = [
+                    `Olá! Tudo bem?`,
+                    `Solicitamos cotação e menor prazo de entrega para o(s) item(ns) abaixo (Tecfag Automação - Ref. ${r.req_code}):`,
+                    vendorModel ? `• Equipamento / Modelo Ref.: ${vendorModel}` : null,
+                    `--------------------------------------------------`,
+                    ...activeDetailItems.map((it, i) =>
+                        `${i + 1}) ${it.qty} ${it.unit || 'UN'} — ${it.part_name_pt}${it.vendor_part_number ? ' | Cód. Ref: ' + it.vendor_part_number : ''}${it.national_equiv_spec ? '\n   Especificação: ' + it.national_equiv_spec : ''}${it.photo_path ? ' (Foto anexa neste e-mail)' : ''}`
+                    ),
+                    `--------------------------------------------------`,
+                    `Favor informar valor unitário (R$), impostos e menor prazo de entrega/fabricação.`
+                ].filter(v => v !== null);
+                return { subject, body: lines.join('\n') };
+            }
+        }
+
         function copySupplierRfq(lang) {
             collectDomEditsIntoState();
+            const { body } = buildSupplierRfqContent(lang);
+            const photoLinks = activeDetailItems
+                .filter(it => it.photo_path)
+                .map((it, idx) => `Photo #${idx + 1}: ${window.location.origin}${it.photo_path}`);
+            const finalCopy = photoLinks.length > 0 ? `${body}\n\n${photoLinks.join('\n')}` : body;
+            navigator.clipboard.writeText(finalCopy);
+            showToast(
+                lang === 'EN'
+                    ? '🇨🇳 RFQ em Inglês (usando Cód. Antigo) copiada para o WeChat!'
+                    : '🇧🇷 RFQ Nacional copiada para o WhatsApp!',
+                '#0ea5e9'
+            );
+        }
+
+        function openSupplierEmailModal(defaultLang = 'EN') {
+            collectDomEditsIntoState();
             const r = activeDetailReq;
-            if (lang === 'EN') {
-                const lines = [
-                    `Hello! Please send us an urgent Spare Parts quotation (FOB USD + Lead Time + Packing Weight):`,
-                    `Reference: ${r.req_code}`,
-                    `Machine Model: ${r.machine_vendor_model || r.machine_name || r.machine_sku || 'As per photo'}`,
-                    r.machine_serial ? `Machine Serial No.: ${r.machine_serial}` : null,
-                    `----------------------------------------`,
-                    ...activeDetailItems.map((it, i) =>
-                        `${i + 1}) Part: ${it.part_name_en || it.part_name_pt} | Qty: ${it.qty} ${it.unit || 'PCS'}${it.vendor_part_number ? ' | Part Code: ' + it.vendor_part_number : ''}`
-                    ),
-                    `----------------------------------------`,
-                    `Please inform unit FOB price (USD), availability in stock, and gross weight for DHL/FedEx courier.`
-                ].filter(Boolean);
-                navigator.clipboard.writeText(lines.join('\n'));
-                showToast('🇨🇳 RFQ em Inglês copiada! Pronto para colar no WeChat / E-mail.', '#0ea5e9');
+            const firstItemSup = (activeDetailItems[0] && activeDetailItems[0].intl_supplier_name) || '';
+            const supName = firstItemSup || r.machine_supplier_name || '';
+
+            document.getElementById('em-lang').value = defaultLang;
+            document.getElementById('em-vendor-code').value = r.machine_vendor_model || '';
+            document.getElementById('em-supplier-name').value = supName;
+            document.getElementById('em-to').value = activeSuggestedSupplierEmail || '';
+            document.getElementById('em-cc').value = '';
+            document.getElementById('em-extra-files').value = '';
+
+            rebuildSupplierEmailTemplate();
+            renderEmailPhotosPreview();
+            document.getElementById('modal-supplier-email').classList.add('active');
+        }
+
+        function rebuildSupplierEmailTemplate() {
+            const lang = document.getElementById('em-lang').value;
+            const vCode = document.getElementById('em-vendor-code').value.trim();
+            document.getElementById('em-missing-code-alert').style.display = (!vCode && lang === 'EN') ? 'block' : 'none';
+
+            const { subject, body } = buildSupplierRfqContent(lang, vCode);
+            document.getElementById('em-subject').value = subject;
+            document.getElementById('em-body').value = body;
+        }
+
+        function renderEmailPhotosPreview() {
+            const box = document.getElementById('em-photos-preview');
+            const existingPhotos = activeDetailItems.filter(it => !!it.photo_path);
+            const extraInput = document.getElementById('em-extra-files');
+            const extraFiles = extraInput && extraInput.files ? Array.from(extraInput.files) : [];
+
+            const htmlParts = [];
+            existingPhotos.forEach((it, i) => {
+                htmlParts.push(`
+                    <div style="background:var(--surface-3); border:1px solid #34d399; border-radius:8px; padding:6px 10px; display:flex; align-items:center; gap:8px;">
+                        <img src="${esc(it.photo_path)}" style="width:46px; height:46px; object-fit:cover; border-radius:6px;">
+                        <div style="font-size:0.73rem;">
+                            <div style="font-weight:800; color:#6ee7b7;">✅ Foto Peça #${i + 1}</div>
+                            <div style="color:var(--muted); max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(it.part_name_pt)}</div>
+                        </div>
+                    </div>
+                `);
+            });
+
+            extraFiles.forEach((f) => {
+                htmlParts.push(`
+                    <div style="background:var(--surface-3); border:1px solid #38bdf8; border-radius:8px; padding:8px 10px; font-size:0.74rem; color:#7dd3fc; font-weight:700;">
+                        📎 Extra: ${esc(f.name)}
+                    </div>
+                `);
+            });
+
+            if (htmlParts.length === 0) {
+                box.innerHTML = `<div style="font-size:0.75rem; color:#fbbf24;">⚠️ Nenhuma foto anexada ainda nos itens. Clique em <strong>"📎 Adicionar Fotos/Desenhos Extras do PC"</strong> acima para incluir a foto da peça junto neste e-mail!</div>`;
             } else {
-                const lines = [
-                    `Olá! Tudo bem? Solicito cotação e prazo de entrega para o(s) item(ns) abaixo (Tecfag Automação - Ref. ${r.req_code}):`,
-                    `----------------------------------------`,
-                    ...activeDetailItems.map((it, i) =>
-                        `${i + 1}) ${it.qty} ${it.unit || 'UN'} — ${it.part_name_pt}${it.national_equiv_spec ? '\n   Especificação: ' + it.national_equiv_spec : ''}${it.vendor_part_number ? ' | Ref: ' + it.vendor_part_number : ''}`
-                    ),
-                    `----------------------------------------`,
-                    `Favor informar valor unitário (R$), impostos e menor prazo de entrega/fabricação.`
-                ];
-                navigator.clipboard.writeText(lines.join('\n'));
-                showToast('🇧🇷 RFQ Nacional copiada para o WhatsApp!', '#10b981');
+                box.innerHTML = htmlParts.join('');
+            }
+        }
+
+        async function submitSupplierEmail() {
+            const to = document.getElementById('em-to').value.trim();
+            const cc = document.getElementById('em-cc').value.trim();
+            const subject = document.getElementById('em-subject').value.trim();
+            const body = document.getElementById('em-body').value.trim();
+            const lang = document.getElementById('em-lang').value;
+            const vCode = document.getElementById('em-vendor-code').value.trim();
+            const supName = document.getElementById('em-supplier-name').value.trim();
+
+            if (!to) {
+                alert('Informe o e-mail do fornecedor no campo "Para"!');
+                return;
+            }
+            if (!subject) {
+                alert('Informe o assunto do e-mail!');
+                return;
+            }
+
+            const btn = document.getElementById('btn-send-sup-email');
+            const origTxt = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Enviando E-mail c/ Fotos...';
+
+            try {
+                // Salva edições pendentes antes de disparar
+                activeDetailReq.machine_vendor_model = vCode || activeDetailReq.machine_vendor_model;
+                await saveDetailChanges();
+
+                const fd = new FormData();
+                fd.append('to', to);
+                fd.append('cc', cc);
+                fd.append('subject', subject);
+                fd.append('body', body);
+                fd.append('lang', lang);
+                fd.append('vendor_machine_code', vCode);
+                fd.append('supplier_name', supName);
+
+                const extraInput = document.getElementById('em-extra-files');
+                if (extraInput && extraInput.files && extraInput.files.length > 0) {
+                    for (const file of Array.from(extraInput.files)) {
+                        const compressed = await compressImageFile(file);
+                        fd.append('extra_files', compressed);
+                    }
+                }
+
+                const res = await api(`/api/parts/requests/${activeDetailReq.id}/send-supplier-email`, {
+                    method: 'POST',
+                    body: fd
+                });
+
+                closeModal('modal-supplier-email');
+                showToast(`📧 ${res.message}`, '#10b981');
+                await loadSuppliersAndContainers();
+                await openDetailModal(activeDetailReq.id, 2);
+            } catch (err) {
+                alert('Erro ao enviar e-mail: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = origTxt;
             }
         }
 

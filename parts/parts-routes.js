@@ -1,6 +1,8 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const multer = require('multer');
+const nodemailer = require('nodemailer');
+const xlsx = require('xlsx');
 const path = require('path');
 const fs = require('fs');
 const zlib = require('zlib');
@@ -11,7 +13,8 @@ const https = require('https');
  * Rotas: /pecas e /api/parts/*
  * - Banco SQLite próprio: tecfag_pecas.db (Modo WAL, isolado sem risco ao MRP de Máquinas)
  * - Pasta de anexos própria: uploads_pecas (com disjuntor de 200 MB livres p/ proteger o disco de 1GB do Render)
- * - Integração de leitura inteligente com mrpDb (erp_clients, stock_suppliers, stock_orders, supplier_sku_mappings)
+ * - Integração direta com skus.csv (Aba Cód. Antigo = Código Original no Fornecedor + Nome Fabricante)
+ * - Disparo de E-mail Oficial SMTP com Fotos Embutidas (Inline CID) + Anexadas
  * - Regra Oficial de Preço Importação Tecfag: Preço FOB ($) x Dólar x 2 x 2
  * - Fila Expressa dedicada de Cadastro ERP (Jhenifer) acionada somente na venda aprovada / estoque autorizado
  */
@@ -28,6 +31,8 @@ module.exports = function registerPartsModule({
     const PARTS_UPLOADS_DIR = process.env.PARTS_UPLOADS_PATH || path.join(DB_DIR, 'uploads_pecas');
     const PARTS_BACKUPS_DIR = path.join(DB_DIR, 'backups');
     const PRODUCTS_JSON_PATH = path.join(__dirname, '..', 'data', 'products.json');
+    const SKUS_CSV_PATH = path.join(__dirname, '..', 'skus.csv');
+    const SIGNATURE_IMG_PATH = path.join(__dirname, '..', 'media', 'email_signature_tecfag.png');
 
     const TOTAL_DISK_LIMIT_BYTES = (parseFloat(process.env.PARTS_DISK_TOTAL_GB) || 1) * 1024 * 1024 * 1024;
     const MRP_RESERVED_FREE_BYTES = 200 * 1024 * 1024; // 200 MB intocáveis para o MRP principal
@@ -391,6 +396,14 @@ module.exports = function registerPartsModule({
                 FOREIGN KEY(request_id) REFERENCES parts_requests(id) ON DELETE CASCADE
             )`);
             partsDb.run(`CREATE INDEX IF NOT EXISTS idx_parts_tl_req ON parts_timeline(request_id)`);
+
+            // 6. Memória de E-mails de Fornecedores (Nacionais e Internacionais)
+            partsDb.run(`CREATE TABLE IF NOT EXISTS parts_supplier_emails (
+                supplier_name TEXT PRIMARY KEY,
+                contact_email TEXT NOT NULL,
+                contact_person TEXT,
+                updated_at TEXT NOT NULL
+            )`);
         });
 
         // Garantir cadastro seguro de Guilherme Bertola (vendas18 / vendas18@tecfag.com.br) na tabela users do MRP sem sobrescrever senhas existentes
@@ -528,18 +541,77 @@ module.exports = function registerPartsModule({
         return `SOL-PEC-${year}-${String(nextNum).padStart(4, '0')}`;
     }
 
+    // Índice em memória do ERP oficial (skus.csv: Código, Descrição, Cód. Antigo do Fornecedor, Nome Fabricante, NCM, Descrição Inglês)
+    const erpSkusBaseMap = {};
+    function initErpSkusSpreadsheetIndex() {
+        try {
+            if (fs.existsSync(SKUS_CSV_PATH)) {
+                const wb = xlsx.readFile(SKUS_CSV_PATH);
+                const sheet = wb.Sheets[wb.SheetNames[0]];
+                const rows = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+                for (let i = 1; i < rows.length; i++) {
+                    const r = rows[i];
+                    if (!r) continue;
+                    const sku = String(r[2] || '').trim();
+                    if (!sku) continue;
+                    erpSkusBaseMap[sku.toUpperCase()] = {
+                        sku,
+                        name: String(r[3] || '').trim(),
+                        vendorCode: String(r[4] || '').trim(),     // Aba "Cód. Antigo" = Código Original no Fornecedor (ex: ARLM-160B)
+                        manufacturer: String(r[5] || '').trim(),   // "Nome Fabricante" (ex: ZHEJIANG HAIZHOU PACKING MACHINERY CO.,LTD)
+                        ncm: String(r[6] || '').trim(),
+                        unit: String(r[7] || 'UN').trim() || 'UN',
+                        nameEn: String(r[10] || '').trim(),        // "Descrição Inglês"
+                        group: String(r[15] || '').trim()
+                    };
+                }
+                console.log(`[PEÇAS ERP INDEX] Indexados ${Object.keys(erpSkusBaseMap).length} itens do skus.csv (com Cód. Antigo & Fabricante).`);
+            }
+        } catch (err) {
+            console.warn('[PEÇAS ERP INDEX] Aviso ao ler skus.csv:', err.message);
+        }
+    }
+    initErpSkusSpreadsheetIndex();
+
+    function getErpSkuDetails(sku) {
+        if (!sku) return null;
+        return erpSkusBaseMap[String(sku).trim().toUpperCase()] || null;
+    }
+
     function loadProductsCatalog() {
+        const mergedMap = new Map();
+        Object.values(erpSkusBaseMap).forEach((item) => {
+            mergedMap.set(item.sku.toUpperCase(), { ...item });
+        });
         try {
             if (fs.existsSync(PRODUCTS_JSON_PATH)) {
                 const raw = fs.readFileSync(PRODUCTS_JSON_PATH, 'utf8');
                 const arr = JSON.parse(raw);
-                return Array.isArray(arr) ? arr : [];
+                if (Array.isArray(arr)) {
+                    arr.forEach((p) => {
+                        if (!p || !p.sku) return;
+                        const key = String(p.sku).trim().toUpperCase();
+                        const base = mergedMap.get(key) || {};
+                        mergedMap.set(key, {
+                            sku: p.sku,
+                            name: p.name || base.name || '',
+                            vendorCode: base.vendorCode || p.vendorCode || '',
+                            manufacturer: base.manufacturer || '',
+                            ncm: base.ncm || skuNcmMap[p.sku] || '',
+                            unit: base.unit || 'UN',
+                            nameEn: base.nameEn || '',
+                            group: p.group || base.group || ''
+                        });
+                    });
+                }
             }
         } catch (e) {}
-        return [];
+        return Array.from(mergedMap.values());
     }
 
     function suggestNcmForCategory(category, existingSku) {
+        const erpInfo = getErpSkuDetails(existingSku);
+        if (erpInfo && erpInfo.ncm) return erpInfo.ncm;
         if (existingSku && skuNcmMap && skuNcmMap[existingSku]) {
             return skuNcmMap[existingSku];
         }
@@ -686,7 +758,19 @@ module.exports = function registerPartsModule({
         res.json(results);
     }));
 
-    // 5. Autocomplete de Máquinas & SKUs do ERP + Peças já vinculadas na Árvore da Máquina
+    async function resolveSupplierSavedEmail(supplierName) {
+        if (!supplierName) return '';
+        const clean = String(supplierName).trim();
+        const mem = await pGet('SELECT contact_email FROM parts_supplier_emails WHERE LOWER(supplier_name) = LOWER(?)', [clean]).catch(() => null);
+        if (mem && mem.contact_email) return mem.contact_email;
+        const intl = await mrpGet('SELECT contact_email FROM stock_suppliers WHERE LOWER(name) = LOWER(?) OR LOWER(name) LIKE LOWER(?) LIMIT 1', [clean, `%${clean.split(' ')[0]}%`]);
+        if (intl && intl.contact_email) return intl.contact_email;
+        const nat = await pGet('SELECT email FROM parts_national_suppliers WHERE LOWER(name) = LOWER(?) LIMIT 1', [clean]).catch(() => null);
+        if (nat && nat.email) return nat.email;
+        return '';
+    }
+
+    // 5. Autocomplete de Máquinas & SKUs do ERP (com Cód. Antigo e Nome Fabricante do skus.csv!)
     router.get('/lookup/machines', authenticateToken, asyncSafe(async (req, res) => {
         const q = String(req.query.q || '').trim().toLowerCase();
         const allProducts = loadProductsCatalog();
@@ -696,6 +780,7 @@ module.exports = function registerPartsModule({
                 String(p.sku || '').toLowerCase().includes(q) ||
                 String(p.name || '').toLowerCase().includes(q) ||
                 String(p.vendorCode || '').toLowerCase().includes(q) ||
+                String(p.manufacturer || '').toLowerCase().includes(q) ||
                 String(p.group || '').toLowerCase().includes(q)
             );
         }
@@ -703,45 +788,67 @@ module.exports = function registerPartsModule({
             sku: p.sku,
             name: p.name,
             group: p.group || '',
-            vendorCode: p.vendorCode || '',
-            ncm: skuNcmMap[p.sku] || ''
+            vendorCode: p.vendorCode || '',          // Aba "Cód. Antigo" = Código no Fornecedor (ex: ARLM-160B)
+            manufacturer: p.manufacturer || '',      // "Nome Fabricante" (ex: ZHEJIANG HAIZHOU...)
+            nameEn: p.nameEn || '',
+            unit: p.unit || 'UN',
+            ncm: p.ncm || skuNcmMap[p.sku] || ''
         }));
 
-        // Se consultou um SKU exato de máquina, retorna também fornecedor histórico e peças já conhecidas dessa máquina
+        // Se consultou um SKU exato de máquina/item, retorna Cód. Antigo, Fabricante do skus.csv, e-mail salvo e peças conhecidas
         let knownParts = [];
         let suggestedSupplier = '';
+        let suggestedVendorCode = '';
+        let suggestedSupplierEmail = '';
         if (req.query.exact_sku) {
             const exactSku = String(req.query.exact_sku).trim();
+            const erpDetails = getErpSkuDetails(exactSku);
+            if (erpDetails) {
+                suggestedVendorCode = erpDetails.vendorCode || '';
+                suggestedSupplier = erpDetails.manufacturer || '';
+            }
             knownParts = await pAll(
                 `SELECT * FROM parts_catalog WHERE parent_machine_sku = ? ORDER BY times_requested DESC, updated_at DESC`,
                 [exactSku]
             );
-            const orderHit = await mrpGet(
-                `SELECT o.supplier_name
-                 FROM stock_order_items oi
-                 JOIN stock_orders o ON o.id = oi.order_id
-                 WHERE oi.sku = ? OR oi.tecfag_sku = ?
-                 ORDER BY o.id DESC LIMIT 1`,
-                [exactSku, exactSku]
-            );
-            if (orderHit && orderHit.supplier_name) {
-                suggestedSupplier = orderHit.supplier_name;
-            } else {
-                const prjHit = await mrpGet(
-                    `SELECT COALESCE(import_supplier, '') as sup FROM projects WHERE sku LIKE ? AND import_supplier IS NOT NULL AND import_supplier != '' ORDER BY lastUpdate DESC LIMIT 1`,
-                    [`%${exactSku}%`]
+            if (!suggestedSupplier) {
+                const orderHit = await mrpGet(
+                    `SELECT o.supplier_name
+                     FROM stock_order_items oi
+                     JOIN stock_orders o ON o.id = oi.order_id
+                     WHERE oi.sku = ? OR oi.tecfag_sku = ?
+                     ORDER BY o.id DESC LIMIT 1`,
+                    [exactSku, exactSku]
                 );
-                if (prjHit && prjHit.sup) suggestedSupplier = prjHit.sup;
+                if (orderHit && orderHit.supplier_name) {
+                    suggestedSupplier = orderHit.supplier_name;
+                } else {
+                    const prjHit = await mrpGet(
+                        `SELECT COALESCE(import_supplier, '') as sup FROM projects WHERE sku LIKE ? AND import_supplier IS NOT NULL AND import_supplier != '' ORDER BY lastUpdate DESC LIMIT 1`,
+                        [`%${exactSku}%`]
+                    );
+                    if (prjHit && prjHit.sup) suggestedSupplier = prjHit.sup;
+                }
+            }
+            if (suggestedSupplier) {
+                suggestedSupplierEmail = await resolveSupplierSavedEmail(suggestedSupplier);
             }
         }
 
-        res.json({ machines: top, known_parts: knownParts, suggested_supplier: suggestedSupplier });
+        res.json({
+            machines: top,
+            known_parts: knownParts,
+            suggested_supplier: suggestedSupplier,
+            suggested_vendor_code: suggestedVendorCode,
+            suggested_supplier_email: suggestedSupplierEmail
+        });
     }));
 
-    // 6. Radar de Fornecedores Internacionais + Containers em Aberto no Comex (Oportunidade de Carona!)
+    // 6. Radar de Fornecedores Internacionais + E-mails Memorizados + Containers em Aberto no Comex
     router.get('/lookup/suppliers-and-containers', authenticateToken, asyncSafe(async (req, res) => {
         const intlSuppliers = await mrpAll(`SELECT * FROM stock_suppliers ORDER BY name ASC`);
         const natSuppliers = await pAll(`SELECT * FROM parts_national_suppliers ORDER BY name ASC`);
+        const savedEmails = await pAll(`SELECT * FROM parts_supplier_emails ORDER BY supplier_name ASC`).catch(() => []);
         const openContainers = await mrpAll(
             `SELECT id, po_number, supplier_id, supplier_name, stage, currency, transport_mode, etd_date, eta_warehouse_date
              FROM stock_orders
@@ -751,6 +858,7 @@ module.exports = function registerPartsModule({
         res.json({
             intl_suppliers: intlSuppliers,
             nat_suppliers: natSuppliers,
+            saved_supplier_emails: savedEmails,
             open_containers: openContainers
         });
     }));
@@ -784,8 +892,11 @@ module.exports = function registerPartsModule({
         const enrichedRequests = requests.map((r) => {
             const items = itemsByReq[r.id] || [];
             const pendingErpCount = items.filter(i => !i.erp_registered && !i.erp_sku).length;
+            const erpMachine = getErpSkuDetails(r.machine_sku);
             return {
                 ...r,
+                machine_vendor_model: r.machine_vendor_model || (erpMachine ? erpMachine.vendorCode : ''),
+                machine_supplier_name: r.machine_supplier_name || (erpMachine ? erpMachine.manufacturer : ''),
                 items,
                 items_count: items.length,
                 pending_erp_count: pendingErpCount
@@ -824,13 +935,44 @@ module.exports = function registerPartsModule({
         });
     }));
 
-    // 9. Detalhe Completo de uma Solicitação + Timeline
+    // 9. Detalhe Completo de uma Solicitação + Timeline + Auto-Enriquecimento Cód. Antigo do ERP
     router.get('/requests/:id', authenticateToken, asyncSafe(async (req, res) => {
         const reqRow = await pGet('SELECT * FROM parts_requests WHERE id = ?', [req.params.id]);
         if (!reqRow) return res.status(404).json({ error: 'Solicitação não encontrada.' });
         const items = await pAll('SELECT * FROM parts_request_items WHERE request_id = ? ORDER BY id ASC', [reqRow.id]);
         const timeline = await pAll('SELECT * FROM parts_timeline WHERE request_id = ? ORDER BY id DESC', [reqRow.id]);
-        res.json({ request: reqRow, items, timeline });
+
+        // Enriquecer automaticamente com Cód. Antigo (vendorCode) e Nome Fabricante da planilha skus.csv caso esteja em branco
+        const erpMachine = getErpSkuDetails(reqRow.machine_sku);
+        if (erpMachine) {
+            if (!reqRow.machine_vendor_model && erpMachine.vendorCode) {
+                reqRow.machine_vendor_model = erpMachine.vendorCode;
+            }
+            if (!reqRow.machine_supplier_name && erpMachine.manufacturer) {
+                reqRow.machine_supplier_name = erpMachine.manufacturer;
+            }
+        }
+        items.forEach((it) => {
+            if (it.erp_sku) {
+                const erpPart = getErpSkuDetails(it.erp_sku);
+                if (erpPart) {
+                    if (!it.vendor_part_number && erpPart.vendorCode) it.vendor_part_number = erpPart.vendorCode;
+                    if (!it.part_name_en && erpPart.nameEn) it.part_name_en = erpPart.nameEn;
+                }
+            }
+        });
+
+        const suggestedSupplierEmail = await resolveSupplierSavedEmail(
+            (items[0] && items[0].intl_supplier_name) || reqRow.machine_supplier_name || ''
+        );
+
+        res.json({
+            request: reqRow,
+            items,
+            timeline,
+            suggested_supplier_email: suggestedSupplierEmail,
+            smtp_configured: !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_HOST !== 'smtp.exemplo.com')
+        });
     }));
 
     // 10. Criar Nova Solicitação de Peças (Guilherme Bertola / Pós-Venda / Vendas / Assistência)
@@ -861,6 +1003,12 @@ module.exports = function registerPartsModule({
             return res.status(400).json({ error: 'Adicione ao menos 1 peça na solicitação.' });
         }
 
+        // Auto-resolver Cód. Antigo (código no fornecedor) e Nome Fabricante a partir do skus.csv se machine_sku existir
+        const erpMachine = getErpSkuDetails(machine_sku);
+        const resolvedMachineVendorModel = String(machine_vendor_model || '').trim() || (erpMachine ? erpMachine.vendorCode : '');
+        const resolvedMachineSupplier = String(machine_supplier_name || '').trim() || (erpMachine ? erpMachine.manufacturer : '');
+        const resolvedMachineName = String(machine_name || '').trim() || (erpMachine ? erpMachine.name : '');
+
         const rates = await getLiveExchangeRates(false);
         const now = new Date().toISOString();
         const reqCode = await generateNextRequestCode();
@@ -881,7 +1029,7 @@ module.exports = function registerPartsModule({
                 reqCode, initialStage, urgency, request_type,
                 String(client_name).trim(), client_cnpj, client_contact, client_phone, client_email, client_city_uf,
                 req.user.username, getFriendlyUserName(req.user.username),
-                machine_sku, machine_name, machine_serial, machine_vendor_model, machine_supplier_name,
+                machine_sku, resolvedMachineName, machine_serial, resolvedMachineVendorModel, resolvedMachineSupplier,
                 rates.usd, now, notes, now, now
             ]
         );
@@ -892,6 +1040,9 @@ module.exports = function registerPartsModule({
             if (!partNamePt) continue;
 
             const existingErpSku = rawIt.erp_sku ? String(rawIt.erp_sku).trim().toUpperCase() : '';
+            const erpPart = getErpSkuDetails(existingErpSku);
+            const resolvedPartVendorCode = String(rawIt.vendor_part_number || '').trim() || (erpPart ? erpPart.vendorCode : '');
+            const resolvedPartNameEn = String(rawIt.part_name_en || '').trim() || (erpPart ? erpPart.nameEn : '');
             const category = rawIt.category || 'MECANICA';
             const suggestedNcm = rawIt.suggested_ncm || suggestNcmForCategory(category, existingErpSku);
             const route = rawIt.sourcing_route || 'DEFINIR';
@@ -945,15 +1096,15 @@ module.exports = function registerPartsModule({
                         finalErpSku ? 'PRE_EXISTENTE_ERP' : null,
                         finalErpSku ? now : null,
                         partNamePt,
-                        rawIt.part_name_en || '',
+                        resolvedPartNameEn,
                         category,
                         machine_sku || '',
-                        machine_name || '',
-                        machine_vendor_model || '',
+                        resolvedMachineName,
+                        resolvedMachineVendorModel,
                         route,
                         rawIt.national_equiv_spec || '',
-                        machine_supplier_name || '',
-                        rawIt.vendor_part_number || '',
+                        resolvedMachineSupplier,
+                        resolvedPartVendorCode,
                         suggestedNcm,
                         fiscalOrigin,
                         rawIt.unit || 'UN',
@@ -989,14 +1140,14 @@ module.exports = function registerPartsModule({
                     finalErpSku || null,
                     isAlreadyErp,
                     partNamePt,
-                    rawIt.part_name_en || (catRow ? catRow.name_en : ''),
+                    resolvedPartNameEn || (catRow ? catRow.name_en : ''),
                     category,
-                    rawIt.vendor_part_number || (catRow ? catRow.intl_part_number : ''),
+                    resolvedPartVendorCode || (catRow ? catRow.intl_part_number : ''),
                     parseFloat(rawIt.qty) || 1,
                     rawIt.unit || 'UN',
                     route,
                     rawIt.national_equiv_spec || (catRow ? catRow.national_equivalent_spec : ''),
-                    machine_supplier_name || (catRow ? catRow.intl_supplier_name : ''),
+                    resolvedMachineSupplier || (catRow ? catRow.intl_supplier_name : ''),
                     lastFob,
                     rates.usd,
                     intlCalc.saleBrl,
@@ -1561,6 +1712,252 @@ module.exports = function registerPartsModule({
     router.delete('/national-suppliers/:id', authenticateToken, asyncSafe(async (req, res) => {
         await pRun('DELETE FROM parts_national_suppliers WHERE id = ?', [req.params.id]);
         res.json({ success: true });
+    }));
+
+    // 18. Disparo Oficial de E-mail ao Fornecedor COM Fotos Embutidas no Corpo (CID) + Anexadas e Código Original do Fornecedor (Cód. Antigo)
+    router.post('/requests/:id/send-supplier-email', authenticateToken, partsUpload.array('extra_files', 10), asyncSafe(async (req, res) => {
+        const reqId = parseInt(req.params.id);
+        const r = await pGet('SELECT * FROM parts_requests WHERE id = ?', [reqId]);
+        if (!r) return res.status(404).json({ error: 'Solicitação não encontrada.' });
+
+        const {
+            to = '',
+            cc = '',
+            subject = '',
+            body = '',
+            lang = 'EN',
+            supplier_name = '',
+            vendor_machine_code = ''
+        } = req.body || {};
+
+        if (!to || !String(to).trim()) {
+            return res.status(400).json({ error: 'Informe o e-mail do fornecedor no campo "Para (To)".' });
+        }
+        if (!subject || !String(subject).trim()) {
+            return res.status(400).json({ error: 'Informe o assunto do e-mail.' });
+        }
+        if (!process.env.SMTP_HOST || !process.env.SMTP_USER || process.env.SMTP_HOST === 'smtp.exemplo.com') {
+            return res.status(500).json({ error: 'Servidor de e-mail SMTP não configurado nas variáveis de ambiente (SMTP_HOST / SMTP_USER).' });
+        }
+
+        const items = await pAll('SELECT * FROM parts_request_items WHERE request_id = ? ORDER BY id ASC', [reqId]);
+        const now = new Date().toISOString();
+
+        // Resolver Código Original no Fornecedor (Aba Cód. Antigo do ERP) — NUNCA enviar SKU interno Tecfag ao fornecedor externo
+        const erpMachine = getErpSkuDetails(r.machine_sku);
+        const effectiveVendorMachineCode = String(vendor_machine_code || '').trim() ||
+            r.machine_vendor_model ||
+            (erpMachine ? erpMachine.vendorCode : '');
+
+        if (effectiveVendorMachineCode && effectiveVendorMachineCode !== r.machine_vendor_model) {
+            await pRun('UPDATE parts_requests SET machine_vendor_model = ?, updated_at = ? WHERE id = ?', [
+                effectiveVendorMachineCode, now, reqId
+            ]);
+        }
+
+        // Memorizar o e-mail deste fornecedor automaticamente para as próximas cotações
+        const cleanSupplierName = String(supplier_name || r.machine_supplier_name || (erpMachine ? erpMachine.manufacturer : '') || '').trim();
+        const primaryToEmail = String(to).split(/[,;]+/)[0].trim();
+        if (cleanSupplierName && primaryToEmail.includes('@')) {
+            await pRun(
+                `INSERT OR REPLACE INTO parts_supplier_emails (supplier_name, contact_email, updated_at) VALUES (?, ?, ?)`,
+                [cleanSupplierName, primaryToEmail, now]
+            ).catch(() => {});
+            await mrpRun(
+                `UPDATE stock_suppliers SET contact_email = COALESCE(NULLIF(contact_email, ''), ?) WHERE LOWER(name) = LOWER(?)`,
+                [primaryToEmail, cleanSupplierName]
+            ).catch(() => {});
+            await pRun(
+                `UPDATE parts_national_suppliers SET email = COALESCE(NULLIF(email, ''), ?) WHERE LOWER(name) = LOWER(?)`,
+                [primaryToEmail, cleanSupplierName]
+            ).catch(() => {});
+        }
+
+        // Montar anexos de fotos das peças (Inline CID + Anexo de Arquivo)
+        const mailAttachments = [];
+        const inlinePhotoCardsHtml = [];
+        let photoCounter = 0;
+
+        function resolvePartPhotoDiskPath(photoUrlPath) {
+            if (!photoUrlPath) return null;
+            const fname = path.basename(String(photoUrlPath));
+            const candidate = path.join(PARTS_UPLOADS_DIR, fname);
+            if (fs.existsSync(candidate)) return candidate;
+            return null;
+        }
+
+        for (let i = 0; i < items.length; i++) {
+            const it = items[i];
+            const diskPath = resolvePartPhotoDiskPath(it.photo_path);
+            if (diskPath) {
+                photoCounter++;
+                const ext = path.extname(diskPath) || '.jpg';
+                const isImage = ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext.toLowerCase());
+                const erpPart = getErpSkuDetails(it.erp_sku);
+                const partVendorCode = it.vendor_part_number || (erpPart ? erpPart.vendorCode : '') || `Item_${i + 1}`;
+                const safeCodeSlug = String(partVendorCode).replace(/[^a-zA-Z0-9\-_]/g, '_').slice(0, 30);
+                const attachFilename = `Part_${i + 1}_${safeCodeSlug}${ext}`;
+                const cidKey = `tecfag_part_photo_${i + 1}_${Date.now()}`;
+
+                if (isImage) {
+                    // Anexa de forma que apareça EMBUTIDA no corpo do e-mail E também disponível para download!
+                    mailAttachments.push({
+                        filename: attachFilename,
+                        path: diskPath,
+                        cid: cidKey,
+                        contentDisposition: 'inline'
+                    });
+                    const displayPartTitle = lang === 'EN'
+                        ? (it.part_name_en || it.part_name_pt)
+                        : it.part_name_pt;
+                    inlinePhotoCardsHtml.push(`
+                        <div style="border:1px solid #cbd5e1; border-radius:10px; padding:14px; margin-bottom:16px; background:#f8fafc; max-width:560px;">
+                            <div style="font-weight:bold; font-size:14px; color:#0f172a; margin-bottom:6px;">
+                                #${i + 1} — ${displayPartTitle} (Qty: ${it.qty} ${it.unit || 'PCS'})
+                                ${it.vendor_part_number ? ` | Code: <span style="color:#0284c7;">${it.vendor_part_number}</span>` : ''}
+                            </div>
+                            <img src="cid:${cidKey}" alt="${attachFilename}" style="max-width:100%; max-height:420px; height:auto; border-radius:8px; border:1px solid #94a3b8; display:block;" />
+                        </div>
+                    `);
+                } else {
+                    mailAttachments.push({
+                        filename: attachFilename,
+                        path: diskPath
+                    });
+                }
+            }
+        }
+
+        // Arquivos/Fotos extras enviados diretamente no modal de e-mail
+        if (Array.isArray(req.files) && req.files.length > 0) {
+            for (let k = 0; k < req.files.length; k++) {
+                const f = req.files[k];
+                photoCounter++;
+                const ext = path.extname(f.originalname || f.filename || '.jpg').toLowerCase();
+                const isImage = ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext);
+                const cidExtra = `tecfag_extra_photo_${k + 1}_${Date.now()}`;
+
+                // Se o 1º item da solicitação ainda estava sem foto e o usuário subiu uma imagem aqui, já vincula na peça também!
+                if (isImage && items[0] && !items[0].photo_path) {
+                    const relUrl = `/uploads_pecas/${f.filename}`;
+                    items[0].photo_path = relUrl;
+                    await pRun('UPDATE parts_request_items SET photo_path = ? WHERE id = ?', [relUrl, items[0].id]).catch(() => {});
+                }
+
+                if (isImage) {
+                    mailAttachments.push({
+                        filename: f.originalname || `Photo_${k + 1}${ext}`,
+                        path: f.path,
+                        cid: cidExtra,
+                        contentDisposition: 'inline'
+                    });
+                    inlinePhotoCardsHtml.push(`
+                        <div style="border:1px solid #cbd5e1; border-radius:10px; padding:14px; margin-bottom:16px; background:#f8fafc; max-width:560px;">
+                            <div style="font-weight:bold; font-size:13px; color:#0f172a; margin-bottom:6px;">📎 ${f.originalname || `Reference Photo #${k + 1}`}</div>
+                            <img src="cid:${cidExtra}" alt="${f.originalname}" style="max-width:100%; max-height:420px; height:auto; border-radius:8px; border:1px solid #94a3b8; display:block;" />
+                        </div>
+                    `);
+                } else {
+                    mailAttachments.push({
+                        filename: f.originalname || f.filename,
+                        path: f.path
+                    });
+                }
+            }
+        }
+
+        // Assinatura Oficial Grupo Tecfag
+        const hasSignatureImg = fs.existsSync(SIGNATURE_IMG_PATH);
+        if (hasSignatureImg) {
+            mailAttachments.push({
+                filename: 'assinatura_tecfag.png',
+                path: SIGNATURE_IMG_PATH,
+                cid: 'tecfag_signature_banner'
+            });
+        }
+
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT) || 587,
+            secure: process.env.SMTP_SECURE === 'true',
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            },
+            tls: {
+                rejectUnauthorized: false
+            }
+        });
+
+        const senderDisplay = getFriendlyUserName(req.user.username);
+        const safeBodyHtml = String(body || '').trim()
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        const photosHeaderTitle = lang === 'EN'
+            ? '📷 Attached Part Photo(s) / Reference Image(s):'
+            : '📷 Foto(s) / Imagem(ns) de Referência da(s) Peça(s):';
+
+        const htmlEmail = `
+            <div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #1e293b; background-color: #ffffff; padding: 12px 4px;">
+                ${effectiveVendorMachineCode ? `
+                    <div style="background:#f1f5f9; border-left:4px solid #0284c7; padding:10px 14px; border-radius:6px; margin-bottom:16px; font-size:13px;">
+                        <strong>${lang === 'EN' ? 'Machine Original Model' : 'Modelo de Referência'}:</strong> <span style="color:#0284c7; font-weight:bold; font-size:15px;">${effectiveVendorMachineCode}</span>
+                        ${r.machine_serial ? ` &nbsp;|&nbsp; <strong>Serial No.:</strong> ${r.machine_serial}` : ''}
+                        &nbsp;|&nbsp; <strong>Ref:</strong> ${r.req_code}
+                    </div>
+                ` : ''}
+
+                <div style="font-size: 14px; color: #1e293b; margin-bottom: 22px; white-space: pre-wrap; line-height: 1.65;">${safeBodyHtml}</div>
+
+                ${inlinePhotoCardsHtml.length > 0 ? `
+                    <div style="margin-top: 20px; margin-bottom: 24px; padding-top: 14px; border-top: 2px solid #e2e8f0;">
+                        <div style="font-size: 14px; font-weight: bold; color: #0f172a; margin-bottom: 12px;">${photosHeaderTitle}</div>
+                        ${inlinePhotoCardsHtml.join('\n')}
+                    </div>
+                ` : ''}
+
+                <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                    ${hasSignatureImg ? `
+                        <div style="margin-bottom: 12px;">
+                            <img src="cid:tecfag_signature_banner" alt="Grupo Tecfag" style="max-width: 640px; width: 100%; height: auto; display: block; border: 0;" />
+                        </div>
+                    ` : `
+                        <div style="font-size: 13px; color: #334155;">
+                            <strong style="color:#b91c1c;">GRUPO TECFAG — AUTOMAÇÃO & EQUIPAMENTOS INDUSTRIAIS</strong><br>
+                            Tel: +55 (14) 3161-5000 | www.tecfag.com.br
+                        </div>
+                    `}
+                    <div style="font-size: 11px; color: #64748b; margin-top: 8px;">
+                        Ref: <strong>${r.req_code}</strong> | Sent by ${senderDisplay}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        await transporter.sendMail({
+            from: process.env.EMAIL_FROM || `"Tecfag Spare Parts / Compras" <${process.env.SMTP_USER}>`,
+            to: String(to).trim(),
+            cc: cc && String(cc).trim() ? String(cc).trim() : undefined,
+            subject: String(subject).trim(),
+            text: String(body || '').trim(),
+            html: htmlEmail,
+            attachments: mailAttachments
+        });
+
+        await addTimelineEntry(
+            reqId,
+            req.user,
+            'EMAIL_SENT',
+            `📧 E-mail de cotação disparado para "${to}"${effectiveVendorMachineCode ? ` [Modelo Fornecedor: ${effectiveVendorMachineCode}]` : ''} com ${photoCounter} foto(s)/anexo(s) junto no e-mail!`
+        );
+
+        res.json({
+            success: true,
+            photos_sent: photoCounter,
+            message: `E-mail enviado com sucesso para ${to} (${photoCounter} foto(s) incluída(s))!`
+        });
     }));
 
     app.use('/api/parts', router);
