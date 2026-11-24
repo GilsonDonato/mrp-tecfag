@@ -208,9 +208,11 @@
             border-right: 1px solid rgba(255, 255, 255, 0.06);
             display: flex;
             flex-direction: column;
-            padding: 25px 20px;
+            padding: 22px 20px;
             position: fixed;
             height: 100vh;
+            overflow-y: auto;
+            scrollbar-width: thin;
             z-index: 100;
         }
 
@@ -2191,6 +2193,15 @@
                     🚢 Importações & Estoque
                 </button>
             </li>
+            <li class="nav-item" id="menu-parts-manager" onclick="window.open('/pecas', '_blank')" style="display: none;">
+                <button style="color: #fbbf24; font-weight: 700; display: flex; align-items: center; justify-content: space-between; width: 100%;" title="Abrir Gestão de Peças Sob Encomenda & Reposição em nova aba">
+                    <span style="display: inline-flex; align-items: center; gap: 12px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        ⚙️ Peças & Reposição ↗
+                    </span>
+                    <span id="parts-menu-badge" style="display: none; background: #ef4444; color: #fff; font-size: 0.68rem; font-weight: 900; padding: 1px 7px; border-radius: 999px;">0</span>
+                </button>
+            </li>
             <li class="nav-item" id="menu-fleet-manager" onclick="window.open('/frota', '_blank')" style="display: none;">
                 <button style="color: #34d399; font-weight: 700;" title="Abrir Central de Gestão de Frota em nova aba">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>
@@ -2332,6 +2343,10 @@
                 <button class="btn btn-secondary" onclick="refreshKanbanData()" id="btn-header-refresh-kanban" style="padding: 8px 14px; font-size: 0.8rem; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.25);" title="Atualizar dados e sincronizar todos os cards do funil">
                     <svg id="refresh-kanban-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" style="transition: transform 0.6s ease;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
                     Atualizar Cards
+                </button>
+                <button class="btn btn-secondary" onclick="window.open('/pecas', '_blank')" id="btn-header-parts-module" style="padding: 8px 14px; font-size: 0.8rem; font-weight: 800; color: #fbbf24; border-color: rgba(251, 191, 36, 0.45); background: rgba(245, 158, 11, 0.1); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.25); margin-left: 4px;" title="Abrir Módulo de Gestão de Peças Sob Encomenda & Reposição de Máquinas">
+                    <span>⚙️ Peças & Reposição ↗</span>
+                    <span id="parts-header-badge" style="display: none; background: #ef4444; color: #fff; font-size: 0.68rem; font-weight: 900; padding: 1px 6px; border-radius: 999px;">0</span>
                 </button>
                 <button class="btn" onclick="switchTab('cadprj')" style="margin-left: 4px;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -9736,6 +9751,18 @@
             if (menuFleetDriver) {
                 menuFleetDriver.style.display = (!isFleetMgr && !!role) ? 'block' : 'none';
             }
+            const menuPartsManager = document.getElementById('menu-parts-manager');
+            const btnHeaderParts = document.getElementById('btn-header-parts-module');
+            const canAccessParts = (!!role && role !== 'RH') || isGilson || isJhenifer || username === 'admin';
+            if (menuPartsManager) {
+                menuPartsManager.style.display = canAccessParts ? 'block' : 'none';
+            }
+            if (btnHeaderParts) {
+                btnHeaderParts.style.display = canAccessParts ? 'inline-flex' : 'none';
+            }
+            if (canAccessParts) {
+                refreshPartsModuleBadge();
+            }
             
             // If active tab gets hidden, switch to dashboard
             const activeTab = document.querySelector('.nav-item.active');
@@ -9744,6 +9771,29 @@
                     switchTab('dash');
                 }
             }
+        }
+
+        async function refreshPartsModuleBadge() {
+            try {
+                const token = localStorage.getItem('tecfag_session_token');
+                if (!token) return;
+                const res = await fetch('/api/parts/badge-summary', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                const cnt = (data && data.my_badge) ? parseInt(data.my_badge) : 0;
+                ['parts-menu-badge', 'parts-header-badge'].forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    if (cnt > 0) {
+                        el.textContent = cnt;
+                        el.style.display = 'inline-block';
+                    } else {
+                        el.style.display = 'none';
+                    }
+                });
+            } catch (e) {}
         }
 
         function getRoleLabel(role) {

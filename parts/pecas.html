@@ -1,0 +1,2732 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peças Sob Encomenda & Reposição • MRP Tecfag</title>
+    <link rel="icon" type="image/png" href="/media/tecfag_emblem.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --surface: #151c2c;
+            --surface-2: #1e293b;
+            --surface-3: #0f172a;
+            --border: #2b3950;
+            --primary: #0ea5e9;
+            --green: #10b981;
+            --amber: #f59e0b;
+            --purple: #8b5cf6;
+            --pink: #ec4899;
+            --red: #ef4444;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body {
+            background: radial-gradient(circle at 15% 0%, rgba(245, 158, 11, 0.07), transparent 42%),
+                        radial-gradient(circle at 85% 10%, rgba(14, 165, 233, 0.08), transparent 45%),
+                        var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Top Bar */
+        .topbar {
+            background: rgba(15, 23, 42, 0.94);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+        }
+        .brand-wrap { display: flex; align-items: center; gap: 16px; }
+        .brand-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            padding-right: 16px;
+            border-right: 1px solid var(--border);
+        }
+        .brand-logo-emblem { width: 36px; height: 36px; object-fit: contain; }
+        .brand-logo-text { height: 20px; width: auto; filter: brightness(0) invert(1); }
+        .brand-title { font-size: 1.1rem; font-weight: 900; letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px; }
+        .brand-sub { font-size: 0.74rem; color: var(--muted); margin-top: 2px; }
+        .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+        .btn {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+        .btn:hover { border-color: var(--primary); transform: translateY(-1px); }
+        .btn-primary { background: linear-gradient(135deg, #0ea5e9, #0284c7); border-color: #38bdf8; color: #fff; }
+        .btn-green { background: linear-gradient(135deg, #10b981, #059669); border-color: #34d399; color: #fff; }
+        .btn-amber { background: linear-gradient(135deg, #f59e0b, #d97706); border-color: #fbbf24; color: #0f172a; font-weight: 800; }
+        .btn-purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); border-color: #a78bfa; color: #fff; }
+        .btn-red { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.45); color: #fca5a5; }
+        .btn-sm { padding: 5px 10px; font-size: 0.74rem; border-radius: 6px; }
+
+        .page { max-width: 1720px; margin: 0 auto; padding: 18px 22px 60px; }
+
+        /* HUD Bar */
+        .hud-bar {
+            background: rgba(21, 28, 44, 0.88);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--amber);
+            border-radius: 10px;
+            padding: 10px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.76rem;
+        }
+        .formula-pill {
+            background: rgba(14, 165, 233, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            color: #7dd3fc;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 800;
+            font-family: monospace;
+            font-size: 0.75rem;
+        }
+
+        /* KPI Grid */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        @media (max-width: 1200px) {
+            .kpi-row { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 700px) {
+            .kpi-row { grid-template-columns: repeat(2, 1fr); }
+        }
+        .kpi-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-top: 3px solid var(--kpi-c, var(--primary));
+            border-radius: 10px;
+            padding: 13px 15px;
+            cursor: pointer;
+            transition: border-color 0.15s, transform 0.15s;
+        }
+        .kpi-card:hover { transform: translateY(-2px); border-color: var(--kpi-c, var(--primary)); }
+        .kpi-label { font-size: 0.69rem; font-weight: 800; text-transform: uppercase; color: var(--muted); letter-spacing: 0.4px; }
+        .kpi-val { font-size: 1.65rem; font-weight: 900; margin: 4px 0 2px; }
+        .kpi-sub { font-size: 0.7rem; color: var(--muted); }
+
+        /* Tabs */
+        .tabs-nav {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid var(--border);
+            padding: 6px;
+            border-radius: 12px;
+            margin-bottom: 18px;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            padding: 9px 15px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            transition: all 0.15s;
+        }
+        .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+        .tab-btn.active { background: var(--primary); color: #fff; box-shadow: 0 3px 12px rgba(14, 165, 233, 0.3); }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        .counter-pill {
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.68rem;
+            font-weight: 900;
+            padding: 1px 7px;
+            border-radius: 999px;
+        }
+
+        /* Filter Bar */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+        .form-control {
+            background: var(--surface-3);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            outline: none;
+            width: 100%;
+        }
+        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2); }
+        select.form-control { cursor: pointer; }
+
+        /* Kanban 6 Columns */
+        .kanban-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(265px, 1fr));
+            gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 12px;
+            align-items: start;
+        }
+        .kanban-col {
+            background: rgba(21, 28, 44, 0.82);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            min-height: 460px;
+            display: flex;
+            flex-direction: column;
+        }
+        .kanban-col-head {
+            padding: 11px 13px;
+            border-bottom: 1px solid var(--border);
+            border-top: 3px solid var(--col-c, var(--primary));
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+        }
+        .kanban-col-title { font-size: 0.76rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; }
+        .kanban-col-sla { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
+        .kanban-col-count {
+            background: rgba(255,255,255,0.08);
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+        .kanban-cards {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+        }
+
+        /* Request Card */
+        .req-card {
+            background: var(--surface-3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.16s ease;
+            position: relative;
+        }
+        .req-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+        }
+        .req-card.urgent-stop {
+            border-left: 4px solid #ef4444;
+            box-shadow: 0 0 14px rgba(239, 68, 68, 0.16);
+        }
+        @keyframes pulse-stop {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.65; }
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 7px;
+            border-radius: 5px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .badge-stop { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.5); animation: pulse-stop 1.6s infinite; }
+        .badge-high { background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.45); }
+        .badge-norm { background: rgba(14, 165, 233, 0.15); color: #7dd3fc; border: 1px solid rgba(14, 165, 233, 0.35); }
+        .badge-stock { background: rgba(139, 92, 246, 0.2); color: #ddd6fe; border: 1px solid rgba(139, 92, 246, 0.45); }
+        .badge-tmp { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px dashed rgba(245, 158, 11, 0.5); font-family: monospace; }
+        .badge-erp { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.45); font-family: monospace; }
+
+        /* Tables & Panels */
+        .panel-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 18px;
+        }
+        table.data-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        table.data-table th, table.data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            vertical-align: middle;
+        }
+        table.data-table th {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--muted);
+            font-weight: 800;
+            background: rgba(15, 23, 42, 0.6);
+        }
+        table.data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+        /* Modals */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 8, 15, 0.86);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: var(--surface);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: 14px;
+            width: 100%;
+            max-width: 1320px;
+            max-height: 93vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+        }
+        .modal-head {
+            padding: 16px 22px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            background: rgba(15, 23, 42, 0.85);
+        }
+        .modal-body {
+            padding: 20px 22px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .modal-foot {
+            padding: 13px 22px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: rgba(15, 23, 42, 0.85);
+        }
+
+        .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+        .form-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        @media (max-width: 850px) {
+            .form-grid-2, .form-grid-3, .form-grid-4 { grid-template-columns: 1fr; }
+        }
+        .fg label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 5px;
+            letter-spacing: 0.3px;
+        }
+
+        .subtabs {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+        }
+        .subtab-btn {
+            background: var(--surface-3);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .subtab-btn.active {
+            background: rgba(14, 165, 233, 0.18);
+            border-color: var(--primary);
+            color: #38bdf8;
+        }
+
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #0f172a;
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 500;
+            box-shadow: 0 12px 25px rgba(0,0,0,0.6);
+        }
+        .autocomplete-item {
+            padding: 8px 12px;
+            font-size: 0.78rem;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            cursor: pointer;
+        }
+        .autocomplete-item:hover { background: rgba(14, 165, 233, 0.2); }
+
+        /* Etiqueta Imprimível */
+        .reserve-tag-box {
+            width: 440px;
+            max-width: 100%;
+            background: #fff;
+            color: #000;
+            border: 6px solid #d97706;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+        }
+        @media print {
+            body * { visibility: hidden !important; }
+            #printable-reserve-area, #printable-reserve-area * { visibility: visible !important; }
+            #printable-reserve-area {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                padding: 0 !important;
+            }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 22px;
+            right: 22px;
+            background: #0f172a;
+            border: 1px solid var(--primary);
+            border-left: 5px solid var(--primary);
+            color: #fff;
+            padding: 13px 18px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            z-index: 3000;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+        <div class="brand-wrap">
+            <a href="/" class="brand-logo" title="Voltar ao MRP de Máquinas">
+                <img src="/media/tecfag_emblem.png" class="brand-logo-emblem" alt="Tecfag">
+                <img src="/media/tecfag_text.png" class="brand-logo-text" alt="TECFAG">
+            </a>
+            <div>
+                <div class="brand-title">
+                    <span>⚙️ Gestão de Peças Sob Encomenda & Reposição</span>
+                </div>
+                <div class="brand-sub">Fluxo Rápido Pré-SKU: Cotar sem travar no ERP • Cadastrar só na Venda Ganha • Nacional vs Importação</div>
+            </div>
+        </div>
+        <div class="top-actions">
+            <a href="/" class="btn" title="Voltar para a tela principal do MRP">⬅ Voltar ao MRP</a>
+            <button class="btn btn-amber" onclick="openNewRequestModal()" id="btn-new-request" style="display:none;">
+                ➕ Nova Solicitação de Peça
+            </button>
+            <span id="logged-user-pill" style="display:none; background:rgba(14,165,233,0.14); border:1px solid rgba(56,189,248,0.35); padding:6px 12px; border-radius:8px; font-size:0.76rem; font-weight:700; color:#7dd3fc;"></span>
+            <button class="btn btn-red btn-sm" id="btn-logout" style="display:none;" onclick="handleLogout()">Sair</button>
+        </div>
+    </header>
+
+    <!-- FALLBACK LOGIN BOX (Se abrir /pecas sem estar logado no MRP) -->
+    <div id="login-box" style="display:none; max-width:420px; margin:70px auto; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:28px;">
+        <h3 style="margin-bottom:6px; font-size:1.1rem;">🔐 Acesso ao Módulo de Peças</h3>
+        <p style="font-size:0.78rem; color:var(--muted); margin-bottom:18px;">Use o mesmo usuário e senha do MRP Tecfag (ex: <code>vendas18@tecfag.com.br</code>, <code>jhenifer</code>, <code>gilson</code>).</p>
+        <form onsubmit="handleLogin(event)" style="display:flex; flex-direction:column; gap:12px;">
+            <div class="fg">
+                <label>Usuário ou E-mail</label>
+                <input type="text" id="login-user" class="form-control" placeholder="Ex: vendas18@tecfag.com.br" required>
+            </div>
+            <div class="fg">
+                <label>Senha</label>
+                <input type="password" id="login-pass" class="form-control" placeholder="Digite sua senha" required>
+            </div>
+            <div id="login-err" style="display:none; color:#fca5a5; font-size:0.78rem; background:rgba(239,68,68,0.15); padding:8px 10px; border-radius:6px;"></div>
+            <button type="submit" class="btn btn-primary" style="justify-content:center; padding:11px;">Entrar no Módulo de Peças</button>
+        </form>
+    </div>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="page" id="main-app" style="display:none;">
+
+        <!-- HUD DE CÂMBIO E REGRA DE PRECIFICAÇÃO -->
+        <div class="hud-bar">
+            <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+                <span>💵 <strong>DÓLAR COMERCIAL ATUAL:</strong> <strong style="color:#4ade80; font-size:0.9rem; font-family:monospace;" id="hud-usd">R$ 5,80</strong></span>
+                <button class="btn btn-sm" onclick="refreshRates(true)" title="Atualizar cotação do Dólar agora">🔄 Atualizar Câmbio</button>
+                <span class="formula-pill">📐 Regra Importação Tecfag: Preço FOB ($) × Dólar × 2 × 2</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; color:var(--muted);">
+                <span>⚡ <strong>Pré-SKU Automático:</strong> Zero espera de 5 dias p/ cotar</span>
+                <span>•</span>
+                <span>📋 <strong>Solicitante Padrão:</strong> Guilherme Bertola | <strong>Cadastro ERP:</strong> Jhenifer</span>
+            </div>
+        </div>
+
+        <!-- KPI CARDS -->
+        <div class="kpi-row">
+            <div class="kpi-card" style="--kpi-c:#ef4444;" onclick="quickFilterKanban('STOP')">
+                <div class="kpi-label">🔥 Máquinas Paradas</div>
+                <div class="kpi-val" id="kpi-stop" style="color:#f87171;">0</div>
+                <div class="kpi-sub">Prioridade máxima</div>
+            </div>
+            <div class="kpi-card" style="--kpi-c:#0ea5e9;" onclick="quickFilterKanban('ALL')">
+                <div class="kpi-label">1. Triagem Técnica</div>
+                <div class="kpi-val" id="kpi-s1">0</div>
+                <div class="kpi-sub">SLA 4h • Brasil vs China</div>
+            </div>
+            <div class="kpi-card" style="--kpi-c:#f59e0b;" onclick="quickFilterKanban('ALL')">
+                <div class="kpi-label">2. Cotação Fornecedor</div>
+                <div class="kpi-val" id="kpi-s2">0</div>
+                <div class="kpi-sub">SLA 24-48h • Com Pré-SKU</div>
+            </div>
+            <div class="kpi-card" style="--kpi-c:#6366f1;" onclick="quickFilterKanban('ALL')">
+                <div class="kpi-label">3. Proposta no Cliente</div>
+                <div class="kpi-val" id="kpi-s3">0</div>
+                <div class="kpi-sub">Aguardando aprovação</div>
+            </div>
+            <div class="kpi-card" style="--kpi-c:#ec4899;" onclick="switchMainTab('erp')">
+                <div class="kpi-label">4. Fila ERP (Jhenifer)</div>
+                <div class="kpi-val" id="kpi-s4" style="color:#f472b6;">0</div>
+                <div class="kpi-sub">Só vendas aprovadas!</div>
+            </div>
+            <div class="kpi-card" style="--kpi-c:#10b981;" onclick="quickFilterKanban('ALL')">
+                <div class="kpi-label">5/6. Trânsito & Doca</div>
+                <div class="kpi-val" id="kpi-s56" style="color:#34d399;">0</div>
+                <div class="kpi-sub">Compra / Reserva Cliente</div>
+            </div>
+        </div>
+
+        <!-- NAVEGAÇÃO DE ABAS -->
+        <div class="tabs-nav">
+            <button class="tab-btn active" id="tabbtn-kanban" onclick="switchMainTab('kanban')">📊 Quadro Kanban (Fluxo de Peças)</button>
+            <button class="tab-btn" id="tabbtn-erp" onclick="switchMainTab('erp')">
+                📋 Fila Expressa Cadastro ERP (Jhenifer)
+                <span class="counter-pill" id="erp-tab-badge" style="display:none;">0</span>
+            </button>
+            <button class="tab-btn" id="tabbtn-catalog" onclick="switchMainTab('catalog')">🌳 Árvore de Peças por Máquina (BOM & Equivalências)</button>
+            <button class="tab-btn" id="tabbtn-suppliers" onclick="switchMainTab('suppliers')">🏭 Fornecedores (Brasil & China + Containers Abertos)</button>
+            <button class="tab-btn" id="tabbtn-tags" onclick="switchMainTab('tags')">🏷️ Etiquetas de Reserva (Doca)</button>
+        </div>
+
+        <!-- ABA 1: KANBAN -->
+        <section class="tab-pane active" id="pane-kanban">
+            <div class="filter-bar">
+                <div style="flex:1; min-width:240px;">
+                    <input type="search" id="f-search" class="form-control" placeholder="🔍 Buscar por Cliente, Código SOL-PEC, Máquina, SKU ou Nome da Peça..." oninput="renderKanban()">
+                </div>
+                <div style="width:190px;">
+                    <select id="f-urgency" class="form-control" onchange="renderKanban()">
+                        <option value="ALL">⚡ Todas as Urgências</option>
+                        <option value="MAQUINA_PARADA">🔥 Só Máquina Parada</option>
+                        <option value="ALTA">⚠️ Urgência Alta</option>
+                        <option value="REPOSICAO_ESTOQUE">📦 Reposição Estoque</option>
+                    </select>
+                </div>
+                <div style="width:190px;">
+                    <select id="f-route" class="form-control" onchange="renderKanban()">
+                        <option value="ALL">🌎 Brasil + Importação</option>
+                        <option value="NACIONAL">🇧🇷 Compra Nacional</option>
+                        <option value="IMPORTACAO">🇨🇳 Importação</option>
+                    </select>
+                </div>
+                <div style="width:205px;">
+                    <select id="f-view" class="form-control" onchange="renderKanban()">
+                        <option value="ACTIVE">📌 Funil Ativo (Etapas 1 a 6)</option>
+                        <option value="FINISHED">✅ Concluídos / Entregues</option>
+                        <option value="DECLINED">❌ Declinados pelo Cliente</option>
+                    </select>
+                </div>
+                <button class="btn btn-sm" onclick="loadDashboard()">🔄 Atualizar</button>
+            </div>
+
+            <div id="kanban-active-wrapper" class="kanban-grid"></div>
+            <div id="kanban-archive-wrapper" style="display:none;"></div>
+        </section>
+
+        <!-- ABA 2: FILA EXPRESSA DE CADASTRO ERP (JHENIFER) -->
+        <section class="tab-pane" id="pane-erp">
+            <div class="panel-card" style="border-left:4px solid #ec4899;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+                    <div>
+                        <h3 style="font-size:1.05rem;">📋 Fila Expressa de Cadastro Oficial no ERP — Responsável: Jhenifer</h3>
+                        <p style="font-size:0.78rem; color:var(--muted); margin-top:3px;">
+                            Aqui entram <strong>APENAS peças com orçamento já aprovado pelo cliente</strong> (zero perda de tempo com orçamentos recusados). Copie a ficha pronta, cadastre no ERP e informe o código oficial gerado para liberar a compra automaticamente!
+                        </p>
+                    </div>
+                </div>
+                <div id="erp-queue-container"></div>
+            </div>
+        </section>
+
+        <!-- ABA 3: ÁRVORE DE PEÇAS POR MÁQUINA (CATÁLOGO VIVO) -->
+        <section class="tab-pane" id="pane-catalog">
+            <div class="panel-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+                    <div>
+                        <h3 style="font-size:1.05rem;">🌳 Árvore Viva de Peças por Máquina (Memória Técnica, Preços & Equivalência Nacional)</h3>
+                        <p style="font-size:0.78rem; color:var(--muted); margin-top:3px;">
+                            Toda peça cotada fica amarrada à máquina para sempre. Peças com <strong>3+ solicitações</strong> recebem alerta automático para virarem item de estoque marítimo!
+                        </p>
+                    </div>
+                    <div style="width:340px;">
+                        <input type="search" id="cat-search" class="form-control" placeholder="🔍 Filtrar por Máquina (ex: SW-1328), SKU ou Peça..." oninput="renderCatalog()">
+                    </div>
+                </div>
+                <div id="catalog-container"></div>
+            </div>
+        </section>
+
+        <!-- ABA 4: FORNECEDORES NACIONAIS & INTERNACIONAIS + CONTAINERS -->
+        <section class="tab-pane" id="pane-suppliers">
+            <div class="form-grid-2">
+                <div class="panel-card">
+                    <h3 style="font-size:1rem; margin-bottom:4px;">🇧🇷 Fornecedores Nacionais no Brasil (Compra Rápida / Equivalentes)</h3>
+                    <p style="font-size:0.76rem; color:var(--muted); margin-bottom:14px;">Usinagem, resistências sob medida, sensores, correias, rolamentos e facas no mercado interno.</p>
+
+                    <form onsubmit="handleAddNatSupplier(event)" style="background:var(--surface-3); border:1px solid var(--border); padding:12px; border-radius:10px; margin-bottom:14px;">
+                        <div class="form-grid-2" style="margin-bottom:10px;">
+                            <div class="fg">
+                                <label>Nome do Fornecedor Brasil *</label>
+                                <input type="text" id="ns-name" class="form-control" placeholder="Ex: EletroResistências SP" required>
+                            </div>
+                            <div class="fg">
+                                <label>Especialidade</label>
+                                <select id="ns-spec" class="form-control">
+                                    <option value="MECANICA">⚙️ Usinagem / Mecânica</option>
+                                    <option value="RESISTENCIA_TERMICA">🔥 Resistências Elétricas</option>
+                                    <option value="ELETRICA_AUTOMACAO">🔌 Automação / Sensores / CLP</option>
+                                    <option value="PNEUMATICA">💨 Pneumática & Válvulas</option>
+                                    <option value="VEDACAO_CORREIA">🔗 Correias, Rolamentos & Vedação</option>
+                                    <option value="FACA_CORTE">🔪 Facas & Lâminas Industriais</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-grid-3" style="margin-bottom:10px;">
+                            <div class="fg">
+                                <label>Cidade / UF</label>
+                                <input type="text" id="ns-city" class="form-control" placeholder="Ex: Campinas - SP">
+                            </div>
+                            <div class="fg">
+                                <label>WhatsApp / Telefone</label>
+                                <input type="text" id="ns-phone" class="form-control" placeholder="(11) 99999-9999">
+                            </div>
+                            <div class="fg">
+                                <label>Prazo Médio (dias)</label>
+                                <input type="number" id="ns-lead" class="form-control" value="4" min="1">
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="text" id="ns-notes" class="form-control" placeholder="Observações (itens que fornece, contato...)">
+                            <button type="submit" class="btn btn-green" style="white-space:nowrap;">➕ Cadastrar</button>
+                        </div>
+                    </form>
+
+                    <div id="nat-suppliers-list"></div>
+                </div>
+
+                <div class="panel-card">
+                    <h3 style="font-size:1rem; margin-bottom:4px;">🚢 Oportunidades de Carona em Containers Abertos (Comex MRP)</h3>
+                    <p style="font-size:0.76rem; color:var(--muted); margin-bottom:14px;">Ordens em <code>PO_EMITIDA</code> ou <code>EM_FABRICACAO</code> no módulo Importações & Estoque onde peças podem embarcar sem frete aéreo!</p>
+                    <div id="open-containers-list" style="margin-bottom:18px;"></div>
+
+                    <h4 style="font-size:0.88rem; margin-bottom:8px; color:#7dd3fc;">🇨🇳 Fornecedores Internacionais Cadastrados no MRP</h4>
+                    <div id="intl-suppliers-list"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 5: ETIQUETAS DE RESERVA -->
+        <section class="tab-pane" id="pane-tags">
+            <div class="panel-card">
+                <div class="form-grid-2" style="align-items:start;">
+                    <div>
+                        <h3 style="font-size:1.05rem; margin-bottom:6px;">🏷️ Gerador de Etiqueta Carimbada (Reserva de Peça p/ Cliente)</h3>
+                        <p style="font-size:0.78rem; color:var(--muted); margin-bottom:14px;">
+                            Imprima e cole na caixa/pacote assim que a peça chegar na doca para garantir que ela <strong>não vá para o estoque livre</strong> e seja faturada imediatamente ao cliente solicitante.
+                        </p>
+                        <div class="fg" style="margin-bottom:14px;">
+                            <label>Selecione a Solicitação</label>
+                            <select id="tag-req-select" class="form-control" onchange="renderReserveTagPreview()"></select>
+                        </div>
+                        <button class="btn btn-amber" onclick="window.print()">🖨️ Imprimir Etiqueta de Reserva</button>
+                    </div>
+                    <div id="printable-reserve-area" style="display:flex; justify-content:center;">
+                        <div id="reserve-tag-preview" class="reserve-tag-box">Selecione uma solicitação ao lado.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: NOVA SOLICITAÇÃO EXPRESSA DE PEÇAS -->
+    <div class="modal-overlay" id="modal-new-req">
+        <div class="modal-box" style="max-width:1080px;">
+            <div class="modal-head">
+                <div>
+                    <h3 style="font-size:1.1rem;">➕ Nova Solicitação de Peça Sob Encomenda / Reposição</h3>
+                    <div style="font-size:0.75rem; color:var(--muted);">Gera Pré-SKU provisório automático na hora se a peça ainda não existir no ERP!</div>
+                </div>
+                <button class="btn btn-sm" onclick="closeModal('modal-new-req')">✕ Fechar</button>
+            </div>
+            <div class="modal-body">
+                <!-- Bloco 1: Cliente & Urgência -->
+                <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:14px;">
+                    <div style="font-size:0.78rem; font-weight:800; color:#38bdf8; margin-bottom:10px;">1️⃣ DADOS DO CLIENTE & URGÊNCIA DO ATENDIMENTO</div>
+                    <div class="form-grid-3" style="margin-bottom:10px;">
+                        <div class="fg" style="position:relative; grid-column: span 2;">
+                            <label>Cliente (Busca automática na base do ERP ou digite livremente) *</label>
+                            <input type="text" id="nr-client" class="form-control" placeholder="Digite Razão Social, Nome Fantasia ou CNPJ..." autocomplete="off" oninput="searchErpClients(this.value)">
+                            <div id="nr-client-results" class="autocomplete-list" style="display:none;"></div>
+                        </div>
+                        <div class="fg">
+                            <label>Nível de Urgência *</label>
+                            <select id="nr-urgency" class="form-control">
+                                <option value="NORMAL">🛠️ Normal / Preventiva</option>
+                                <option value="ALTA">⚡ Urgência Alta</option>
+                                <option value="MAQUINA_PARADA">🔥 MÁQUINA PARADA NO CLIENTE!</option>
+                                <option value="REPOSICAO_ESTOQUE">📦 Reposição p/ Estoque Tecfag</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-grid-4">
+                        <div class="fg">
+                            <label>CNPJ</label>
+                            <input type="text" id="nr-cnpj" class="form-control" placeholder="00.000.000/0000-00">
+                        </div>
+                        <div class="fg">
+                            <label>Contato no Cliente</label>
+                            <input type="text" id="nr-contact" class="form-control" placeholder="Nome do comprador/manutenção">
+                        </div>
+                        <div class="fg">
+                            <label>WhatsApp / Telefone</label>
+                            <input type="text" id="nr-phone" class="form-control" placeholder="(00) 00000-0000">
+                        </div>
+                        <div class="fg">
+                            <label>Cidade / UF</label>
+                            <input type="text" id="nr-city" class="form-control" placeholder="Cidade - UF">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bloco 2: Máquina Pai Vinculada -->
+                <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:14px;">
+                    <div style="font-size:0.78rem; font-weight:800; color:#fbbf24; margin-bottom:10px;">2️⃣ AMARRAR À MÁQUINA DO CLIENTE (VÍNCULO TÉCNICO)</div>
+                    <div class="form-grid-4">
+                        <div class="fg" style="position:relative; grid-column: span 2;">
+                            <label>Buscar Máquina no Catálogo Tecfag (SKU ou Nome)</label>
+                            <input type="text" id="nr-machine-search" class="form-control" placeholder="Ex: SW-1328, FRB-770, PAMQGPAU050, Seladora..." autocomplete="off" oninput="searchMachines(this.value)">
+                            <div id="nr-machine-results" class="autocomplete-list" style="display:none;"></div>
+                        </div>
+                        <div class="fg">
+                            <label>SKU da Máquina</label>
+                            <input type="text" id="nr-machine-sku" class="form-control" placeholder="Ex: PAMQGPAU050">
+                        </div>
+                        <div class="fg">
+                            <label>Nº de Série / Ano (se souber)</label>
+                            <input type="text" id="nr-machine-serial" class="form-control" placeholder="Ex: SN-20240812">
+                        </div>
+                    </div>
+                    <div class="form-grid-2" style="margin-top:10px;">
+                        <div class="fg">
+                            <label>Modelo no Fabricante (Vendor Code)</label>
+                            <input type="text" id="nr-vendor-model" class="form-control" placeholder="Ex: AFPP1328 / JW-D2">
+                        </div>
+                        <div class="fg">
+                            <label>Fornecedor Original da Máquina (China / Brasil)</label>
+                            <input type="text" id="nr-machine-supplier" class="form-control" list="intl-suppliers-datalist" placeholder="Ex: Guangdong Shengwei / Brother / Amy...">
+                        </div>
+                    </div>
+
+                    <!-- Peças já conhecidas dessa máquina! -->
+                    <div id="nr-known-parts-box" style="display:none; margin-top:12px; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.35); border-radius:8px; padding:10px;">
+                        <div style="font-size:0.74rem; font-weight:800; color:#34d399; margin-bottom:6px;">💡 PEÇAS JÁ CONHECIDAS DESTA MÁQUINA NA ÁRVORE TECFAG (Clique para adicionar em 1 segundo!):</div>
+                        <div id="nr-known-parts-chips" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+                    </div>
+                </div>
+
+                <!-- Bloco 3: Lista de Peças Solicitadas -->
+                <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <div style="font-size:0.78rem; font-weight:800; color:#34d399;">3️⃣ PEÇAS SOLICITADAS PELO CLIENTE</div>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="addNewReqItemRow()">➕ Adicionar Mais 1 Peça</button>
+                    </div>
+                    <div id="nr-items-container" style="display:flex; flex-direction:column; gap:10px;"></div>
+                </div>
+
+                <div class="fg">
+                    <label>Observações Gerais do Atendimento / Sintoma Relatado pelo Cliente</label>
+                    <textarea id="nr-notes" class="form-control" rows="2" placeholder="Ex: Cliente informou que a resistência queimou e precisa com urgência; aceita avaliar opção nacional ou frete aéreo..."></textarea>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <label style="display:flex; align-items:center; gap:8px; font-size:0.78rem; cursor:pointer; color:#cbd5e1;">
+                    <input type="checkbox" id="nr-skip-triage">
+                    <span>Já sei a especificação exata — enviar <strong>direto para Compras Cotar (Etapa 2)</strong> pulando a Triagem da Engenharia</span>
+                </label>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn" onclick="closeModal('modal-new-req')">Cancelar</button>
+                    <button class="btn btn-amber" onclick="submitNewRequest()">🚀 Criar Solicitação Agora</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: DETALHE COMPLETO E OPERAÇÃO DO CARD -->
+    <div class="modal-overlay" id="modal-detail">
+        <div class="modal-box">
+            <div class="modal-head">
+                <div>
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <h3 id="md-title" style="font-size:1.15rem;">SOL-PEC-0000</h3>
+                        <span id="md-stage-badge" class="badge badge-norm">ETAPA</span>
+                        <span id="md-urgency-badge" class="badge">URGÊNCIA</span>
+                    </div>
+                    <div id="md-subtitle" style="font-size:0.78rem; color:var(--muted); margin-top:3px;"></div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="btn btn-red btn-sm" onclick="deleteCurrentRequest()" title="Excluir solicitação">🗑️</button>
+                    <button class="btn btn-sm" onclick="closeModal('modal-detail')">✕ Fechar</button>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <div class="subtabs">
+                    <button class="subtab-btn active" id="stbtn-1" onclick="switchDetailSubTab(1)">1️⃣ Escopo, Máquina & Triagem</button>
+                    <button class="subtab-btn" id="stbtn-2" onclick="switchDetailSubTab(2)">2️⃣ Cotação Fornecedor (FOB × Dólar × 2 × 2)</button>
+                    <button class="subtab-btn" id="stbtn-3" onclick="switchDetailSubTab(3)">3️⃣ Orçamento p/ Cliente & Decisão</button>
+                    <button class="subtab-btn" id="stbtn-4" onclick="switchDetailSubTab(4)">4️⃣ ERP, Compra, Carona Comex & Doca</button>
+                </div>
+
+                <div id="detail-subtab-content"></div>
+            </div>
+
+            <div class="modal-foot">
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <span style="font-size:0.75rem; color:var(--muted);">Mover Etapa Manualmente:</span>
+                    <select id="md-stage-select" class="form-control" style="width:240px; padding:6px 10px; font-size:0.78rem;" onchange="saveDetailChanges('Mudança manual de etapa')">
+                        <option value="1_TRIAGEM_TECNICA">1. Triagem Técnica (Engenharia)</option>
+                        <option value="2_COTACAO_FORNECEDOR">2. Cotação Fornecedor (Compras)</option>
+                        <option value="3_PROPOSTA_CLIENTE">3. Proposta no Cliente (Guilherme)</option>
+                        <option value="4_CADASTRO_ERP">4. Fila Cadastro ERP (Jhenifer)</option>
+                        <option value="5_COMPRA_TRANSITO">5. Compra & Trânsito</option>
+                        <option value="6_DOCA_EXPEDICAO">6. Doca / Reserva Cliente</option>
+                        <option value="7_CONCLUIDO">7. Concluído / Entregue</option>
+                        <option value="8_DECLINADO_CANCELADO">8. Declinado / Cancelado</option>
+                    </select>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="font-size:0.88rem; font-weight:900; color:#4ade80; margin-right:8px;" id="md-total-display">Total Orçado: R$ 0,00</div>
+                    <button class="btn btn-primary" onclick="saveDetailChanges()">💾 Salvar Alterações</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <datalist id="intl-suppliers-datalist"></datalist>
+    <datalist id="nat-suppliers-datalist"></datalist>
+    <div class="toast" id="toast-box"></div>
+
+    <script>
+        let currentUser = null;
+        let liveRates = { usd: 5.80, eur: 6.25, cny: 0.81 };
+        let dashboardData = { requests: [], erp_queue: [], catalog: [] };
+        let suppliersAndContainers = { intl_suppliers: [], nat_suppliers: [], open_containers: [] };
+
+        let activeDetailReq = null;
+        let activeDetailItems = [];
+        let activeDetailTimeline = [];
+        let activeDetailSubTab = 1;
+
+        const STAGE_META = {
+            '1_TRIAGEM_TECNICA': { num: '1', title: '1. Triagem Técnica', sla: 'SLA: 4h • Definir Brasil vs China', color: '#0ea5e9' },
+            '2_COTACAO_FORNECEDOR': { num: '2', title: '2. Cotação Fornecedor', sla: 'SLA: 24-48h • Com Pré-SKU', color: '#f59e0b' },
+            '3_PROPOSTA_CLIENTE': { num: '3', title: '3. Proposta no Cliente', sla: 'Guilherme • Aguardando Cliente', color: '#6366f1' },
+            '4_CADASTRO_ERP': { num: '4', title: '4. Fila ERP (Jhenifer)', sla: 'SLA: 4h • Só Venda Ganha!', color: '#ec4899' },
+            '5_COMPRA_TRANSITO': { num: '5', title: '5. Compra & Trânsito', sla: 'Nacional / DHL / Container', color: '#8b5cf6' },
+            '6_DOCA_EXPEDICAO': { num: '6', title: '6. Doca / Reserva Cliente', sla: 'Carimbada • Faturar Cliente', color: '#10b981' },
+            '7_CONCLUIDO': { num: '7', title: '7. Concluído / Entregue', sla: 'Finalizado', color: '#10b981' },
+            '8_DECLINADO_CANCELADO': { num: '8', title: '8. Declinado / Cancelado', sla: 'Histórico salvo', color: '#ef4444' }
+        };
+
+        function showToast(msg, color = '#0ea5e9') {
+            const el = document.getElementById('toast-box');
+            el.style.borderColor = color;
+            el.style.borderLeftColor = color;
+            el.textContent = msg;
+            el.style.display = 'block';
+            clearTimeout(window.__toastTimer);
+            window.__toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3600);
+        }
+
+        function getToken() {
+            return localStorage.getItem('tecfag_session_token');
+        }
+
+        async function api(url, options = {}) {
+            const token = getToken();
+            const headers = Object.assign({}, options.headers || {});
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+            if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+                headers['Content-Type'] = 'application/json';
+            }
+            const res = await fetch(url, Object.assign({ credentials: 'same-origin' }, options, { headers }));
+            if (res.status === 401) {
+                document.getElementById('main-app').style.display = 'none';
+                document.getElementById('btn-new-request').style.display = 'none';
+                document.getElementById('logged-user-pill').style.display = 'none';
+                document.getElementById('btn-logout').style.display = 'none';
+                document.getElementById('login-box').style.display = 'block';
+                throw new Error('Sessão expirada. Faça login.');
+            }
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Erro na operação.');
+            return data;
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const errEl = document.getElementById('login-err');
+            errEl.style.display = 'none';
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('login-user').value.trim(),
+                        password: document.getElementById('login-pass').value
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.token) throw new Error(data.error || 'Usuário ou senha inválidos.');
+                localStorage.setItem('tecfag_session_token', data.token);
+                localStorage.setItem('tecfag_user', JSON.stringify(data.user));
+                document.getElementById('login-pass').value = '';
+                await initApp();
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.style.display = 'block';
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('tecfag_session_token');
+            localStorage.removeItem('tecfag_user');
+            location.reload();
+        }
+
+        function fmtMoney(v, curr = 'BRL') {
+            const n = parseFloat(v) || 0;
+            if (curr === 'USD') return 'US$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function elapsedLabel(iso) {
+            if (!iso) return '';
+            const diffMin = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+            if (diffMin < 60) return `${diffMin}min`;
+            const h = Math.floor(diffMin / 60);
+            if (h < 24) return `${h}h`;
+            return `${Math.floor(h / 24)}d`;
+        }
+
+        function esc(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        // Compressão automática de foto no navegador (~140 KB) para proteger o disco de 1 GB do Render
+        async function compressImageFile(file, maxW = 1100, quality = 0.76) {
+            if (!file || !file.type.startsWith('image/')) return file;
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let w = img.width;
+                        let h = img.height;
+                        if (w > maxW) {
+                            h = Math.round((h * maxW) / w);
+                            w = maxW;
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        canvas.toBlob((blob) => {
+                            if (blob) {
+                                resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+                            } else {
+                                resolve(file);
+                            }
+                        }, 'image/jpeg', quality);
+                    };
+                    img.onerror = () => resolve(file);
+                    img.src = ev.target.result;
+                };
+                reader.onerror = () => resolve(file);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function uploadPartPhotoFile(file) {
+            const compressed = await compressImageFile(file);
+            const fd = new FormData();
+            fd.append('photo', compressed);
+            const res = await api('/api/parts/upload-photo', { method: 'POST', body: fd });
+            return res.photo_path;
+        }
+
+        async function initApp() {
+            if (!getToken()) {
+                document.getElementById('login-box').style.display = 'block';
+                return;
+            }
+            try {
+                const me = await api('/api/parts/me');
+                currentUser = me.user;
+                if (me.exchange && me.exchange.usd) liveRates = me.exchange;
+
+                document.getElementById('login-box').style.display = 'none';
+                document.getElementById('main-app').style.display = 'block';
+                document.getElementById('btn-new-request').style.display = 'inline-flex';
+                document.getElementById('btn-logout').style.display = 'inline-flex';
+
+                const pill = document.getElementById('logged-user-pill');
+                pill.textContent = '👤 ' + currentUser.display_name;
+                pill.style.display = 'inline-flex';
+
+                await Promise.all([loadDashboard(), loadSuppliersAndContainers()]);
+
+                // Se for a Jhenifer e houver itens aguardando SKU no ERP, destaca e avisa!
+                if (currentUser.is_jhenifer && dashboardData.erp_queue.length > 0) {
+                    showToast(`📋 Olá Jhenifer! Você possui ${dashboardData.erp_queue.length} peça(s) de venda aprovada na Fila Expressa do ERP.`, '#ec4899');
+                }
+            } catch (e) {
+                console.warn(e);
+            }
+        }
+
+        async function refreshRates(force = false) {
+            try {
+                const r = await api('/api/parts/exchange-rate' + (force ? '?refresh=1' : ''));
+                if (r && r.usd) {
+                    liveRates = r;
+                    document.getElementById('hud-usd').textContent = 'R$ ' + Number(r.usd).toFixed(2).replace('.', ',');
+                    if (force) showToast(`💵 Dólar atualizado: R$ ${Number(r.usd).toFixed(4)}`, '#10b981');
+                }
+            } catch (e) {}
+        }
+
+        async function loadDashboard() {
+            const data = await api('/api/parts/dashboard');
+            dashboardData = data;
+            if (data.exchange && data.exchange.usd) {
+                liveRates = data.exchange;
+                document.getElementById('hud-usd').textContent = 'R$ ' + Number(liveRates.usd).toFixed(2).replace('.', ',');
+            }
+            updateKpis();
+            renderKanban();
+            renderErpQueue();
+            renderCatalog();
+            populateTagSelector();
+        }
+
+        async function loadSuppliersAndContainers() {
+            suppliersAndContainers = await api('/api/parts/lookup/suppliers-and-containers');
+            renderSuppliersTab();
+
+            const intlDl = document.getElementById('intl-suppliers-datalist');
+            intlDl.innerHTML = (suppliersAndContainers.intl_suppliers || []).map(s => `<option value="${esc(s.name)}">`).join('');
+
+            const natDl = document.getElementById('nat-suppliers-datalist');
+            natDl.innerHTML = (suppliersAndContainers.nat_suppliers || []).map(s => `<option value="${esc(s.name)}">`).join('');
+        }
+
+        function updateKpis() {
+            const active = dashboardData.requests.filter(r => !['7_CONCLUIDO', '8_DECLINADO_CANCELADO'].includes(r.stage));
+            document.getElementById('kpi-stop').textContent = active.filter(r => r.urgency === 'MAQUINA_PARADA').length;
+            document.getElementById('kpi-s1').textContent = active.filter(r => r.stage === '1_TRIAGEM_TECNICA').length;
+            document.getElementById('kpi-s2').textContent = active.filter(r => r.stage === '2_COTACAO_FORNECEDOR').length;
+            document.getElementById('kpi-s3').textContent = active.filter(r => r.stage === '3_PROPOSTA_CLIENTE').length;
+            document.getElementById('kpi-s4').textContent = dashboardData.erp_queue.length;
+            document.getElementById('kpi-s56').textContent = active.filter(r => r.stage === '5_COMPRA_TRANSITO' || r.stage === '6_DOCA_EXPEDICAO').length;
+
+            const erpBadge = document.getElementById('erp-tab-badge');
+            if (dashboardData.erp_queue.length > 0) {
+                erpBadge.textContent = dashboardData.erp_queue.length;
+                erpBadge.style.display = 'inline-block';
+            } else {
+                erpBadge.style.display = 'none';
+            }
+        }
+
+        function switchMainTab(tab) {
+            ['kanban', 'erp', 'catalog', 'suppliers', 'tags'].forEach(t => {
+                document.getElementById('tabbtn-' + t).classList.toggle('active', t === tab);
+                document.getElementById('pane-' + t).classList.toggle('active', t === tab);
+            });
+        }
+
+        function quickFilterKanban(mode) {
+            switchMainTab('kanban');
+            document.getElementById('f-view').value = 'ACTIVE';
+            document.getElementById('f-urgency').value = mode === 'STOP' ? 'MAQUINA_PARADA' : 'ALL';
+            renderKanban();
+        }
+
+        function urgencyBadgeHtml(u) {
+            if (u === 'MAQUINA_PARADA') return `<span class="badge badge-stop">🔥 MÁQUINA PARADA</span>`;
+            if (u === 'ALTA') return `<span class="badge badge-high">⚡ ALTA</span>`;
+            if (u === 'REPOSICAO_ESTOQUE') return `<span class="badge badge-stock">📦 ESTOQUE</span>`;
+            return `<span class="badge badge-norm">🛠️ NORMAL</span>`;
+        }
+
+        function routeFlagHtml(route) {
+            if (route === 'NACIONAL') return `<span title="Compra Nacional (Brasil)">🇧🇷 Brasil</span>`;
+            if (route === 'IMPORTACAO_OBRIGATORIA') return `<span title="Importação Obrigatória">🇨🇳 Import.</span>`;
+            if (route === 'COTAR_AMBOS') return `<span title="Cotar Brasil + China">🌎 Híbrido</span>`;
+            return `<span style="color:var(--muted);">📐 Definir</span>`;
+        }
+
+        function renderKanban() {
+            const q = document.getElementById('f-search').value.trim().toLowerCase();
+            const fUrg = document.getElementById('f-urgency').value;
+            const fRoute = document.getElementById('f-route').value;
+            const fView = document.getElementById('f-view').value;
+
+            const filtered = dashboardData.requests.filter(r => {
+                if (fView === 'ACTIVE' && ['7_CONCLUIDO', '8_DECLINADO_CANCELADO'].includes(r.stage)) return false;
+                if (fView === 'FINISHED' && r.stage !== '7_CONCLUIDO') return false;
+                if (fView === 'DECLINED' && r.stage !== '8_DECLINADO_CANCELADO') return false;
+
+                if (fUrg !== 'ALL' && r.urgency !== fUrg) return false;
+                if (fRoute === 'NACIONAL') {
+                    const hasNat = (r.items || []).some(i => i.sourcing_route === 'NACIONAL' || i.selected_source === 'NACIONAL');
+                    if (!hasNat) return false;
+                } else if (fRoute === 'IMPORTACAO') {
+                    const hasImp = (r.items || []).some(i => i.sourcing_route === 'IMPORTACAO_OBRIGATORIA' || i.sourcing_route === 'COTAR_AMBOS' || i.selected_source === 'IMPORTACAO');
+                    if (!hasImp) return false;
+                }
+
+                if (q) {
+                    const hay = [
+                        r.req_code, r.client_name, r.machine_sku, r.machine_name, r.requester_name,
+                        ...(r.items || []).map(i => `${i.temp_sku} ${i.erp_sku || ''} ${i.part_name_pt} ${i.vendor_part_number || ''}`)
+                    ].join(' ').toLowerCase();
+                    if (!hay.includes(q)) return false;
+                }
+                return true;
+            });
+
+            const activeWrap = document.getElementById('kanban-active-wrapper');
+            const archiveWrap = document.getElementById('kanban-archive-wrapper');
+
+            if (fView !== 'ACTIVE') {
+                activeWrap.style.display = 'none';
+                archiveWrap.style.display = 'block';
+                if (filtered.length === 0) {
+                    archiveWrap.innerHTML = `<div class="panel-card" style="text-align:center; color:var(--muted); padding:35px;">Nenhum registro encontrado neste filtro.</div>`;
+                    return;
+                }
+                archiveWrap.innerHTML = `
+                    <div class="panel-card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Cliente</th>
+                                    <th>Máquina</th>
+                                    <th>Peças</th>
+                                    <th>Valor Orçado</th>
+                                    <th>Status / Motivo</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${filtered.map(r => `
+                                    <tr>
+                                        <td><strong>${esc(r.req_code)}</strong></td>
+                                        <td>${esc(r.client_name)}</td>
+                                        <td>${esc(r.machine_sku || '')} ${esc(r.machine_name || '')}</td>
+                                        <td>${(r.items || []).map(i => esc(i.part_name_pt)).join(', ')}</td>
+                                        <td><strong>${fmtMoney(r.total_quoted_brl)}</strong></td>
+                                        <td>${r.stage === '7_CONCLUIDO' ? `✅ NF: ${esc(r.out_nfe_number || 'Entregue')}` : `❌ ${esc(r.lost_reason || 'Declinado')}`}</td>
+                                        <td><button class="btn btn-sm" onclick="openDetailModal(${r.id})">Abrir</button></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                return;
+            }
+
+            activeWrap.style.display = 'grid';
+            archiveWrap.style.display = 'none';
+
+            const activeStages = [
+                '1_TRIAGEM_TECNICA',
+                '2_COTACAO_FORNECEDOR',
+                '3_PROPOSTA_CLIENTE',
+                '4_CADASTRO_ERP',
+                '5_COMPRA_TRANSITO',
+                '6_DOCA_EXPEDICAO'
+            ];
+
+            activeWrap.innerHTML = activeStages.map(stKey => {
+                const meta = STAGE_META[stKey];
+                const cards = filtered.filter(r => r.stage === stKey);
+                return `
+                    <div class="kanban-col" style="--col-c:${meta.color};">
+                        <div class="kanban-col-head">
+                            <div>
+                                <div class="kanban-col-title" style="color:${meta.color};">${meta.title}</div>
+                                <div class="kanban-col-sla">${meta.sla}</div>
+                            </div>
+                            <span class="kanban-col-count">${cards.length}</span>
+                        </div>
+                        <div class="kanban-cards">
+                            ${cards.length === 0 ? `<div style="text-align:center; color:#475569; font-size:0.75rem; padding:24px 8px;">Nenhuma solicitação nesta etapa</div>` : ''}
+                            ${cards.map(r => renderKanbanCardHtml(r)).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderKanbanCardHtml(r) {
+            const items = r.items || [];
+            const firstPhoto = (items.find(i => i.photo_path) || {}).photo_path;
+            return `
+                <div class="req-card ${r.urgency === 'MAQUINA_PARADA' ? 'urgent-stop' : ''}" onclick="openDetailModal(${r.id})">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:7px;">
+                        <span style="font-size:0.72rem; font-weight:900; color:#38bdf8; font-family:monospace;">${esc(r.req_code)}</span>
+                        <span style="font-size:0.68rem; color:var(--muted);">⏱️ ${elapsedLabel(r.stage_entry_at)}</span>
+                    </div>
+
+                    <div style="margin-bottom:7px; display:flex; gap:5px; flex-wrap:wrap;">
+                        ${urgencyBadgeHtml(r.urgency)}
+                        ${r.linked_po_number ? `<span class="badge" style="background:rgba(14,165,233,0.2); color:#7dd3fc;">🚢 ${esc(r.linked_po_number)}</span>` : ''}
+                    </div>
+
+                    <div style="font-size:0.86rem; font-weight:800; color:#f8fafc; margin-bottom:4px; line-height:1.25;">
+                        ${esc(r.client_name)}
+                    </div>
+
+                    ${(r.machine_sku || r.machine_name) ? `
+                        <div style="font-size:0.73rem; color:#fbbf24; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:6px; padding:4px 7px; margin-bottom:8px;">
+                            🏭 <strong>${esc(r.machine_sku || 'MÁQ')}</strong> ${esc(r.machine_name ? '• ' + r.machine_name.slice(0, 34) : '')}
+                        </div>
+                    ` : ''}
+
+                    ${firstPhoto ? `
+                        <div style="margin-bottom:8px; height:84px; border-radius:6px; overflow:hidden; border:1px solid var(--border); background:#070a12;">
+                            <img src="${esc(firstPhoto)}" style="width:100%; height:100%; object-fit:cover;" alt="Peça">
+                        </div>
+                    ` : ''}
+
+                    <div style="display:flex; flex-direction:column; gap:5px; margin-bottom:8px;">
+                        ${items.slice(0, 3).map(it => `
+                            <div style="font-size:0.73rem; background:rgba(255,255,255,0.03); padding:5px 7px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                                <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                    <strong>${it.qty}x</strong> ${esc(it.part_name_pt)}
+                                </div>
+                                ${it.erp_sku
+                                    ? `<span class="badge badge-erp" title="SKU Oficial ERP">${esc(it.erp_sku)}</span>`
+                                    : `<span class="badge badge-tmp" title="Pré-SKU Provisório">${esc(it.temp_sku)}</span>`}
+                            </div>
+                        `).join('')}
+                        ${items.length > 3 ? `<div style="font-size:0.68rem; color:var(--muted); text-align:center;">+ ${items.length - 3} outra(s) peça(s)</div>` : ''}
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.06); padding-top:7px; font-size:0.72rem;">
+                        <span style="color:var(--muted);">👤 ${esc((r.requester_name || '').split(' ')[0])}</span>
+                        ${r.total_quoted_brl > 0
+                            ? `<strong style="color:#4ade80;">${fmtMoney(r.total_quoted_brl)}</strong>`
+                            : `<span style="color:var(--muted);">${items[0] ? routeFlagHtml(items[0].sourcing_route) : ''}</span>`}
+                    </div>
+                </div>
+            `;
+        }
+
+        // =========================================================================
+        // ABA 2: FILA EXPRESSA DE CADASTRO ERP (JHENIFER)
+        // =========================================================================
+        function renderErpQueue() {
+            const box = document.getElementById('erp-queue-container');
+            const list = dashboardData.erp_queue || [];
+            if (list.length === 0) {
+                box.innerHTML = `
+                    <div style="text-align:center; padding:36px 20px; color:#34d399; background:rgba(16,185,129,0.06); border:1px dashed rgba(16,185,129,0.35); border-radius:10px;">
+                        🎉 <strong>Fila Zerada!</strong> Nenhuma peça de venda aprovada aguardando criação de SKU no ERP no momento.
+                    </div>
+                `;
+                return;
+            }
+
+            box.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Solicitação / Cliente</th>
+                            <th>Foto</th>
+                            <th>Ficha Pronta p/ Cadastro no ERP</th>
+                            <th>NCM & Origem Fiscal</th>
+                            <th>Digitar SKU Oficial ERP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${list.map(it => {
+                            const erpSuggestedDesc = `PECA REPOSICAO - ${String(it.part_name_pt || '').toUpperCase()}${it.machine_sku ? ' - MAQ ' + it.machine_sku : ''}`;
+                            const originLabel = it.fiscal_origin === '0' ? '0 - Nacional' : '1 - Estrangeira (Importação Direta)';
+                            return `
+                                <tr>
+                                    <td>
+                                        <div style="font-weight:800; color:#38bdf8; cursor:pointer;" onclick="openDetailModal(${it.request_id})">${esc(it.req_code)} ↗</div>
+                                        <div style="font-weight:700; margin-top:2px;">${esc(it.client_name)}</div>
+                                        <div style="font-size:0.72rem; color:var(--muted); margin-top:2px;">Solicitante: ${esc(it.requester_name)}</div>
+                                        <div style="margin-top:4px;">${urgencyBadgeHtml(it.urgency)}</div>
+                                    </td>
+                                    <td>
+                                        ${it.photo_path
+                                            ? `<a href="${esc(it.photo_path)}" target="_blank"><img src="${esc(it.photo_path)}" style="width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--border);"></a>`
+                                            : `<span style="color:var(--muted); font-size:0.72rem;">Sem foto</span>`}
+                                    </td>
+                                    <td>
+                                        <div style="margin-bottom:4px;"><span class="badge badge-tmp">${esc(it.temp_sku)}</span></div>
+                                        <div style="font-weight:800; color:#f8fafc; font-size:0.84rem;">${esc(erpSuggestedDesc)}</div>
+                                        <div style="font-size:0.74rem; color:#fbbf24; margin-top:3px;">
+                                            Máquina Pai: <strong>${esc(it.machine_sku || '-')}</strong> ${esc(it.machine_name || '')}
+                                            ${it.vendor_part_number ? ` | Cód. Fabricante: <strong>${esc(it.vendor_part_number)}</strong>` : ''}
+                                        </div>
+                                        <div style="font-size:0.73rem; color:var(--muted); margin-top:3px;">
+                                            Qtd Vendida: <strong>${it.qty} ${esc(it.unit || 'UN')}</strong> | Preço Venda Unit.: <strong style="color:#4ade80;">${fmtMoney(it.final_unit_price_brl)}</strong>
+                                        </div>
+                                        <button class="btn btn-sm" style="margin-top:6px;" onclick='copyErpSheet(${JSON.stringify({
+                                            desc: erpSuggestedDesc,
+                                            ncm: it.suggested_ncm || "8422.90.90",
+                                            unit: it.unit || "UN",
+                                            origin: originLabel,
+                                            vendorCode: it.vendor_part_number || "",
+                                            machineSku: it.machine_sku || "",
+                                            salePrice: it.final_unit_price_brl || 0
+                                        })})'>📋 Copiar Ficha Completa p/ ERP</button>
+                                    </td>
+                                    <td>
+                                        <div class="fg" style="margin-bottom:6px;">
+                                            <label>NCM Sugerido</label>
+                                            <input type="text" id="erp-ncm-${it.id}" class="form-control" value="${esc(it.suggested_ncm || '8422.90.90')}" style="width:135px; font-family:monospace;">
+                                        </div>
+                                        <div style="font-size:0.72rem; color:#cbd5e1;">Origem: <strong>${originLabel}</strong></div>
+                                    </td>
+                                    <td>
+                                        <div style="display:flex; flex-direction:column; gap:6px; min-width:210px;">
+                                            <input type="text" id="erp-sku-input-${it.id}" class="form-control" placeholder="Ex: PECAS0945" style="font-weight:800; text-transform:uppercase; border-color:#ec4899;">
+                                            <button class="btn btn-green btn-sm" style="justify-content:center; padding:8px;" onclick="confirmJheniferErpSku(${it.id})">
+                                                ✅ Confirmar SKU & Liberar Compra
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function copyErpSheet(info) {
+            const text = [
+                `DESCRIÇÃO ERP: ${info.desc}`,
+                `UNIDADE: ${info.unit}`,
+                `NCM SUGERIDO: ${info.ncm}`,
+                `ORIGEM FISCAL: ${info.origin}`,
+                `MÁQUINA PAI (VÍNCULO): ${info.machineSku || '-'}`,
+                `CÓD. FABRICANTE (PART NUMBER): ${info.vendorCode || '-'}`,
+                `PREÇO DE VENDA APROVADO: R$ ${Number(info.salePrice || 0).toFixed(2)}`
+            ].join('\n');
+            navigator.clipboard.writeText(text);
+            showToast('📋 Ficha de cadastro copiada para a área de transferência!', '#ec4899');
+        }
+
+        async function confirmJheniferErpSku(itemId) {
+            const skuInput = document.getElementById(`erp-sku-input-${itemId}`);
+            const ncmInput = document.getElementById(`erp-ncm-${itemId}`);
+            const sku = skuInput ? skuInput.value.trim().toUpperCase() : '';
+            if (!sku) {
+                alert('Digite o SKU Oficial que você gerou no ERP!');
+                return;
+            }
+            try {
+                const res = await api(`/api/parts/items/${itemId}/register-erp-sku`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        erp_sku: sku,
+                        suggested_ncm: ncmInput ? ncmInput.value.trim() : ''
+                    })
+                });
+                showToast(
+                    res.auto_advanced
+                        ? `🚀 SKU ${sku} vinculado! Solicitação avançou automaticamente para Compra & Trânsito!`
+                        : `✅ SKU ${sku} gravado com sucesso na peça e na Árvore da Máquina!`,
+                    '#10b981'
+                );
+                await loadDashboard();
+                if (activeDetailReq) {
+                    await openDetailModal(activeDetailReq.id, activeDetailSubTab);
+                }
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        // =========================================================================
+        // ABA 3: ÁRVORE DE PEÇAS POR MÁQUINA (CATÁLOGO BOM & RADAR DE ESTOQUE)
+        // =========================================================================
+        function renderCatalog() {
+            const box = document.getElementById('catalog-container');
+            const q = (document.getElementById('cat-search').value || '').trim().toLowerCase();
+            const rows = (dashboardData.catalog || []).filter(c => {
+                if (!q) return true;
+                return [c.temp_sku, c.erp_sku, c.name_pt, c.name_en, c.parent_machine_sku, c.parent_machine_name, c.national_equivalent_spec, c.intl_supplier_name]
+                    .join(' ').toLowerCase().includes(q);
+            });
+
+            if (rows.length === 0) {
+                box.innerHTML = `<div style="text-align:center; padding:32px; color:var(--muted);">As peças aparecerão automaticamente aqui conforme as solicitações forem criadas, construindo a Árvore de Peças por Máquina da Tecfag!</div>`;
+                return;
+            }
+
+            box.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Foto</th>
+                            <th>SKU ERP / Pré-SKU</th>
+                            <th>Peça & Máquina Vinculada</th>
+                            <th>🇧🇷 Equivalente Nacional (Brasil)</th>
+                            <th>🇨🇳 Referência China (FOB × Dólar × 2 × 2)</th>
+                            <th>Demanda / Estoque</th>
+                            <th>Ação Rápida</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map(c => {
+                            const estSaleIntl = c.intl_last_fob_usd > 0 ? (c.intl_last_fob_usd * liveRates.usd * 4) : 0;
+                            const estSaleNat = c.national_last_cost_brl > 0 ? (c.national_last_cost_brl * 2) : 0;
+                            return `
+                                <tr>
+                                    <td>
+                                        ${c.photo_path
+                                            ? `<a href="${esc(c.photo_path)}" target="_blank"><img src="${esc(c.photo_path)}" style="width:52px; height:52px; object-fit:cover; border-radius:6px; border:1px solid var(--border);"></a>`
+                                            : `<span style="color:var(--muted); font-size:0.7rem;">—</span>`}
+                                    </td>
+                                    <td>
+                                        ${c.erp_sku
+                                            ? `<span class="badge badge-erp">${esc(c.erp_sku)}</span><div style="font-size:0.66rem; color:var(--muted); margin-top:3px;">Ex: ${esc(c.temp_sku)}</div>`
+                                            : `<span class="badge badge-tmp">${esc(c.temp_sku)}</span><div style="font-size:0.66rem; color:#fbbf24; margin-top:3px;">Sem SKU ERP ainda</div>`}
+                                    </td>
+                                    <td>
+                                        <div style="font-weight:800; color:#f8fafc;">${esc(c.name_pt)}</div>
+                                        ${c.parent_machine_sku || c.parent_machine_name
+                                            ? `<div style="font-size:0.73rem; color:#fbbf24; margin-top:2px;">🏭 ${esc(c.parent_machine_sku)} • ${esc(c.parent_machine_name)}</div>`
+                                            : ''}
+                                    </td>
+                                    <td>
+                                        ${c.national_equivalent_spec || c.national_last_cost_brl > 0
+                                            ? `<div style="font-size:0.75rem; color:#6ee7b7;">${esc(c.national_equivalent_spec || 'Compra Nacional Homologada')}</div>
+                                               <div style="font-size:0.72rem; color:var(--muted);">${esc(c.national_supplier_name || '')} ${c.national_last_cost_brl > 0 ? `• Custo: ${fmtMoney(c.national_last_cost_brl)} (Venda ~${fmtMoney(estSaleNat)})` : ''}</div>`
+                                            : `<span style="color:var(--muted); font-size:0.73rem;">Não mapeado</span>`}
+                                    </td>
+                                    <td>
+                                        ${c.intl_last_fob_usd > 0 || c.intl_supplier_name
+                                            ? `<div style="font-size:0.75rem; color:#7dd3fc;">${esc(c.intl_supplier_name || 'Fornecedor Internacional')} ${c.intl_part_number ? `(${esc(c.intl_part_number)})` : ''}</div>
+                                               ${c.intl_last_fob_usd > 0 ? `<div style="font-size:0.73rem;">FOB: <strong>${fmtMoney(c.intl_last_fob_usd, 'USD')}</strong> ➔ Venda Hoje: <strong style="color:#4ade80;">${fmtMoney(estSaleIntl)}</strong></div>` : ''}`
+                                            : `<span style="color:var(--muted); font-size:0.73rem;">Não cotado</span>`}
+                                    </td>
+                                    <td>
+                                        <div style="font-weight:800;">${c.times_requested || 1}x pedida</div>
+                                        ${(c.times_requested || 1) >= 3
+                                            ? `<span class="badge badge-stop" style="margin-top:4px;">🔥 SUGERIDO ESTOQUE!</span>`
+                                            : `<span style="font-size:0.68rem; color:var(--muted);">Sob demanda</span>`}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-amber" onclick="openNewRequestFromCatalog(${c.id})">➕ Solicitar</button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // =========================================================================
+        // ABA 4: FORNECEDORES NACIONAIS & CONTAINERS ABERTOS
+        // =========================================================================
+        function renderSuppliersTab() {
+            const natBox = document.getElementById('nat-suppliers-list');
+            const nats = suppliersAndContainers.nat_suppliers || [];
+            natBox.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Fornecedor Brasil</th><th>Especialidade</th><th>Contato / Cidade</th><th>Prazo</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        ${nats.map(s => `
+                            <tr>
+                                <td><strong>${esc(s.name)}</strong><div style="font-size:0.7rem; color:var(--muted);">${esc(s.notes || '')}</div></td>
+                                <td><span class="badge badge-norm">${esc(s.specialty)}</span></td>
+                                <td style="font-size:0.75rem;">${esc(s.city_uf || '')}<br>${esc(s.phone_whatsapp || '')}</td>
+                                <td><strong>${s.avg_lead_days || 5}d</strong></td>
+                                <td><button class="btn btn-red btn-sm" onclick="deleteNatSupplier(${s.id})">✕</button></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            const ocBox = document.getElementById('open-containers-list');
+            const ocs = suppliersAndContainers.open_containers || [];
+            if (ocs.length === 0) {
+                ocBox.innerHTML = `<div style="padding:14px; background:var(--surface-3); border-radius:8px; color:var(--muted); font-size:0.78rem;">Nenhum container em PO_EMITIDA ou EM_FABRICACAO no momento.</div>`;
+            } else {
+                ocBox.innerHTML = ocs.map(o => `
+                    <div style="background:rgba(14,165,233,0.08); border:1px solid rgba(56,189,248,0.3); border-radius:8px; padding:10px 12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                        <div>
+                            <div style="font-weight:800; color:#38bdf8; font-size:0.82rem;">🚢 ${esc(o.po_number)} — ${esc(o.supplier_name)}</div>
+                            <div style="font-size:0.72rem; color:var(--muted);">Etapa: <strong>${esc(o.stage)}</strong> ${o.eta_warehouse_date ? `• ETA Tecfag: ${esc(o.eta_warehouse_date)}` : ''}</div>
+                        </div>
+                        <span class="badge badge-erp">ACEITA CARONA</span>
+                    </div>
+                `).join('');
+            }
+
+            const intlBox = document.getElementById('intl-suppliers-list');
+            const intls = suppliersAndContainers.intl_suppliers || [];
+            intlBox.innerHTML = `
+                <div style="max-height:300px; overflow-y:auto;">
+                    <table class="data-table">
+                        <thead><tr><th>Fabricante Internacional</th><th>País / Moeda</th><th>Lead Time Fab.</th></tr></thead>
+                        <tbody>
+                            ${intls.map(s => `
+                                <tr>
+                                    <td><strong>${esc(s.name)}</strong></td>
+                                    <td>${esc(s.country || 'China')} (${esc(s.currency || 'USD')})</td>
+                                    <td>${s.lead_time_fabrication_days || 30} dias</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        async function handleAddNatSupplier(e) {
+            e.preventDefault();
+            try {
+                await api('/api/parts/national-suppliers', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: document.getElementById('ns-name').value.trim(),
+                        specialty: document.getElementById('ns-spec').value,
+                        city_uf: document.getElementById('ns-city').value.trim(),
+                        phone_whatsapp: document.getElementById('ns-phone').value.trim(),
+                        avg_lead_days: document.getElementById('ns-lead').value,
+                        notes: document.getElementById('ns-notes').value.trim()
+                    })
+                });
+                document.getElementById('ns-name').value = '';
+                document.getElementById('ns-notes').value = '';
+                showToast('🇧🇷 Fornecedor nacional cadastrado!', '#10b981');
+                await loadSuppliersAndContainers();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function deleteNatSupplier(id) {
+            if (!confirm('Remover este fornecedor nacional?')) return;
+            await api(`/api/parts/national-suppliers/${id}`, { method: 'DELETE' });
+            await loadSuppliersAndContainers();
+        }
+
+        // =========================================================================
+        // ABA 5: ETIQUETA DE RESERVA IMPRIMÍVEL
+        // =========================================================================
+        function populateTagSelector() {
+            const sel = document.getElementById('tag-req-select');
+            const list = dashboardData.requests.filter(r => r.stage !== '8_DECLINADO_CANCELADO');
+            sel.innerHTML = list.map(r => `<option value="${r.id}">${esc(r.req_code)} — ${esc(r.client_name)} (${esc(r.machine_sku || 'Peças')})</option>`).join('');
+            renderReserveTagPreview();
+        }
+
+        function renderReserveTagPreview() {
+            const selId = parseInt(document.getElementById('tag-req-select').value);
+            const box = document.getElementById('reserve-tag-preview');
+            const r = dashboardData.requests.find(x => x.id === selId);
+            if (!r) {
+                box.innerHTML = 'Nenhuma solicitação disponível.';
+                return;
+            }
+            box.innerHTML = `
+                <div style="text-align:center; border-bottom:3px solid #d97706; padding-bottom:10px; margin-bottom:12px;">
+                    <div style="font-size:1.35rem; font-weight:900; color:#b45309;">🔒 PEÇA RESERVADA P/ CLIENTE</div>
+                    <div style="font-size:0.78rem; font-weight:800; margin-top:3px;">TECFAG AUTOMAÇÃO • PROIBIDO USO EM ESTOQUE GERAL</div>
+                </div>
+                <div style="font-size:0.72rem; color:#4b5563; font-weight:800;">SOLICITAÇÃO / CONTROLE</div>
+                <div style="font-size:1.15rem; font-weight:900; font-family:monospace; border-bottom:1px dashed #9ca3af; padding-bottom:4px; margin-bottom:10px;">${esc(r.req_code)} ${r.erp_order_number ? '• PEDIDO ERP: ' + esc(r.erp_order_number) : ''}</div>
+
+                <div style="font-size:0.72rem; color:#4b5563; font-weight:800;">CLIENTE DESTINATÁRIO</div>
+                <div style="font-size:1rem; font-weight:900; border-bottom:1px dashed #9ca3af; padding-bottom:4px; margin-bottom:10px;">${esc(r.client_name)}</div>
+
+                <div style="font-size:0.72rem; color:#4b5563; font-weight:800;">MÁQUINA VINCULADA</div>
+                <div style="font-size:0.9rem; font-weight:800; border-bottom:1px dashed #9ca3af; padding-bottom:4px; margin-bottom:10px;">${esc(r.machine_sku || '-')} ${esc(r.machine_name || '')}</div>
+
+                <div style="font-size:0.72rem; color:#4b5563; font-weight:800; margin-bottom:4px;">ITENS RESERVADOS NESTE PACOTE:</div>
+                <div style="border:2px solid #000; border-radius:6px; padding:8px; margin-bottom:12px; font-size:0.82rem;">
+                    ${(r.items || []).map(it => `
+                        <div style="padding:3px 0; border-bottom:1px dotted #ccc;">
+                            <strong>${it.qty} ${esc(it.unit || 'UN')}</strong> — <strong>[${esc(it.erp_sku || it.temp_sku)}]</strong> ${esc(it.part_name_pt)}
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="display:flex; justify-content:space-between; font-size:0.76rem; font-weight:800;">
+                    <span>AVISAR: ${esc(r.requester_name || 'Guilherme Bertola')}</span>
+                    <span>BOX/PRAT.: ${esc(r.shelf_location || 'DOCA PEÇAS')}</span>
+                </div>
+            `;
+        }
+
+        // =========================================================================
+        // MODAL 1: CRIAR NOVA SOLICITAÇÃO
+        // =========================================================================
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function openNewRequestModal() {
+            document.getElementById('nr-client').value = '';
+            document.getElementById('nr-cnpj').value = '';
+            document.getElementById('nr-contact').value = '';
+            document.getElementById('nr-phone').value = '';
+            document.getElementById('nr-city').value = '';
+            document.getElementById('nr-urgency').value = 'NORMAL';
+            document.getElementById('nr-machine-search').value = '';
+            document.getElementById('nr-machine-sku').value = '';
+            document.getElementById('nr-machine-serial').value = '';
+            document.getElementById('nr-vendor-model').value = '';
+            document.getElementById('nr-machine-supplier').value = '';
+            document.getElementById('nr-notes').value = '';
+            document.getElementById('nr-skip-triage').checked = false;
+            document.getElementById('nr-known-parts-box').style.display = 'none';
+            document.getElementById('nr-items-container').innerHTML = '';
+            addNewReqItemRow();
+            document.getElementById('modal-new-req').classList.add('active');
+        }
+
+        function openNewRequestFromCatalog(catId) {
+            const c = (dashboardData.catalog || []).find(x => x.id === catId);
+            openNewRequestModal();
+            if (!c) return;
+            document.getElementById('nr-machine-search').value = c.parent_machine_name || '';
+            document.getElementById('nr-machine-sku').value = c.parent_machine_sku || '';
+            document.getElementById('nr-vendor-model').value = c.parent_vendor_model || '';
+            document.getElementById('nr-machine-supplier').value = c.intl_supplier_name || '';
+            document.getElementById('nr-items-container').innerHTML = '';
+            addNewReqItemRow(c);
+        }
+
+        function addNewReqItemRow(prefill = null) {
+            const wrap = document.getElementById('nr-items-container');
+            const idx = Date.now() + Math.floor(Math.random() * 1000);
+            const div = document.createElement('div');
+            div.className = 'nr-item-row';
+            div.dataset.catId = prefill && prefill.id ? prefill.id : '';
+            div.dataset.photoPath = prefill && prefill.photo_path ? prefill.photo_path : '';
+            div.style.cssText = 'background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px;';
+            div.innerHTML = `
+                <div class="form-grid-4" style="margin-bottom:8px;">
+                    <div class="fg" style="grid-column: span 2;">
+                        <label>Nome / Descrição da Peça *</label>
+                        <input type="text" class="form-control it-name" placeholder="Ex: Resistência Tubular 220V 800W / Correia Dentada / Placa CLP..." value="${esc(prefill ? prefill.name_pt : '')}" required>
+                    </div>
+                    <div class="fg">
+                        <label>Qtd & Unidade</label>
+                        <div style="display:flex; gap:6px;">
+                            <input type="number" class="form-control it-qty" value="1" min="0.1" step="any" style="width:65%;">
+                            <input type="text" class="form-control it-unit" value="${esc(prefill && prefill.unit ? prefill.unit : 'UN')}" style="width:35%;">
+                        </div>
+                    </div>
+                    <div class="fg">
+                        <label>SKU ERP (Opcional — Vazio gera TMP)</label>
+                        <input type="text" class="form-control it-erpsku" placeholder="Deixe vazio se peça nova!" value="${esc(prefill && prefill.erp_sku ? prefill.erp_sku : '')}">
+                    </div>
+                </div>
+                <div class="form-grid-4" style="align-items:end;">
+                    <div class="fg">
+                        <label>Categoria da Peça</label>
+                        <select class="form-control it-cat">
+                            <option value="MECANICA" ${prefill && prefill.category === 'MECANICA' ? 'selected' : ''}>⚙️ Mecânica / Usinada</option>
+                            <option value="RESISTENCIA_TERMICA" ${prefill && prefill.category === 'RESISTENCIA_TERMICA' ? 'selected' : ''}>🔥 Resistência / Térmica</option>
+                            <option value="ELETRICA_AUTOMACAO" ${prefill && prefill.category === 'ELETRICA_AUTOMACAO' ? 'selected' : ''}>🔌 Elétrica / Sensor / CLP</option>
+                            <option value="FACA_CORTE" ${prefill && prefill.category === 'FACA_CORTE' ? 'selected' : ''}>🔪 Faca / Lâmina de Corte</option>
+                            <option value="VEDACAO_CORREIA" ${prefill && prefill.category === 'VEDACAO_CORREIA' ? 'selected' : ''}>🔗 Correia / Vedação / Rolamento</option>
+                            <option value="PNEUMATICA" ${prefill && prefill.category === 'PNEUMATICA' ? 'selected' : ''}>💨 Pneumática / Válvula</option>
+                            <option value="OUTRO">📦 Outro Componente</option>
+                        </select>
+                    </div>
+                    <div class="fg">
+                        <label>Rota de Compra (Brasil vs China)</label>
+                        <select class="form-control it-route">
+                            <option value="DEFINIR">📐 Engenharia Definir na Triagem</option>
+                            <option value="COTAR_AMBOS" ${prefill && prefill.sourcing_policy === 'COTAR_AMBOS' ? 'selected' : ''}>🌎 Cotar Ambos (Brasil + China)</option>
+                            <option value="NACIONAL" ${prefill && prefill.sourcing_policy === 'NACIONAL' ? 'selected' : ''}>🇧🇷 Compra Nacional (Brasil)</option>
+                            <option value="IMPORTACAO_OBRIGATORIA" ${prefill && prefill.sourcing_policy === 'IMPORTACAO_OBRIGATORIA' ? 'selected' : ''}>🇨🇳 Importação Obrigatória</option>
+                        </select>
+                    </div>
+                    <div class="fg">
+                        <label>Part Number / Equivalente Nacional</label>
+                        <input type="text" class="form-control it-pn" placeholder="Cód. na vista explodida ou equiv." value="${esc(prefill ? (prefill.intl_part_number || prefill.national_equivalent_spec || '') : '')}">
+                    </div>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <label class="btn btn-sm" style="flex:1; justify-content:center; cursor:pointer;">
+                            📷 <span class="it-photo-lbl">${prefill && prefill.photo_path ? 'Foto Anexada ✓' : 'Foto Peça'}</span>
+                            <input type="file" accept="image/*,.pdf" style="display:none;" onchange="handleNewItemPhoto(this)">
+                        </label>
+                        <button type="button" class="btn btn-red btn-sm" onclick="if(document.querySelectorAll('.nr-item-row').length>1) this.closest('.nr-item-row').remove()">✕</button>
+                    </div>
+                </div>
+            `;
+            wrap.appendChild(div);
+        }
+
+        async function handleNewItemPhoto(input) {
+            if (!input.files || !input.files[0]) return;
+            const row = input.closest('.nr-item-row');
+            const lbl = row.querySelector('.it-photo-lbl');
+            lbl.textContent = 'Enviando...';
+            try {
+                const pathUrl = await uploadPartPhotoFile(input.files[0]);
+                row.dataset.photoPath = pathUrl;
+                lbl.textContent = 'Foto OK ✓';
+                showToast('📷 Foto comprimida e anexada!', '#10b981');
+            } catch (e) {
+                lbl.textContent = 'Erro Foto';
+                alert(e.message);
+            }
+        }
+
+        let clientSearchTimer = null;
+        function searchErpClients(val) {
+            clearTimeout(clientSearchTimer);
+            const box = document.getElementById('nr-client-results');
+            if (!val || val.trim().length < 2) {
+                box.style.display = 'none';
+                return;
+            }
+            clientSearchTimer = setTimeout(async () => {
+                try {
+                    const list = await api('/api/parts/lookup/clients?q=' + encodeURIComponent(val.trim()));
+                    if (!list.length) {
+                        box.style.display = 'none';
+                        return;
+                    }
+                    box.innerHTML = list.map(c => `
+                        <div class="autocomplete-item" onclick='selectErpClient(${JSON.stringify(c)})'>
+                            <strong>${esc(c.name)}</strong> ${c.cnpj ? `<span style="color:#38bdf8;">(${esc(c.cnpj)})</span>` : ''}
+                            <div style="font-size:0.7rem; color:var(--muted);">${esc(c.city_uf)} ${c.phone ? '• ' + esc(c.phone) : ''}</div>
+                        </div>
+                    `).join('');
+                    box.style.display = 'block';
+                } catch (e) {}
+            }, 220);
+        }
+
+        function selectErpClient(c) {
+            document.getElementById('nr-client').value = c.name || '';
+            document.getElementById('nr-cnpj').value = c.cnpj || '';
+            document.getElementById('nr-phone').value = c.phone || '';
+            document.getElementById('nr-city').value = c.city_uf || '';
+            document.getElementById('nr-client-results').style.display = 'none';
+        }
+
+        let machineSearchTimer = null;
+        function searchMachines(val) {
+            clearTimeout(machineSearchTimer);
+            const box = document.getElementById('nr-machine-results');
+            if (!val || val.trim().length < 2) {
+                box.style.display = 'none';
+                return;
+            }
+            machineSearchTimer = setTimeout(async () => {
+                try {
+                    const data = await api('/api/parts/lookup/machines?q=' + encodeURIComponent(val.trim()));
+                    const list = data.machines || [];
+                    if (!list.length) {
+                        box.style.display = 'none';
+                        return;
+                    }
+                    box.innerHTML = list.map(m => `
+                        <div class="autocomplete-item" onclick='selectMachine(${JSON.stringify(m)})'>
+                            <strong style="color:#fbbf24;">${esc(m.sku)}</strong> — ${esc(m.name)}
+                            ${m.vendorCode ? `<span style="color:#7dd3fc;">[${esc(m.vendorCode)}]</span>` : ''}
+                        </div>
+                    `).join('');
+                    box.style.display = 'block';
+                } catch (e) {}
+            }, 200);
+        }
+
+        async function selectMachine(m) {
+            document.getElementById('nr-machine-search').value = m.name || '';
+            document.getElementById('nr-machine-sku').value = m.sku || '';
+            document.getElementById('nr-vendor-model').value = m.vendorCode || '';
+            document.getElementById('nr-machine-results').style.display = 'none';
+
+            try {
+                const detail = await api('/api/parts/lookup/machines?exact_sku=' + encodeURIComponent(m.sku));
+                if (detail.suggested_supplier && !document.getElementById('nr-machine-supplier').value) {
+                    document.getElementById('nr-machine-supplier').value = detail.suggested_supplier;
+                }
+                const kpBox = document.getElementById('nr-known-parts-box');
+                const kpChips = document.getElementById('nr-known-parts-chips');
+                if (detail.known_parts && detail.known_parts.length > 0) {
+                    kpChips.innerHTML = detail.known_parts.map(kp => `
+                        <button type="button" class="btn btn-sm" style="border-color:#34d399; color:#6ee7b7;" onclick='addKnownPartToNewModal(${JSON.stringify(kp)})'>
+                            ➕ ${esc(kp.erp_sku || kp.temp_sku)}: ${esc(kp.name_pt)}
+                        </button>
+                    `).join('');
+                    kpBox.style.display = 'block';
+                } else {
+                    kpBox.style.display = 'none';
+                }
+            } catch (e) {}
+        }
+
+        function addKnownPartToNewModal(kp) {
+            const firstRow = document.querySelector('.nr-item-row');
+            if (firstRow && !firstRow.querySelector('.it-name').value.trim()) {
+                firstRow.remove();
+            }
+            addNewReqItemRow(kp);
+            showToast(`✅ Peça "${kp.name_pt}" adicionada da Árvore da Máquina!`, '#10b981');
+        }
+
+        async function submitNewRequest() {
+            const clientName = document.getElementById('nr-client').value.trim();
+            if (!clientName) {
+                alert('Informe o nome do Cliente!');
+                return;
+            }
+            const itemRows = Array.from(document.querySelectorAll('.nr-item-row'));
+            const items = itemRows.map(row => ({
+                catalog_part_id: row.dataset.catId ? parseInt(row.dataset.catId) : null,
+                part_name_pt: row.querySelector('.it-name').value.trim(),
+                qty: parseFloat(row.querySelector('.it-qty').value) || 1,
+                unit: row.querySelector('.it-unit').value.trim() || 'UN',
+                erp_sku: row.querySelector('.it-erpsku').value.trim().toUpperCase(),
+                category: row.querySelector('.it-cat').value,
+                sourcing_route: row.querySelector('.it-route').value,
+                vendor_part_number: row.querySelector('.it-pn').value.trim(),
+                photo_path: row.dataset.photoPath || null
+            })).filter(it => it.part_name_pt);
+
+            if (items.length === 0) {
+                alert('Preencha o nome de ao menos 1 peça!');
+                return;
+            }
+
+            try {
+                const res = await api('/api/parts/requests', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        client_name: clientName,
+                        client_cnpj: document.getElementById('nr-cnpj').value.trim(),
+                        client_contact: document.getElementById('nr-contact').value.trim(),
+                        client_phone: document.getElementById('nr-phone').value.trim(),
+                        client_city_uf: document.getElementById('nr-city').value.trim(),
+                        urgency: document.getElementById('nr-urgency').value,
+                        machine_sku: document.getElementById('nr-machine-sku').value.trim(),
+                        machine_name: document.getElementById('nr-machine-search').value.trim(),
+                        machine_serial: document.getElementById('nr-machine-serial').value.trim(),
+                        machine_vendor_model: document.getElementById('nr-vendor-model').value.trim(),
+                        machine_supplier_name: document.getElementById('nr-machine-supplier').value.trim(),
+                        notes: document.getElementById('nr-notes').value.trim(),
+                        skip_triage: document.getElementById('nr-skip-triage').checked,
+                        items
+                    })
+                });
+                closeModal('modal-new-req');
+                showToast(`🚀 Solicitação ${res.request.req_code} criada com sucesso!`, '#10b981');
+                await loadDashboard();
+                await openDetailModal(res.request.id);
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        // =========================================================================
+        // MODAL 2: CENTRAL DE GESTÃO DA SOLICITAÇÃO (4 SUB-ABAS)
+        // =========================================================================
+        async function openDetailModal(reqId, forceTab = null) {
+            const data = await api(`/api/parts/requests/${reqId}`);
+            activeDetailReq = data.request;
+            activeDetailItems = data.items || [];
+            activeDetailTimeline = data.timeline || [];
+
+            const stMeta = STAGE_META[activeDetailReq.stage] || STAGE_META['1_TRIAGEM_TECNICA'];
+            document.getElementById('md-title').textContent = `${activeDetailReq.req_code} — ${activeDetailReq.client_name}`;
+            const stBadge = document.getElementById('md-stage-badge');
+            stBadge.textContent = stMeta.title;
+            stBadge.style.borderColor = stMeta.color;
+            stBadge.style.color = stMeta.color;
+
+            document.getElementById('md-urgency-badge').outerHTML = `<span id="md-urgency-badge">${urgencyBadgeHtml(activeDetailReq.urgency)}</span>`;
+            document.getElementById('md-subtitle').textContent =
+                `Solicitante: ${activeDetailReq.requester_name || '-'} • Máquina: ${activeDetailReq.machine_sku || ''} ${activeDetailReq.machine_name || 'Não informada'} ${activeDetailReq.machine_vendor_model ? '(' + activeDetailReq.machine_vendor_model + ')' : ''}`;
+            document.getElementById('md-stage-select').value = activeDetailReq.stage;
+            document.getElementById('md-total-display').textContent = 'Total Orçado: ' + fmtMoney(activeDetailReq.total_quoted_brl);
+
+            if (forceTab) {
+                activeDetailSubTab = forceTab;
+            } else if (activeDetailReq.stage === '1_TRIAGEM_TECNICA') {
+                activeDetailSubTab = 1;
+            } else if (activeDetailReq.stage === '2_COTACAO_FORNECEDOR') {
+                activeDetailSubTab = 2;
+            } else if (activeDetailReq.stage === '3_PROPOSTA_CLIENTE') {
+                activeDetailSubTab = 3;
+            } else {
+                activeDetailSubTab = 4;
+            }
+
+            renderDetailSubTab();
+            document.getElementById('modal-detail').classList.add('active');
+        }
+
+        function switchDetailSubTab(num) {
+            collectDomEditsIntoState();
+            activeDetailSubTab = num;
+            renderDetailSubTab();
+        }
+
+        function renderDetailSubTab() {
+            [1, 2, 3, 4].forEach(n => {
+                document.getElementById('stbtn-' + n).classList.toggle('active', n === activeDetailSubTab);
+            });
+            const box = document.getElementById('detail-subtab-content');
+            const r = activeDetailReq;
+
+            if (activeDetailSubTab === 1) {
+                box.innerHTML = `
+                    <div class="form-grid-4" style="margin-bottom:14px; background:var(--surface-3); padding:12px; border-radius:10px; border:1px solid var(--border);">
+                        <div class="fg">
+                            <label>Cliente</label>
+                            <input type="text" id="ed-client" class="form-control" value="${esc(r.client_name)}">
+                        </div>
+                        <div class="fg">
+                            <label>Contato / WhatsApp Cliente</label>
+                            <input type="text" id="ed-phone" class="form-control" value="${esc(r.client_phone || r.client_contact || '')}">
+                        </div>
+                        <div class="fg">
+                            <label>Urgência</label>
+                            <select id="ed-urgency" class="form-control">
+                                <option value="NORMAL" ${r.urgency === 'NORMAL' ? 'selected' : ''}>🛠️ Normal / Preventiva</option>
+                                <option value="ALTA" ${r.urgency === 'ALTA' ? 'selected' : ''}>⚡ Urgência Alta</option>
+                                <option value="MAQUINA_PARADA" ${r.urgency === 'MAQUINA_PARADA' ? 'selected' : ''}>🔥 MÁQUINA PARADA!</option>
+                                <option value="REPOSICAO_ESTOQUE" ${r.urgency === 'REPOSICAO_ESTOQUE' ? 'selected' : ''}>📦 Reposição Estoque</option>
+                            </select>
+                        </div>
+                        <div class="fg">
+                            <label>SKU Máquina / Modelo Fabricante</label>
+                            <div style="display:flex; gap:6px;">
+                                <input type="text" id="ed-msku" class="form-control" value="${esc(r.machine_sku || '')}" placeholder="SKU Máq">
+                                <input type="text" id="ed-mvendor" class="form-control" value="${esc(r.machine_vendor_model || '')}" placeholder="Vendor Code">
+                            </div>
+                        </div>
+                        <div class="fg" style="grid-column: span 2;">
+                            <label>Nome da Máquina</label>
+                            <input type="text" id="ed-mname" class="form-control" value="${esc(r.machine_name || '')}">
+                        </div>
+                        <div class="fg">
+                            <label>Fornecedor Original da Máquina</label>
+                            <input type="text" id="ed-msupplier" class="form-control" list="intl-suppliers-datalist" value="${esc(r.machine_supplier_name || '')}">
+                        </div>
+                        <div class="fg">
+                            <label>Nº Série da Máquina</label>
+                            <input type="text" id="ed-mserial" class="form-control" value="${esc(r.machine_serial || '')}">
+                        </div>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <h4 style="font-size:0.9rem; color:#38bdf8;">📐 PEÇAS DA SOLICITAÇÃO & DEFINIÇÃO DE ROTA (NACIONAL VS IMPORTAÇÃO)</h4>
+                        ${r.stage === '1_TRIAGEM_TECNICA' ? `
+                            <button class="btn btn-amber btn-sm" onclick="finishTriageToQuotation()">➡️ Concluir Triagem & Liberar p/ Compras Cotar</button>
+                        ` : ''}
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+                        ${activeDetailItems.map((it, idx) => `
+                            <div class="ed-item-triage" data-idx="${idx}" style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                    <div style="display:flex; gap:8px; align-items:center;">
+                                        ${it.erp_sku
+                                            ? `<span class="badge badge-erp">SKU ERP: ${esc(it.erp_sku)}</span>`
+                                            : `<span class="badge badge-tmp">Pré-SKU: ${esc(it.temp_sku)}</span>`}
+                                        <strong style="font-size:0.86rem;">Item #${idx + 1}</strong>
+                                    </div>
+                                    <label class="btn btn-sm" style="cursor:pointer;">
+                                        📷 ${it.photo_path ? 'Trocar Foto' : 'Anexar Foto'}
+                                        <input type="file" accept="image/*,.pdf" style="display:none;" onchange="uploadEditItemPhoto(this, ${idx})">
+                                    </label>
+                                </div>
+                                <div class="form-grid-4">
+                                    <div class="fg" style="grid-column: span 2;">
+                                        <label>Nome Técnico em Português</label>
+                                        <input type="text" class="form-control ti-pt" value="${esc(it.part_name_pt)}">
+                                    </div>
+                                    <div class="fg">
+                                        <label>Nome em Inglês (p/ RFQ China)</label>
+                                        <input type="text" class="form-control ti-en" value="${esc(it.part_name_en || '')}" placeholder="Ex: Heating Tube 220V / Sealing Knife">
+                                    </div>
+                                    <div class="fg">
+                                        <label>Qtd & Part Number Fabricante</label>
+                                        <div style="display:flex; gap:6px;">
+                                            <input type="number" class="form-control ti-qty" value="${it.qty}" step="any" style="width:38%;">
+                                            <input type="text" class="form-control ti-pn" value="${esc(it.vendor_part_number || '')}" placeholder="Part Number" style="width:62%;">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-grid-3" style="margin-top:8px; align-items:center;">
+                                    <div class="fg">
+                                        <label>Decisão Técnica: Nacional vs Importação</label>
+                                        <select class="form-control ti-route">
+                                            <option value="DEFINIR" ${it.sourcing_route === 'DEFINIR' ? 'selected' : ''}>📐 Aguardando Definição</option>
+                                            <option value="NACIONAL" ${it.sourcing_route === 'NACIONAL' ? 'selected' : ''}>🇧🇷 Compra Interna no Brasil (Equivalente/Usinagem)</option>
+                                            <option value="COTAR_AMBOS" ${it.sourcing_route === 'COTAR_AMBOS' ? 'selected' : ''}>🌎 Cotar Ambos (Brasil Rápido + China Econômico)</option>
+                                            <option value="IMPORTACAO_OBRIGATORIA" ${it.sourcing_route === 'IMPORTACAO_OBRIGATORIA' ? 'selected' : ''}>🇨🇳 Importação Obrigatória (Exclusiva Fabricante)</option>
+                                        </select>
+                                    </div>
+                                    <div class="fg" style="grid-column: span 2;">
+                                        <label>Especificação de Equivalente Nacional no Brasil (Medidas, Rosca, Tensão, Marca Nacional)</label>
+                                        <input type="text" class="form-control ti-nateq" value="${esc(it.national_equiv_spec || '')}" placeholder="Ex: Pode comprar no Brasil — Sensor M12 PNP Autonics ou fabricar resistência inox Ø10x180mm 220V">
+                                    </div>
+                                </div>
+                                ${it.photo_path ? `<div style="margin-top:8px;"><a href="${esc(it.photo_path)}" target="_blank" style="font-size:0.74rem; color:#38bdf8;">🖼️ Ver Foto / Desenho Anexado (${esc(it.photo_path.split('/').pop())}) ↗</a></div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="fg">
+                        <label>Observações Gerais da Solicitação</label>
+                        <textarea id="ed-notes" class="form-control" rows="2">${esc(r.notes || '')}</textarea>
+                    </div>
+                `;
+            } else if (activeDetailSubTab === 2) {
+                const matchingContainers = (suppliersAndContainers.open_containers || []).filter(oc => {
+                    const sup = (r.machine_supplier_name || '').toLowerCase();
+                    return !sup || oc.supplier_name.toLowerCase().includes(sup.split(' ')[0]);
+                });
+
+                box.innerHTML = `
+                    <div style="background:rgba(14,165,233,0.09); border:1px solid rgba(56,189,248,0.35); border-radius:10px; padding:12px 16px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                            <div>
+                                <span style="font-size:0.74rem; color:var(--muted); font-weight:800;">TAXA DO DÓLAR NESTA COTAÇÃO (R$):</span>
+                                <input type="number" step="0.0001" id="ed-usd-rate" class="form-control" style="width:110px; display:inline-block; margin-left:6px; font-weight:900; color:#4ade80;" value="${r.usd_rate_snapshot || liveRates.usd}" oninput="recalcAllQuoteRowsLive()">
+                                <button type="button" class="btn btn-sm" onclick="document.getElementById('ed-usd-rate').value = liveRates.usd; recalcAllQuoteRowsLive();">Usar Hoje (${Number(liveRates.usd).toFixed(2)})</button>
+                            </div>
+                            <span class="formula-pill">FOB ($) × Dólar × 2 × 2 = Preço Venda Cliente</span>
+                        </div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-sm" onclick="copySupplierRfq('EN')">🇨🇳 Copiar RFQ Inglês (WeChat / China)</button>
+                            <button type="button" class="btn btn-sm" onclick="copySupplierRfq('PT')">🇧🇷 Copiar RFQ Nacional (WhatsApp Brasil)</button>
+                            <button type="button" class="btn btn-green btn-sm" onclick="releaseProposalToSales()">📤 Concluir Cotação & Enviar p/ Proposta Cliente</button>
+                        </div>
+                    </div>
+
+                    ${matchingContainers.length > 0 ? `
+                        <div style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.4); border-radius:8px; padding:9px 14px; margin-bottom:14px; font-size:0.78rem; color:#6ee7b7;">
+                            🚢 <strong>Oportunidade de Carona sem Frete Aéreo!</strong> Container(s) em aberto no Comex:
+                            ${matchingContainers.map(c => `<strong>${esc(c.po_number)} (${esc(c.supplier_name)} - ${esc(c.stage)})</strong>`).join(', ')}.
+                        </div>
+                    ` : ''}
+
+                    <div style="display:flex; flex-direction:column; gap:14px;">
+                        ${activeDetailItems.map((it, idx) => {
+                            const usd = r.usd_rate_snapshot || liveRates.usd;
+                            const fob = parseFloat(it.intl_unit_fob) || 0;
+                            const fr = parseFloat(it.intl_freight_usd) || 0;
+                            const landed = (fob + fr) * usd * 2;
+                            const intlSale = landed * 2;
+                            const natCost = parseFloat(it.nat_unit_cost_brl) || 0;
+                            const natMk = parseFloat(it.nat_markup_factor) || 2;
+                            const natSale = natCost * natMk;
+                            return `
+                                <div class="ed-quote-card" data-idx="${idx}" style="background:var(--surface-3); border:1px solid var(--border); border-radius:12px; padding:14px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:8px;">
+                                        <div>
+                                            <span class="badge ${it.erp_sku ? 'badge-erp' : 'badge-tmp'}">${esc(it.erp_sku || it.temp_sku)}</span>
+                                            <strong style="font-size:0.92rem; margin-left:6px;">${it.qty} ${esc(it.unit)} × ${esc(it.part_name_pt)}</strong>
+                                            <span style="margin-left:8px; font-size:0.75rem;">${routeFlagHtml(it.sourcing_route)}</span>
+                                        </div>
+                                        ${it.national_equiv_spec ? `<div style="font-size:0.73rem; color:#6ee7b7;">💡 Equiv. Brasil: ${esc(it.national_equiv_spec)}</div>` : ''}
+                                    </div>
+
+                                    <div class="form-grid-2" style="margin-bottom:12px;">
+                                        <!-- COLUNA IMPORTAÇÃO: FOB $ x DÓLAR x 2 x 2 -->
+                                        <div style="background:rgba(14,165,233,0.06); border:1px solid rgba(56,189,248,0.28); border-radius:10px; padding:12px;">
+                                            <div style="font-size:0.75rem; font-weight:800; color:#38bdf8; margin-bottom:8px;">🇨🇳 OPÇÃO IMPORTAÇÃO (FOB $ × DÓLAR × 2 × 2)</div>
+                                            <div class="form-grid-2" style="margin-bottom:8px;">
+                                                <div class="fg">
+                                                    <label>Fornecedor Internacional</label>
+                                                    <input type="text" class="form-control qi-intl-sup" list="intl-suppliers-datalist" value="${esc(it.intl_supplier_name || r.machine_supplier_name || '')}">
+                                                </div>
+                                                <div class="fg">
+                                                    <label>Modal de Importação</label>
+                                                    <select class="form-control qi-intl-mod">
+                                                        <option value="COURIER_AEREO" ${it.intl_modality === 'COURIER_AEREO' ? 'selected' : ''}>✈️ Courier Aéreo (DHL / FedEx)</option>
+                                                        <option value="CONTAINER_MARITIMO" ${it.intl_modality === 'CONTAINER_MARITIMO' ? 'selected' : ''}>🚢 Carona Container Marítimo</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="form-grid-3">
+                                                <div class="fg">
+                                                    <label>Preço FOB Unit. (US$)</label>
+                                                    <input type="number" step="0.01" class="form-control qi-fob" value="${fob}" oninput="recalcQuoteItemLive(${idx})">
+                                                </div>
+                                                <div class="fg">
+                                                    <label>Frete Rateado US$ (Opc.)</label>
+                                                    <input type="number" step="0.01" class="form-control qi-freight" value="${fr}" oninput="recalcQuoteItemLive(${idx})" title="Se quiser somar frete Courier unitário na base">
+                                                </div>
+                                                <div class="fg">
+                                                    <label>Prazo Entrega (dias)</label>
+                                                    <input type="number" class="form-control qi-intl-days" value="${it.intl_lead_time_days || 18}">
+                                                </div>
+                                            </div>
+                                            <div class="qi-intl-math" style="margin-top:10px; font-size:0.75rem; background:rgba(0,0,0,0.28); padding:8px 10px; border-radius:6px; font-family:monospace;">
+                                                Custo Nac. (×2): <strong>${fmtMoney(landed)}</strong> ➔ Venda Sugerida (×2): <strong style="color:#4ade80; font-size:0.86rem;">${fmtMoney(intlSale)}</strong> /un
+                                            </div>
+                                        </div>
+
+                                        <!-- COLUNA COMPRA NACIONAL BRASIL -->
+                                        <div style="background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.28); border-radius:10px; padding:12px;">
+                                            <div style="font-size:0.75rem; font-weight:800; color:#34d399; margin-bottom:8px;">🇧🇷 OPÇÃO COMPRA INTERNA NO BRASIL</div>
+                                            <div class="fg" style="margin-bottom:8px;">
+                                                <label>Fornecedor Nacional (Brasil)</label>
+                                                <input type="text" class="form-control qi-nat-sup" list="nat-suppliers-datalist" value="${esc(it.nat_supplier_name || '')}" placeholder="Ex: Usinagem / Resistências / Automação SP">
+                                            </div>
+                                            <div class="form-grid-3">
+                                                <div class="fg">
+                                                    <label>Custo Unit. Brasil (R$)</label>
+                                                    <input type="number" step="0.01" class="form-control qi-nat-cost" value="${natCost}" oninput="recalcQuoteItemLive(${idx})">
+                                                </div>
+                                                <div class="fg">
+                                                    <label>Markup Nacional (×)</label>
+                                                    <input type="number" step="0.1" class="form-control qi-nat-mk" value="${natMk}" oninput="recalcQuoteItemLive(${idx})">
+                                                </div>
+                                                <div class="fg">
+                                                    <label>Prazo Brasil (dias)</label>
+                                                    <input type="number" class="form-control qi-nat-days" value="${it.nat_lead_time_days || 5}">
+                                                </div>
+                                            </div>
+                                            <div class="qi-nat-math" style="margin-top:10px; font-size:0.75rem; background:rgba(0,0,0,0.28); padding:8px 10px; border-radius:6px; font-family:monospace;">
+                                                Venda Nacional Sugerida: <strong style="color:#34d399; font-size:0.86rem;">${fmtMoney(natSale)}</strong> /un
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- DECISÃO DO PREÇO DE VENDA AO CLIENTE -->
+                                    <div class="form-grid-4" style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); padding:10px 12px; border-radius:8px; align-items:end;">
+                                        <div class="fg">
+                                            <label>Fonte Escolhida p/ Proposta</label>
+                                            <select class="form-control qi-sel-source" onchange="applySelectedSourcePrice(${idx})">
+                                                <option value="PENDENTE" ${it.selected_source === 'PENDENTE' ? 'selected' : ''}>⏳ Selecione a Opção...</option>
+                                                <option value="IMPORTACAO" ${it.selected_source === 'IMPORTACAO' ? 'selected' : ''}>🇨🇳 Vender pela Importação (FOB×Dólar×2×2)</option>
+                                                <option value="NACIONAL" ${it.selected_source === 'NACIONAL' ? 'selected' : ''}>🇧🇷 Vender pela Compra Nacional (Brasil)</option>
+                                            </select>
+                                        </div>
+                                        <div class="fg">
+                                            <label>Preço Unit. Final Cliente (R$)</label>
+                                            <input type="number" step="0.01" class="form-control qi-final-unit" value="${it.final_unit_price_brl || 0}" oninput="recalcFinalRowTotal(${idx})" style="font-weight:900; color:#fbbf24;">
+                                        </div>
+                                        <div class="fg">
+                                            <label>Prazo Prometido (dias úteis)</label>
+                                            <input type="number" class="form-control qi-prom-days" value="${it.promised_lead_days || 15}">
+                                        </div>
+                                        <div style="text-align:right;">
+                                            <div style="font-size:0.68rem; color:var(--muted); font-weight:800;">SUBTOTAL ITEM (${it.qty}x)</div>
+                                            <div class="qi-final-sub" style="font-size:1.08rem; font-weight:900; color:#4ade80;">${fmtMoney(it.final_total_price_brl || 0)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            } else if (activeDetailSubTab === 3) {
+                const proposalText = buildClientProposalText();
+                box.innerHTML = `
+                    <div class="form-grid-2" style="align-items:start;">
+                        <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:12px; padding:16px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <h4 style="font-size:0.92rem; color:#38bdf8;">📲 TEXTO DO ORÇAMENTO PRONTO P/ CLIENTE (WHATSAPP / E-MAIL)</h4>
+                                <button class="btn btn-primary btn-sm" onclick="copyClientProposal()">📋 Copiar Orçamento</button>
+                            </div>
+                            <textarea id="client-proposal-preview" class="form-control" rows="15" style="font-family:monospace; font-size:0.78rem; line-height:1.5;">${esc(proposalText)}</textarea>
+                        </div>
+
+                        <div style="display:flex; flex-direction:column; gap:14px;">
+                            <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.4); border-radius:12px; padding:18px;">
+                                <h4 style="font-size:0.98rem; color:#34d399; margin-bottom:6px;">🎉 O Cliente APROVOU a Cotação?</h4>
+                                <p style="font-size:0.78rem; color:#cbd5e1; margin-bottom:12px;">
+                                    Ao confirmar aprovação:
+                                    <br>• Se houver peça com <code>TMP-PEC</code> sem SKU oficial, ela vai direto para a <strong>Fila Expressa da Jhenifer</strong> cadastrar no ERP!
+                                    <br>• Se todas as peças já tiverem SKU no ERP, ela <strong>pula o cadastro</strong> e já cai em <strong>Compra & Trânsito</strong>!
+                                </p>
+                                <div class="fg" style="margin-bottom:10px;">
+                                    <label>Nº do Pedido / Orçamento Comercial (Opcional)</label>
+                                    <input type="text" id="ap-erp-order" class="form-control" value="${esc(r.erp_order_number || '')}" placeholder="Ex: PED-45890">
+                                </div>
+                                <button class="btn btn-green" style="width:100%; justify-content:center; padding:12px; font-size:0.88rem;" onclick="triggerRequestAction('CLIENT_APPROVED')">
+                                    ✅ Confirmar Venda Aprovada pelo Cliente!
+                                </button>
+                            </div>
+
+                            <div style="background:rgba(239,68,68,0.07); border:1px solid rgba(239,68,68,0.35); border-radius:12px; padding:16px;">
+                                <h4 style="font-size:0.9rem; color:#fca5a5; margin-bottom:6px;">❌ Cliente Declinou / Achou Caro / Desistiu?</h4>
+                                <p style="font-size:0.75rem; color:var(--muted); margin-bottom:10px;">
+                                    Encerra a solicitação sem gastar 1 minuto da Jhenifer no ERP, mas preserva os custos cotados na Árvore da Máquina para futuras consultas!
+                                </p>
+                                <div style="display:flex; gap:8px;">
+                                    <input type="text" id="dec-reason" class="form-control" placeholder="Motivo (ex: Achou frete aéreo caro / Comprou local)">
+                                    <button class="btn btn-red" style="white-space:nowrap;" onclick="triggerRequestAction('CLIENT_DECLINED')">Encerrar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const openContainers = suppliersAndContainers.open_containers || [];
+                box.innerHTML = `
+                    <!-- Status de SKUs ERP -->
+                    <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:14px;">
+                        <h4 style="font-size:0.86rem; color:#f472b6; margin-bottom:10px;">📋 STATUS DE CADASTRO NO ERP (DE-PARA PRÉ-SKU ➔ SKU OFICIAL)</h4>
+                        <table class="data-table">
+                            <thead><tr><th>Peça</th><th>Pré-SKU</th><th>SKU Oficial ERP</th><th>Ação Rápida Jhenifer / Cadastro</th></tr></thead>
+                            <tbody>
+                                ${activeDetailItems.map(it => `
+                                    <tr>
+                                        <td><strong>${it.qty}x ${esc(it.part_name_pt)}</strong></td>
+                                        <td><span class="badge badge-tmp">${esc(it.temp_sku)}</span></td>
+                                        <td>${it.erp_sku ? `<span class="badge badge-erp">${esc(it.erp_sku)}</span>` : `<span style="color:#fbbf24; font-size:0.75rem;">⏳ Aguardando Jhenifer</span>`}</td>
+                                        <td>
+                                            <div style="display:flex; gap:6px; max-width:290px;">
+                                                <input type="text" id="erp-sku-input-${it.id}" class="form-control" placeholder="SKU ERP..." value="${esc(it.erp_sku || '')}" style="padding:5px 8px; font-size:0.76rem; text-transform:uppercase;">
+                                                <button class="btn btn-sm btn-green" onclick="confirmJheniferErpSku(${it.id})">Salvar SKU</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Rastreamento de Compra, Carona em Container & Doca -->
+                    <div class="form-grid-2" style="margin-bottom:16px;">
+                        <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:14px;">
+                            <h4 style="font-size:0.86rem; color:#38bdf8; margin-bottom:10px;">🚚 DADOS DA COMPRA, RASTREIO & RECEBIMENTO NA DOCA</h4>
+                            <div class="form-grid-2" style="margin-bottom:10px;">
+                                <div class="fg">
+                                    <label>Modalidade Efetivada</label>
+                                    <select id="ed-pmod" class="form-control">
+                                        <option value="DEFINIR" ${r.purchase_modality === 'DEFINIR' ? 'selected' : ''}>Selecionar...</option>
+                                        <option value="NACIONAL" ${r.purchase_modality === 'NACIONAL' ? 'selected' : ''}>🇧🇷 Compra Nacional (Brasil)</option>
+                                        <option value="COURIER_AEREO" ${r.purchase_modality === 'COURIER_AEREO' ? 'selected' : ''}>✈️ Courier Aéreo (DHL / FedEx)</option>
+                                        <option value="CONTAINER_MARITIMO" ${r.purchase_modality === 'CONTAINER_MARITIMO' ? 'selected' : ''}>🚢 Carona em Container Marítimo</option>
+                                    </select>
+                                </div>
+                                <div class="fg">
+                                    <label>Nº Ordem de Compra / PO</label>
+                                    <input type="text" id="ed-poref" class="form-control" value="${esc(r.po_reference || '')}" placeholder="Ex: OC-9012 ou PO-PRJ066">
+                                </div>
+                            </div>
+                            <div class="form-grid-2" style="margin-bottom:10px;">
+                                <div class="fg">
+                                    <label>Código de Rastreio (DHL / FedEx / Transp.)</label>
+                                    <input type="text" id="ed-track" class="form-control" value="${esc(r.tracking_code || '')}" placeholder="Tracking number">
+                                </div>
+                                <div class="fg">
+                                    <label>Previsão Chegada na Tecfag (ETA)</label>
+                                    <input type="date" id="ed-eta" class="form-control" value="${esc((r.eta_date || '').slice(0, 10))}">
+                                </div>
+                            </div>
+                            <div class="form-grid-2">
+                                <div class="fg">
+                                    <label>Localização / Box na Doca Peças</label>
+                                    <input type="text" id="ed-shelf" class="form-control" value="${esc(r.shelf_location || '')}" placeholder="Ex: Prateleira Clientes B-04">
+                                </div>
+                                <div class="fg">
+                                    <label>NF de Saída p/ Cliente</label>
+                                    <input type="text" id="ed-outnfe" class="form-control" value="${esc(r.out_nfe_number || '')}" placeholder="Nº DANFE Faturada">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; flex-direction:column; gap:10px;">
+                            <!-- Injetar em Container Aberto -->
+                            <div style="background:rgba(14,165,233,0.08); border:1px solid rgba(56,189,248,0.35); border-radius:10px; padding:14px;">
+                                <h4 style="font-size:0.84rem; color:#7dd3fc; margin-bottom:6px;">🚢 Incluir de Carona num Container Aberto do Comex</h4>
+                                ${r.linked_po_number ? `<div style="font-size:0.78rem; color:#4ade80; margin-bottom:8px;">✅ Já vinculada ao Container: <strong>${esc(r.linked_po_number)}</strong></div>` : ''}
+                                <div style="display:flex; gap:8px;">
+                                    <select id="inject-container-sel" class="form-control">
+                                        <option value="">Selecione um Container em aberto...</option>
+                                        ${openContainers.map(c => `<option value="${c.id}">${esc(c.po_number)} — ${esc(c.supplier_name)} (${esc(c.stage)})</option>`).join('')}
+                                    </select>
+                                    <button class="btn btn-primary btn-sm" style="white-space:nowrap;" onclick="injectIntoComexContainer()">🚢 Incluir no Container</button>
+                                </div>
+                            </div>
+
+                            <!-- Ações de Doca & Expedição -->
+                            <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.35); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:8px;">
+                                <h4 style="font-size:0.84rem; color:#34d399;">📦 Recebimento Carimbado & Entrega Final</h4>
+                                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                    <button class="btn btn-amber btn-sm" onclick="triggerRequestAction('ARRIVED_AT_DOCK')">📦 Chegou na Doca! (Carimbar p/ Cliente)</button>
+                                    <button class="btn btn-sm" onclick="jumpToPrintTag(${r.id})">🏷️ Gerar Etiqueta Reserva</button>
+                                    <button class="btn btn-green btn-sm" onclick="triggerRequestAction('MARK_DELIVERED')">✅ Marcar Faturado & Entregue</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TIMELINE & CHAT INTERNO -->
+                    <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:14px;">
+                        <h4 style="font-size:0.85rem; color:var(--muted); margin-bottom:10px;">💬 HISTÓRICO DE AUDITORIA & COMUNICAÇÃO INTERNA DO PEDIDO</h4>
+                        <div style="display:flex; gap:8px; margin-bottom:12px;">
+                            <input type="text" id="tl-msg" class="form-control" placeholder="Escrever observação p/ Guilherme, Engenharia, Compras, Jhenifer ou Estoque..." onkeydown="if(event.key==='Enter') postTimelineComment()">
+                            <button class="btn btn-primary btn-sm" onclick="postTimelineComment()">Enviar</button>
+                        </div>
+                        <div style="max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:7px;">
+                            ${activeDetailTimeline.map(t => `
+                                <div style="font-size:0.76rem; padding:8px 10px; background:rgba(255,255,255,0.03); border-left:3px solid var(--primary); border-radius:6px;">
+                                    <div style="display:flex; justify-content:space-between; color:var(--muted); font-size:0.68rem; margin-bottom:2px;">
+                                        <strong>${esc(t.user_display)}</strong>
+                                        <span>${new Date(t.created_at).toLocaleString('pt-BR')}</span>
+                                    </div>
+                                    <div>${esc(t.message)}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function recalcAllQuoteRowsLive() {
+            activeDetailItems.forEach((_, idx) => recalcQuoteItemLive(idx));
+        }
+
+        function recalcQuoteItemLive(idx) {
+            const card = document.querySelector(`.ed-quote-card[data-idx="${idx}"]`);
+            if (!card) return;
+            const usd = parseFloat(document.getElementById('ed-usd-rate')?.value) || liveRates.usd;
+            const fob = parseFloat(card.querySelector('.qi-fob').value) || 0;
+            const fr = parseFloat(card.querySelector('.qi-freight').value) || 0;
+            const landed = (fob + fr) * usd * 2;
+            const intlSale = landed * 2;
+
+            card.querySelector('.qi-intl-math').innerHTML =
+                `Custo Nac. (×2): <strong>${fmtMoney(landed)}</strong> ➔ Venda Sugerida (×2): <strong style="color:#4ade80; font-size:0.86rem;">${fmtMoney(intlSale)}</strong> /un`;
+
+            const natCost = parseFloat(card.querySelector('.qi-nat-cost').value) || 0;
+            const natMk = parseFloat(card.querySelector('.qi-nat-mk').value) || 2;
+            const natSale = natCost * natMk;
+            card.querySelector('.qi-nat-math').innerHTML =
+                `Venda Nacional Sugerida: <strong style="color:#34d399; font-size:0.86rem;">${fmtMoney(natSale)}</strong> /un`;
+
+            const selSource = card.querySelector('.qi-sel-source').value;
+            if (selSource === 'IMPORTACAO' && intlSale > 0) {
+                card.querySelector('.qi-final-unit').value = intlSale.toFixed(2);
+            } else if (selSource === 'NACIONAL' && natSale > 0) {
+                card.querySelector('.qi-final-unit').value = natSale.toFixed(2);
+            }
+            recalcFinalRowTotal(idx);
+        }
+
+        function applySelectedSourcePrice(idx) {
+            const card = document.querySelector(`.ed-quote-card[data-idx="${idx}"]`);
+            if (!card) return;
+            const selSource = card.querySelector('.qi-sel-source').value;
+            const usd = parseFloat(document.getElementById('ed-usd-rate')?.value) || liveRates.usd;
+            const fob = parseFloat(card.querySelector('.qi-fob').value) || 0;
+            const fr = parseFloat(card.querySelector('.qi-freight').value) || 0;
+            const intlSale = (fob + fr) * usd * 4;
+            const natCost = parseFloat(card.querySelector('.qi-nat-cost').value) || 0;
+            const natMk = parseFloat(card.querySelector('.qi-nat-mk').value) || 2;
+            const natSale = natCost * natMk;
+
+            if (selSource === 'IMPORTACAO') {
+                card.querySelector('.qi-final-unit').value = intlSale.toFixed(2);
+                card.querySelector('.qi-prom-days').value = card.querySelector('.qi-intl-days').value || 18;
+            } else if (selSource === 'NACIONAL') {
+                card.querySelector('.qi-final-unit').value = natSale.toFixed(2);
+                card.querySelector('.qi-prom-days').value = card.querySelector('.qi-nat-days').value || 5;
+            }
+            recalcFinalRowTotal(idx);
+        }
+
+        function recalcFinalRowTotal(idx) {
+            const card = document.querySelector(`.ed-quote-card[data-idx="${idx}"]`);
+            if (!card) return;
+            const qty = parseFloat(activeDetailItems[idx].qty) || 1;
+            const unitVal = parseFloat(card.querySelector('.qi-final-unit').value) || 0;
+            const sub = qty * unitVal;
+            card.querySelector('.qi-final-sub').textContent = fmtMoney(sub);
+
+            let grandTotal = 0;
+            document.querySelectorAll('.ed-quote-card').forEach((c) => {
+                const i = parseInt(c.dataset.idx);
+                const q = parseFloat(activeDetailItems[i].qty) || 1;
+                const u = parseFloat(c.querySelector('.qi-final-unit').value) || 0;
+                grandTotal += q * u;
+            });
+            document.getElementById('md-total-display').textContent = 'Total Orçado: ' + fmtMoney(grandTotal);
+        }
+
+        function collectDomEditsIntoState() {
+            if (!activeDetailReq) return;
+            activeDetailReq.stage = document.getElementById('md-stage-select').value;
+
+            if (activeDetailSubTab === 1) {
+                activeDetailReq.client_name = document.getElementById('ed-client')?.value || activeDetailReq.client_name;
+                activeDetailReq.client_phone = document.getElementById('ed-phone')?.value || '';
+                activeDetailReq.urgency = document.getElementById('ed-urgency')?.value || activeDetailReq.urgency;
+                activeDetailReq.machine_sku = document.getElementById('ed-msku')?.value || '';
+                activeDetailReq.machine_vendor_model = document.getElementById('ed-mvendor')?.value || '';
+                activeDetailReq.machine_name = document.getElementById('ed-mname')?.value || '';
+                activeDetailReq.machine_supplier_name = document.getElementById('ed-msupplier')?.value || '';
+                activeDetailReq.machine_serial = document.getElementById('ed-mserial')?.value || '';
+                activeDetailReq.notes = document.getElementById('ed-notes')?.value || '';
+
+                document.querySelectorAll('.ed-item-triage').forEach((el) => {
+                    const idx = parseInt(el.dataset.idx);
+                    const it = activeDetailItems[idx];
+                    if (!it) return;
+                    it.part_name_pt = el.querySelector('.ti-pt').value.trim();
+                    it.part_name_en = el.querySelector('.ti-en').value.trim();
+                    it.qty = parseFloat(el.querySelector('.ti-qty').value) || 1;
+                    it.vendor_part_number = el.querySelector('.ti-pn').value.trim();
+                    it.sourcing_route = el.querySelector('.ti-route').value;
+                    it.national_equiv_spec = el.querySelector('.ti-nateq').value.trim();
+                });
+            } else if (activeDetailSubTab === 2) {
+                const usd = parseFloat(document.getElementById('ed-usd-rate')?.value) || liveRates.usd;
+                activeDetailReq.usd_rate_snapshot = usd;
+
+                document.querySelectorAll('.ed-quote-card').forEach((el) => {
+                    const idx = parseInt(el.dataset.idx);
+                    const it = activeDetailItems[idx];
+                    if (!it) return;
+                    it.intl_supplier_name = el.querySelector('.qi-intl-sup').value.trim();
+                    it.intl_modality = el.querySelector('.qi-intl-mod').value;
+                    it.intl_unit_fob = parseFloat(el.querySelector('.qi-fob').value) || 0;
+                    it.intl_freight_usd = parseFloat(el.querySelector('.qi-freight').value) || 0;
+                    it.intl_lead_time_days = parseInt(el.querySelector('.qi-intl-days').value) || 18;
+                    it.intl_usd_rate = usd;
+                    it.nat_supplier_name = el.querySelector('.qi-nat-sup').value.trim();
+                    it.nat_unit_cost_brl = parseFloat(el.querySelector('.qi-nat-cost').value) || 0;
+                    it.nat_markup_factor = parseFloat(el.querySelector('.qi-nat-mk').value) || 2;
+                    it.nat_lead_time_days = parseInt(el.querySelector('.qi-nat-days').value) || 5;
+                    it.selected_source = el.querySelector('.qi-sel-source').value;
+                    it.final_unit_price_brl = parseFloat(el.querySelector('.qi-final-unit').value) || 0;
+                    it.final_total_price_brl = +(it.final_unit_price_brl * (parseFloat(it.qty) || 1)).toFixed(2);
+                    it.promised_lead_days = parseInt(el.querySelector('.qi-prom-days').value) || 15;
+                    it.auto_price = false;
+                });
+            } else if (activeDetailSubTab === 4) {
+                activeDetailReq.purchase_modality = document.getElementById('ed-pmod')?.value || activeDetailReq.purchase_modality;
+                activeDetailReq.po_reference = document.getElementById('ed-poref')?.value || '';
+                activeDetailReq.tracking_code = document.getElementById('ed-track')?.value || '';
+                activeDetailReq.eta_date = document.getElementById('ed-eta')?.value || '';
+                activeDetailReq.shelf_location = document.getElementById('ed-shelf')?.value || '';
+                activeDetailReq.out_nfe_number = document.getElementById('ed-outnfe')?.value || '';
+            }
+        }
+
+        async function uploadEditItemPhoto(input, idx) {
+            if (!input.files || !input.files[0]) return;
+            try {
+                collectDomEditsIntoState();
+                const url = await uploadPartPhotoFile(input.files[0]);
+                activeDetailItems[idx].photo_path = url;
+                await saveDetailChanges('Foto anexada na peça');
+                renderDetailSubTab();
+            } catch (e) {
+                alert(e.message);
+            }
+        }
+
+        async function saveDetailChanges(customLog = '') {
+            collectDomEditsIntoState();
+            const res = await api(`/api/parts/requests/${activeDetailReq.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    ...activeDetailReq,
+                    items: activeDetailItems,
+                    log_message: customLog
+                })
+            });
+            activeDetailReq = res.request;
+            activeDetailItems = res.items;
+            document.getElementById('md-total-display').textContent = 'Total Orçado: ' + fmtMoney(res.total_quoted_brl);
+            showToast('💾 Alterações salvas com sucesso!', '#10b981');
+            await loadDashboard();
+        }
+
+        async function finishTriageToQuotation() {
+            await saveDetailChanges();
+            await api(`/api/parts/requests/${activeDetailReq.id}/action`, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'SEND_TO_QUOTATION' })
+            });
+            showToast('➡️ Liberado para Cotação com Fornecedor!', '#f59e0b');
+            await loadDashboard();
+            await openDetailModal(activeDetailReq.id, 2);
+        }
+
+        async function releaseProposalToSales() {
+            await saveDetailChanges();
+            await api(`/api/parts/requests/${activeDetailReq.id}/action`, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'RELEASE_PROPOSAL_TO_SALES' })
+            });
+            showToast('📤 Cotação pronta! Liberada para envio da proposta ao cliente.', '#6366f1');
+            await loadDashboard();
+            await openDetailModal(activeDetailReq.id, 3);
+        }
+
+        async function triggerRequestAction(action) {
+            collectDomEditsIntoState();
+            await saveDetailChanges();
+
+            const payload = { action };
+            if (action === 'CLIENT_APPROVED') {
+                payload.erp_order_number = document.getElementById('ap-erp-order')?.value.trim() || '';
+            } else if (action === 'CLIENT_DECLINED') {
+                payload.reason = document.getElementById('dec-reason')?.value.trim() || 'Declinado pelo cliente';
+            } else if (action === 'ARRIVED_AT_DOCK') {
+                payload.shelf_location = document.getElementById('ed-shelf')?.value.trim() || '';
+            } else if (action === 'MARK_DELIVERED') {
+                payload.out_nfe_number = document.getElementById('ed-outnfe')?.value.trim() || '';
+            }
+
+            const res = await api(`/api/parts/requests/${activeDetailReq.id}/action`, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            showToast('✅ Etapa atualizada com sucesso!', '#10b981');
+            await loadDashboard();
+            await openDetailModal(res.request.id);
+        }
+
+        function copySupplierRfq(lang) {
+            collectDomEditsIntoState();
+            const r = activeDetailReq;
+            if (lang === 'EN') {
+                const lines = [
+                    `Hello! Please send us an urgent Spare Parts quotation (FOB USD + Lead Time + Packing Weight):`,
+                    `Reference: ${r.req_code}`,
+                    `Machine Model: ${r.machine_vendor_model || r.machine_name || r.machine_sku || 'As per photo'}`,
+                    r.machine_serial ? `Machine Serial No.: ${r.machine_serial}` : null,
+                    `----------------------------------------`,
+                    ...activeDetailItems.map((it, i) =>
+                        `${i + 1}) Part: ${it.part_name_en || it.part_name_pt} | Qty: ${it.qty} ${it.unit || 'PCS'}${it.vendor_part_number ? ' | Part Code: ' + it.vendor_part_number : ''}`
+                    ),
+                    `----------------------------------------`,
+                    `Please inform unit FOB price (USD), availability in stock, and gross weight for DHL/FedEx courier.`
+                ].filter(Boolean);
+                navigator.clipboard.writeText(lines.join('\n'));
+                showToast('🇨🇳 RFQ em Inglês copiada! Pronto para colar no WeChat / E-mail.', '#0ea5e9');
+            } else {
+                const lines = [
+                    `Olá! Tudo bem? Solicito cotação e prazo de entrega para o(s) item(ns) abaixo (Tecfag Automação - Ref. ${r.req_code}):`,
+                    `----------------------------------------`,
+                    ...activeDetailItems.map((it, i) =>
+                        `${i + 1}) ${it.qty} ${it.unit || 'UN'} — ${it.part_name_pt}${it.national_equiv_spec ? '\n   Especificação: ' + it.national_equiv_spec : ''}${it.vendor_part_number ? ' | Ref: ' + it.vendor_part_number : ''}`
+                    ),
+                    `----------------------------------------`,
+                    `Favor informar valor unitário (R$), impostos e menor prazo de entrega/fabricação.`
+                ];
+                navigator.clipboard.writeText(lines.join('\n'));
+                showToast('🇧🇷 RFQ Nacional copiada para o WhatsApp!', '#10b981');
+            }
+        }
+
+        function buildClientProposalText() {
+            const r = activeDetailReq;
+            let total = 0;
+            const itemLines = activeDetailItems.map((it, idx) => {
+                const u = parseFloat(it.final_unit_price_brl) || 0;
+                const sub = u * (parseFloat(it.qty) || 1);
+                total += sub;
+                const codeRef = it.erp_sku || it.temp_sku;
+                return `${idx + 1}. [${codeRef}] ${it.part_name_pt}\n   • Quantidade: ${it.qty} ${it.unit || 'UN'} | Valor Unit.: ${fmtMoney(u)} | Subtotal: ${fmtMoney(sub)}\n   • Prazo estimado de expedição: ${it.promised_lead_days || 15} dias úteis`;
+            });
+
+            return [
+                `Olá${r.client_contact ? ' ' + r.client_contact : ''}! Segue proposta comercial de peças de reposição *TECFAG AUTOMAÇÃO*:`,
+                ``,
+                `📋 *Protocolo:* ${r.req_code}`,
+                `🏢 *Cliente:* ${r.client_name}`,
+                r.machine_name || r.machine_sku ? `🏭 *Equipamento:* ${r.machine_sku || ''} ${r.machine_name || ''}` : null,
+                `------------------------------------------`,
+                ...itemLines,
+                `------------------------------------------`,
+                `💰 *VALOR TOTAL:* ${fmtMoney(total)}`,
+                `📅 *Validade da Proposta:* ${r.proposal_validity_days || 7} dias`,
+                `💳 *Condição:* ${r.payment_terms_client || 'À vista / Conforme aprovação cadastro'}`,
+                ``,
+                `Podemos confirmar o pedido para iniciar o fornecimento imediato?`,
+                `Atenciosamente,`,
+                `*${r.requester_name || 'Guilherme Bertola — Pós-Venda & Peças Tecfag'}*`
+            ].filter(v => v !== null).join('\n');
+        }
+
+        function copyClientProposal() {
+            const txt = document.getElementById('client-proposal-preview').value;
+            navigator.clipboard.writeText(txt);
+            showToast('📲 Orçamento copiado para enviar ao cliente!', '#6366f1');
+        }
+
+        async function injectIntoComexContainer() {
+            const orderId = document.getElementById('inject-container-sel').value;
+            if (!orderId) {
+                alert('Selecione primeiro um Container / PO aberto na lista!');
+                return;
+            }
+            try {
+                await saveDetailChanges();
+                const res = await api(`/api/parts/requests/${activeDetailReq.id}/inject-container`, {
+                    method: 'POST',
+                    body: JSON.stringify({ stock_order_id: parseInt(orderId) })
+                });
+                showToast(`🚢 Peça(s) incluída(s) com sucesso no Container ${res.po_number}!`, '#10b981');
+                await loadDashboard();
+                await openDetailModal(activeDetailReq.id, 4);
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function postTimelineComment() {
+            const inp = document.getElementById('tl-msg');
+            const msg = inp.value.trim();
+            if (!msg) return;
+            const res = await api(`/api/parts/requests/${activeDetailReq.id}/comment`, {
+                method: 'POST',
+                body: JSON.stringify({ message: msg })
+            });
+            activeDetailTimeline = res.timeline;
+            inp.value = '';
+            renderDetailSubTab();
+        }
+
+        async function deleteCurrentRequest() {
+            if (!activeDetailReq) return;
+            if (!confirm(`Deseja realmente excluir a solicitação ${activeDetailReq.req_code}?`)) return;
+            await api(`/api/parts/requests/${activeDetailReq.id}`, { method: 'DELETE' });
+            closeModal('modal-detail');
+            showToast('Solicitação excluída.', '#ef4444');
+            await loadDashboard();
+        }
+
+        function jumpToPrintTag(reqId) {
+            closeModal('modal-detail');
+            switchMainTab('tags');
+            document.getElementById('tag-req-select').value = String(reqId);
+            renderReserveTagPreview();
+        }
+
+        // Fechar dropdowns de autocomplete ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#nr-client')) {
+                const el = document.getElementById('nr-client-results');
+                if (el) el.style.display = 'none';
+            }
+            if (!e.target.closest('#nr-machine-search')) {
+                const el = document.getElementById('nr-machine-results');
+                if (el) el.style.display = 'none';
+            }
+        });
+
+        initApp();
+    </script>
+</body>
+</html>

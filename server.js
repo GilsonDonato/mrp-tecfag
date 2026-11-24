@@ -2334,6 +2334,8 @@ app.post('/api/auth/login', async (req, res) => {
             'lucas': 'vendas4',
             'patricia': 'vendas6',
             'patrícia': 'vendas6',
+            'guilherme': 'vendas18@tecfag.com.br',
+            'bertola': 'vendas18@tecfag.com.br',
             'lerlayne': 'jerlayne',
             'rh@tecfag.com.br': 'jerlayne'
         };
@@ -2700,14 +2702,14 @@ app.get('/uploads/:filename', async (req, res) => {
     `);
 });
 
-// Servir o Frontend index.html na raiz
-app.use(express.static(path.join(__dirname)));
+// Servir o Frontend index.html na raiz sempre sem cache de navegador
 app.get(['/', '/index.html'], (req, res) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
     res.sendFile(path.join(__dirname, 'index.html'));
 });
+app.use(express.static(path.join(__dirname), { index: false }));
 
 // Mapeamento de usuários para e-mails institucionais correspondentes
 function getUserEmail(username) {
@@ -2719,6 +2721,7 @@ function getUserEmail(username) {
     if (u === 'vendas3' || u === 'vendas17@tecfag.com.br') return 'vendas17@tecfag.com.br';
     if (u === 'vendas4' || u === 'vendas19@tecfag.com.br') return 'vendas19@tecfag.com.br';
     if (u === 'vendas6' || u === 'vendas6@tecfag.com.br') return 'vendas6@tecfag.com.br';
+    if (u === 'vendas18' || u === 'vendas18@tecfag.com.br' || u === 'guilherme') return 'vendas18@tecfag.com.br';
     if (u === 'suporte2' || u === 'suporte2@tecfag.com.br') return 'suporte2@tecfag.com.br';
     if (u === 'heilio' || u === 'assistencia6@tecfag.com.br') return 'assistencia6@tecfag.com.br';
     if (u === 'jhenifer' || u === 'adm@tecfag.com.br') return 'adm@tecfag.com.br';
@@ -17062,6 +17065,24 @@ try {
     });
 } catch (fleetInitErr) {
     console.error('[FLEET MODULE INIT ERROR] Falha isolada no módulo de frota (MRP segue 100% ativo):', fleetInitErr);
+}
+
+// ==========================================
+// MÓDULO ISOLADO DE PEÇAS SOB ENCOMENDA & REPOSIÇÃO (/pecas, /api/parts/*)
+// ==========================================
+try {
+    const registerPartsModule = require('./parts/parts-routes');
+    registerPartsModule({
+        app,
+        mrpDb: db,
+        authenticateToken,
+        hashPassword,
+        DB_DIR,
+        getDirectorySize,
+        skuNcmMap
+    });
+} catch (partsInitErr) {
+    console.error('[PARTS MODULE INIT ERROR] Falha isolada no módulo de peças (MRP segue 100% ativo):', partsInitErr);
 }
 
 // Middleware de tratamento global de erros (Multer, JSON parsing, etc.) garantindo respostas em JSON
