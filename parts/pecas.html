@@ -483,6 +483,9 @@
             <button class="btn" onclick="document.getElementById('modal-user-manual').classList.add('active')" title="Abrir Manual Operacional da Ferramenta">
                 📖 Manual de Uso
             </button>
+            <button class="btn btn-sm" id="btn-governance" style="display:none; border-color:rgba(244,114,182,0.5); color:#f9a8d4;" onclick="openGovernanceModal()" title="Configurar Responsáveis das Etapas 1 a 6 (Exclusivo Admin)">
+                🛡️ Responsáveis por Etapa
+            </button>
             <button class="btn btn-amber" onclick="openNewRequestModal()" id="btn-new-request" style="display:none;">
                 ➕ Nova Solicitação de Peça
             </button>
@@ -495,7 +498,7 @@
     <!-- FALLBACK LOGIN BOX (Se abrir /pecas sem estar logado no MRP) -->
     <div id="login-box" style="display:none; max-width:420px; margin:70px auto; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:28px;">
         <h3 style="margin-bottom:6px; font-size:1.1rem;">🔐 Acesso ao Módulo de Peças</h3>
-        <p style="font-size:0.78rem; color:var(--muted); margin-bottom:18px;">Use o mesmo usuário e senha do MRP Tecfag (ex: <code>vendas18@tecfag.com.br</code>, <code>jhenifer</code>, <code>gilson</code>).</p>
+        <p style="font-size:0.78rem; color:var(--muted); margin-bottom:18px;">Use o mesmo usuário e senha do MRP Tecfag (ex: <code>vendas18@tecfag.com.br</code>, <code>jhenifer</code>, <code>gilson</code>, <code>fernando</code>).</p>
         <form onsubmit="handleLogin(event)" style="display:flex; flex-direction:column; gap:12px;">
             <div class="fg">
                 <label>Usuário ou E-mail</label>
@@ -521,9 +524,8 @@
                 <span class="formula-pill">📐 Regra Importação Tecfag: Preço FOB ($) × Dólar × 2 × 2</span>
             </div>
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; color:var(--muted);">
-                <span>⚡ <strong>Pré-SKU Automático:</strong> Zero espera de 5 dias p/ cotar</span>
-                <span>•</span>
-                <span>📋 <strong>Solicitante Padrão:</strong> Guilherme Bertola | <strong>Cadastro ERP:</strong> Jhenifer</span>
+                <span>🔒 <strong>Trava por Etapa Ativa:</strong></span>
+                <span>Abertura & Etapa 3: <strong style="color:#7dd3fc;">Guilherme</strong> | Etapas 1, 2, 4, 5, 6: <strong style="color:#f472b6;">Jhenifer</strong> | Master: <strong style="color:#fbbf24;">Gilson & Fernando</strong></span>
             </div>
         </div>
 
@@ -854,12 +856,14 @@
                     <div id="md-subtitle" style="font-size:0.78rem; color:var(--muted); margin-top:3px;"></div>
                 </div>
                 <div style="display:flex; gap:8px; align-items:center;">
-                    <button class="btn btn-red btn-sm" onclick="deleteCurrentRequest()" title="Excluir solicitação">🗑️</button>
+                    <button class="btn btn-red btn-sm" id="btn-del-detail" onclick="deleteCurrentRequest()" title="Excluir solicitação (Exclusivo Admin)">🗑️</button>
                     <button class="btn btn-sm" onclick="closeModal('modal-detail')">✕ Fechar</button>
                 </div>
             </div>
 
             <div class="modal-body">
+                <div id="md-lock-banner" style="display:none; background:rgba(245,158,11,0.13); border:1px solid rgba(245,158,11,0.55); border-left:4px solid #f59e0b; border-radius:10px; padding:11px 15px; margin-bottom:14px; font-size:0.8rem; color:#fde68a;"></div>
+
                 <div class="subtabs">
                     <button class="subtab-btn active" id="stbtn-1" onclick="switchDetailSubTab(1)">1️⃣ Escopo, Máquina & Triagem</button>
                     <button class="subtab-btn" id="stbtn-2" onclick="switchDetailSubTab(2)">2️⃣ Cotação Fornecedor (FOB × Dólar × 2 × 2)</button>
@@ -871,38 +875,47 @@
             </div>
 
             <div class="modal-foot">
-                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                    <span style="font-size:0.75rem; color:var(--muted);">Mover Etapa Manualmente:</span>
-                    <select id="md-stage-select" class="form-control" style="width:240px; padding:6px 10px; font-size:0.78rem;" onchange="saveDetailChanges('Mudança manual de etapa')">
-                        <option value="1_TRIAGEM_TECNICA">1. Triagem Técnica (Engenharia)</option>
-                        <option value="2_COTACAO_FORNECEDOR">2. Cotação Fornecedor (Compras)</option>
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;" id="md-stage-manual-wrap">
+                    <span style="font-size:0.75rem; color:var(--muted);">Mover Etapa (Admin):</span>
+                    <select id="md-stage-select" class="form-control" style="width:250px; padding:6px 10px; font-size:0.78rem;" onchange="saveDetailChanges('Mudança manual de etapa')">
+                        <option value="1_TRIAGEM_TECNICA">1. Triagem Técnica (Jhenifer)</option>
+                        <option value="2_COTACAO_FORNECEDOR">2. Cotação Fornecedor (Jhenifer)</option>
                         <option value="3_PROPOSTA_CLIENTE">3. Proposta no Cliente (Guilherme)</option>
                         <option value="4_CADASTRO_ERP">4. Fila Cadastro ERP (Jhenifer)</option>
-                        <option value="5_COMPRA_TRANSITO">5. Compra & Trânsito</option>
-                        <option value="6_DOCA_EXPEDICAO">6. Doca / Reserva Cliente</option>
+                        <option value="5_COMPRA_TRANSITO">5. Compra & Trânsito (Jhenifer)</option>
+                        <option value="6_DOCA_EXPEDICAO">6. Doca / Reserva Cliente (Jhenifer)</option>
                         <option value="7_CONCLUIDO">7. Concluído / Entregue</option>
                         <option value="8_DECLINADO_CANCELADO">8. Declinado / Cancelado</option>
                     </select>
                 </div>
-                <div style="display:flex; gap:10px; align-items:center;">
+                <div style="display:flex; gap:10px; align-items:center; margin-left:auto;">
                     <div style="font-size:0.88rem; font-weight:900; color:#4ade80; margin-right:8px;" id="md-total-display">Total Orçado: R$ 0,00</div>
-                    <button class="btn btn-primary" onclick="saveDetailChanges()">💾 Salvar Alterações</button>
+                    <button class="btn btn-primary" id="btn-save-detail" onclick="saveDetailChanges()">💾 Salvar Alterações</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL 3: DISPARO DE E-MAIL AO FORNECEDOR COM FOTOS EMBUTIDAS + CÓD. ANTIGO -->
+    <!-- MODAL 3: DISPARO DE E-MAIL AO FORNECEDOR COM FOTOS EMBUTIDAS + AGRUPAMENTO MULTI-MÁQUINA -->
     <div class="modal-overlay" id="modal-supplier-email" style="z-index:1200;">
-        <div class="modal-box" style="max-width:860px;">
+        <div class="modal-box" style="max-width:880px;">
             <div class="modal-head">
                 <div>
-                    <h3 style="font-size:1.08rem;">📧 Enviar E-mail de Cotação ao Fornecedor (Com Fotos Embutidas)</h3>
-                    <div style="font-size:0.74rem; color:var(--muted);">Envia exclusivamente o <strong>Código Original do Fornecedor (Aba Cód. Antigo)</strong> + fotos visíveis no corpo do e-mail e em anexo!</div>
+                    <h3 style="font-size:1.08rem;">📧 Enviar E-mail de Cotação ao Fornecedor (Agrupado por Máquina + Fotos)</h3>
+                    <div style="font-size:0.74rem; color:var(--muted);">Agrupa automaticamente descrições e fotos por <strong>Modelo Original (Cód. Antigo)</strong> — suporta múltiplas peças e múltiplas máquinas!</div>
                 </div>
                 <button class="btn btn-sm" onclick="closeModal('modal-supplier-email')">✕ Fechar</button>
             </div>
             <div class="modal-body">
+                <!-- SELETOR DE PEÇAS E FILTRO POR FORNECEDOR / MÁQUINA -->
+                <div id="em-items-selector-box" style="background:rgba(14,165,233,0.08); border:1px solid rgba(56,189,248,0.35); border-radius:10px; padding:12px; margin-bottom:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                        <div style="font-size:0.77rem; font-weight:800; color:#38bdf8;">📦 PEÇAS & MÁQUINAS INCLUÍDAS NESTE E-MAIL (DESMARQUE SE FOR DE OUTRO FORNECEDOR):</div>
+                        <div id="em-supplier-filter-pills" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+                    </div>
+                    <div id="em-items-checkbox-list" style="display:flex; flex-direction:column; gap:6px; max-height:145px; overflow-y:auto;"></div>
+                </div>
+
                 <div class="form-grid-3" style="margin-bottom:12px; background:var(--surface-3); padding:12px; border-radius:10px; border:1px solid var(--border);">
                     <div class="fg">
                         <label>Idioma do E-mail</label>
@@ -912,12 +925,12 @@
                         </select>
                     </div>
                     <div class="fg">
-                        <label style="color:#38bdf8;">🏷️ Modelo no Fornecedor (Cód. Antigo ERP)</label>
+                        <label style="color:#38bdf8;">🏷️ Modelo Padrão no Fornecedor (Cód. Antigo)</label>
                         <input type="text" id="em-vendor-code" class="form-control" style="font-weight:900; color:#38bdf8; border-color:rgba(56,189,248,0.5);" placeholder="Ex: ARLM-160B" oninput="rebuildSupplierEmailTemplate()">
                     </div>
                     <div class="fg">
                         <label>Fornecedor Destino</label>
-                        <input type="text" id="em-supplier-name" class="form-control" list="intl-suppliers-datalist" placeholder="Nome do fornecedor">
+                        <input type="text" id="em-supplier-name" class="form-control" list="intl-suppliers-datalist" placeholder="Nome do fornecedor" onchange="autoFillSupplierEmailFromName(this.value)">
                     </div>
                 </div>
 
@@ -1092,6 +1105,27 @@
         </div>
     </div>
 
+    <!-- MODAL 6: MATRIZ DE GOVERNANÇA & RESPONSÁVEIS POR ETAPA (EXCLUSIVO GILSON / FERNANDO / ADMIN) -->
+    <div class="modal-overlay" id="modal-governance" style="z-index:1400;">
+        <div class="modal-box" style="max-width:760px;">
+            <div class="modal-head">
+                <div>
+                    <h3 style="font-size:1.06rem; color:#f9a8d4;">🛡️ Governança — Responsáveis por Etapa (Abertura + Etapas 1 a 6)</h3>
+                    <div style="font-size:0.74rem; color:var(--muted);">Todos os usuários podem consultar os cards e usar o chat interno, mas <strong>somente o responsável da etapa (e Admins Master: Gilson & Fernando)</strong> podem alterar dados ou avançar o fluxo!</div>
+                </div>
+                <button class="btn btn-sm" onclick="closeModal('modal-governance')">✕ Fechar</button>
+            </div>
+            <div class="modal-body" id="governance-modal-body" style="display:flex; flex-direction:column; gap:10px;"></div>
+            <div class="modal-foot">
+                <span style="font-size:0.74rem; color:#fbbf24;">🔑 Chave-Mestra Ativa: <strong>Gilson (admin / gilson)</strong> e <strong>Fernando (fernando)</strong> sempre têm acesso total.</span>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn" onclick="closeModal('modal-governance')">Cancelar</button>
+                    <button class="btn btn-green" id="btn-save-governance" onclick="saveGovernanceConfig()">💾 Salvar Matriz de Responsabilidade</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <datalist id="intl-suppliers-datalist"></datalist>
     <datalist id="nat-suppliers-datalist"></datalist>
     <datalist id="supplier-emails-datalist"></datalist>
@@ -1099,6 +1133,7 @@
 
     <script>
         let currentUser = null;
+        let permissionsMap = {};
         let liveRates = { usd: 5.80, eur: 6.25, cny: 0.81 };
         let dashboardData = { requests: [], erp_queue: [], catalog: [] };
         let suppliersAndContainers = { intl_suppliers: [], nat_suppliers: [], open_containers: [] };
@@ -1107,14 +1142,29 @@
         let activeDetailItems = [];
         let activeDetailTimeline = [];
         let activeDetailSubTab = 1;
+        let activeDetailAccess = { can_edit: true, is_master: false, owner_display: '' };
+        let activeSupplierEmailsMap = {};
+
+        function canCurrentUserAct(stageKey) {
+            if (currentUser && currentUser.is_master_admin) return true;
+            if (permissionsMap && permissionsMap[stageKey]) return !!permissionsMap[stageKey].can_edit;
+            return false;
+        }
+
+        function getStageOwnerShort(stageKey) {
+            if (permissionsMap && permissionsMap[stageKey] && permissionsMap[stageKey].owner_display) {
+                return permissionsMap[stageKey].owner_display.split('(')[0].trim();
+            }
+            return '';
+        }
 
         const STAGE_META = {
-            '1_TRIAGEM_TECNICA': { num: '1', title: '1. Triagem Técnica', sla: 'SLA: 4h • Definir Brasil vs China', color: '#0ea5e9' },
-            '2_COTACAO_FORNECEDOR': { num: '2', title: '2. Cotação Fornecedor', sla: 'SLA: 24-48h • Com Pré-SKU', color: '#f59e0b' },
-            '3_PROPOSTA_CLIENTE': { num: '3', title: '3. Proposta no Cliente', sla: 'Guilherme • Aguardando Cliente', color: '#6366f1' },
-            '4_CADASTRO_ERP': { num: '4', title: '4. Fila ERP (Jhenifer)', sla: 'SLA: 4h • Só Venda Ganha!', color: '#ec4899' },
-            '5_COMPRA_TRANSITO': { num: '5', title: '5. Compra & Trânsito', sla: 'Nacional / DHL / Container', color: '#8b5cf6' },
-            '6_DOCA_EXPEDICAO': { num: '6', title: '6. Doca / Reserva Cliente', sla: 'Carimbada • Faturar Cliente', color: '#10b981' },
+            '1_TRIAGEM_TECNICA': { num: '1', title: '1. Triagem Técnica', sla: 'Resp.: Jhenifer • Brasil vs China', color: '#0ea5e9' },
+            '2_COTACAO_FORNECEDOR': { num: '2', title: '2. Cotação Fornecedor', sla: 'Resp.: Jhenifer • Com Pré-SKU', color: '#f59e0b' },
+            '3_PROPOSTA_CLIENTE': { num: '3', title: '3. Proposta no Cliente', sla: 'Resp.: Guilherme • Decisão Cliente', color: '#6366f1' },
+            '4_CADASTRO_ERP': { num: '4', title: '4. Fila ERP (Jhenifer)', sla: 'Resp.: Jhenifer • Só Venda Ganha!', color: '#ec4899' },
+            '5_COMPRA_TRANSITO': { num: '5', title: '5. Compra & Trânsito', sla: 'Resp.: Jhenifer • DHL / Container', color: '#8b5cf6' },
+            '6_DOCA_EXPEDICAO': { num: '6', title: '6. Doca / Reserva Cliente', sla: 'Resp.: Jhenifer • Faturar Cliente', color: '#10b981' },
             '7_CONCLUIDO': { num: '7', title: '7. Concluído / Entregue', sla: 'Finalizado', color: '#10b981' },
             '8_DECLINADO_CANCELADO': { num: '8', title: '8. Declinado / Cancelado', sla: 'Histórico salvo', color: '#ef4444' }
         };
@@ -1251,6 +1301,27 @@
             return res.photo_path;
         }
 
+        function refreshTopActionPermissions() {
+            const govBtn = document.getElementById('btn-governance');
+            if (govBtn) {
+                govBtn.style.display = (currentUser && currentUser.is_master_admin) ? 'inline-flex' : 'none';
+            }
+            const newBtn = document.getElementById('btn-new-request');
+            if (newBtn) {
+                newBtn.style.display = 'inline-flex';
+                if (canCurrentUserAct('CREATE_REQUEST')) {
+                    newBtn.innerHTML = '➕ Nova Solicitação de Peça';
+                    newBtn.style.opacity = '1';
+                    newBtn.title = 'Abrir nova solicitação de peças';
+                } else {
+                    const creatorName = getStageOwnerShort('CREATE_REQUEST') || 'Guilherme Bertola';
+                    newBtn.innerHTML = `🔒 Abertura (${esc(creatorName)})`;
+                    newBtn.style.opacity = '0.6';
+                    newBtn.title = `Abertura restrita a: ${creatorName} (ou Admin Gilson / Fernando)`;
+                }
+            }
+        }
+
         async function initApp() {
             if (!getToken()) {
                 document.getElementById('login-box').style.display = 'block';
@@ -1259,12 +1330,13 @@
             try {
                 const me = await api('/api/parts/me');
                 currentUser = me.user;
+                if (me.permissions) permissionsMap = me.permissions;
                 if (me.exchange && me.exchange.usd) liveRates = me.exchange;
 
                 document.getElementById('login-box').style.display = 'none';
                 document.getElementById('main-app').style.display = 'block';
-                document.getElementById('btn-new-request').style.display = 'inline-flex';
                 document.getElementById('btn-logout').style.display = 'inline-flex';
+                refreshTopActionPermissions();
 
                 const myEmailBtn = document.getElementById('btn-my-email');
                 if (myEmailBtn) {
@@ -1273,12 +1345,11 @@
                 }
 
                 const pill = document.getElementById('logged-user-pill');
-                pill.textContent = '👤 ' + currentUser.display_name;
+                pill.textContent = (currentUser.is_master_admin ? '👑 ' : '👤 ') + currentUser.display_name;
                 pill.style.display = 'inline-flex';
 
                 await Promise.all([loadDashboard(), loadSuppliersAndContainers()]);
 
-                // Se for a Jhenifer e houver itens aguardando SKU no ERP, destaca e avisa!
                 if (currentUser.is_jhenifer && dashboardData.erp_queue.length > 0) {
                     showToast(`📋 Olá Jhenifer! Você possui ${dashboardData.erp_queue.length} peça(s) de venda aprovada na Fila Expressa do ERP.`, '#ec4899');
                 }
@@ -1301,6 +1372,10 @@
         async function loadDashboard() {
             const data = await api('/api/parts/dashboard');
             dashboardData = data;
+            if (data.permissions) {
+                permissionsMap = data.permissions;
+                refreshTopActionPermissions();
+            }
             if (data.exchange && data.exchange.usd) {
                 liveRates = data.exchange;
                 document.getElementById('hud-usd').textContent = 'R$ ' + Number(liveRates.usd).toFixed(2).replace('.', ',');
@@ -1493,6 +1568,8 @@
         function renderKanbanCardHtml(r) {
             const items = r.items || [];
             const firstPhoto = (items.find(i => i.photo_path) || {}).photo_path;
+            const canEditCard = canCurrentUserAct(r.stage);
+            const multiMachCount = r.distinct_machines_count || 1;
             return `
                 <div class="req-card ${r.urgency === 'MAQUINA_PARADA' ? 'urgent-stop' : ''}" onclick="openDetailModal(${r.id})">
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:7px;">
@@ -1502,6 +1579,10 @@
 
                     <div style="margin-bottom:7px; display:flex; gap:5px; flex-wrap:wrap;">
                         ${urgencyBadgeHtml(r.urgency)}
+                        ${multiMachCount > 1 ? `<span class="badge" style="background:rgba(245,158,11,0.22); color:#fbbf24; border:1px solid rgba(245,158,11,0.4);">🏭 ${multiMachCount} Máquinas</span>` : ''}
+                        ${canEditCard
+                            ? `<span class="badge" style="background:rgba(16,185,129,0.16); color:#6ee7b7;" title="Você pode editar esta etapa">✏️ Sua Etapa</span>`
+                            : `<span class="badge" style="background:rgba(148,163,184,0.14); color:#94a3b8;" title="Modo somente consulta p/ seu perfil">🔒 Consulta</span>`}
                         ${r.linked_po_number ? `<span class="badge" style="background:rgba(14,165,233,0.2); color:#7dd3fc;">🚢 ${esc(r.linked_po_number)}</span>` : ''}
                     </div>
 
@@ -1511,7 +1592,8 @@
 
                     ${(r.machine_sku || r.machine_name) ? `
                         <div style="font-size:0.73rem; color:#fbbf24; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:6px; padding:4px 7px; margin-bottom:8px;">
-                            🏭 <strong>${esc(r.machine_sku || 'MÁQ')}</strong> ${esc(r.machine_name ? '• ' + r.machine_name.slice(0, 34) : '')}
+                            🏭 <strong>${esc(r.machine_sku || 'MÁQ')}</strong> ${esc(r.machine_name ? '• ' + r.machine_name.slice(0, 30) : '')}
+                            ${multiMachCount > 1 ? `<span style="color:#fde68a;"> (+${multiMachCount - 1} outra)</span>` : ''}
                         </div>
                     ` : ''}
 
@@ -1551,6 +1633,7 @@
         function renderErpQueue() {
             const box = document.getElementById('erp-queue-container');
             const list = dashboardData.erp_queue || [];
+            const canActErp = canCurrentUserAct('4_CADASTRO_ERP');
             if (list.length === 0) {
                 box.innerHTML = `
                     <div style="text-align:center; padding:36px 20px; color:#34d399; background:rgba(16,185,129,0.06); border:1px dashed rgba(16,185,129,0.35); border-radius:10px;">
@@ -1611,17 +1694,23 @@
                                     <td>
                                         <div class="fg" style="margin-bottom:6px;">
                                             <label>NCM Sugerido</label>
-                                            <input type="text" id="erp-ncm-${it.id}" class="form-control" value="${esc(it.suggested_ncm || '8422.90.90')}" style="width:135px; font-family:monospace;">
+                                            <input type="text" id="erp-ncm-${it.id}" class="form-control" value="${esc(it.suggested_ncm || '8422.90.90')}" style="width:135px; font-family:monospace;" ${canActErp ? '' : 'disabled'}>
                                         </div>
                                         <div style="font-size:0.72rem; color:#cbd5e1;">Origem: <strong>${originLabel}</strong></div>
                                     </td>
                                     <td>
-                                        <div style="display:flex; flex-direction:column; gap:6px; min-width:210px;">
-                                            <input type="text" id="erp-sku-input-${it.id}" class="form-control" placeholder="Ex: PECAS0945" style="font-weight:800; text-transform:uppercase; border-color:#ec4899;">
-                                            <button class="btn btn-green btn-sm" style="justify-content:center; padding:8px;" onclick="confirmJheniferErpSku(${it.id})">
-                                                ✅ Confirmar SKU & Liberar Compra
-                                            </button>
-                                        </div>
+                                        ${canActErp ? `
+                                            <div style="display:flex; flex-direction:column; gap:6px; min-width:210px;">
+                                                <input type="text" id="erp-sku-input-${it.id}" class="form-control" placeholder="Ex: PECAS0945" style="font-weight:800; text-transform:uppercase; border-color:#ec4899;">
+                                                <button class="btn btn-green btn-sm" style="justify-content:center; padding:8px;" onclick="confirmJheniferErpSku(${it.id})">
+                                                    ✅ Confirmar SKU & Liberar Compra
+                                                </button>
+                                            </div>
+                                        ` : `
+                                            <div style="font-size:0.74rem; color:#fbbf24; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.4); padding:8px 10px; border-radius:8px;">
+                                                🔒 Somente consulta.<br>Responsável: <strong>${esc(getStageOwnerShort('4_CADASTRO_ERP') || 'Jhenifer')}</strong>
+                                            </div>
+                                        `}
                                     </td>
                                 </tr>
                             `;
@@ -1903,6 +1992,11 @@
         }
 
         function openNewRequestModal() {
+            if (!canCurrentUserAct('CREATE_REQUEST')) {
+                const owner = getStageOwnerShort('CREATE_REQUEST') || 'Guilherme Bertola';
+                alert(`🔒 Acesso Restrito:\n\nA abertura de novas solicitações é de responsabilidade exclusiva de ${owner} (ou Administradores Gilson / Fernando).`);
+                return;
+            }
             document.getElementById('nr-client').value = '';
             document.getElementById('nr-cnpj').value = '';
             document.getElementById('nr-contact').value = '';
@@ -1924,6 +2018,11 @@
         }
 
         function openNewRequestFromCatalog(catId) {
+            if (!canCurrentUserAct('CREATE_REQUEST')) {
+                const owner = getStageOwnerShort('CREATE_REQUEST') || 'Guilherme Bertola';
+                alert(`🔒 Abertura restrita a ${owner} (ou Administradores Gilson / Fernando).`);
+                return;
+            }
             const c = (dashboardData.catalog || []).find(x => x.id === catId);
             openNewRequestModal();
             if (!c) return;
@@ -1937,7 +2036,6 @@
 
         function addNewReqItemRow(prefill = null) {
             const wrap = document.getElementById('nr-items-container');
-            const idx = Date.now() + Math.floor(Math.random() * 1000);
             const div = document.createElement('div');
             div.className = 'nr-item-row';
             div.dataset.catId = prefill && prefill.id ? prefill.id : '';
@@ -1977,7 +2075,7 @@
                     <div class="fg">
                         <label>Rota de Compra (Brasil vs China)</label>
                         <select class="form-control it-route">
-                            <option value="DEFINIR">📐 Engenharia Definir na Triagem</option>
+                            <option value="DEFINIR">📐 Triagem Definir</option>
                             <option value="COTAR_AMBOS" ${prefill && prefill.sourcing_policy === 'COTAR_AMBOS' ? 'selected' : ''}>🌎 Cotar Ambos (Brasil + China)</option>
                             <option value="NACIONAL" ${prefill && prefill.sourcing_policy === 'NACIONAL' ? 'selected' : ''}>🇧🇷 Compra Nacional (Brasil)</option>
                             <option value="IMPORTACAO_OBRIGATORIA" ${prefill && prefill.sourcing_policy === 'IMPORTACAO_OBRIGATORIA' ? 'selected' : ''}>🇨🇳 Importação Obrigatória</option>
@@ -1995,8 +2093,98 @@
                         <button type="button" class="btn btn-red btn-sm" onclick="if(document.querySelectorAll('.nr-item-row').length>1) this.closest('.nr-item-row').remove()">✕</button>
                     </div>
                 </div>
+
+                <!-- VÍNCULO OPCIONAL A OUTRA MÁQUINA DIFERENTE NESTE MESMO PEDIDO -->
+                <div style="margin-top:8px; padding-top:8px; border-top:1px dashed rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                    <span class="it-mach-hint" style="font-size:0.72rem; color:var(--muted);">🏭 Máquina desta peça: <strong>Mesma máquina principal informada no Bloco 2 acima</strong></span>
+                    <button type="button" class="btn btn-sm" style="padding:3px 9px; font-size:0.71rem; border-color:rgba(251,191,36,0.4); color:#fde68a;" onclick="toggleItemCustomMachineBox(this)">
+                        🔄 Peça de OUTRA Máquina? Clique aqui
+                    </button>
+                </div>
+                <div class="it-custom-machine-box" style="display:none; margin-top:8px; background:rgba(245,158,11,0.07); border:1px solid rgba(245,158,11,0.35); border-radius:8px; padding:10px;">
+                    <div class="form-grid-4">
+                        <div class="fg" style="position:relative; grid-column: span 2;">
+                            <label style="color:#fbbf24;">Buscar Outra Máquina no Catálogo Tecfag</label>
+                            <input type="text" class="form-control it-mname" placeholder="Ex: FRB-770, ARLM-160B, Seladora..." autocomplete="off" oninput="searchItemMachineRow(this)">
+                            <div class="autocomplete-list it-machine-results" style="display:none;"></div>
+                        </div>
+                        <div class="fg">
+                            <label>SKU Máquina / 🏷️ Cód. Antigo</label>
+                            <div style="display:flex; gap:5px;">
+                                <input type="text" class="form-control it-msku" placeholder="SKU" style="width:48%;">
+                                <input type="text" class="form-control it-mvendor" placeholder="Cód. Antigo" style="width:52%; font-weight:800; color:#38bdf8;">
+                            </div>
+                        </div>
+                        <div class="fg">
+                            <label>Fabricante & Série</label>
+                            <div style="display:flex; gap:5px;">
+                                <input type="text" class="form-control it-msup" list="intl-suppliers-datalist" placeholder="Fabricante" style="width:62%;">
+                                <input type="text" class="form-control it-mserial" placeholder="Série" style="width:38%;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
             `;
             wrap.appendChild(div);
+        }
+
+        function toggleItemCustomMachineBox(btn) {
+            const row = btn.closest('.nr-item-row');
+            const box = row.querySelector('.it-custom-machine-box');
+            const hint = row.querySelector('.it-mach-hint');
+            const isHidden = box.style.display === 'none';
+            box.style.display = isHidden ? 'block' : 'none';
+            if (isHidden) {
+                btn.textContent = '✕ Usar mesma máquina principal';
+                hint.innerHTML = '🏭 Máquina específica selecionada para <strong>esta peça</strong>:';
+            } else {
+                row.querySelector('.it-mname').value = '';
+                row.querySelector('.it-msku').value = '';
+                row.querySelector('.it-mvendor').value = '';
+                row.querySelector('.it-msup').value = '';
+                row.querySelector('.it-mserial').value = '';
+                btn.textContent = '🔄 Peça de OUTRA Máquina? Clique aqui';
+                hint.innerHTML = '🏭 Máquina desta peça: <strong>Mesma máquina principal informada no Bloco 2 acima</strong>';
+            }
+        }
+
+        let itemMachTimer = null;
+        function searchItemMachineRow(inputEl) {
+            clearTimeout(itemMachTimer);
+            const row = inputEl.closest('.nr-item-row');
+            const box = row.querySelector('.it-machine-results');
+            const val = inputEl.value || '';
+            if (val.trim().length < 2) {
+                box.style.display = 'none';
+                return;
+            }
+            itemMachTimer = setTimeout(async () => {
+                try {
+                    const data = await api('/api/parts/lookup/machines?q=' + encodeURIComponent(val.trim()));
+                    const list = data.machines || [];
+                    if (!list.length) {
+                        box.style.display = 'none';
+                        return;
+                    }
+                    box.innerHTML = list.map((m, idx) => `
+                        <div class="autocomplete-item" data-midx="${idx}">
+                            <div><strong style="color:#fbbf24;">${esc(m.sku)}</strong> — ${esc(m.name)}</div>
+                            <div style="font-size:0.7rem; color:#38bdf8;">🏷️ Cód. Antigo: <strong>${esc(m.vendorCode || '-')}</strong> ${m.manufacturer ? '• 🏭 ' + esc(m.manufacturer) : ''}</div>
+                        </div>
+                    `).join('');
+                    box.querySelectorAll('.autocomplete-item').forEach((el) => {
+                        el.onclick = () => {
+                            const m = list[parseInt(el.dataset.midx)];
+                            row.querySelector('.it-mname').value = m.name || '';
+                            row.querySelector('.it-msku').value = m.sku || '';
+                            row.querySelector('.it-mvendor').value = m.vendorCode || '';
+                            row.querySelector('.it-msup').value = m.manufacturer || '';
+                            box.style.display = 'none';
+                        };
+                    });
+                    box.style.display = 'block';
+                } catch (e) {}
+            }, 200);
         }
 
         async function handleNewItemPhoto(input) {
@@ -2141,7 +2329,12 @@
                 category: row.querySelector('.it-cat').value,
                 sourcing_route: row.querySelector('.it-route').value,
                 vendor_part_number: row.querySelector('.it-pn').value.trim(),
-                photo_path: row.dataset.photoPath || null
+                photo_path: row.dataset.photoPath || null,
+                item_machine_sku: row.querySelector('.it-msku')?.value.trim() || '',
+                item_machine_name: row.querySelector('.it-mname')?.value.trim() || '',
+                item_machine_vendor_model: row.querySelector('.it-mvendor')?.value.trim() || '',
+                item_machine_supplier: row.querySelector('.it-msup')?.value.trim() || '',
+                item_machine_serial: row.querySelector('.it-mserial')?.value.trim() || ''
             })).filter(it => it.part_name_pt);
 
             if (items.length === 0) {
@@ -2180,7 +2373,7 @@
         }
 
         // =========================================================================
-        // MODAL 2: CENTRAL DE GESTÃO DA SOLICITAÇÃO (4 SUB-ABAS)
+        // MODAL 2: CENTRAL DE GESTÃO DA SOLICITAÇÃO (4 SUB-ABAS + TRAVA DE ETAPA)
         // =========================================================================
         let activeSuggestedSupplierEmail = '';
 
@@ -2190,6 +2383,8 @@
             activeDetailItems = data.items || [];
             activeDetailTimeline = data.timeline || [];
             activeSuggestedSupplierEmail = data.suggested_supplier_email || '';
+            activeSupplierEmailsMap = data.supplier_emails_map || {};
+            activeDetailAccess = data.access || { can_edit: canCurrentUserAct(activeDetailReq.stage), is_master: !!(currentUser && currentUser.is_master_admin), owner_display: getStageOwnerShort(activeDetailReq.stage) };
 
             const stMeta = STAGE_META[activeDetailReq.stage] || STAGE_META['1_TRIAGEM_TECNICA'];
             document.getElementById('md-title').textContent = `${activeDetailReq.req_code} — ${activeDetailReq.client_name}`;
@@ -2200,7 +2395,7 @@
 
             document.getElementById('md-urgency-badge').outerHTML = `<span id="md-urgency-badge">${urgencyBadgeHtml(activeDetailReq.urgency)}</span>`;
             document.getElementById('md-subtitle').textContent =
-                `Solicitante: ${activeDetailReq.requester_name || '-'} • SKU Tecfag: ${activeDetailReq.machine_sku || '-'} • Cód. Antigo (Fornecedor): ${activeDetailReq.machine_vendor_model || 'Não informado'} ${activeDetailReq.machine_supplier_name ? '• Fab: ' + activeDetailReq.machine_supplier_name : ''}`;
+                `Solicitante: ${activeDetailReq.requester_name || '-'} • Resp. Etapa Atual: ${activeDetailAccess.owner_display || '-'} • SKU Principal: ${activeDetailReq.machine_sku || '-'} (${activeDetailReq.machine_vendor_model || 'Sem Cód. Antigo'})`;
             document.getElementById('md-stage-select').value = activeDetailReq.stage;
             document.getElementById('md-total-display').textContent = 'Total Orçado: ' + fmtMoney(activeDetailReq.total_quoted_brl);
 
@@ -2221,9 +2416,63 @@
         }
 
         function switchDetailSubTab(num) {
-            collectDomEditsIntoState();
+            if (activeDetailAccess && activeDetailAccess.can_edit) {
+                collectDomEditsIntoState();
+            }
             activeDetailSubTab = num;
             renderDetailSubTab();
+        }
+
+        function applyStageLockToDetailModal() {
+            const lockBanner = document.getElementById('md-lock-banner');
+            const saveBtn = document.getElementById('btn-save-detail');
+            const delBtn = document.getElementById('btn-del-detail');
+            const stageSel = document.getElementById('md-stage-select');
+            const stageWrap = document.getElementById('md-stage-manual-wrap');
+
+            const isMaster = !!(activeDetailAccess && activeDetailAccess.is_master);
+            const canEdit = !!(activeDetailAccess && activeDetailAccess.can_edit);
+
+            // Exclusão e Mudança Manual Livre de Etapa ficam exclusivos p/ Master Admin (Gilson / Fernando)
+            if (delBtn) delBtn.style.display = isMaster ? 'inline-flex' : 'none';
+            if (stageSel) stageSel.disabled = !isMaster;
+            if (stageWrap) stageWrap.style.opacity = isMaster ? '1' : '0.55';
+
+            if (canEdit) {
+                if (lockBanner) lockBanner.style.display = 'none';
+                if (saveBtn) saveBtn.style.display = 'inline-flex';
+                return;
+            }
+
+            // MODO SOMENTE CONSULTA: bloqueia campos e botões de alteração, mantendo Chat e Copiar liberados!
+            const stMeta = STAGE_META[activeDetailReq.stage] || { title: activeDetailReq.stage };
+            if (lockBanner) {
+                lockBanner.style.display = 'block';
+                lockBanner.innerHTML = `🔒 <strong>MODO SOMENTE CONSULTA:</strong> Esta solicitação encontra-se na etapa <strong>"${esc(stMeta.title)}"</strong>, sob responsabilidade exclusiva de <strong>${esc(activeDetailAccess.owner_display || 'outro setor')}</strong>. Alterações estão bloqueadas para o seu usuário (você pode visualizar todas as abas, copiar textos e enviar mensagens no Histórico da Aba 4).`;
+            }
+            if (saveBtn) saveBtn.style.display = 'none';
+
+            const contentBox = document.getElementById('detail-subtab-content');
+            if (!contentBox) return;
+
+            contentBox.querySelectorAll('input, select, textarea').forEach((el) => {
+                if (el.id === 'tl-msg') return; // Chat interno continua liberado!
+                if (el.id === 'client-proposal-preview') {
+                    el.readOnly = true;
+                    return;
+                }
+                el.disabled = true;
+            });
+
+            contentBox.querySelectorAll('button, label.btn').forEach((btn) => {
+                const clk = btn.getAttribute('onclick') || '';
+                if (clk.includes('postTimelineComment') || clk.includes('copyClientProposal') || clk.includes('copySupplierRfq')) {
+                    return; // Mantém Copiar e Enviar Comentário ativos!
+                }
+                btn.style.pointerEvents = 'none';
+                btn.style.opacity = '0.38';
+                btn.disabled = true;
+            });
         }
 
         function renderDetailSubTab() {
@@ -2258,42 +2507,43 @@
                             </select>
                         </div>
                         <div class="fg">
-                            <label style="color:#38bdf8;">SKU Tecfag / 🏷️ Cód. Antigo (Fornecedor)</label>
+                            <label style="color:#38bdf8;">Máq. Principal: SKU / 🏷️ Cód. Antigo</label>
                             <div style="display:flex; gap:6px;">
                                 <input type="text" id="ed-msku" class="form-control" value="${esc(r.machine_sku || '')}" placeholder="SKU Tecfag">
                                 <input type="text" id="ed-mvendor" class="form-control" value="${esc(r.machine_vendor_model || '')}" placeholder="Cód. Antigo (Ex: ARLM-160B)" style="font-weight:800; color:#38bdf8; border-color:rgba(56,189,248,0.45);">
                             </div>
                         </div>
                         <div class="fg">
-                            <label>Descrição Interna Tecfag (Não enviada ao fornecedor chinês)</label>
+                            <label>Descrição Interna Tecfag</label>
                             <input type="text" id="ed-mname" class="form-control" value="${esc(r.machine_name || '')}">
                         </div>
                         <div class="fg">
-                            <label>Fornecedor Original da Máquina (ERP)</label>
+                            <label>Fornecedor Original Principal</label>
                             <input type="text" id="ed-msupplier" class="form-control" list="intl-suppliers-datalist" value="${esc(r.machine_supplier_name || '')}">
                         </div>
                         <div class="fg">
-                            <label>Nº Série da Máquina</label>
+                            <label>Nº Série Principal</label>
                             <input type="text" id="ed-mserial" class="form-control" value="${esc(r.machine_serial || '')}">
                         </div>
                     </div>
 
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <h4 style="font-size:0.9rem; color:#38bdf8;">📐 PEÇAS DA SOLICITAÇÃO & DEFINIÇÃO DE ROTA (NACIONAL VS IMPORTAÇÃO)</h4>
+                        <h4 style="font-size:0.9rem; color:#38bdf8;">📐 PEÇAS DA SOLICITAÇÃO, MÁQUINA VINCULADA POR ITEM & ROTA (BRASIL VS IMPORTAÇÃO)</h4>
                         ${r.stage === '1_TRIAGEM_TECNICA' ? `
-                            <button class="btn btn-amber btn-sm" onclick="finishTriageToQuotation()">➡️ Concluir Triagem & Liberar p/ Compras Cotar</button>
+                            <button class="btn btn-amber btn-sm" onclick="finishTriageToQuotation()">➡️ Concluir Triagem & Liberar p/ Cotação (Etapa 2)</button>
                         ` : ''}
                     </div>
 
                     <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
                         ${activeDetailItems.map((it, idx) => `
                             <div class="ed-item-triage" data-idx="${idx}" style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:12px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                                    <div style="display:flex; gap:8px; align-items:center;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                                         ${it.erp_sku
                                             ? `<span class="badge badge-erp">SKU ERP: ${esc(it.erp_sku)}</span>`
                                             : `<span class="badge badge-tmp">Pré-SKU: ${esc(it.temp_sku)}</span>`}
                                         <strong style="font-size:0.86rem;">Item #${idx + 1}</strong>
+                                        <span class="badge" style="background:rgba(245,158,11,0.16); color:#fde68a;">🏭 Máq: ${esc(it.effective_machine_vendor_model || it.effective_machine_sku || 'Principal')}</span>
                                     </div>
                                     <label class="btn btn-sm" style="cursor:pointer;">
                                         📷 ${it.photo_path ? 'Trocar Foto' : 'Anexar Foto'}
@@ -2310,11 +2560,30 @@
                                         <input type="text" class="form-control ti-en" value="${esc(it.part_name_en || '')}" placeholder="Ex: Heating Tube 220V / Sealing Knife">
                                     </div>
                                     <div class="fg">
-                                        <label>Qtd & Cód. Peça no Fornecedor (Cód. Antigo)</label>
+                                        <label>Qtd & Cód. Peça no Fornecedor</label>
                                         <div style="display:flex; gap:6px;">
                                             <input type="number" class="form-control ti-qty" value="${it.qty}" step="any" style="width:36%;">
-                                            <input type="text" class="form-control ti-pn" value="${esc(it.vendor_part_number || '')}" placeholder="Cód. Fornecedor" style="width:64%;">
+                                            <input type="text" class="form-control ti-pn" value="${esc(it.vendor_part_number || '')}" placeholder="Cód. Peça" style="width:64%;">
                                         </div>
+                                    </div>
+                                </div>
+                                <!-- Máquina específica deste item (permite múltiplas máquinas no mesmo pedido!) -->
+                                <div class="form-grid-4" style="margin-top:8px; background:rgba(14,165,233,0.05); border:1px solid rgba(56,189,248,0.2); border-radius:8px; padding:8px;">
+                                    <div class="fg">
+                                        <label style="color:#fbbf24;">SKU Máquina desta Peça</label>
+                                        <input type="text" class="form-control ti-msku" value="${esc(it.effective_machine_sku || '')}" placeholder="SKU Tecfag">
+                                    </div>
+                                    <div class="fg">
+                                        <label style="color:#38bdf8;">🏷️ Modelo no Fornecedor (Cód. Antigo)</label>
+                                        <input type="text" class="form-control ti-mvendor" value="${esc(it.effective_machine_vendor_model || '')}" placeholder="Ex: ARLM-160B / FRB-770" style="font-weight:800; color:#38bdf8;">
+                                    </div>
+                                    <div class="fg">
+                                        <label>Nome Máquina (Interno)</label>
+                                        <input type="text" class="form-control ti-mname" value="${esc(it.effective_machine_name || '')}">
+                                    </div>
+                                    <div class="fg">
+                                        <label>Fornecedor desta Máquina</label>
+                                        <input type="text" class="form-control ti-msup" list="intl-suppliers-datalist" value="${esc(it.effective_machine_supplier || '')}">
                                     </div>
                                 </div>
                                 <div class="form-grid-3" style="margin-top:8px; align-items:center;">
@@ -2709,6 +2978,9 @@
                     </div>
                 `;
             }
+
+            // Aplica o bloqueio de leitura/escrita conforme a responsabilidade da etapa atual!
+            applyStageLockToDetailModal();
         }
 
         function recalcAllQuoteRowsLive() {
@@ -2783,8 +3055,10 @@
         }
 
         function collectDomEditsIntoState() {
-            if (!activeDetailReq) return;
-            activeDetailReq.stage = document.getElementById('md-stage-select').value;
+            if (!activeDetailReq || !(activeDetailAccess && activeDetailAccess.can_edit)) return;
+            if (activeDetailAccess.is_master) {
+                activeDetailReq.stage = document.getElementById('md-stage-select').value;
+            }
 
             if (activeDetailSubTab === 1) {
                 activeDetailReq.client_name = document.getElementById('ed-client')?.value || activeDetailReq.client_name;
@@ -2808,6 +3082,14 @@
                     it.vendor_part_number = el.querySelector('.ti-pn').value.trim();
                     it.sourcing_route = el.querySelector('.ti-route').value;
                     it.national_equiv_spec = el.querySelector('.ti-nateq').value.trim();
+                    it.item_machine_sku = el.querySelector('.ti-msku')?.value.trim() || '';
+                    it.item_machine_vendor_model = el.querySelector('.ti-mvendor')?.value.trim() || '';
+                    it.item_machine_name = el.querySelector('.ti-mname')?.value.trim() || '';
+                    it.item_machine_supplier = el.querySelector('.ti-msup')?.value.trim() || '';
+                    it.effective_machine_sku = it.item_machine_sku || activeDetailReq.machine_sku || '';
+                    it.effective_machine_vendor_model = it.item_machine_vendor_model || activeDetailReq.machine_vendor_model || '';
+                    it.effective_machine_name = it.item_machine_name || activeDetailReq.machine_name || '';
+                    it.effective_machine_supplier = it.item_machine_supplier || activeDetailReq.machine_supplier_name || '';
                 });
             } else if (activeDetailSubTab === 2) {
                 const usd = parseFloat(document.getElementById('ed-usd-rate')?.value) || liveRates.usd;
@@ -2929,29 +3211,79 @@
             await openDetailModal(res.request.id);
         }
 
-        function buildSupplierRfqContent(lang, overrideVendorCode) {
+        function getSelectedSupplierEmailItems() {
+            const checkboxes = Array.from(document.querySelectorAll('.em-item-chk'));
+            if (checkboxes.length === 0) return activeDetailItems;
+            const checkedIds = new Set(checkboxes.filter(c => c.checked).map(c => parseInt(c.value)));
+            const filtered = activeDetailItems.filter(it => checkedIds.has(it.id));
+            return filtered.length > 0 ? filtered : [];
+        }
+
+        function groupItemsByVendorMachine(itemsList, fallbackVendorCode = '') {
+            const map = new Map();
+            itemsList.forEach((it) => {
+                const vModel = String(it.effective_machine_vendor_model || it.item_machine_vendor_model || fallbackVendorCode || activeDetailReq.machine_vendor_model || '').trim();
+                const mSerial = String(it.effective_machine_serial || it.item_machine_serial || activeDetailReq.machine_serial || '').trim();
+                const key = (vModel || 'GENERAL_MACHINE').toUpperCase();
+                if (!map.has(key)) {
+                    map.set(key, { vendorModel: vModel, serial: mSerial, items: [] });
+                }
+                map.get(key).items.push(it);
+            });
+            return Array.from(map.values());
+        }
+
+        function buildSupplierRfqContent(lang, overrideVendorCode, customItems = null) {
             const r = activeDetailReq;
-            // REGRA DE OURO: Usar estritamente o Cód. Antigo (código original no fornecedor, ex: ARLM-160B), NUNCA o SKU/descrição comercial da Tecfag!
-            const vendorModel = String(overrideVendorCode !== undefined ? overrideVendorCode : (r.machine_vendor_model || '')).trim();
-            const hasPhotos = activeDetailItems.some(it => !!it.photo_path);
+            const targetItems = customItems || activeDetailItems;
+            const fallbackModel = String(overrideVendorCode !== undefined ? overrideVendorCode : (r.machine_vendor_model || '')).trim();
+            const groups = groupItemsByVendorMachine(targetItems, fallbackModel);
+            const isMultiMachine = groups.length > 1;
+            const distinctModels = groups.map(g => g.vendorModel).filter(Boolean);
+            const hasPhotos = targetItems.some(it => !!it.photo_path);
 
             if (lang === 'EN') {
-                const subject = `Urgent Spare Parts Quotation${vendorModel ? ' - Machine Model ' + vendorModel : ''} [${r.req_code}]`;
+                const modelsSuffix = distinctModels.length > 1
+                    ? ` - Models ${distinctModels.join(', ')}`
+                    : (distinctModels[0] ? ` - Machine Model ${distinctModels[0]}` : '');
+                const subject = `Urgent Spare Parts Quotation${modelsSuffix} [${r.req_code}]`;
+
+                const bodyBlocks = [];
+                if (!isMultiMachine) {
+                    const g = groups[0] || { vendorModel: fallbackModel, serial: r.machine_serial, items: targetItems };
+                    bodyBlocks.push(`• Reference: ${r.req_code}`);
+                    bodyBlocks.push(`• Machine Original Model: ${g.vendorModel || '(Please check attached reference photo)'}`);
+                    if (g.serial) bodyBlocks.push(`• Machine Serial No.: ${g.serial}`);
+                    bodyBlocks.push(`--------------------------------------------------`);
+                    g.items.forEach((it, i) => {
+                        const pCode = it.vendor_part_number ? `[Code: ${it.vendor_part_number}] ` : '';
+                        const pPhotoNote = it.photo_path ? ` (See Photo #${i + 1} below)` : '';
+                        bodyBlocks.push(`${i + 1}) ${pCode}${it.part_name_en || it.part_name_pt} — Qty: ${it.qty} ${it.unit || 'PCS'}${pPhotoNote}`);
+                    });
+                    bodyBlocks.push(`--------------------------------------------------`);
+                } else {
+                    bodyBlocks.push(`• Reference: ${r.req_code} (${groups.length} Machines)`);
+                    groups.forEach((g, gIdx) => {
+                        bodyBlocks.push(``);
+                        bodyBlocks.push(`==================================================`);
+                        bodyBlocks.push(`[MACHINE ${gIdx + 1}] Original Model: ${g.vendorModel || 'N/A'}${g.serial ? ' | Serial: ' + g.serial : ''}`);
+                        bodyBlocks.push(`==================================================`);
+                        g.items.forEach((it, i) => {
+                            const numLbl = `${gIdx + 1}.${i + 1}`;
+                            const pCode = it.vendor_part_number ? `[Code: ${it.vendor_part_number}] ` : '';
+                            const pPhotoNote = it.photo_path ? ` (See Photo #${numLbl} in Machine ${gIdx + 1} section below)` : '';
+                            bodyBlocks.push(`• Item ${numLbl}: ${pCode}${it.part_name_en || it.part_name_pt} — Qty: ${it.qty} ${it.unit || 'PCS'}${pPhotoNote}`);
+                        });
+                    });
+                    bodyBlocks.push(`==================================================`);
+                }
+
                 const lines = [
                     `Dear Partner,`,
                     ``,
                     `Please send us an urgent Spare Parts quotation (Unit FOB Price in USD + Lead Time + Gross Weight):`,
-                    `• Reference: ${r.req_code}`,
-                    `• Machine Original Model: ${vendorModel || '(Please check attached reference photo)'}`,
-                    r.machine_serial ? `• Machine Serial No.: ${r.machine_serial}` : null,
-                    `--------------------------------------------------`,
-                    ...activeDetailItems.map((it, i) => {
-                        const pCode = it.vendor_part_number ? `[Code: ${it.vendor_part_number}] ` : '';
-                        const pPhotoNote = it.photo_path ? ' (See attached photo below)' : '';
-                        return `${i + 1}) ${pCode}${it.part_name_en || it.part_name_pt} — Qty: ${it.qty} ${it.unit || 'PCS'}${pPhotoNote}`;
-                    }),
-                    `--------------------------------------------------`,
-                    hasPhotos ? `📷 Reference photo(s) of the part(s) are embedded below and attached to this email.` : null,
+                    ...bodyBlocks,
+                    hasPhotos ? `📷 Reference photo(s) are organized by machine & item number directly below in this email.` : null,
                     `Please confirm unit FOB price (USD), stock availability / production lead time, and packing weight for DHL/FedEx courier.`,
                     ``,
                     `Best regards,`,
@@ -2959,16 +3291,36 @@
                 ].filter(v => v !== null);
                 return { subject, body: lines.join('\n') };
             } else {
-                const subject = `Cotação de Peça(s) de Reposição${vendorModel ? ' - Ref. ' + vendorModel : ''} [${r.req_code}]`;
+                const modelsSuffix = distinctModels.length > 0 ? ` - Ref. ${distinctModels.join(', ')}` : '';
+                const subject = `Cotação de Peça(s) de Reposição${modelsSuffix} [${r.req_code}]`;
+
+                const bodyBlocks = [];
+                if (!isMultiMachine) {
+                    const g = groups[0] || { vendorModel: fallbackModel, items: targetItems };
+                    if (g.vendorModel) bodyBlocks.push(`• Equipamento / Modelo Ref.: ${g.vendorModel}`);
+                    bodyBlocks.push(`--------------------------------------------------`);
+                    g.items.forEach((it, i) => {
+                        bodyBlocks.push(`${i + 1}) ${it.qty} ${it.unit || 'UN'} — ${it.part_name_pt}${it.vendor_part_number ? ' | Cód. Ref: ' + it.vendor_part_number : ''}${it.national_equiv_spec ? '\n   Especificação: ' + it.national_equiv_spec : ''}${it.photo_path ? ` (Ver Foto #${i + 1} abaixo)` : ''}`);
+                    });
+                    bodyBlocks.push(`--------------------------------------------------`);
+                } else {
+                    groups.forEach((g, gIdx) => {
+                        bodyBlocks.push(``);
+                        bodyBlocks.push(`==================================================`);
+                        bodyBlocks.push(`[MÁQUINA ${gIdx + 1}] Modelo Ref.: ${g.vendorModel || 'N/A'}`);
+                        bodyBlocks.push(`==================================================`);
+                        g.items.forEach((it, i) => {
+                            const numLbl = `${gIdx + 1}.${i + 1}`;
+                            bodyBlocks.push(`• Peça ${numLbl}: ${it.qty} ${it.unit || 'UN'} — ${it.part_name_pt}${it.vendor_part_number ? ' | Cód. Ref: ' + it.vendor_part_number : ''}${it.national_equiv_spec ? '\n   Especificação: ' + it.national_equiv_spec : ''}${it.photo_path ? ` (Ver Foto #${numLbl} abaixo)` : ''}`);
+                        });
+                    });
+                    bodyBlocks.push(`==================================================`);
+                }
+
                 const lines = [
                     `Olá! Tudo bem?`,
                     `Solicitamos cotação e menor prazo de entrega para o(s) item(ns) abaixo (Tecfag Automação - Ref. ${r.req_code}):`,
-                    vendorModel ? `• Equipamento / Modelo Ref.: ${vendorModel}` : null,
-                    `--------------------------------------------------`,
-                    ...activeDetailItems.map((it, i) =>
-                        `${i + 1}) ${it.qty} ${it.unit || 'UN'} — ${it.part_name_pt}${it.vendor_part_number ? ' | Cód. Ref: ' + it.vendor_part_number : ''}${it.national_equiv_spec ? '\n   Especificação: ' + it.national_equiv_spec : ''}${it.photo_path ? ' (Foto anexa neste e-mail)' : ''}`
-                    ),
-                    `--------------------------------------------------`,
+                    ...bodyBlocks,
                     `Favor informar valor unitário (R$), impostos e menor prazo de entrega/fabricação.`
                 ].filter(v => v !== null);
                 return { subject, body: lines.join('\n') };
@@ -2976,33 +3328,94 @@
         }
 
         function copySupplierRfq(lang) {
-            collectDomEditsIntoState();
+            if (activeDetailAccess && activeDetailAccess.can_edit) collectDomEditsIntoState();
             const { body } = buildSupplierRfqContent(lang);
             const photoLinks = activeDetailItems
                 .filter(it => it.photo_path)
-                .map((it, idx) => `Photo #${idx + 1}: ${window.location.origin}${it.photo_path}`);
+                .map((it, idx) => `Photo #${idx + 1} (${it.effective_machine_vendor_model || 'Machine'}): ${window.location.origin}${it.photo_path}`);
             const finalCopy = photoLinks.length > 0 ? `${body}\n\n${photoLinks.join('\n')}` : body;
             navigator.clipboard.writeText(finalCopy);
             showToast(
                 lang === 'EN'
-                    ? '🇨🇳 RFQ em Inglês (usando Cód. Antigo) copiada para o WeChat!'
-                    : '🇧🇷 RFQ Nacional copiada para o WhatsApp!',
+                    ? '🇨🇳 RFQ agrupada por máquina (Cód. Antigo) copiada p/ WeChat!'
+                    : '🇧🇷 RFQ Nacional copiada p/ WhatsApp!',
                 '#0ea5e9'
             );
+        }
+
+        function autoFillSupplierEmailFromName(supName) {
+            const clean = (supName || '').trim();
+            if (!clean) return;
+            if (activeSupplierEmailsMap && activeSupplierEmailsMap[clean]) {
+                document.getElementById('em-to').value = activeSupplierEmailsMap[clean];
+                return;
+            }
+            const intl = (suppliersAndContainers.intl_suppliers || []).find(s => s.name.toLowerCase() === clean.toLowerCase());
+            if (intl && intl.contact_email) {
+                document.getElementById('em-to').value = intl.contact_email;
+            }
+        }
+
+        function filterSupplierEmailItemsBySupplier(supName) {
+            const chks = Array.from(document.querySelectorAll('.em-item-chk'));
+            if (!supName || supName === '__ALL__') {
+                chks.forEach(c => { c.checked = true; });
+            } else {
+                chks.forEach(c => {
+                    c.checked = (c.dataset.supplier || '').toLowerCase() === supName.toLowerCase();
+                });
+                document.getElementById('em-supplier-name').value = supName;
+                autoFillSupplierEmailFromName(supName);
+            }
+            const selected = getSelectedSupplierEmailItems();
+            if (selected[0] && selected[0].effective_machine_vendor_model) {
+                document.getElementById('em-vendor-code').value = selected[0].effective_machine_vendor_model;
+            }
+            rebuildSupplierEmailTemplate();
+            renderEmailPhotosPreview();
         }
 
         function openSupplierEmailModal(defaultLang = 'EN') {
             collectDomEditsIntoState();
             const r = activeDetailReq;
-            const firstItemSup = (activeDetailItems[0] && activeDetailItems[0].intl_supplier_name) || '';
+            const firstItemSup = (activeDetailItems[0] && (activeDetailItems[0].intl_supplier_name || activeDetailItems[0].effective_machine_supplier)) || '';
             const supName = firstItemSup || r.machine_supplier_name || '';
 
             document.getElementById('em-lang').value = defaultLang;
-            document.getElementById('em-vendor-code').value = r.machine_vendor_model || '';
+            document.getElementById('em-vendor-code').value = (activeDetailItems[0] && activeDetailItems[0].effective_machine_vendor_model) || r.machine_vendor_model || '';
             document.getElementById('em-supplier-name').value = supName;
-            document.getElementById('em-to').value = activeSuggestedSupplierEmail || '';
+            document.getElementById('em-to').value = (activeSupplierEmailsMap && activeSupplierEmailsMap[supName]) || activeSuggestedSupplierEmail || '';
             document.getElementById('em-cc').value = '';
             document.getElementById('em-extra-files').value = '';
+
+            // Renderizar checkboxes de peças + pílulas de filtro rápido por fornecedor!
+            const chkList = document.getElementById('em-items-checkbox-list');
+            const pillsBox = document.getElementById('em-supplier-filter-pills');
+            const suppliersCount = new Map();
+
+            chkList.innerHTML = activeDetailItems.map((it, idx) => {
+                const effSup = it.intl_supplier_name || it.effective_machine_supplier || r.machine_supplier_name || 'Sem Fornecedor';
+                const effMod = it.effective_machine_vendor_model || r.machine_vendor_model || 'Sem Cód. Antigo';
+                suppliersCount.set(effSup, (suppliersCount.get(effSup) || 0) + 1);
+                return `
+                    <label style="display:flex; align-items:center; gap:8px; font-size:0.76rem; background:var(--surface-3); padding:6px 10px; border-radius:6px; border:1px solid var(--border); cursor:pointer;">
+                        <input type="checkbox" class="em-item-chk" value="${it.id}" data-supplier="${esc(effSup)}" checked onchange="rebuildSupplierEmailTemplate(); renderEmailPhotosPreview();" style="width:15px; height:15px; accent-color:#0ea5e9;">
+                        <span><strong>#${idx + 1}</strong> — ${esc(it.part_name_en || it.part_name_pt)} (${it.qty} ${esc(it.unit || 'UN')})</span>
+                        <span class="badge" style="margin-left:auto; background:rgba(56,189,248,0.16); color:#7dd3fc;">🏷️ Máq: ${esc(effMod)}</span>
+                        <span class="badge" style="background:rgba(16,185,129,0.14); color:#6ee7b7;">🏭 ${esc(effSup.slice(0, 26))}</span>
+                    </label>
+                `;
+            }).join('');
+
+            if (suppliersCount.size > 1) {
+                const pills = [`<button type="button" class="btn btn-sm" style="padding:3px 8px; font-size:0.7rem;" onclick="filterSupplierEmailItemsBySupplier('__ALL__')">Todos (${activeDetailItems.length})</button>`];
+                suppliersCount.forEach((cnt, sName) => {
+                    pills.push(`<button type="button" class="btn btn-sm" style="padding:3px 8px; font-size:0.7rem; border-color:#38bdf8; color:#7dd3fc;" data-sup="${esc(sName)}" onclick="filterSupplierEmailItemsBySupplier(this.dataset.sup)">🏭 Só ${esc(sName.slice(0, 22))} (${cnt})</button>`);
+                });
+                pillsBox.innerHTML = pills.join('');
+            } else {
+                pillsBox.innerHTML = '';
+            }
 
             rebuildSupplierEmailTemplate();
             renderEmailPhotosPreview();
@@ -3012,30 +3425,39 @@
         function rebuildSupplierEmailTemplate() {
             const lang = document.getElementById('em-lang').value;
             const vCode = document.getElementById('em-vendor-code').value.trim();
-            document.getElementById('em-missing-code-alert').style.display = (!vCode && lang === 'EN') ? 'block' : 'none';
+            const selectedItems = getSelectedSupplierEmailItems();
+            const anyMissingModel = selectedItems.every(it => !(it.effective_machine_vendor_model || vCode));
+            document.getElementById('em-missing-code-alert').style.display = (anyMissingModel && lang === 'EN') ? 'block' : 'none';
 
-            const { subject, body } = buildSupplierRfqContent(lang, vCode);
+            const { subject, body } = buildSupplierRfqContent(lang, vCode, selectedItems);
             document.getElementById('em-subject').value = subject;
             document.getElementById('em-body').value = body;
         }
 
         function renderEmailPhotosPreview() {
             const box = document.getElementById('em-photos-preview');
-            const existingPhotos = activeDetailItems.filter(it => !!it.photo_path);
+            const vCode = document.getElementById('em-vendor-code')?.value.trim() || '';
+            const selectedItems = getSelectedSupplierEmailItems();
+            const groups = groupItemsByVendorMachine(selectedItems, vCode);
+            const isMulti = groups.length > 1;
             const extraInput = document.getElementById('em-extra-files');
             const extraFiles = extraInput && extraInput.files ? Array.from(extraInput.files) : [];
 
             const htmlParts = [];
-            existingPhotos.forEach((it, i) => {
-                htmlParts.push(`
-                    <div style="background:var(--surface-3); border:1px solid #34d399; border-radius:8px; padding:6px 10px; display:flex; align-items:center; gap:8px;">
-                        <img src="${esc(it.photo_path)}" style="width:46px; height:46px; object-fit:cover; border-radius:6px;">
-                        <div style="font-size:0.73rem;">
-                            <div style="font-weight:800; color:#6ee7b7;">✅ Foto Peça #${i + 1}</div>
-                            <div style="color:var(--muted); max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(it.part_name_pt)}</div>
+            groups.forEach((grp, gIdx) => {
+                grp.items.forEach((it, i) => {
+                    if (!it.photo_path) return;
+                    const lbl = isMulti ? `[Máq ${gIdx + 1}: ${grp.vendorModel || 'N/A'}] Foto #${gIdx + 1}.${i + 1}` : `Foto Peça #${i + 1}`;
+                    htmlParts.push(`
+                        <div style="background:var(--surface-3); border:1px solid #34d399; border-radius:8px; padding:6px 10px; display:flex; align-items:center; gap:8px;">
+                            <img src="${esc(it.photo_path)}" style="width:46px; height:46px; object-fit:cover; border-radius:6px;">
+                            <div style="font-size:0.73rem;">
+                                <div style="font-weight:800; color:#6ee7b7;">✅ ${esc(lbl)}</div>
+                                <div style="color:var(--muted); max-width:165px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(it.part_name_pt)}</div>
+                            </div>
                         </div>
-                    </div>
-                `);
+                    `);
+                });
             });
 
             extraFiles.forEach((f) => {
@@ -3047,7 +3469,7 @@
             });
 
             if (htmlParts.length === 0) {
-                box.innerHTML = `<div style="font-size:0.75rem; color:#fbbf24;">⚠️ Nenhuma foto anexada ainda nos itens. Clique em <strong>"📎 Adicionar Fotos/Desenhos Extras do PC"</strong> acima para incluir a foto da peça junto neste e-mail!</div>`;
+                box.innerHTML = `<div style="font-size:0.75rem; color:#fbbf24;">⚠️ Nenhuma foto anexada nas peças marcadas acima. Clique em <strong>"📎 Adicionar Fotos/Desenhos Extras do PC"</strong> para incluir foto junto neste e-mail!</div>`;
             } else {
                 box.innerHTML = htmlParts.join('');
             }
@@ -3061,7 +3483,12 @@
             const lang = document.getElementById('em-lang').value;
             const vCode = document.getElementById('em-vendor-code').value.trim();
             const supName = document.getElementById('em-supplier-name').value.trim();
+            const selectedItems = getSelectedSupplierEmailItems();
 
+            if (selectedItems.length === 0) {
+                alert('Marque ao menos 1 peça para incluir neste e-mail!');
+                return;
+            }
             if (!to) {
                 alert('Informe o e-mail do fornecedor no campo "Para"!');
                 return;
@@ -3074,11 +3501,12 @@
             const btn = document.getElementById('btn-send-sup-email');
             const origTxt = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '⏳ Enviando E-mail c/ Fotos...';
+            btn.innerHTML = '⏳ Enviando E-mail Agrupado c/ Fotos...';
 
             try {
-                // Salva edições pendentes antes de disparar
-                activeDetailReq.machine_vendor_model = vCode || activeDetailReq.machine_vendor_model;
+                if (vCode && !activeDetailReq.machine_vendor_model) {
+                    activeDetailReq.machine_vendor_model = vCode;
+                }
                 await saveDetailChanges();
 
                 const fd = new FormData();
@@ -3089,6 +3517,7 @@
                 fd.append('lang', lang);
                 fd.append('vendor_machine_code', vCode);
                 fd.append('supplier_name', supName);
+                fd.append('selected_item_ids', JSON.stringify(selectedItems.map(i => i.id)));
 
                 const extraInput = document.getElementById('em-extra-files');
                 if (extraInput && extraInput.files && extraInput.files.length > 0) {
@@ -3123,7 +3552,10 @@
                 const sub = u * (parseFloat(it.qty) || 1);
                 total += sub;
                 const codeRef = it.erp_sku || it.temp_sku;
-                return `${idx + 1}. [${codeRef}] ${it.part_name_pt}\n   • Quantidade: ${it.qty} ${it.unit || 'UN'} | Valor Unit.: ${fmtMoney(u)} | Subtotal: ${fmtMoney(sub)}\n   • Prazo estimado de expedição: ${it.promised_lead_days || 15} dias úteis`;
+                const diffMach = (it.effective_machine_sku && it.effective_machine_sku !== r.machine_sku)
+                    ? ` (Máq: ${it.effective_machine_sku} ${it.effective_machine_name || ''})`
+                    : '';
+                return `${idx + 1}. [${codeRef}] ${it.part_name_pt}${diffMach}\n   • Quantidade: ${it.qty} ${it.unit || 'UN'} | Valor Unit.: ${fmtMoney(u)} | Subtotal: ${fmtMoney(sub)}\n   • Prazo estimado de expedição: ${it.promised_lead_days || 15} dias úteis`;
             });
 
             return [
@@ -3131,7 +3563,7 @@
                 ``,
                 `📋 *Protocolo:* ${r.req_code}`,
                 `🏢 *Cliente:* ${r.client_name}`,
-                r.machine_name || r.machine_sku ? `🏭 *Equipamento:* ${r.machine_sku || ''} ${r.machine_name || ''}` : null,
+                r.machine_name || r.machine_sku ? `🏭 *Equipamento Principal:* ${r.machine_sku || ''} ${r.machine_name || ''}` : null,
                 `------------------------------------------`,
                 ...itemLines,
                 `------------------------------------------`,
@@ -3385,6 +3817,78 @@
             renderReserveTagPreview();
         }
 
+        async function openGovernanceModal() {
+            try {
+                const data = await api('/api/parts/governance');
+                if (!data.is_master_admin) {
+                    alert('Apenas Administradores Master (Gilson / Fernando) podem configurar esta matriz.');
+                    return;
+                }
+                const usersList = (data.available_users || []).filter(u => !['admin', 'gilson', 'fernando'].includes(u.username));
+                const body = document.getElementById('governance-modal-body');
+
+                body.innerHTML = (data.stages || []).map(st => {
+                    const allowedSet = new Set((st.allowed_users || []).map(x => x.toLowerCase()));
+                    // Normalizar aliases para marcar o checkbox corretamente
+                    const isUserSelected = (uname) => {
+                        if (allowedSet.has(uname)) return true;
+                        if (uname === 'jhenifer' && allowedSet.has('adm@tecfag.com.br')) return true;
+                        if (uname === 'vendas18@tecfag.com.br' && (allowedSet.has('vendas18') || allowedSet.has('guilherme'))) return true;
+                        return false;
+                    };
+
+                    return `
+                        <div class="gov-stage-row" data-stage-key="${esc(st.stage_key)}" style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                            <div style="font-weight:800; font-size:0.86rem; color:#38bdf8; margin-bottom:8px;">${esc(st.stage_label)}</div>
+                            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                                ${usersList.map(u => `
+                                    <label style="display:inline-flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-size:0.74rem; cursor:pointer;">
+                                        <input type="checkbox" class="gov-user-chk" value="${esc(u.username)}" ${isUserSelected(u.username) ? 'checked' : ''} style="accent-color:#ec4899;">
+                                        <span>${esc(u.display_name)}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                document.getElementById('modal-governance').classList.add('active');
+            } catch (err) {
+                alert('Erro ao abrir governança: ' + err.message);
+            }
+        }
+
+        async function saveGovernanceConfig() {
+            const rows = Array.from(document.querySelectorAll('.gov-stage-row'));
+            const stages = rows.map(row => ({
+                stage_key: row.dataset.stageKey,
+                allowed_users: Array.from(row.querySelectorAll('.gov-user-chk:checked')).map(c => c.value)
+            }));
+
+            const btn = document.getElementById('btn-save-governance');
+            const orig = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Salvando...';
+            try {
+                const res = await api('/api/parts/governance', {
+                    method: 'PUT',
+                    body: JSON.stringify({ stages })
+                });
+                if (res.permissions) {
+                    permissionsMap = res.permissions;
+                    refreshTopActionPermissions();
+                }
+                closeModal('modal-governance');
+                showToast('🛡️ Matriz de Responsáveis por Etapa salva e ativada!', '#10b981');
+                await loadDashboard();
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = orig;
+            }
+        }
+
         // Fechar dropdowns de autocomplete ao clicar fora
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#nr-client')) {
@@ -3394,6 +3898,9 @@
             if (!e.target.closest('#nr-machine-search')) {
                 const el = document.getElementById('nr-machine-results');
                 if (el) el.style.display = 'none';
+            }
+            if (!e.target.closest('.it-mname')) {
+                document.querySelectorAll('.it-machine-results').forEach(el => { el.style.display = 'none'; });
             }
         });
 

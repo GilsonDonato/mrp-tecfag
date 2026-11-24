@@ -130,6 +130,174 @@ module.exports = function registerPartsModule({
         return u === 'vendas18' || u === 'vendas18@tecfag.com.br' || u === 'guilherme';
     }
 
+    // Chave-Mestra (Acesso Total de Edição e Governança): Gilson, Admin e Fernando
+    function isMasterAdminUser(user) {
+        if (!user) return false;
+        const u = String(user.username || '').toLowerCase().trim();
+        return ['admin', 'gilson', 'gilson@tecfag.com.br', 'fernando', 'fernando@tecfag.com.br'].includes(u);
+    }
+
+    function expandUserIdentitySet(rawIdentifier) {
+        const clean = String(rawIdentifier || '').toLowerCase().trim();
+        const set = new Set();
+        if (!clean) return set;
+        set.add(clean);
+        if (['jhenifer', 'adm@tecfag.com.br'].includes(clean)) {
+            set.add('jhenifer');
+            set.add('adm@tecfag.com.br');
+        }
+        if (['guilherme', 'bertola', 'vendas18', 'vendas18@tecfag.com.br'].includes(clean)) {
+            set.add('guilherme');
+            set.add('vendas18');
+            set.add('vendas18@tecfag.com.br');
+        }
+        if (['gilson', 'gilson@tecfag.com.br'].includes(clean)) {
+            set.add('gilson');
+            set.add('gilson@tecfag.com.br');
+        }
+        if (['fernando', 'fernando@tecfag.com.br'].includes(clean)) {
+            set.add('fernando');
+            set.add('fernando@tecfag.com.br');
+        }
+        if (['heilio', 'assistencia6@tecfag.com.br'].includes(clean)) {
+            set.add('heilio');
+            set.add('assistencia6@tecfag.com.br');
+        }
+        if (['suporte2', 'suporte2@tecfag.com.br'].includes(clean)) {
+            set.add('suporte2');
+            set.add('suporte2@tecfag.com.br');
+        }
+        if (['vendas6', 'patricia', 'vendas6@tecfag.com.br'].includes(clean)) {
+            set.add('vendas6');
+            set.add('patricia');
+            set.add('vendas6@tecfag.com.br');
+        }
+        return set;
+    }
+
+    const DEFAULT_STAGE_GOVERNANCE = [
+        {
+            stage_key: 'CREATE_REQUEST',
+            stage_label: '➕ Abertura da Solicitação de Peças',
+            allowed_users: ['vendas18@tecfag.com.br'],
+            owner_display: 'Guilherme Bertola (vendas18@tecfag.com.br)'
+        },
+        {
+            stage_key: '1_TRIAGEM_TECNICA',
+            stage_label: '1️⃣ Etapa 1 — Triagem Técnica (Brasil vs. Importação)',
+            allowed_users: ['jhenifer'],
+            owner_display: 'Jhenifer (adm@tecfag.com.br)'
+        },
+        {
+            stage_key: '2_COTACAO_FORNECEDOR',
+            stage_label: '2️⃣ Etapa 2 — Cotação c/ Fornecedor & Formação de Preço',
+            allowed_users: ['jhenifer'],
+            owner_display: 'Jhenifer (adm@tecfag.com.br)'
+        },
+        {
+            stage_key: '3_PROPOSTA_CLIENTE',
+            stage_label: '3️⃣ Etapa 3 — Proposta ao Cliente & Aprovação/Declínio',
+            allowed_users: ['vendas18@tecfag.com.br'],
+            owner_display: 'Guilherme Bertola (vendas18@tecfag.com.br)'
+        },
+        {
+            stage_key: '4_CADASTRO_ERP',
+            stage_label: '4️⃣ Etapa 4 — Fila Expressa Cadastro ERP',
+            allowed_users: ['jhenifer'],
+            owner_display: 'Jhenifer (adm@tecfag.com.br)'
+        },
+        {
+            stage_key: '5_COMPRA_TRANSITO',
+            stage_label: '5️⃣ Etapa 5 — Compra Efetivada & Trânsito',
+            allowed_users: ['jhenifer'],
+            owner_display: 'Jhenifer (adm@tecfag.com.br)'
+        },
+        {
+            stage_key: '6_DOCA_EXPEDICAO',
+            stage_label: '6️⃣ Etapa 6 — Recebimento na Doca, Reserva & NF Saída',
+            allowed_users: ['jhenifer'],
+            owner_display: 'Jhenifer (adm@tecfag.com.br)'
+        }
+    ];
+
+    function formatOwnersDisplay(usersArr) {
+        if (!Array.isArray(usersArr) || usersArr.length === 0) {
+            return 'Somente Administradores (Gilson / Fernando)';
+        }
+        return usersArr.map(u => getFriendlyUserName(u)).join(' • ');
+    }
+
+    async function getStageGovernanceMap(user = null) {
+        const rows = await pAll('SELECT * FROM parts_stage_permissions').catch(() => []);
+        const rowByKey = {};
+        rows.forEach(r => { rowByKey[r.stage_key] = r; });
+
+        const isMaster = isMasterAdminUser(user);
+        const userKeys = user ? expandUserIdentitySet(user.username) : new Set();
+        const result = {};
+
+        for (const def of DEFAULT_STAGE_GOVERNANCE) {
+            const dbRow = rowByKey[def.stage_key];
+            let allowedUsers = def.allowed_users;
+            let ownerDisplay = def.owner_display;
+            if (dbRow) {
+                try {
+                    const parsed = JSON.parse(dbRow.allowed_users_json || '[]');
+                    if (Array.isArray(parsed)) allowedUsers = parsed;
+                } catch (e) {}
+                ownerDisplay = dbRow.owner_display || formatOwnersDisplay(allowedUsers);
+            }
+
+            const expandedAllowed = new Set();
+            allowedUsers.forEach(u => {
+                expandUserIdentitySet(u).forEach(alias => expandedAllowed.add(alias));
+            });
+
+            let canEdit = isMaster;
+            if (!canEdit && userKeys.size > 0) {
+                for (const k of userKeys) {
+                    if (expandedAllowed.has(k)) {
+                        canEdit = true;
+                        break;
+                    }
+                }
+            }
+
+            result[def.stage_key] = {
+                stage_key: def.stage_key,
+                stage_label: def.stage_label,
+                allowed_users: allowedUsers,
+                owner_display: ownerDisplay,
+                can_edit: canEdit
+            };
+        }
+        return result;
+    }
+
+    async function canUserActOnStage(user, stageKey) {
+        const isMaster = isMasterAdminUser(user);
+        if (isMaster) {
+            return { allowed: true, isMaster: true, ownerDisplay: 'Admin / Engenharia Master (Gilson / Fernando)' };
+        }
+        if (stageKey === '7_CONCLUIDO' || stageKey === '8_DECLINADO_CANCELADO') {
+            return {
+                allowed: false,
+                isMaster: false,
+                ownerDisplay: 'Solicitação Encerrada (Somente Admin Gilson / Fernando pode reabrir ou alterar)'
+            };
+        }
+        const govMap = await getStageGovernanceMap(user);
+        const entry = govMap[stageKey];
+        if (!entry) {
+            return { allowed: false, isMaster: false, ownerDisplay: 'Administrador (Gilson / Fernando)' };
+        }
+        return {
+            allowed: !!entry.can_edit,
+            isMaster: false,
+            ownerDisplay: entry.owner_display
+        };
+    }
+
     function resolveOfficialUserEmail(username) {
         if (!username) return 'vendas18@tecfag.com.br';
         const u = String(username).toLowerCase().trim();
@@ -405,10 +573,22 @@ module.exports = function registerPartsModule({
                 weight_kg REAL DEFAULT 0,
                 photo_path TEXT,
                 item_notes TEXT,
+                item_machine_sku TEXT,
+                item_machine_name TEXT,
+                item_machine_vendor_model TEXT,
+                item_machine_serial TEXT,
+                item_machine_supplier TEXT,
                 FOREIGN KEY(request_id) REFERENCES parts_requests(id) ON DELETE CASCADE
             )`);
             partsDb.run(`CREATE INDEX IF NOT EXISTS idx_parts_items_req ON parts_request_items(request_id)`);
             partsDb.run(`CREATE INDEX IF NOT EXISTS idx_parts_items_erpreg ON parts_request_items(erp_registered)`);
+
+            // Migrações seguras para bancos já existentes (suporte a múltiplas máquinas na mesma solicitação!)
+            partsDb.run(`ALTER TABLE parts_request_items ADD COLUMN item_machine_sku TEXT`, () => {});
+            partsDb.run(`ALTER TABLE parts_request_items ADD COLUMN item_machine_name TEXT`, () => {});
+            partsDb.run(`ALTER TABLE parts_request_items ADD COLUMN item_machine_vendor_model TEXT`, () => {});
+            partsDb.run(`ALTER TABLE parts_request_items ADD COLUMN item_machine_serial TEXT`, () => {});
+            partsDb.run(`ALTER TABLE parts_request_items ADD COLUMN item_machine_supplier TEXT`, () => {});
 
             // 4. Fornecedores Nacionais Homologados (Brasil)
             partsDb.run(`CREATE TABLE IF NOT EXISTS parts_national_suppliers (
@@ -458,6 +638,24 @@ module.exports = function registerPartsModule({
                 sender_display_name TEXT,
                 updated_at TEXT NOT NULL
             )`);
+
+            // 8. Matriz de Governança & Responsabilidade por Etapa (Etapa 1 a 6 + Abertura)
+            partsDb.run(`CREATE TABLE IF NOT EXISTS parts_stage_permissions (
+                stage_key TEXT PRIMARY KEY,
+                stage_label TEXT NOT NULL,
+                allowed_users_json TEXT NOT NULL,
+                owner_display TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )`, () => {
+                const nowIso = new Date().toISOString();
+                DEFAULT_STAGE_GOVERNANCE.forEach((def) => {
+                    partsDb.run(
+                        `INSERT OR IGNORE INTO parts_stage_permissions (stage_key, stage_label, allowed_users_json, owner_display, updated_at)
+                         VALUES (?, ?, ?, ?, ?)`,
+                        [def.stage_key, def.stage_label, JSON.stringify(def.allowed_users), def.owner_display, nowIso]
+                    );
+                });
+            });
         });
 
         // Garantir cadastro seguro de Guilherme Bertola (vendas18 / vendas18@tecfag.com.br) na tabela users do MRP sem sobrescrever senhas existentes
@@ -731,7 +929,7 @@ module.exports = function registerPartsModule({
     const router = express.Router();
     const asyncSafe = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-    // 1. Dados do Usuário Logado + Câmbio Atual + E-mail Corporativo Oficial
+    // 1. Dados do Usuário Logado + Câmbio Atual + E-mail Corporativo + Matriz de Governança por Etapa
     router.get('/me', authenticateToken, asyncSafe(async (req, res) => {
         const rates = await getLiveExchangeRates(false);
         const officialEmail = resolveOfficialUserEmail(req.user.username);
@@ -739,6 +937,7 @@ module.exports = function registerPartsModule({
             'SELECT email_address, smtp_host, smtp_port, sender_display_name FROM parts_user_smtp WHERE LOWER(username) = LOWER(?) OR LOWER(email_address) = LOWER(?)',
             [req.user.username, officialEmail]
         ).catch(() => null);
+        const governanceMap = await getStageGovernanceMap(req.user);
 
         res.json({
             user: {
@@ -748,10 +947,78 @@ module.exports = function registerPartsModule({
                 official_email: personalSmtp ? personalSmtp.email_address : officialEmail,
                 personal_smtp_configured: !!personalSmtp,
                 is_jhenifer: isJheniferUser(req.user),
-                is_guilherme: isGuilhermeUser(req.user)
+                is_guilherme: isGuilhermeUser(req.user),
+                is_master_admin: isMasterAdminUser(req.user)
             },
+            permissions: governanceMap,
             exchange: rates
         });
+    }));
+
+    // 1.B Painel de Governança & Responsáveis por Etapa (Configurável por Admin: Gilson / Fernando / Admin)
+    router.get('/governance', authenticateToken, asyncSafe(async (req, res) => {
+        const govMap = await getStageGovernanceMap(req.user);
+        const mrpUsers = await mrpAll('SELECT username, role, email FROM users ORDER BY username ASC');
+        const uniqueUsersMap = new Map();
+
+        const registerCandidate = (uname, roleLabel) => {
+            const clean = String(uname || '').toLowerCase().trim();
+            if (!clean) return;
+            // Agrupa aliases duplicados na lista de seleção p/ ficar limpo
+            let canonicalKey = clean;
+            if (['jhenifer', 'adm@tecfag.com.br'].includes(clean)) canonicalKey = 'jhenifer';
+            else if (['guilherme', 'vendas18', 'vendas18@tecfag.com.br'].includes(clean)) canonicalKey = 'vendas18@tecfag.com.br';
+            else if (['gilson', 'gilson@tecfag.com.br'].includes(clean)) canonicalKey = 'gilson';
+            else if (['fernando', 'fernando@tecfag.com.br'].includes(clean)) canonicalKey = 'fernando';
+            else if (['heilio', 'assistencia6@tecfag.com.br'].includes(clean)) canonicalKey = 'heilio';
+            else if (['suporte2', 'suporte2@tecfag.com.br'].includes(clean)) canonicalKey = 'suporte2';
+            else if (['vendas6', 'vendas6@tecfag.com.br'].includes(clean)) canonicalKey = 'vendas6';
+
+            if (!uniqueUsersMap.has(canonicalKey)) {
+                uniqueUsersMap.set(canonicalKey, {
+                    username: canonicalKey,
+                    display_name: getFriendlyUserName(canonicalKey),
+                    role: roleLabel || ''
+                });
+            }
+        };
+
+        registerCandidate('vendas18@tecfag.com.br', 'VENDAS');
+        registerCandidate('jhenifer', 'COMPRAS / ERP');
+        mrpUsers.forEach(u => registerCandidate(u.username, u.role));
+
+        res.json({
+            is_master_admin: isMasterAdminUser(req.user),
+            master_admins_note: 'Gilson (gilson / admin) e Fernando (fernando) possuem chave-mestra em todas as etapas.',
+            stages: Object.values(govMap),
+            available_users: Array.from(uniqueUsersMap.values())
+        });
+    }));
+
+    router.put('/governance', authenticateToken, asyncSafe(async (req, res) => {
+        if (!isMasterAdminUser(req.user)) {
+            return res.status(403).json({ error: 'Apenas Administradores Master (Gilson / Fernando) podem alterar a matriz de responsabilidade por etapa.' });
+        }
+        const { stages } = req.body || {};
+        if (!Array.isArray(stages)) {
+            return res.status(400).json({ error: 'Formato inválido.' });
+        }
+        const now = new Date().toISOString();
+        for (const st of stages) {
+            const def = DEFAULT_STAGE_GOVERNANCE.find(d => d.stage_key === st.stage_key);
+            if (!def) continue;
+            const cleanUsers = Array.isArray(st.allowed_users)
+                ? st.allowed_users.map(u => String(u || '').trim().toLowerCase()).filter(Boolean)
+                : [];
+            const ownerDisplay = formatOwnersDisplay(cleanUsers);
+            await pRun(
+                `INSERT OR REPLACE INTO parts_stage_permissions (stage_key, stage_label, allowed_users_json, owner_display, updated_at)
+                 VALUES (?, ?, ?, ?, ?)`,
+                [def.stage_key, def.stage_label, JSON.stringify(cleanUsers), ownerDisplay, now]
+            );
+        }
+        const updatedMap = await getStageGovernanceMap(req.user);
+        res.json({ success: true, permissions: updatedMap });
     }));
 
     // 2. Contador Leve para o Botão na Tela Principal do MRP (index.html)
@@ -786,18 +1053,17 @@ module.exports = function registerPartsModule({
             else if (r.stage === '6_DOCA_EXPEDICAO') counts.doca++;
         });
 
-        let myBadge = counts.total_active;
-        const role = String(req.user.role || '').toUpperCase();
-        if (isJheniferUser(req.user)) {
-            myBadge = counts.cadastro_erp + counts.cotacao;
-        } else if (isGuilhermeUser(req.user) || role === 'VENDAS') {
-            myBadge = counts.proposta + counts.doca;
-        } else if (role === 'ENGENHARIA' || role === 'TECNICO') {
-            myBadge = counts.triagem;
-        } else if (role === 'COMPRAS') {
-            myBadge = counts.cotacao + counts.cadastro_erp;
-        } else if (role === 'ESTOQUE') {
-            myBadge = counts.doca;
+        let myBadge = 0;
+        if (isMasterAdminUser(req.user)) {
+            myBadge = counts.total_active;
+        } else {
+            const gov = await getStageGovernanceMap(req.user);
+            if (gov['1_TRIAGEM_TECNICA'] && gov['1_TRIAGEM_TECNICA'].can_edit) myBadge += counts.triagem;
+            if (gov['2_COTACAO_FORNECEDOR'] && gov['2_COTACAO_FORNECEDOR'].can_edit) myBadge += counts.cotacao;
+            if (gov['3_PROPOSTA_CLIENTE'] && gov['3_PROPOSTA_CLIENTE'].can_edit) myBadge += counts.proposta;
+            if (gov['4_CADASTRO_ERP'] && gov['4_CADASTRO_ERP'].can_edit) myBadge += counts.cadastro_erp;
+            if (gov['5_COMPRA_TRANSITO'] && gov['5_COMPRA_TRANSITO'].can_edit) myBadge += counts.transito;
+            if (gov['6_DOCA_EXPEDICAO'] && gov['6_DOCA_EXPEDICAO'].can_edit) myBadge += counts.doca;
         }
 
         res.json({ success: true, my_badge: myBadge, counts });
@@ -950,9 +1216,37 @@ module.exports = function registerPartsModule({
         });
     }));
 
+    function enrichItemMachineFields(it, parentReq) {
+        const effSku = String(it.item_machine_sku || parentReq.machine_sku || '').trim();
+        const erpMach = getErpSkuDetails(effSku);
+        const hasOwnMachine = !!(it.item_machine_sku || it.item_machine_vendor_model || it.item_machine_name);
+        const effName = hasOwnMachine
+            ? (it.item_machine_name || (erpMach ? erpMach.name : ''))
+            : (parentReq.machine_name || (erpMach ? erpMach.name : ''));
+        const effVendorModel = hasOwnMachine
+            ? (it.item_machine_vendor_model || (erpMach ? erpMach.vendorCode : ''))
+            : (parentReq.machine_vendor_model || (erpMach ? erpMach.vendorCode : ''));
+        const effSupplier = hasOwnMachine
+            ? (it.item_machine_supplier || it.intl_supplier_name || (erpMach ? erpMach.manufacturer : ''))
+            : (it.intl_supplier_name || parentReq.machine_supplier_name || (erpMach ? erpMach.manufacturer : ''));
+        const effSerial = hasOwnMachine
+            ? (it.item_machine_serial || '')
+            : (parentReq.machine_serial || '');
+
+        return {
+            ...it,
+            effective_machine_sku: effSku,
+            effective_machine_name: effName,
+            effective_machine_vendor_model: effVendorModel,
+            effective_machine_supplier: effSupplier,
+            effective_machine_serial: effSerial
+        };
+    }
+
     // 8. Dashboard Completo (Kanban + Fila Jhenifer ERP + KPIs + Catálogo BOM)
     router.get('/dashboard', authenticateToken, asyncSafe(async (req, res) => {
         const rates = await getLiveExchangeRates(false);
+        const governanceMap = await getStageGovernanceMap(req.user);
         const requests = await pAll(`SELECT * FROM parts_requests ORDER BY
             CASE urgency WHEN 'MAQUINA_PARADA' THEN 0 WHEN 'ALTA' THEN 1 WHEN 'NORMAL' THEN 2 ELSE 3 END ASC,
             id DESC`);
@@ -965,15 +1259,24 @@ module.exports = function registerPartsModule({
         });
 
         const enrichedRequests = requests.map((r) => {
-            const items = itemsByReq[r.id] || [];
-            const pendingErpCount = items.filter(i => !i.erp_registered && !i.erp_sku).length;
             const erpMachine = getErpSkuDetails(r.machine_sku);
-            return {
+            const reqWithMach = {
                 ...r,
                 machine_vendor_model: r.machine_vendor_model || (erpMachine ? erpMachine.vendorCode : ''),
-                machine_supplier_name: r.machine_supplier_name || (erpMachine ? erpMachine.manufacturer : ''),
+                machine_supplier_name: r.machine_supplier_name || (erpMachine ? erpMachine.manufacturer : '')
+            };
+            const items = (itemsByReq[r.id] || []).map(it => enrichItemMachineFields(it, reqWithMach));
+            const pendingErpCount = items.filter(i => !i.erp_registered && !i.erp_sku).length;
+            const machineKeys = new Set();
+            items.forEach(i => {
+                const mk = i.effective_machine_vendor_model || i.effective_machine_sku || i.effective_machine_name;
+                if (mk) machineKeys.add(mk.toUpperCase());
+            });
+            return {
+                ...reqWithMach,
                 items,
                 items_count: items.length,
+                distinct_machines_count: Math.max(1, machineKeys.size),
                 pending_erp_count: pendingErpCount
             };
         });
@@ -990,9 +1293,9 @@ module.exports = function registerPartsModule({
                             urgency: r.urgency,
                             client_name: r.client_name,
                             requester_name: r.requester_name,
-                            machine_sku: r.machine_sku,
-                            machine_name: r.machine_name,
-                            machine_vendor_model: r.machine_vendor_model,
+                            machine_sku: it.effective_machine_sku || r.machine_sku,
+                            machine_name: it.effective_machine_name || r.machine_name,
+                            machine_vendor_model: it.effective_machine_vendor_model || r.machine_vendor_model,
                             client_approved_at: r.client_approved_at || r.stage_entry_at
                         });
                     }
@@ -1004,20 +1307,20 @@ module.exports = function registerPartsModule({
 
         res.json({
             exchange: rates,
+            permissions: governanceMap,
             requests: enrichedRequests,
             erp_queue: erpQueue,
             catalog
         });
     }));
 
-    // 9. Detalhe Completo de uma Solicitação + Timeline + Auto-Enriquecimento Cód. Antigo do ERP
+    // 9. Detalhe Completo de uma Solicitação + Timeline + Auto-Enriquecimento Multi-Máquina + Permissão da Etapa
     router.get('/requests/:id', authenticateToken, asyncSafe(async (req, res) => {
         const reqRow = await pGet('SELECT * FROM parts_requests WHERE id = ?', [req.params.id]);
         if (!reqRow) return res.status(404).json({ error: 'Solicitação não encontrada.' });
-        const items = await pAll('SELECT * FROM parts_request_items WHERE request_id = ? ORDER BY id ASC', [reqRow.id]);
+        const rawItems = await pAll('SELECT * FROM parts_request_items WHERE request_id = ? ORDER BY id ASC', [reqRow.id]);
         const timeline = await pAll('SELECT * FROM parts_timeline WHERE request_id = ? ORDER BY id DESC', [reqRow.id]);
 
-        // Enriquecer automaticamente com Cód. Antigo (vendorCode) e Nome Fabricante da planilha skus.csv caso esteja em branco
         const erpMachine = getErpSkuDetails(reqRow.machine_sku);
         if (erpMachine) {
             if (!reqRow.machine_vendor_model && erpMachine.vendorCode) {
@@ -1027,7 +1330,8 @@ module.exports = function registerPartsModule({
                 reqRow.machine_supplier_name = erpMachine.manufacturer;
             }
         }
-        items.forEach((it) => {
+
+        const items = rawItems.map((it) => {
             if (it.erp_sku) {
                 const erpPart = getErpSkuDetails(it.erp_sku);
                 if (erpPart) {
@@ -1035,23 +1339,51 @@ module.exports = function registerPartsModule({
                     if (!it.part_name_en && erpPart.nameEn) it.part_name_en = erpPart.nameEn;
                 }
             }
+            return enrichItemMachineFields(it, reqRow);
         });
 
-        const suggestedSupplierEmail = await resolveSupplierSavedEmail(
-            (items[0] && items[0].intl_supplier_name) || reqRow.machine_supplier_name || ''
-        );
+        // Resolver mapa de e-mails salvos por fornecedor (para multi-máquina / multi-fornecedor!)
+        const supplierEmailsMap = {};
+        const distinctSuppliers = new Set();
+        if (reqRow.machine_supplier_name) distinctSuppliers.add(reqRow.machine_supplier_name);
+        items.forEach(it => {
+            if (it.effective_machine_supplier) distinctSuppliers.add(it.effective_machine_supplier);
+            if (it.intl_supplier_name) distinctSuppliers.add(it.intl_supplier_name);
+            if (it.nat_supplier_name) distinctSuppliers.add(it.nat_supplier_name);
+        });
+        for (const sup of distinctSuppliers) {
+            const em = await resolveSupplierSavedEmail(sup);
+            if (em) supplierEmailsMap[sup] = em;
+        }
+
+        const primarySup = (items[0] && items[0].effective_machine_supplier) || reqRow.machine_supplier_name || '';
+        const suggestedSupplierEmail = supplierEmailsMap[primarySup] || await resolveSupplierSavedEmail(primarySup);
+        const stageAccess = await canUserActOnStage(req.user, reqRow.stage);
 
         res.json({
             request: reqRow,
             items,
             timeline,
+            access: {
+                can_edit: stageAccess.allowed,
+                is_master: stageAccess.isMaster,
+                owner_display: stageAccess.ownerDisplay
+            },
+            supplier_emails_map: supplierEmailsMap,
             suggested_supplier_email: suggestedSupplierEmail,
             smtp_configured: !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_HOST !== 'smtp.exemplo.com')
         });
     }));
 
-    // 10. Criar Nova Solicitação de Peças (Guilherme Bertola / Pós-Venda / Vendas / Assistência)
+    // 10. Criar Nova Solicitação de Peças (Restrito ao Responsável de Abertura: Guilherme Bertola + Master Admins)
     router.post('/requests', authenticateToken, asyncSafe(async (req, res) => {
+        const createPerm = await canUserActOnStage(req.user, 'CREATE_REQUEST');
+        if (!createPerm.allowed) {
+            return res.status(403).json({
+                error: `Acesso restrito: A abertura de novas solicitações é de responsabilidade exclusiva de ${createPerm.ownerDisplay}.`
+            });
+        }
+
         const {
             urgency = 'NORMAL',
             request_type = 'CLIENTE',
@@ -1088,7 +1420,6 @@ module.exports = function registerPartsModule({
         const now = new Date().toISOString();
         const reqCode = await generateNextRequestCode();
 
-        // Se todas as peças já têm rota definida (ex: Guilherme ou Engenharia já definiu Nacional ou Importação), pode ir direto para 2_COTACAO_FORNECEDOR!
         const allRoutesDefined = items.every(it => it.sourcing_route && it.sourcing_route !== 'DEFINIR');
         const initialStage = (skip_triage || allRoutesDefined) ? '2_COTACAO_FORNECEDOR' : '1_TRIAGEM_TECNICA';
 
@@ -1114,6 +1445,21 @@ module.exports = function registerPartsModule({
             const partNamePt = String(rawIt.part_name_pt || '').trim();
             if (!partNamePt) continue;
 
+            // Suporte Multi-Máquina por Item: se o item informou outra máquina específica, resolve o Cód. Antigo e Fabricante dela!
+            const rawItemMSku = String(rawIt.item_machine_sku || '').trim();
+            const rawItemMVendor = String(rawIt.item_machine_vendor_model || '').trim();
+            const rawItemMName = String(rawIt.item_machine_name || '').trim();
+            const rawItemMSerial = String(rawIt.item_machine_serial || '').trim();
+            const rawItemMSup = String(rawIt.item_machine_supplier || '').trim();
+            const hasCustomItemMachine = !!(rawItemMSku || rawItemMVendor || rawItemMName);
+
+            const erpItemMach = hasCustomItemMachine ? getErpSkuDetails(rawItemMSku) : erpMachine;
+            const effItemMSku = hasCustomItemMachine ? rawItemMSku : (machine_sku || '');
+            const effItemMName = hasCustomItemMachine ? (rawItemMName || (erpItemMach ? erpItemMach.name : '')) : resolvedMachineName;
+            const effItemMVendor = hasCustomItemMachine ? (rawItemMVendor || (erpItemMach ? erpItemMach.vendorCode : '')) : resolvedMachineVendorModel;
+            const effItemMSupplier = hasCustomItemMachine ? (rawItemMSup || (erpItemMach ? erpItemMach.manufacturer : '')) : resolvedMachineSupplier;
+            const effItemMSerial = hasCustomItemMachine ? rawItemMSerial : (machine_serial || '');
+
             const existingErpSku = rawIt.erp_sku ? String(rawIt.erp_sku).trim().toUpperCase() : '';
             const erpPart = getErpSkuDetails(existingErpSku);
             const resolvedPartVendorCode = String(rawIt.vendor_part_number || '').trim() || (erpPart ? erpPart.vendorCode : '');
@@ -1123,7 +1469,6 @@ module.exports = function registerPartsModule({
             const route = rawIt.sourcing_route || 'DEFINIR';
             const fiscalOrigin = route === 'NACIONAL' ? '0' : '1';
 
-            // Verifica se já existe na Árvore de Peças (parts_catalog) por catalog_part_id, erp_sku ou nome+máquina
             let catRow = null;
             if (rawIt.catalog_part_id) {
                 catRow = await pGet('SELECT * FROM parts_catalog WHERE id = ?', [rawIt.catalog_part_id]);
@@ -1131,10 +1476,10 @@ module.exports = function registerPartsModule({
             if (!catRow && existingErpSku) {
                 catRow = await pGet('SELECT * FROM parts_catalog WHERE erp_sku = ?', [existingErpSku]);
             }
-            if (!catRow && machine_sku) {
+            if (!catRow && effItemMSku) {
                 catRow = await pGet(
                     'SELECT * FROM parts_catalog WHERE parent_machine_sku = ? AND LOWER(name_pt) = LOWER(?)',
-                    [machine_sku, partNamePt]
+                    [effItemMSku, partNamePt]
                 );
             }
 
@@ -1173,12 +1518,12 @@ module.exports = function registerPartsModule({
                         partNamePt,
                         resolvedPartNameEn,
                         category,
-                        machine_sku || '',
-                        resolvedMachineName,
-                        resolvedMachineVendorModel,
+                        effItemMSku,
+                        effItemMName,
+                        effItemMVendor,
                         route,
                         rawIt.national_equiv_spec || '',
-                        resolvedMachineSupplier,
+                        effItemMSupplier,
                         resolvedPartVendorCode,
                         suggestedNcm,
                         fiscalOrigin,
@@ -1206,8 +1551,9 @@ module.exports = function registerPartsModule({
                     qty, unit, sourcing_route, national_equiv_spec,
                     intl_supplier_name, intl_unit_fob, intl_usd_rate, intl_factor_1, intl_factor_2, intl_unit_sale_brl,
                     nat_supplier_name, nat_unit_cost_brl, nat_markup_factor, nat_unit_sale_brl,
-                    suggested_ncm, fiscal_origin, weight_kg, photo_path, item_notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 2.0, 2.0, ?, ?, ?, 2.0, ?, ?, ?, ?, ?, ?)`,
+                    suggested_ncm, fiscal_origin, weight_kg, photo_path, item_notes,
+                    item_machine_sku, item_machine_name, item_machine_vendor_model, item_machine_serial, item_machine_supplier
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 2.0, 2.0, ?, ?, ?, 2.0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     requestId,
                     catalogPartId,
@@ -1222,7 +1568,7 @@ module.exports = function registerPartsModule({
                     rawIt.unit || 'UN',
                     route,
                     rawIt.national_equiv_spec || (catRow ? catRow.national_equivalent_spec : ''),
-                    resolvedMachineSupplier || (catRow ? catRow.intl_supplier_name : ''),
+                    effItemMSupplier || (catRow ? catRow.intl_supplier_name : ''),
                     lastFob,
                     rates.usd,
                     intlCalc.saleBrl,
@@ -1233,7 +1579,12 @@ module.exports = function registerPartsModule({
                     fiscalOrigin,
                     parseFloat(rawIt.weight_kg) || (catRow ? catRow.weight_kg : 0),
                     rawIt.photo_path || (catRow ? catRow.photo_path : null),
-                    rawIt.item_notes || ''
+                    rawIt.item_notes || '',
+                    effItemMSku || null,
+                    effItemMName || null,
+                    effItemMVendor || null,
+                    effItemMSerial || null,
+                    effItemMSupplier || null
                 ]
             );
         }
@@ -1249,16 +1600,24 @@ module.exports = function registerPartsModule({
         res.json({ success: true, request: created });
     }));
 
-    // 11. Atualizar Solicitação Completa + Itens + Cálculos de Cotação (FOB x Dólar x 2 x 2 / Nacional)
+    // 11. Atualizar Solicitação Completa + Itens + Cálculos de Cotação (Trava de Responsabilidade por Etapa!)
     router.put('/requests/:id', authenticateToken, asyncSafe(async (req, res) => {
         const reqId = parseInt(req.params.id);
         const existing = await pGet('SELECT * FROM parts_requests WHERE id = ?', [reqId]);
         if (!existing) return res.status(404).json({ error: 'Solicitação não encontrada.' });
 
+        const stagePerm = await canUserActOnStage(req.user, existing.stage);
+        if (!stagePerm.allowed) {
+            return res.status(403).json({
+                error: `🔒 Modo Somente Consulta: Esta solicitação está na etapa "${existing.stage}", sob responsabilidade exclusiva de ${stagePerm.ownerDisplay}.`
+            });
+        }
+
         const now = new Date().toISOString();
         const b = req.body || {};
 
-        const newStage = b.stage || existing.stage;
+        // Somente Master Admins podem alterar a etapa manualmente via seletor livre; responsáveis avançam pelos botões oficiais de ação
+        const newStage = (stagePerm.isMaster && b.stage) ? b.stage : existing.stage;
         const stageChanged = newStage !== existing.stage;
 
         await pRun(
@@ -1336,7 +1695,6 @@ module.exports = function registerPartsModule({
                     let selectedSource = it.selected_source || 'PENDENTE';
                     let finalUnitBrl = parseFloat(it.final_unit_price_brl);
 
-                    // Seleção inteligente do preço sugerido conforme fonte escolhida (com possibilidade de ajuste fino manual)
                     if (it.auto_price !== false) {
                         if (selectedSource === 'IMPORTACAO' && intlCalc.saleBrl > 0) {
                             finalUnitBrl = isNaN(finalUnitBrl) || finalUnitBrl <= 0 || it.recalc === true ? intlCalc.saleBrl : finalUnitBrl;
@@ -1351,6 +1709,19 @@ module.exports = function registerPartsModule({
                         (selectedSource === 'NACIONAL' ? (parseInt(it.nat_lead_time_days) || 5) : (parseInt(it.intl_lead_time_days) || 18));
 
                     const fiscalOrigin = (selectedSource === 'NACIONAL' || it.sourcing_route === 'NACIONAL') ? '0' : '1';
+
+                    const itMachSku = it.item_machine_sku !== undefined ? String(it.item_machine_sku || '').trim() : undefined;
+                    const erpItMach = itMachSku ? getErpSkuDetails(itMachSku) : null;
+                    const itMachVendor = it.item_machine_vendor_model !== undefined
+                        ? (String(it.item_machine_vendor_model || '').trim() || (erpItMach ? erpItMach.vendorCode : ''))
+                        : undefined;
+                    const itMachName = it.item_machine_name !== undefined
+                        ? (String(it.item_machine_name || '').trim() || (erpItMach ? erpItMach.name : ''))
+                        : undefined;
+                    const itMachSup = it.item_machine_supplier !== undefined
+                        ? (String(it.item_machine_supplier || '').trim() || (erpItMach ? erpItMach.manufacturer : ''))
+                        : undefined;
+                    const itMachSerial = it.item_machine_serial !== undefined ? String(it.item_machine_serial || '').trim() : undefined;
 
                     await pRun(
                         `UPDATE parts_request_items SET
@@ -1384,7 +1755,12 @@ module.exports = function registerPartsModule({
                             fiscal_origin = ?,
                             weight_kg = COALESCE(?, weight_kg),
                             photo_path = COALESCE(?, photo_path),
-                            item_notes = COALESCE(?, item_notes)
+                            item_notes = COALESCE(?, item_notes),
+                            item_machine_sku = COALESCE(?, item_machine_sku),
+                            item_machine_name = COALESCE(?, item_machine_name),
+                            item_machine_vendor_model = COALESCE(?, item_machine_vendor_model),
+                            item_machine_serial = COALESCE(?, item_machine_serial),
+                            item_machine_supplier = COALESCE(?, item_machine_supplier)
                          WHERE id = ? AND request_id = ?`,
                         [
                             it.part_name_pt, it.part_name_en, it.category, it.vendor_part_number,
@@ -1397,12 +1773,19 @@ module.exports = function registerPartsModule({
                             it.weight_kg !== undefined ? parseFloat(it.weight_kg) : null,
                             it.photo_path || null,
                             it.item_notes,
+                            itMachSku !== undefined ? itMachSku : null,
+                            itMachName !== undefined ? itMachName : null,
+                            itMachVendor !== undefined ? itMachVendor : null,
+                            itMachSerial !== undefined ? itMachSerial : null,
+                            itMachSup !== undefined ? itMachSup : null,
                             it.id, reqId
                         ]
                     );
 
-                    // Sincronizar memória técnica e últimos custos na Árvore da Máquina (parts_catalog)
                     if (it.catalog_part_id) {
+                        const catMSku = itMachSku || b.machine_sku || existing.machine_sku || '';
+                        const catMName = itMachName || b.machine_name || existing.machine_name || '';
+                        const catMVendor = itMachVendor || b.machine_vendor_model || existing.machine_vendor_model || '';
                         await pRun(
                             `UPDATE parts_catalog SET
                                 name_pt = COALESCE(?, name_pt),
@@ -1425,14 +1808,12 @@ module.exports = function registerPartsModule({
                              WHERE id = ?`,
                             [
                                 it.part_name_pt, it.part_name_en || '', it.category,
-                                b.machine_sku || existing.machine_sku || '',
-                                b.machine_name || existing.machine_name || '',
-                                b.machine_vendor_model || existing.machine_vendor_model || '',
+                                catMSku, catMName, catMVendor,
                                 it.sourcing_route || 'DEFINIR', it.sourcing_route || 'DEFINIR',
                                 it.national_equiv_spec || '',
                                 it.nat_supplier_name || '',
                                 natCost, natCost,
-                                it.intl_supplier_name || '',
+                                it.intl_supplier_name || itMachSup || '',
                                 it.vendor_part_number || '',
                                 fob, fob,
                                 it.suggested_ncm || '',
@@ -1444,21 +1825,24 @@ module.exports = function registerPartsModule({
                         );
                     }
                 } else if (it.part_name_pt && String(it.part_name_pt).trim()) {
-                    // Novo item adicionado durante edição
                     const tempSku = await generateNextTempSku();
                     const cat = it.category || 'MECANICA';
                     const ncm = it.suggested_ncm || suggestNcmForCategory(cat, it.erp_sku);
+                    const newMSku = String(it.item_machine_sku || b.machine_sku || existing.machine_sku || '').trim();
+                    const erpNewM = getErpSkuDetails(newMSku);
+                    const newMName = String(it.item_machine_name || b.machine_name || existing.machine_name || (erpNewM ? erpNewM.name : '')).trim();
+                    const newMVendor = String(it.item_machine_vendor_model || b.machine_vendor_model || existing.machine_vendor_model || (erpNewM ? erpNewM.vendorCode : '')).trim();
+                    const newMSup = String(it.item_machine_supplier || b.machine_supplier_name || existing.machine_supplier_name || (erpNewM ? erpNewM.manufacturer : '')).trim();
+
                     const insCat = await pRun(
                         `INSERT INTO parts_catalog (
                             temp_sku, erp_sku, name_pt, name_en, category,
                             parent_machine_sku, parent_machine_name, parent_vendor_model,
-                            sourcing_policy, suggested_ncm, unit, created_at, updated_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                            intl_supplier_name, sourcing_policy, suggested_ncm, unit, created_at, updated_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                         [
                             tempSku, it.erp_sku || null, String(it.part_name_pt).trim(), it.part_name_en || '', cat,
-                            b.machine_sku || existing.machine_sku || '',
-                            b.machine_name || existing.machine_name || '',
-                            b.machine_vendor_model || existing.machine_vendor_model || '',
+                            newMSku, newMName, newMVendor, newMSup,
                             it.sourcing_route || 'DEFINIR', ncm, it.unit || 'UN', now, now
                         ]
                     );
@@ -1466,12 +1850,14 @@ module.exports = function registerPartsModule({
                         `INSERT INTO parts_request_items (
                             request_id, catalog_part_id, temp_sku, erp_sku, erp_registered,
                             part_name_pt, part_name_en, category, vendor_part_number,
-                            qty, unit, sourcing_route, suggested_ncm, intl_usd_rate
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                            qty, unit, sourcing_route, suggested_ncm, intl_usd_rate, intl_supplier_name,
+                            item_machine_sku, item_machine_name, item_machine_vendor_model, item_machine_serial, item_machine_supplier
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                         [
                             reqId, insCat.lastID, tempSku, it.erp_sku || null, it.erp_sku ? 1 : 0,
                             String(it.part_name_pt).trim(), it.part_name_en || '', cat, it.vendor_part_number || '',
-                            parseFloat(it.qty) || 1, it.unit || 'UN', it.sourcing_route || 'DEFINIR', ncm, usdSnap
+                            parseFloat(it.qty) || 1, it.unit || 'UN', it.sourcing_route || 'DEFINIR', ncm, usdSnap, newMSup,
+                            newMSku || null, newMName || null, newMVendor || null, it.item_machine_serial || null, newMSup || null
                         ]
                     );
                 }
@@ -1487,16 +1873,24 @@ module.exports = function registerPartsModule({
         }
 
         const updated = await pGet('SELECT * FROM parts_requests WHERE id = ?', [reqId]);
-        const updatedItems = await pAll('SELECT * FROM parts_request_items WHERE request_id = ? ORDER BY id ASC', [reqId]);
+        const updatedRawItems = await pAll('SELECT * FROM parts_request_items WHERE request_id = ? ORDER BY id ASC', [reqId]);
+        const updatedItems = updatedRawItems.map(it => enrichItemMachineFields(it, updated));
         res.json({ success: true, request: updated, items: updatedItems, total_quoted_brl: totalQuoted });
     }));
 
-    // 12. Transições Inteligentes de Negócio (Proposta Enviada / Cliente Aprovou / Declinou / Chegou na Doca / Entregue)
+    // 12. Transições Inteligentes de Negócio (Bloqueado por Responsabilidade da Etapa!)
     router.post('/requests/:id/action', authenticateToken, asyncSafe(async (req, res) => {
         const reqId = parseInt(req.params.id);
         const { action, reason, erp_order_number, out_nfe_number, shelf_location } = req.body;
         const r = await pGet('SELECT * FROM parts_requests WHERE id = ?', [reqId]);
         if (!r) return res.status(404).json({ error: 'Solicitação não encontrada.' });
+
+        const stagePerm = await canUserActOnStage(req.user, r.stage);
+        if (!stagePerm.allowed) {
+            return res.status(403).json({
+                error: `🔒 Ação bloqueada: A etapa atual ("${r.stage}") é de responsabilidade exclusiva de ${stagePerm.ownerDisplay}.`
+            });
+        }
 
         const items = await pAll('SELECT * FROM parts_request_items WHERE request_id = ?', [reqId]);
         const now = new Date().toISOString();
@@ -1508,7 +1902,6 @@ module.exports = function registerPartsModule({
             await pRun(`UPDATE parts_requests SET stage = '3_PROPOSTA_CLIENTE', proposal_sent_at = COALESCE(proposal_sent_at, ?), stage_entry_at = ?, updated_at = ? WHERE id = ?`, [now, now, now, reqId]);
             await addTimelineEntry(reqId, req.user, 'PROPOSAL_READY', `Cotação concluída (Total R$ ${(r.total_quoted_brl || 0).toFixed(2)}) e encaminhada para proposta comercial ao cliente.`);
         } else if (action === 'CLIENT_APPROVED') {
-            // Verifica se algum item ainda está apenas com Pré-SKU (TMP-PEC-...) precisando da Jhenifer no ERP!
             const needsErpRegistration = items.some(it => !it.erp_registered || !it.erp_sku);
             const nextStage = needsErpRegistration ? '4_CADASTRO_ERP' : '5_COMPRA_TRANSITO';
 
@@ -1581,6 +1974,13 @@ module.exports = function registerPartsModule({
 
     // 13. Fila Expressa da Jhenifer: Confirmar SKU Oficial criado no ERP (De-Para TMP-PEC -> SKU ERP)
     router.post('/items/:itemId/register-erp-sku', authenticateToken, asyncSafe(async (req, res) => {
+        const erpPerm = await canUserActOnStage(req.user, '4_CADASTRO_ERP');
+        if (!erpPerm.allowed) {
+            return res.status(403).json({
+                error: `🔒 Apenas o responsável pelo Cadastro ERP (${erpPerm.ownerDisplay}) pode registrar o SKU Oficial.`
+            });
+        }
+
         const itemId = parseInt(req.params.itemId);
         const { erp_sku, suggested_ncm, unit } = req.body;
         const cleanSku = String(erp_sku || '').trim().toUpperCase();
@@ -1606,7 +2006,6 @@ module.exports = function registerPartsModule({
             [cleanSku, req.user.username, now, suggested_ncm || '', unit || '', itemId]
         );
 
-        // Grava definitivamente na Árvore da Máquina (parts_catalog) para NUNCA mais precisar cadastrar essa peça de novo!
         if (item.catalog_part_id) {
             await pRun(
                 `UPDATE parts_catalog SET
@@ -1621,14 +2020,13 @@ module.exports = function registerPartsModule({
             );
         }
 
-        // Atualiza também supplier_sku_mappings no mrpDb caso haja Part Number do fornecedor
         if (item.vendor_part_number && String(item.vendor_part_number).trim()) {
             await mrpRun(
                 `INSERT OR REPLACE INTO supplier_sku_mappings (
                     supplier_name, supplier_sku, tecfag_sku, description, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?)`,
                 [
-                    item.intl_supplier_name || (parentReq ? parentReq.machine_supplier_name : '') || 'Fornecedor Peças',
+                    item.intl_supplier_name || item.item_machine_supplier || (parentReq ? parentReq.machine_supplier_name : '') || 'Fornecedor Peças',
                     String(item.vendor_part_number).trim(),
                     cleanSku,
                     item.part_name_pt,
@@ -1638,14 +2036,14 @@ module.exports = function registerPartsModule({
             ).catch(() => {});
         }
 
-        // Adiciona ao catálogo products.json se ainda não constar, mantendo o ecossistema inteiro sincronizado
         try {
             const prods = loadProductsCatalog();
+            const targetMachineName = item.item_machine_name || (parentReq ? parentReq.machine_name : '') || '';
             if (!prods.some(p => String(p.sku || '').toUpperCase() === cleanSku)) {
                 prods.push({
                     sku: cleanSku,
                     name: item.part_name_pt.toUpperCase(),
-                    group: parentReq && parentReq.machine_name ? `PEÇA REPOSIÇÃO - ${parentReq.machine_name.toUpperCase().slice(0, 35)}` : 'PEÇAS DE REPOSIÇÃO',
+                    group: targetMachineName ? `PEÇA REPOSIÇÃO - ${targetMachineName.toUpperCase().slice(0, 35)}` : 'PEÇAS DE REPOSIÇÃO',
                     vendorCode: item.vendor_part_number || ''
                 });
                 fs.writeFileSync(PRODUCTS_JSON_PATH, JSON.stringify(prods, null, 2), 'utf8');
@@ -1659,7 +2057,6 @@ module.exports = function registerPartsModule({
             `✅ SKU Oficial ERP "${cleanSku}" vinculado à peça "${item.part_name_pt}" (substituindo ${item.temp_sku}).`
         );
 
-        // Verifica se TODOS os itens desta solicitação já possuem SKU ERP cadastrado -> Avança sozinho para 5_COMPRA_TRANSITO!
         const remaining = await pGet(
             'SELECT COUNT(*) as cnt FROM parts_request_items WHERE request_id = ? AND (erp_registered = 0 OR erp_sku IS NULL OR erp_sku = "")',
             [item.request_id]
@@ -1691,6 +2088,13 @@ module.exports = function registerPartsModule({
         const r = await pGet('SELECT * FROM parts_requests WHERE id = ?', [reqId]);
         if (!r) return res.status(404).json({ error: 'Solicitação não encontrada.' });
 
+        const stagePerm = await canUserActOnStage(req.user, r.stage);
+        if (!stagePerm.allowed) {
+            return res.status(403).json({
+                error: `🔒 Ação restrita ao responsável da etapa atual (${stagePerm.ownerDisplay}).`
+            });
+        }
+
         const order = await mrpGet('SELECT * FROM stock_orders WHERE id = ?', [stock_order_id]);
         if (!order) return res.status(404).json({ error: 'Ordem/Container não encontrado no módulo de Importações.' });
 
@@ -1705,6 +2109,7 @@ module.exports = function registerPartsModule({
             const skuToUse = it.erp_sku || it.temp_sku;
             const unitFob = parseFloat(it.intl_unit_fob) || 0;
             const qty = parseFloat(it.qty) || 1;
+            const itemMachSku = it.item_machine_sku || r.machine_sku || '';
             await mrpRun(
                 `INSERT INTO stock_order_items (
                     order_id, sku, tecfag_sku, description, ncm,
@@ -1715,7 +2120,7 @@ module.exports = function registerPartsModule({
                     order.id,
                     it.vendor_part_number || skuToUse,
                     it.erp_sku || null,
-                    `[PEÇA REPOSIÇÃO ${r.req_code}] ${it.part_name_pt}${r.machine_sku ? ' (Máq: ' + r.machine_sku + ')' : ''}`,
+                    `[PEÇA REPOSIÇÃO ${r.req_code}] ${it.part_name_pt}${itemMachSku ? ' (Máq: ' + itemMachSku + ')' : ''}`,
                     it.suggested_ncm || '',
                     qty,
                     unitFob,
@@ -1749,7 +2154,7 @@ module.exports = function registerPartsModule({
         res.json({ success: true, po_number: order.po_number });
     }));
 
-    // 15. Comentário Rápido na Timeline da Solicitação
+    // 15. Comentário Rápido na Timeline da Solicitação (Liberado para TODOS consultarem e interagirem!)
     router.post('/requests/:id/comment', authenticateToken, asyncSafe(async (req, res) => {
         const reqId = parseInt(req.params.id);
         const msg = String(req.body.message || '').trim();
@@ -1759,8 +2164,11 @@ module.exports = function registerPartsModule({
         res.json({ success: true, timeline });
     }));
 
-    // 16. Excluir Solicitação (Admin / Diretoria / Solicitante em rascunho)
+    // 16. Excluir Solicitação (Exclusivo Administradores Master: Gilson / Fernando / Admin)
     router.delete('/requests/:id', authenticateToken, asyncSafe(async (req, res) => {
+        if (!isMasterAdminUser(req.user)) {
+            return res.status(403).json({ error: '🔒 Apenas Administradores Master (Gilson / Fernando) podem excluir solicitações.' });
+        }
         const reqId = parseInt(req.params.id);
         const r = await pGet('SELECT * FROM parts_requests WHERE id = ?', [reqId]);
         if (!r) return res.status(404).json({ error: 'Solicitação não encontrada.' });
@@ -1789,11 +2197,18 @@ module.exports = function registerPartsModule({
         res.json({ success: true });
     }));
 
-    // 18. Disparo Oficial de E-mail ao Fornecedor COM Fotos Embutidas no Corpo (CID) + Anexadas e Código Original do Fornecedor (Cód. Antigo)
+    // 18. Disparo Oficial de E-mail ao Fornecedor COM Agrupamento Multi-Máquina + Fotos Embutidas no Corpo (CID) + Cód. Antigo
     router.post('/requests/:id/send-supplier-email', authenticateToken, partsUpload.array('extra_files', 10), asyncSafe(async (req, res) => {
         const reqId = parseInt(req.params.id);
         const r = await pGet('SELECT * FROM parts_requests WHERE id = ?', [reqId]);
         if (!r) return res.status(404).json({ error: 'Solicitação não encontrada.' });
+
+        const stagePerm = await canUserActOnStage(req.user, r.stage);
+        if (!stagePerm.allowed) {
+            return res.status(403).json({
+                error: `🔒 Apenas o responsável da etapa atual (${stagePerm.ownerDisplay}) pode disparar e-mails de cotação ao fornecedor.`
+            });
+        }
 
         const {
             to = '',
@@ -1802,7 +2217,8 @@ module.exports = function registerPartsModule({
             body = '',
             lang = 'EN',
             supplier_name = '',
-            vendor_machine_code = ''
+            vendor_machine_code = '',
+            selected_item_ids = ''
         } = req.body || {};
 
         if (!to || !String(to).trim()) {
@@ -1815,7 +2231,7 @@ module.exports = function registerPartsModule({
             return res.status(500).json({ error: 'Servidor de e-mail SMTP não configurado nas variáveis de ambiente (SMTP_HOST / SMTP_USER).' });
         }
 
-        const items = await pAll('SELECT * FROM parts_request_items WHERE request_id = ? ORDER BY id ASC', [reqId]);
+        const allRawItems = await pAll('SELECT * FROM parts_request_items WHERE request_id = ? ORDER BY id ASC', [reqId]);
         const now = new Date().toISOString();
 
         // Resolver Código Original no Fornecedor (Aba Cód. Antigo do ERP) — NUNCA enviar SKU interno Tecfag ao fornecedor externo
@@ -1824,14 +2240,34 @@ module.exports = function registerPartsModule({
             r.machine_vendor_model ||
             (erpMachine ? erpMachine.vendorCode : '');
 
-        if (effectiveVendorMachineCode && effectiveVendorMachineCode !== r.machine_vendor_model) {
+        if (effectiveVendorMachineCode && !r.machine_vendor_model) {
             await pRun('UPDATE parts_requests SET machine_vendor_model = ?, updated_at = ? WHERE id = ?', [
                 effectiveVendorMachineCode, now, reqId
             ]);
+            r.machine_vendor_model = effectiveVendorMachineCode;
         }
 
+        // Filtrar apenas os itens selecionados para este fornecedor (caso haja peças de fornecedores diferentes no mesmo pedido!)
+        let selectedIdsSet = null;
+        if (selected_item_ids && String(selected_item_ids).trim()) {
+            try {
+                const parsed = JSON.parse(selected_item_ids);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    selectedIdsSet = new Set(parsed.map(x => parseInt(x)).filter(Boolean));
+                }
+            } catch (e) {
+                const splitIds = String(selected_item_ids).split(',').map(x => parseInt(x.trim())).filter(Boolean);
+                if (splitIds.length > 0) selectedIdsSet = new Set(splitIds);
+            }
+        }
+
+        const enrichedAll = allRawItems.map(it => enrichItemMachineFields(it, r));
+        const items = selectedIdsSet
+            ? enrichedAll.filter(it => selectedIdsSet.has(it.id))
+            : enrichedAll;
+
         // Memorizar o e-mail deste fornecedor automaticamente para as próximas cotações
-        const cleanSupplierName = String(supplier_name || r.machine_supplier_name || (erpMachine ? erpMachine.manufacturer : '') || '').trim();
+        const cleanSupplierName = String(supplier_name || (items[0] && items[0].effective_machine_supplier) || r.machine_supplier_name || (erpMachine ? erpMachine.manufacturer : '') || '').trim();
         const primaryToEmail = String(to).split(/[,;]+/)[0].trim();
         if (cleanSupplierName && primaryToEmail.includes('@')) {
             await pRun(
@@ -1848,11 +2284,6 @@ module.exports = function registerPartsModule({
             ).catch(() => {});
         }
 
-        // Montar anexos de fotos das peças (Inline CID + Anexo de Arquivo)
-        const mailAttachments = [];
-        const inlinePhotoCardsHtml = [];
-        let photoCounter = 0;
-
         function resolvePartPhotoDiskPath(photoUrlPath) {
             if (!photoUrlPath) return null;
             const fname = path.basename(String(photoUrlPath));
@@ -1861,21 +2292,51 @@ module.exports = function registerPartsModule({
             return null;
         }
 
-        for (let i = 0; i < items.length; i++) {
-            const it = items[i];
-            const diskPath = resolvePartPhotoDiskPath(it.photo_path);
-            if (diskPath) {
+        // Agrupar os itens selecionados por Máquina (Cód. Antigo do Fornecedor) para organização cristalina de descrições e fotos!
+        const machineGroupsMap = new Map();
+        items.forEach((it) => {
+            const mModel = String(it.effective_machine_vendor_model || effectiveVendorMachineCode || '').trim();
+            const mSerial = String(it.effective_machine_serial || '').trim();
+            const key = (mModel || 'GENERAL_MACHINE').toUpperCase();
+            if (!machineGroupsMap.has(key)) {
+                machineGroupsMap.set(key, {
+                    vendorModel: mModel,
+                    serial: mSerial,
+                    items: []
+                });
+            }
+            machineGroupsMap.get(key).items.push(it);
+        });
+        const machineGroups = Array.from(machineGroupsMap.values());
+        const isMultiMachine = machineGroups.length > 1;
+
+        const mailAttachments = [];
+        const groupedPhotosSectionsHtml = [];
+        let photoCounter = 0;
+
+        for (let gIdx = 0; gIdx < machineGroups.length; gIdx++) {
+            const grp = machineGroups[gIdx];
+            const grpPhotoCards = [];
+            const safeMachineSlug = String(grp.vendorModel || `M${gIdx + 1}`).replace(/[^a-zA-Z0-9\-_]/g, '_').slice(0, 22);
+
+            for (let i = 0; i < grp.items.length; i++) {
+                const it = grp.items[i];
+                const diskPath = resolvePartPhotoDiskPath(it.photo_path);
+                if (!diskPath) continue;
+
                 photoCounter++;
                 const ext = path.extname(diskPath) || '.jpg';
                 const isImage = ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext.toLowerCase());
                 const erpPart = getErpSkuDetails(it.erp_sku);
-                const partVendorCode = it.vendor_part_number || (erpPart ? erpPart.vendorCode : '') || `Item_${i + 1}`;
-                const safeCodeSlug = String(partVendorCode).replace(/[^a-zA-Z0-9\-_]/g, '_').slice(0, 30);
-                const attachFilename = `Part_${i + 1}_${safeCodeSlug}${ext}`;
-                const cidKey = `tecfag_part_photo_${i + 1}_${Date.now()}`;
+                const itemLabelNum = isMultiMachine ? `${gIdx + 1}.${i + 1}` : `${i + 1}`;
+                const partVendorCode = it.vendor_part_number || (erpPart ? erpPart.vendorCode : '') || `Item_${itemLabelNum.replace('.', '_')}`;
+                const safeCodeSlug = String(partVendorCode).replace(/[^a-zA-Z0-9\-_]/g, '_').slice(0, 26);
+                const attachFilename = isMultiMachine
+                    ? `M${gIdx + 1}_${safeMachineSlug}_Item_${itemLabelNum}_${safeCodeSlug}${ext}`
+                    : `Part_${itemLabelNum}_${safeCodeSlug}${ext}`;
+                const cidKey = `tecfag_part_photo_${gIdx + 1}_${i + 1}_${Date.now()}`;
 
                 if (isImage) {
-                    // Anexa de forma que apareça EMBUTIDA no corpo do e-mail E também disponível para download!
                     mailAttachments.push({
                         filename: attachFilename,
                         path: diskPath,
@@ -1885,11 +2346,12 @@ module.exports = function registerPartsModule({
                     const displayPartTitle = lang === 'EN'
                         ? (it.part_name_en || it.part_name_pt)
                         : it.part_name_pt;
-                    inlinePhotoCardsHtml.push(`
-                        <div style="border:1px solid #cbd5e1; border-radius:10px; padding:14px; margin-bottom:16px; background:#f8fafc; max-width:560px;">
+                    grpPhotoCards.push(`
+                        <div style="border:1px solid #cbd5e1; border-radius:10px; padding:14px; margin-bottom:14px; background:#f8fafc; max-width:580px;">
                             <div style="font-weight:bold; font-size:14px; color:#0f172a; margin-bottom:6px;">
-                                #${i + 1} — ${displayPartTitle} (Qty: ${it.qty} ${it.unit || 'PCS'})
+                                📷 ${lang === 'EN' ? 'Item' : 'Peça'} #${itemLabelNum} — ${displayPartTitle} (Qty: ${it.qty} ${it.unit || 'PCS'})
                                 ${it.vendor_part_number ? ` | Code: <span style="color:#0284c7;">${it.vendor_part_number}</span>` : ''}
+                                ${grp.vendorModel ? ` | <span style="color:#475569; font-size:12px;">Machine: ${grp.vendorModel}</span>` : ''}
                             </div>
                             <img src="cid:${cidKey}" alt="${attachFilename}" style="max-width:100%; max-height:420px; height:auto; border-radius:8px; border:1px solid #94a3b8; display:block;" />
                         </div>
@@ -1899,6 +2361,22 @@ module.exports = function registerPartsModule({
                         filename: attachFilename,
                         path: diskPath
                     });
+                }
+            }
+
+            if (grpPhotoCards.length > 0) {
+                if (isMultiMachine) {
+                    groupedPhotosSectionsHtml.push(`
+                        <div style="margin-bottom:20px; border:2px solid #bae6fd; border-radius:12px; padding:14px; background:#ffffff;">
+                            <div style="background:#0284c7; color:#ffffff; padding:8px 12px; border-radius:8px; font-weight:bold; font-size:14px; margin-bottom:12px;">
+                                🏭 ${lang === 'EN' ? `MACHINE ${gIdx + 1} — Original Model:` : `MÁQUINA ${gIdx + 1} — Modelo Ref.:`} ${grp.vendorModel || 'N/A'}
+                                ${grp.serial ? ` &nbsp;|&nbsp; Serial: ${grp.serial}` : ''}
+                            </div>
+                            ${grpPhotoCards.join('\n')}
+                        </div>
+                    `);
+                } else {
+                    groupedPhotosSectionsHtml.push(grpPhotoCards.join('\n'));
                 }
             }
         }
@@ -1912,7 +2390,6 @@ module.exports = function registerPartsModule({
                 const isImage = ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext);
                 const cidExtra = `tecfag_extra_photo_${k + 1}_${Date.now()}`;
 
-                // Se o 1º item da solicitação ainda estava sem foto e o usuário subiu uma imagem aqui, já vincula na peça também!
                 if (isImage && items[0] && !items[0].photo_path) {
                     const relUrl = `/uploads_pecas/${f.filename}`;
                     items[0].photo_path = relUrl;
@@ -1926,8 +2403,8 @@ module.exports = function registerPartsModule({
                         cid: cidExtra,
                         contentDisposition: 'inline'
                     });
-                    inlinePhotoCardsHtml.push(`
-                        <div style="border:1px solid #cbd5e1; border-radius:10px; padding:14px; margin-bottom:16px; background:#f8fafc; max-width:560px;">
+                    groupedPhotosSectionsHtml.push(`
+                        <div style="border:1px solid #cbd5e1; border-radius:10px; padding:14px; margin-bottom:16px; background:#f8fafc; max-width:580px;">
                             <div style="font-weight:bold; font-size:13px; color:#0f172a; margin-bottom:6px;">📎 ${f.originalname || `Reference Photo #${k + 1}`}</div>
                             <img src="cid:${cidExtra}" alt="${f.originalname}" style="max-width:100%; max-height:420px; height:auto; border-radius:8px; border:1px solid #94a3b8; display:block;" />
                         </div>
@@ -1941,7 +2418,6 @@ module.exports = function registerPartsModule({
             }
         }
 
-        // Assinatura Oficial Grupo Tecfag
         const hasSignatureImg = fs.existsSync(SIGNATURE_IMG_PATH);
         if (hasSignatureImg) {
             mailAttachments.push({
@@ -1971,25 +2447,33 @@ module.exports = function registerPartsModule({
             .replace(/>/g, '&gt;');
 
         const photosHeaderTitle = lang === 'EN'
-            ? '📷 Attached Part Photo(s) / Reference Image(s):'
-            : '📷 Foto(s) / Imagem(ns) de Referência da(s) Peça(s):';
+            ? (isMultiMachine ? '📷 Attached Part Photo(s) Organized by Machine:' : '📷 Attached Part Photo(s) / Reference Image(s):')
+            : (isMultiMachine ? '📷 Foto(s) das Peças Organizadas por Máquina:' : '📷 Foto(s) / Imagem(ns) de Referência da(s) Peça(s):');
+
+        const distinctModelList = machineGroups.map(g => g.vendorModel).filter(Boolean);
+        const topModelBannerHtml = distinctModelList.length > 1
+            ? `<div style="background:#f1f5f9; border-left:4px solid #0284c7; padding:10px 14px; border-radius:6px; margin-bottom:16px; font-size:13px;">
+                   <strong>${lang === 'EN' ? `Multi-Machine Quotation (${distinctModelList.length} Models)` : `Cotação Multi-Máquinas (${distinctModelList.length} Modelos)`}:</strong>
+                   <span style="color:#0284c7; font-weight:bold; font-size:14px;">${distinctModelList.join(' &nbsp;•&nbsp; ')}</span>
+                   &nbsp;|&nbsp; <strong>Ref:</strong> ${r.req_code}
+               </div>`
+            : (distinctModelList[0] ? `
+               <div style="background:#f1f5f9; border-left:4px solid #0284c7; padding:10px 14px; border-radius:6px; margin-bottom:16px; font-size:13px;">
+                   <strong>${lang === 'EN' ? 'Machine Original Model' : 'Modelo de Referência'}:</strong> <span style="color:#0284c7; font-weight:bold; font-size:15px;">${distinctModelList[0]}</span>
+                   ${machineGroups[0].serial ? ` &nbsp;|&nbsp; <strong>Serial No.:</strong> ${machineGroups[0].serial}` : ''}
+                   &nbsp;|&nbsp; <strong>Ref:</strong> ${r.req_code}
+               </div>` : '');
 
         const htmlEmail = `
             <div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #1e293b; background-color: #ffffff; padding: 12px 4px;">
-                ${effectiveVendorMachineCode ? `
-                    <div style="background:#f1f5f9; border-left:4px solid #0284c7; padding:10px 14px; border-radius:6px; margin-bottom:16px; font-size:13px;">
-                        <strong>${lang === 'EN' ? 'Machine Original Model' : 'Modelo de Referência'}:</strong> <span style="color:#0284c7; font-weight:bold; font-size:15px;">${effectiveVendorMachineCode}</span>
-                        ${r.machine_serial ? ` &nbsp;|&nbsp; <strong>Serial No.:</strong> ${r.machine_serial}` : ''}
-                        &nbsp;|&nbsp; <strong>Ref:</strong> ${r.req_code}
-                    </div>
-                ` : ''}
+                ${topModelBannerHtml}
 
                 <div style="font-size: 14px; color: #1e293b; margin-bottom: 22px; white-space: pre-wrap; line-height: 1.65;">${safeBodyHtml}</div>
 
-                ${inlinePhotoCardsHtml.length > 0 ? `
+                ${groupedPhotosSectionsHtml.length > 0 ? `
                     <div style="margin-top: 20px; margin-bottom: 24px; padding-top: 14px; border-top: 2px solid #e2e8f0;">
                         <div style="font-size: 14px; font-weight: bold; color: #0f172a; margin-bottom: 12px;">${photosHeaderTitle}</div>
-                        ${inlinePhotoCardsHtml.join('\n')}
+                        ${groupedPhotosSectionsHtml.join('\n')}
                     </div>
                 ` : ''}
 
@@ -2025,13 +2509,13 @@ module.exports = function registerPartsModule({
             reqId,
             req.user,
             'EMAIL_SENT',
-            `📧 E-mail de cotação disparado para "${to}"${effectiveVendorMachineCode ? ` [Modelo Fornecedor: ${effectiveVendorMachineCode}]` : ''} com ${photoCounter} foto(s)/anexo(s) junto no e-mail!`
+            `📧 E-mail de cotação disparado para "${to}" (${items.length} item/itens | Modelo(s): ${distinctModelList.join(', ') || 'N/A'}) com ${photoCounter} foto(s)/anexo(s) agrupados por máquina!`
         );
 
         res.json({
             success: true,
             photos_sent: photoCounter,
-            message: `E-mail enviado com sucesso para ${to} (${photoCounter} foto(s) incluída(s))!`
+            message: `E-mail enviado com sucesso para ${to} (${items.length} peça(s), ${photoCounter} foto(s) incluída(s))!`
         });
     }));
 
@@ -2111,7 +2595,15 @@ module.exports = function registerPartsModule({
         const r = await pGet('SELECT * FROM parts_requests WHERE id = ?', [reqId]);
         if (!r) return res.status(404).json({ error: 'Solicitação não encontrada.' });
 
-        const items = await pAll('SELECT * FROM parts_request_items WHERE request_id = ? ORDER BY id ASC', [reqId]);
+        const stagePerm = await canUserActOnStage(req.user, r.stage);
+        if (!stagePerm.allowed) {
+            return res.status(403).json({
+                error: `🔒 Apenas o responsável da etapa atual (${stagePerm.ownerDisplay}) pode enviar a proposta comercial ao cliente.`
+            });
+        }
+
+        const rawItems = await pAll('SELECT * FROM parts_request_items WHERE request_id = ? ORDER BY id ASC', [reqId]);
+        const items = rawItems.map(it => enrichItemMachineFields(it, r));
         if (items.length === 0) {
             return res.status(400).json({ error: 'Nenhuma peça vinculada a esta solicitação.' });
         }
@@ -2139,7 +2631,6 @@ module.exports = function registerPartsModule({
             ? 'Guilherme Bertola — Pós-Venda & Peças Tecfag'
             : `${getFriendlyUserName(req.user.username)} — Grupo Tecfag`;
 
-        // Montar lista de Cópia (CC) garantindo SEMPRE cópia para Guilherme Bertola (vendas18@tecfag.com.br)!
         const ccSet = new Set();
         ccSet.add(guilhermeEmail);
         if (loggedUserEmail && loggedUserEmail.includes('@')) {
@@ -2148,11 +2639,9 @@ module.exports = function registerPartsModule({
         if (cc && String(cc).trim()) {
             String(cc).split(/[,;]+/).map(s => s.trim().toLowerCase()).filter(s => s.includes('@')).forEach(s => ccSet.add(s));
         }
-        // Não duplicar o destinatário principal no CC
         ccSet.delete(targetClientEmail.toLowerCase());
         const finalCcString = Array.from(ccSet).join(', ');
 
-        // Verificar se o usuário logado (ou Guilherme) possui conta SMTP própria conectada
         const personalSmtp = await pGet(
             'SELECT * FROM parts_user_smtp WHERE LOWER(username) = LOWER(?) OR LOWER(email_address) = LOWER(?)',
             [req.user.username, primaryOwnerEmail]
@@ -2195,7 +2684,6 @@ module.exports = function registerPartsModule({
             fromHeader = `"${primaryOwnerDisplay}" <${process.env.SMTP_USER}>`;
         }
 
-        // Anexos e Fotos das Peças p/ Confirmação Visual do Cliente
         const mailAttachments = [];
         const inlinePhotosHtml = [];
         if (include_photos !== false && include_photos !== 'false') {
@@ -2214,9 +2702,13 @@ module.exports = function registerPartsModule({
                             cid,
                             contentDisposition: 'inline'
                         });
+                        const mTag = it.effective_machine_sku || it.effective_machine_name
+                            ? `<div style="font-size:11px; color:#64748b; margin-bottom:4px;">🏭 ${it.effective_machine_sku || ''} ${it.effective_machine_name || ''}</div>`
+                            : '';
                         inlinePhotosHtml.push(`
                             <div style="display:inline-block; vertical-align:top; width:240px; margin:0 12px 12px 0; border:1px solid #cbd5e1; border-radius:8px; padding:10px; background:#f8fafc;">
-                                <div style="font-size:12px; font-weight:bold; color:#0f172a; margin-bottom:6px;">Item #${i + 1}: ${it.part_name_pt}</div>
+                                <div style="font-size:12px; font-weight:bold; color:#0f172a; margin-bottom:2px;">Item #${i + 1}: ${it.part_name_pt}</div>
+                                ${mTag}
                                 <img src="cid:${cid}" alt="Peça ${i + 1}" style="width:100%; height:150px; object-fit:cover; border-radius:6px; border:1px solid #e2e8f0;" />
                             </div>
                         `);
@@ -2235,15 +2727,20 @@ module.exports = function registerPartsModule({
         }
 
         let grandTotal = 0;
-        const rowsHtml = items.map((it, idx) => {
+        const rowsHtml = items.map((it) => {
             const unitBrl = parseFloat(it.final_unit_price_brl) || 0;
             const qty = parseFloat(it.qty) || 1;
             const subBrl = +(unitBrl * qty).toFixed(2);
             grandTotal += subBrl;
+            const itemMachDiff = (it.effective_machine_sku && it.effective_machine_sku !== r.machine_sku) ||
+                (it.effective_machine_name && it.effective_machine_name !== r.machine_name);
+            const itemMachSub = itemMachDiff
+                ? `<div style="font-size:11px; font-weight:normal; color:#475569; margin-top:2px;">🏭 Equipamento: ${it.effective_machine_sku || ''} ${it.effective_machine_name || ''}</div>`
+                : '';
             return `
                 <tr>
                     <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; font-family:monospace; font-weight:bold; color:#0369a1;">${it.erp_sku || it.temp_sku}</td>
-                    <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; font-weight:bold; color:#0f172a;">${it.part_name_pt}</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; font-weight:bold; color:#0f172a;">${it.part_name_pt}${itemMachSub}</td>
                     <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">${qty} ${it.unit || 'UN'}</td>
                     <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">${it.promised_lead_days || 15} dias úteis</td>
                     <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:right;">R$ ${unitBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
