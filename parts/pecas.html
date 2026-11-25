@@ -983,28 +983,31 @@
         </div>
     </div>
 
-    <!-- MODAL 4: MANUAL OPERACIONAL INTEGRADO (V2.0 ATUALIZADO) -->
+    <!-- MODAL 4: MANUAL OPERACIONAL INTEGRADO (V2.1 ATUALIZADO) -->
     <div class="modal-overlay" id="modal-user-manual" style="z-index:1300;">
-        <div class="modal-box" style="max-width:1000px;">
+        <div class="modal-box" style="max-width:1020px;">
             <div class="modal-head">
                 <div>
-                    <h3 style="font-size:1.12rem;">📖 Manual Operacional v2.0 — Gestão de Peças Sob Encomenda & Reposição</h3>
-                    <div style="font-size:0.75rem; color:var(--muted);">Matriz Oficial Ativa: Abertura & Etapa 3 (Guilherme Bertola) • Etapas 1, 2, 4, 5 e 6 (Jhenifer) • Chave-Mestra Admin (Gilson & Fernando)</div>
+                    <h3 style="font-size:1.12rem;">📖 Manual Operacional v2.1 — Gestão de Peças Sob Encomenda & Reposição</h3>
+                    <div style="font-size:0.74rem; color:var(--muted);">Abertura & Etapa 3: Guilherme, Raiane, Maria Vitória, Keicy e Matheus • Etapas 1, 2, 4, 5 e 6: Jhenifer • Chave-Mestra Admin: Gilson & Fernando</div>
                 </div>
                 <button class="btn btn-sm" onclick="closeModal('modal-user-manual')">✕ Fechar</button>
             </div>
             <div class="modal-body" style="line-height:1.6; font-size:0.83rem;">
                 <div style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.45); border-left:4px solid #f59e0b; padding:12px 16px; border-radius:8px; margin-bottom:12px;">
-                    <strong style="color:#fbbf24;">⚡ Regra de Ouro Tecfag:</strong> Nenhuma cotação fica esperando 5 dias de cadastro no ERP! Peças novas ganham <strong>Pré-SKU automático (<code>TMP-PEC-XXXX</code>)</strong> para cotação imediata, e o cadastro oficial no ERP <strong>só ocorre quando o cliente aprova a proposta</strong>!
+                    <strong style="color:#fbbf24;">⚡ Regra de Ouro Tecfag:</strong> Nenhuma cotação fica esperando dias de cadastro no ERP! Peças novas ganham <strong>Pré-SKU automático (<code>TMP-PEC-XXXX</code>)</strong> para cotação imediata, e o cadastro oficial no ERP <strong>só ocorre quando o cliente aprova a proposta</strong>!
                 </div>
 
                 <div style="background:rgba(236,72,153,0.10); border:1px solid rgba(244,114,182,0.4); border-left:4px solid #ec4899; padding:11px 16px; border-radius:8px; margin-bottom:14px;">
-                    <strong style="color:#f9a8d4;">🔒 Governança & Trava por Etapa:</strong> Todos os usuários podem abrir os cards para consultar andamento, copiar textos e mandar mensagens no <strong>Chat Interno</strong>, mas <strong>somente o responsável da etapa atual pode alterar dados ou avançar o card</strong> (indicado pelas tags <strong>✏️ Sua Etapa</strong> ou <strong>🔒 Consulta</strong>). Administradores Master (<strong>Gilson</strong> e <strong>Fernando</strong>) possuem acesso total e podem alterar responsáveis no botão <strong>🛡️ Responsáveis por Etapa</strong>.
+                    <strong style="color:#f9a8d4;">🔒 Governança & Equipe Autorizada por Etapa:</strong> Todos os usuários podem abrir os cards para consultar andamento, copiar textos e mandar mensagens no <strong>Chat Interno</strong>, mas <strong>somente os responsáveis da etapa atual podem alterar dados ou avançar o card</strong> (indicado pelas tags <strong>✏️ Sua Etapa</strong> ou <strong>🔒 Consulta</strong>):<br>
+                    • <strong>Equipe de Abertura & Etapa 3 (Proposta ao Cliente):</strong> Guilherme Bertola (<code>vendas18@</code>), Raiane Aguiar (<code>assistencia@</code>), Maria Vitória (<code>assistencia4@</code>), Keicy Cardoso (<code>vendas21@</code>) e Matheus Henrique (<code>assistencia7@</code>).<br>
+                    • <strong>Etapas 1, 2, 4, 5 e 6 (Triagem, Cotação, ERP, Compra e Doca):</strong> Jhenifer (<code>adm@tecfag.com.br</code>).<br>
+                    • <strong>Administradores Master:</strong> Gilson e Fernando possuem acesso total e gerenciam permissões em <strong>🛡️ Responsáveis por Etapa</strong>.
                 </div>
 
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
                     <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:14px;">
-                        <h4 style="color:#38bdf8; margin-bottom:6px;">➕ Abertura da Solicitação (Guilherme Bertola)</h4>
+                        <h4 style="color:#38bdf8; margin-bottom:6px;">➕ Abertura da Solicitação (Equipe Peças / Assistência / Vendas)</h4>
                         <p style="color:#cbd5e1; font-size:0.79rem;">
                             • Clique em <strong>➕ Nova Solicitação de Peça</strong>.<br>
                             • Informe o <strong>Cliente</strong> e o <strong>📧 E-mail do Cliente</strong> (puxado automático do ERP se já cadastrado).<br>
@@ -1025,13 +1028,13 @@
                         <p style="color:#cbd5e1; font-size:0.79rem;">
                             • Clique em <strong>📧 Enviar E-mail c/ Fotos ao Fornecedor</strong>: usa estritamente o <strong>Cód. Antigo</strong> e <strong>agrupa descrições e fotos por máquina</strong> (<code>MACHINE 1</code>, <code>MACHINE 2</code>). Se houver fábricas diferentes, filtre pelos botões no topo do modal!<br>
                             • Digite o <strong>FOB (US$)</strong> ➔ cálculo automático <code>FOB × Dólar × 2 × 2</code>.<br>
-                            • Clique em <strong>📤 Concluir & Liberar p/ Guilherme</strong> ou <strong>⚡ Concluir & Já Enviar E-mail p/ Cliente (c/ Cópia Guilherme)</strong>.
+                            • Clique em <strong>📤 Concluir & Liberar p/ Solicitante</strong> ou <strong>⚡ Concluir & Já Enviar E-mail p/ Cliente</strong> (já vai com cópia e resposta para quem abriu o chamado!).
                         </p>
                     </div>
                     <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:14px;">
-                        <h4 style="color:#6366f1; margin-bottom:6px;">3️⃣ Etapa 3 — Proposta Direta & Decisão (Guilherme)</h4>
+                        <h4 style="color:#6366f1; margin-bottom:6px;">3️⃣ Etapa 3 — Proposta Oficial c/ Logo Tecfag & Decisão</h4>
                         <p style="color:#cbd5e1; font-size:0.79rem;">
-                            • Na Aba 3, clique em <strong>📧 Enviar Proposta Oficial p/ E-mail do Cliente Agora</strong> (sem copiar e colar!): vai com tabela formatada, fotos das peças, <strong>Resposta Direta (Reply-To) e Cópia (CC) automáticas p/ <code>vendas18@tecfag.com.br</code></strong>! (Opcional: conecte sua senha em <strong>🔑 Meu E-mail</strong>).<br>
+                            • Na Aba 3, clique em <strong>📧 Enviar Proposta Oficial p/ E-mail do Cliente Agora</strong>: vai com <strong>Logo Oficial Tecfag no cabeçalho</strong>, tabela comercial, fotos das peças e <strong>Resposta Direta (Reply-To) + Cópia (CC) automáticas p/ o seu próprio e-mail corporativo</strong>! (Opcional: conecte sua senha em <strong>🔑 Meu E-mail</strong>).<br>
                             • Se o cliente <strong>Aprovar</strong>: clique em <strong>✅ Confirmar Venda Aprovada</strong>. Se <strong>Declinar</strong>: encerre sem gastar tempo no ERP!
                         </p>
                     </div>
@@ -1054,7 +1057,7 @@
             <div class="modal-foot">
                 <span style="font-size:0.74rem; color:var(--muted);">💡 Peças pedidas 3+ vezes ganham selo automático <strong>🔥 SUGERIDO ESTOQUE</strong> na aba Árvore de Peças!</span>
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <a href="/manual-pecas.pdf" class="btn btn-green">⬇️ Baixar Manual v2.0 em PDF</a>
+                    <a href="/manual-pecas.pdf" class="btn btn-green">⬇️ Baixar Manual v2.1 em PDF</a>
                     <a href="/manual-pecas" target="_blank" class="btn">🖨️ Versão p/ Impressão ↗</a>
                     <button class="btn btn-primary" onclick="closeModal('modal-user-manual')">Fechar</button>
                 </div>
