@@ -2336,6 +2336,16 @@ app.post('/api/auth/login', async (req, res) => {
             'patrícia': 'vendas6',
             'guilherme': 'vendas18@tecfag.com.br',
             'bertola': 'vendas18@tecfag.com.br',
+            'raiane': 'assistencia@tecfag.com.br',
+            'raiane.aguiar': 'assistencia@tecfag.com.br',
+            'assistencia': 'assistencia@tecfag.com.br',
+            'mariavitoria': 'assistencia4@tecfag.com.br',
+            'maria.vitoria': 'assistencia4@tecfag.com.br',
+            'vitoria': 'assistencia4@tecfag.com.br',
+            'assistencia4': 'assistencia4@tecfag.com.br',
+            'keicy': 'vendas21@tecfag.com.br',
+            'keicy.cardoso': 'vendas21@tecfag.com.br',
+            'vendas21': 'vendas21@tecfag.com.br',
             'lerlayne': 'jerlayne',
             'rh@tecfag.com.br': 'jerlayne'
         };
@@ -2343,7 +2353,10 @@ app.post('/api/auth/login', async (req, res) => {
             cleanUser = aliasMap[cleanUser];
         }
 
-        const user = await dbGet('SELECT * FROM users WHERE username = ? OR email = ? COLLATE NOCASE', [cleanUser, cleanUser]);
+        const user = await dbGet(
+            'SELECT * FROM users WHERE username = ? OR email = ? COLLATE NOCASE ORDER BY CASE WHEN LOWER(username) = LOWER(?) THEN 0 ELSE 1 END',
+            [cleanUser, cleanUser, cleanUser]
+        );
         if (!user) {
             return res.status(400).json({ error: 'Usuário ou senha incorretos.' });
         }

@@ -1062,7 +1062,7 @@
         </div>
     </div>
 
-    <!-- MODAL 5: CONECTAR CONTA DE E-MAIL PRÓPRIA (OPCIONAL - EX: GUILHERME BERTOLA) -->
+    <!-- MODAL 5: CONECTAR CONTA DE E-MAIL PRÓPRIA (OPCIONAL - EQUIPE PEÇAS / VENDAS / ASSISTÊNCIA) -->
     <div class="modal-overlay" id="modal-my-smtp" style="z-index:1350;">
         <div class="modal-box" style="max-width:540px;">
             <div class="modal-head">
@@ -1074,11 +1074,11 @@
             </div>
             <div class="modal-body" style="display:flex; flex-direction:column; gap:12px;">
                 <div style="background:rgba(14,165,233,0.1); border:1px solid rgba(56,189,248,0.3); padding:10px 12px; border-radius:8px; font-size:0.76rem; color:#cbd5e1;">
-                    💡 <strong>Como funciona:</strong> Mesmo sem configurar aqui, o sistema já envia com <strong>Resposta Direta (Reply-To)</strong> e <strong>Cópia (CC)</strong> para <code>vendas18@tecfag.com.br</code>. Se quiser que o envio saia autenticado diretamente pela sua caixa de e-mail pessoal, informe a senha do seu webmail abaixo uma única vez:
+                    💡 <strong>Como funciona:</strong> Mesmo sem configurar aqui, o sistema já envia com <strong>Resposta Direta (Reply-To)</strong> e <strong>Cópia (CC)</strong> para o seu e-mail corporativo (ex.: <code>vendas18@tecfag.com.br</code>, <code>assistencia@tecfag.com.br</code>, <code>assistencia4@tecfag.com.br</code>, <code>vendas21@tecfag.com.br</code>). Se quiser que o envio saia autenticado diretamente pela sua caixa de e-mail pessoal, informe a senha do seu webmail abaixo uma única vez:
                 </div>
                 <div class="fg">
                     <label>Seu E-mail Corporativo *</label>
-                    <input type="email" id="msmtp-email" class="form-control" placeholder="vendas18@tecfag.com.br">
+                    <input type="email" id="msmtp-email" class="form-control" placeholder="seu.email@tecfag.com.br">
                 </div>
                 <div class="fg">
                     <label>Senha do Seu Webmail / E-mail *</label>
@@ -1154,15 +1154,37 @@
 
         function getStageOwnerShort(stageKey) {
             if (permissionsMap && permissionsMap[stageKey] && permissionsMap[stageKey].owner_display) {
-                return permissionsMap[stageKey].owner_display.split('(')[0].trim();
+                return permissionsMap[stageKey].owner_display
+                    .split('•')
+                    .map(s => s.split('(')[0].trim())
+                    .filter(Boolean)
+                    .join(' • ');
             }
             return '';
+        }
+
+        function resolveRequestConsultantEmail(r) {
+            if (currentUser && (currentUser.is_parts_requester || currentUser.role === 'VENDAS') && currentUser.official_email) {
+                return currentUser.official_email;
+            }
+            if (r && r.requester_official_email) {
+                return r.requester_official_email;
+            }
+            return 'vendas18@tecfag.com.br';
+        }
+
+        function resolveRequestConsultantShortName(r) {
+            if (r && r.requester_name) {
+                const base = String(r.requester_name).split('(')[0].trim();
+                if (base && base !== 'Sistema') return base;
+            }
+            return 'Comercial / Peças';
         }
 
         const STAGE_META = {
             '1_TRIAGEM_TECNICA': { num: '1', title: '1. Triagem Técnica', sla: 'Resp.: Jhenifer • Brasil vs China', color: '#0ea5e9' },
             '2_COTACAO_FORNECEDOR': { num: '2', title: '2. Cotação Fornecedor', sla: 'Resp.: Jhenifer • Com Pré-SKU', color: '#f59e0b' },
-            '3_PROPOSTA_CLIENTE': { num: '3', title: '3. Proposta no Cliente', sla: 'Resp.: Guilherme • Decisão Cliente', color: '#6366f1' },
+            '3_PROPOSTA_CLIENTE': { num: '3', title: '3. Proposta no Cliente', sla: 'Resp.: Guilherme / Raiane / Vitória / Keicy', color: '#6366f1' },
             '4_CADASTRO_ERP': { num: '4', title: '4. Fila ERP (Jhenifer)', sla: 'Resp.: Jhenifer • Só Venda Ganha!', color: '#ec4899' },
             '5_COMPRA_TRANSITO': { num: '5', title: '5. Compra & Trânsito', sla: 'Resp.: Jhenifer • DHL / Container', color: '#8b5cf6' },
             '6_DOCA_EXPEDICAO': { num: '6', title: '6. Doca / Reserva Cliente', sla: 'Resp.: Jhenifer • Faturar Cliente', color: '#10b981' },
@@ -1315,8 +1337,9 @@
                     newBtn.style.opacity = '1';
                     newBtn.title = 'Abrir nova solicitação de peças';
                 } else {
-                    const creatorName = getStageOwnerShort('CREATE_REQUEST') || 'Guilherme Bertola';
-                    newBtn.innerHTML = `🔒 Abertura (${esc(creatorName)})`;
+                    const creatorName = getStageOwnerShort('CREATE_REQUEST') || 'Equipe Peças / Comercial';
+                    const btnShort = creatorName.length > 34 ? 'Equipe Comercial / Assist.' : creatorName;
+                    newBtn.innerHTML = `🔒 Abertura (${esc(btnShort)})`;
                     newBtn.style.opacity = '0.6';
                     newBtn.title = `Abertura restrita a: ${creatorName} (ou Admin Gilson / Fernando)`;
                 }
@@ -2632,8 +2655,8 @@
                             <button type="button" class="btn btn-primary btn-sm" onclick="openSupplierEmailModal('EN')">📧 Enviar E-mail c/ Fotos ao Fornecedor</button>
                             <button type="button" class="btn btn-sm" onclick="copySupplierRfq('EN')">🇨🇳 Copiar p/ WeChat</button>
                             <button type="button" class="btn btn-sm" onclick="copySupplierRfq('PT')">🇧🇷 Copiar p/ WhatsApp Brasil</button>
-                            <button type="button" class="btn btn-amber btn-sm" onclick="releaseProposalToSales()" title="Salva a cotação e move para a etapa do Guilherme revisar">📤 Concluir & Liberar p/ Guilherme</button>
-                            <button type="button" class="btn btn-green btn-sm" onclick="releaseAndAutoSendClientEmail()" title="Conclui a cotação e já dispara a proposta por e-mail direto ao cliente com cópia e resposta para Guilherme Bertola!">⚡ Concluir & Já Enviar E-mail p/ Cliente (c/ Cópia Guilherme)</button>
+                            <button type="button" class="btn btn-amber btn-sm" onclick="releaseProposalToSales()" title="Salva a cotação e move para a Etapa 3 para o solicitante revisar">📤 Concluir & Liberar p/ ${esc(resolveRequestConsultantShortName(r))}</button>
+                            <button type="button" class="btn btn-green btn-sm" onclick="releaseAndAutoSendClientEmail()" title="Conclui a cotação e já dispara a proposta por e-mail direto ao cliente com cópia e resposta para ${esc(resolveRequestConsultantEmail(r))}!">⚡ Concluir & Já Enviar E-mail p/ Cliente (c/ Cópia ${esc(resolveRequestConsultantShortName(r))})</button>
                         </div>
                     </div>
 
@@ -2758,7 +2781,7 @@
                 `;
             } else if (activeDetailSubTab === 3) {
                 const proposalText = buildClientProposalText();
-                const ownerEmail = (currentUser && currentUser.is_guilherme) ? 'vendas18@tecfag.com.br' : ((currentUser && currentUser.role === 'VENDAS' && currentUser.official_email) ? currentUser.official_email : 'vendas18@tecfag.com.br');
+                const ownerEmail = resolveRequestConsultantEmail(r);
                 const isPersonalBox = !!(currentUser && currentUser.personal_smtp_configured);
                 const sentAtBadge = r.proposal_sent_at
                     ? `<div style="background:rgba(16,185,129,0.14); border:1px solid rgba(16,185,129,0.45); color:#6ee7b7; padding:8px 12px; border-radius:8px; font-size:0.76rem; font-weight:700; margin-bottom:10px;">
@@ -2783,7 +2806,7 @@
                                 <div style="background:rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:9px 12px; margin-bottom:12px; font-size:0.74rem; color:#cbd5e1; line-height:1.45;">
                                     ${isPersonalBox
                                         ? `🚀 <strong>Envio Autenticado Pessoal:</strong> O e-mail sairá diretamente pela sua caixa <strong>${esc(ownerEmail)}</strong> e já ficará salvo nos seus Enviados.`
-                                        : `↩️ <strong>Resposta Direta Garantida:</strong> Ao responder o orçamento, a resposta do cliente cai <strong>direto em ${esc(ownerEmail)}</strong> + <strong>Cópia Automática (CC) para vendas18@tecfag.com.br</strong>!`}
+                                        : `↩️ <strong>Resposta Direta Garantida:</strong> Ao responder o orçamento, a resposta do cliente cai <strong>direto em ${esc(ownerEmail)}</strong> + <strong>Cópia Automática (CC) para ${esc(ownerEmail)}</strong>!`}
                                 </div>
 
                                 <div class="form-grid-2" style="margin-bottom:10px;">
@@ -2792,7 +2815,7 @@
                                         <input type="email" id="cp-to-email" class="form-control" value="${esc(r.client_email || '')}" placeholder="compras@cliente.com.br" style="border-color:rgba(16,185,129,0.45); font-weight:700;">
                                     </div>
                                     <div class="fg">
-                                        <label>📋 Cópia Extra (Guilherme já vai em CC automático)</label>
+                                        <label>📋 Cópia Extra (${esc(ownerEmail)} já vai em CC)</label>
                                         <input type="text" id="cp-cc-email" class="form-control" placeholder="Opcional: outro@email.com.br">
                                     </div>
                                 </div>
@@ -3641,9 +3664,10 @@
                 return;
             }
 
+            const consultantEmail = resolveRequestConsultantEmail(activeDetailReq);
             let targetEmail = (activeDetailReq.client_email || '').trim();
             if (!targetEmail || !targetEmail.includes('@')) {
-                const typed = prompt('Informe o e-mail do cliente para envio imediato da proposta (com Cópia e Resposta automáticas para vendas18@tecfag.com.br):', targetEmail);
+                const typed = prompt(`Informe o e-mail do cliente para envio imediato da proposta (com Cópia e Resposta automáticas para ${consultantEmail}):`, targetEmail);
                 if (!typed) return;
                 targetEmail = typed.trim();
                 if (!targetEmail.includes('@')) {
@@ -3652,7 +3676,7 @@
                 }
                 activeDetailReq.client_email = targetEmail;
             } else {
-                if (!confirm(`Confirmar conclusão da cotação (${fmtMoney(totalVal)}) e envio imediato por e-mail para:\n\n📧 Cliente: ${targetEmail}\n📋 Cópia & Resposta: vendas18@tecfag.com.br ?`)) {
+                if (!confirm(`Confirmar conclusão da cotação (${fmtMoney(totalVal)}) e envio imediato por e-mail para:\n\n📧 Cliente: ${targetEmail}\n📋 Cópia & Resposta: ${consultantEmail} ?`)) {
                     return;
                 }
             }
@@ -3754,7 +3778,8 @@
         }
 
         async function clearMySmtpConfig() {
-            if (!confirm('Desconectar sua caixa de e-mail pessoal? (O sistema continuará enviando normalmente com Resposta e Cópia para vendas18@tecfag.com.br).')) return;
+            const myEm = (currentUser && currentUser.official_email) || 'seu e-mail corporativo';
+            if (!confirm(`Desconectar sua caixa de e-mail pessoal? (O sistema continuará enviando normalmente com Resposta e Cópia para ${myEm}).`)) return;
             try {
                 await api('/api/parts/my-smtp', { method: 'DELETE' });
                 if (currentUser) currentUser.personal_smtp_configured = false;
@@ -3835,6 +3860,9 @@
                         if (allowedSet.has(uname)) return true;
                         if (uname === 'jhenifer' && allowedSet.has('adm@tecfag.com.br')) return true;
                         if (uname === 'vendas18@tecfag.com.br' && (allowedSet.has('vendas18') || allowedSet.has('guilherme'))) return true;
+                        if (uname === 'assistencia@tecfag.com.br' && (allowedSet.has('assistencia') || allowedSet.has('raiane') || allowedSet.has('raiane.aguiar'))) return true;
+                        if (uname === 'assistencia4@tecfag.com.br' && (allowedSet.has('assistencia4') || allowedSet.has('mariavitoria') || allowedSet.has('maria.vitoria') || allowedSet.has('vitoria'))) return true;
+                        if (uname === 'vendas21@tecfag.com.br' && (allowedSet.has('vendas21') || allowedSet.has('keicy') || allowedSet.has('keicy.cardoso'))) return true;
                         return false;
                     };
 

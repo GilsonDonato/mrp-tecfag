@@ -88,6 +88,19 @@ module.exports = function registerPartsModule({
         'vendas18': 'Guilherme Bertola (Peças / Pós-Venda)',
         'vendas18@tecfag.com.br': 'Guilherme Bertola (Peças / Pós-Venda)',
         'guilherme': 'Guilherme Bertola (Peças / Pós-Venda)',
+        'assistencia@tecfag.com.br': 'Raiane Aguiar (Assistência / Peças)',
+        'assistencia': 'Raiane Aguiar (Assistência / Peças)',
+        'raiane': 'Raiane Aguiar (Assistência / Peças)',
+        'raiane.aguiar': 'Raiane Aguiar (Assistência / Peças)',
+        'assistencia4@tecfag.com.br': 'Maria Vitória (Assistência / Peças)',
+        'assistencia4': 'Maria Vitória (Assistência / Peças)',
+        'mariavitoria': 'Maria Vitória (Assistência / Peças)',
+        'maria.vitoria': 'Maria Vitória (Assistência / Peças)',
+        'vitoria': 'Maria Vitória (Assistência / Peças)',
+        'vendas21@tecfag.com.br': 'Keicy Cardoso (Vendas / Peças)',
+        'vendas21': 'Keicy Cardoso (Vendas / Peças)',
+        'keicy': 'Keicy Cardoso (Vendas / Peças)',
+        'keicy.cardoso': 'Keicy Cardoso (Vendas / Peças)',
         'jhenifer': 'Jhenifer (Cadastro ERP & Compras)',
         'adm@tecfag.com.br': 'Jhenifer (Cadastro ERP & Compras)',
         'fernando': 'Fernando (Engenharia)',
@@ -131,6 +144,19 @@ module.exports = function registerPartsModule({
         return u === 'vendas18' || u === 'vendas18@tecfag.com.br' || u === 'guilherme';
     }
 
+    // Equipe de Abertura & Proposta de Peças (mesmos poderes de Guilherme Bertola)
+    function isPartsRequesterTeamUser(userOrUsername) {
+        const raw = typeof userOrUsername === 'string' ? userOrUsername : (userOrUsername && userOrUsername.username);
+        if (!raw) return false;
+        const u = String(raw).toLowerCase().trim();
+        return [
+            'vendas18', 'vendas18@tecfag.com.br', 'guilherme', 'bertola',
+            'assistencia@tecfag.com.br', 'assistencia', 'raiane', 'raiane.aguiar',
+            'assistencia4@tecfag.com.br', 'assistencia4', 'mariavitoria', 'maria.vitoria', 'vitoria',
+            'vendas21@tecfag.com.br', 'vendas21', 'keicy', 'keicy.cardoso'
+        ].includes(u);
+    }
+
     // Chave-Mestra (Acesso Total de Edição e Governança): Gilson, Admin e Fernando
     function isMasterAdminUser(user) {
         if (!user) return false;
@@ -151,6 +177,25 @@ module.exports = function registerPartsModule({
             set.add('guilherme');
             set.add('vendas18');
             set.add('vendas18@tecfag.com.br');
+        }
+        if (['raiane', 'raiane.aguiar', 'assistencia', 'assistencia@tecfag.com.br'].includes(clean)) {
+            set.add('raiane');
+            set.add('raiane.aguiar');
+            set.add('assistencia');
+            set.add('assistencia@tecfag.com.br');
+        }
+        if (['mariavitoria', 'maria.vitoria', 'vitoria', 'assistencia4', 'assistencia4@tecfag.com.br'].includes(clean)) {
+            set.add('mariavitoria');
+            set.add('maria.vitoria');
+            set.add('vitoria');
+            set.add('assistencia4');
+            set.add('assistencia4@tecfag.com.br');
+        }
+        if (['keicy', 'keicy.cardoso', 'vendas21', 'vendas21@tecfag.com.br'].includes(clean)) {
+            set.add('keicy');
+            set.add('keicy.cardoso');
+            set.add('vendas21');
+            set.add('vendas21@tecfag.com.br');
         }
         if (['gilson', 'gilson@tecfag.com.br'].includes(clean)) {
             set.add('gilson');
@@ -176,12 +221,20 @@ module.exports = function registerPartsModule({
         return set;
     }
 
+    const PARTS_REQUESTERS_DEFAULT_EMAILS = [
+        'vendas18@tecfag.com.br',
+        'assistencia@tecfag.com.br',
+        'assistencia4@tecfag.com.br',
+        'vendas21@tecfag.com.br'
+    ];
+    const PARTS_REQUESTERS_DEFAULT_DISPLAY = 'Guilherme Bertola • Raiane Aguiar • Maria Vitória • Keicy Cardoso';
+
     const DEFAULT_STAGE_GOVERNANCE = [
         {
             stage_key: 'CREATE_REQUEST',
             stage_label: '➕ Abertura da Solicitação de Peças',
-            allowed_users: ['vendas18@tecfag.com.br'],
-            owner_display: 'Guilherme Bertola (vendas18@tecfag.com.br)'
+            allowed_users: [...PARTS_REQUESTERS_DEFAULT_EMAILS],
+            owner_display: PARTS_REQUESTERS_DEFAULT_DISPLAY
         },
         {
             stage_key: '1_TRIAGEM_TECNICA',
@@ -198,8 +251,8 @@ module.exports = function registerPartsModule({
         {
             stage_key: '3_PROPOSTA_CLIENTE',
             stage_label: '3️⃣ Etapa 3 — Proposta ao Cliente & Aprovação/Declínio',
-            allowed_users: ['vendas18@tecfag.com.br'],
-            owner_display: 'Guilherme Bertola (vendas18@tecfag.com.br)'
+            allowed_users: [...PARTS_REQUESTERS_DEFAULT_EMAILS],
+            owner_display: PARTS_REQUESTERS_DEFAULT_DISPLAY
         },
         {
             stage_key: '4_CADASTRO_ERP',
@@ -306,6 +359,17 @@ module.exports = function registerPartsModule({
         const map = {
             'vendas18': 'vendas18@tecfag.com.br',
             'guilherme': 'vendas18@tecfag.com.br',
+            'bertola': 'vendas18@tecfag.com.br',
+            'raiane': 'assistencia@tecfag.com.br',
+            'raiane.aguiar': 'assistencia@tecfag.com.br',
+            'assistencia': 'assistencia@tecfag.com.br',
+            'mariavitoria': 'assistencia4@tecfag.com.br',
+            'maria.vitoria': 'assistencia4@tecfag.com.br',
+            'vitoria': 'assistencia4@tecfag.com.br',
+            'assistencia4': 'assistencia4@tecfag.com.br',
+            'keicy': 'vendas21@tecfag.com.br',
+            'keicy.cardoso': 'vendas21@tecfag.com.br',
+            'vendas21': 'vendas21@tecfag.com.br',
             'gilson': 'gilson@tecfag.com.br',
             'admin': 'gilson@tecfag.com.br',
             'jhenifer': 'adm@tecfag.com.br',
@@ -322,6 +386,16 @@ module.exports = function registerPartsModule({
             'suporte2': 'suporte2@tecfag.com.br'
         };
         return map[u] || 'vendas18@tecfag.com.br';
+    }
+
+    function getProposalConsultantDisplay(emailOrUsername) {
+        const clean = String(emailOrUsername || '').toLowerCase().trim();
+        const email = resolveOfficialUserEmail(clean);
+        if (email === 'vendas18@tecfag.com.br') return 'Guilherme Bertola — Pós-Venda & Peças Tecfag';
+        if (email === 'assistencia@tecfag.com.br') return 'Raiane Aguiar — Assistência & Peças Tecfag';
+        if (email === 'assistencia4@tecfag.com.br') return 'Maria Vitória — Assistência & Peças Tecfag';
+        if (email === 'vendas21@tecfag.com.br') return 'Keicy Cardoso — Pós-Venda & Peças Tecfag';
+        return `${getFriendlyUserName(clean)} — Grupo Tecfag`;
     }
 
     const SMTP_ENC_KEY = crypto.createHash('sha256').update(process.env.SESSION_SECRET || 'tecfag_parts_smtp_secret_2026').digest();
@@ -641,6 +715,12 @@ module.exports = function registerPartsModule({
             )`);
 
             // 8. Matriz de Governança & Responsabilidade por Etapa (Etapa 1 a 6 + Abertura)
+            partsDb.run(`CREATE TABLE IF NOT EXISTS parts_app_meta (
+                meta_key TEXT PRIMARY KEY,
+                meta_val TEXT,
+                updated_at TEXT NOT NULL
+            )`);
+
             partsDb.run(`CREATE TABLE IF NOT EXISTS parts_stage_permissions (
                 stage_key TEXT PRIMARY KEY,
                 stage_label TEXT NOT NULL,
@@ -656,23 +736,59 @@ module.exports = function registerPartsModule({
                         [def.stage_key, def.stage_label, JSON.stringify(def.allowed_users), def.owner_display, nowIso]
                     );
                 });
+
+                // Migração idempotente única: inclui Raiane Aguiar, Maria Vitória e Keicy Cardoso nos mesmos poderes de Guilherme (Abertura & Etapa 3) em bancos já existentes
+                partsDb.get(`SELECT meta_val FROM parts_app_meta WHERE meta_key = 'gov_v2_raiane_vitoria_keicy'`, (mErr, mRow) => {
+                    if (!mErr && !mRow) {
+                        ['CREATE_REQUEST', '3_PROPOSTA_CLIENTE'].forEach((stageKey) => {
+                            partsDb.get(`SELECT allowed_users_json FROM parts_stage_permissions WHERE stage_key = ?`, [stageKey], (sErr, sRow) => {
+                                if (sErr || !sRow) return;
+                                let list = [];
+                                try { list = JSON.parse(sRow.allowed_users_json || '[]'); } catch (e) { list = []; }
+                                if (!Array.isArray(list)) list = [];
+                                const lowerExisting = new Set(list.map(x => String(x || '').toLowerCase().trim()));
+                                PARTS_REQUESTERS_DEFAULT_EMAILS.forEach((em) => {
+                                    if (!lowerExisting.has(em)) {
+                                        list.push(em);
+                                        lowerExisting.add(em);
+                                    }
+                                });
+                                const ownerDisplay = formatOwnersDisplay(list);
+                                partsDb.run(
+                                    `UPDATE parts_stage_permissions SET allowed_users_json = ?, owner_display = ?, updated_at = ? WHERE stage_key = ?`,
+                                    [JSON.stringify(list), ownerDisplay, nowIso, stageKey]
+                                );
+                            });
+                        });
+                        partsDb.run(
+                            `INSERT OR REPLACE INTO parts_app_meta (meta_key, meta_val, updated_at) VALUES ('gov_v2_raiane_vitoria_keicy', '1', ?)`,
+                            [nowIso]
+                        );
+                    }
+                });
             });
         });
 
-        // Garantir cadastro seguro de Guilherme Bertola (vendas18 / vendas18@tecfag.com.br) na tabela users do MRP sem sobrescrever senhas existentes
+        // Garantir cadastro seguro de Guilherme, Raiane, Maria Vitória e Keicy na tabela users do MRP sem sobrescrever senhas existentes
         if (mrpDb && typeof hashPassword === 'function') {
-            const bertolaAccounts = [
-                { username: 'vendas18@tecfag.com.br', email: 'vendas18@tecfag.com.br', role: 'VENDAS' },
-                { username: 'vendas18', email: 'vendas18@tecfag.com.br', role: 'VENDAS' }
+            const partsTeamAccounts = [
+                { username: 'vendas18@tecfag.com.br', email: 'vendas18@tecfag.com.br', role: 'VENDAS', defaultPass: 'vend@tecfag18', label: 'Guilherme Bertola' },
+                { username: 'vendas18', email: 'vendas18@tecfag.com.br', role: 'VENDAS', defaultPass: 'vend@tecfag18', label: 'Guilherme Bertola' },
+                { username: 'assistencia@tecfag.com.br', email: 'assistencia@tecfag.com.br', role: 'VENDAS', defaultPass: 'raiane#tecfag26', label: 'Raiane Aguiar' },
+                { username: 'raiane', email: 'assistencia@tecfag.com.br', role: 'VENDAS', defaultPass: 'raiane#tecfag26', label: 'Raiane Aguiar' },
+                { username: 'assistencia4@tecfag.com.br', email: 'assistencia4@tecfag.com.br', role: 'VENDAS', defaultPass: 'vitoria#tecfag26', label: 'Maria Vitória' },
+                { username: 'mariavitoria', email: 'assistencia4@tecfag.com.br', role: 'VENDAS', defaultPass: 'vitoria#tecfag26', label: 'Maria Vitória' },
+                { username: 'vendas21@tecfag.com.br', email: 'vendas21@tecfag.com.br', role: 'VENDAS', defaultPass: 'vend@tecfag21', label: 'Keicy Cardoso' },
+                { username: 'keicy', email: 'vendas21@tecfag.com.br', role: 'VENDAS', defaultPass: 'vend@tecfag21', label: 'Keicy Cardoso' }
             ];
-            bertolaAccounts.forEach((acc) => {
+            partsTeamAccounts.forEach((acc) => {
                 mrpDb.get('SELECT username FROM users WHERE LOWER(username) = LOWER(?)', [acc.username], (err, row) => {
                     if (!err && !row) {
-                        const { salt, hash } = hashPassword('vend@tecfag18');
+                        const { salt, hash } = hashPassword(acc.defaultPass);
                         mrpDb.run(
                             'INSERT INTO users (username, password_hash, salt, role, email, must_change_password) VALUES (?, ?, ?, ?, ?, 0)',
                             [acc.username, hash, salt, acc.role, acc.email],
-                            () => console.log(`[PEÇAS AUTH] Usuário "${acc.username}" (Guilherme Bertola) habilitado com sucesso.`)
+                            () => console.log(`[PEÇAS AUTH] Usuário "${acc.username}" (${acc.label}) habilitado com sucesso.`)
                         );
                     }
                 });
@@ -949,6 +1065,7 @@ module.exports = function registerPartsModule({
                 personal_smtp_configured: !!personalSmtp,
                 is_jhenifer: isJheniferUser(req.user),
                 is_guilherme: isGuilhermeUser(req.user),
+                is_parts_requester: isPartsRequesterTeamUser(req.user),
                 is_master_admin: isMasterAdminUser(req.user)
             },
             permissions: governanceMap,
@@ -968,7 +1085,10 @@ module.exports = function registerPartsModule({
             // Agrupa aliases duplicados na lista de seleção p/ ficar limpo
             let canonicalKey = clean;
             if (['jhenifer', 'adm@tecfag.com.br'].includes(clean)) canonicalKey = 'jhenifer';
-            else if (['guilherme', 'vendas18', 'vendas18@tecfag.com.br'].includes(clean)) canonicalKey = 'vendas18@tecfag.com.br';
+            else if (['guilherme', 'bertola', 'vendas18', 'vendas18@tecfag.com.br'].includes(clean)) canonicalKey = 'vendas18@tecfag.com.br';
+            else if (['raiane', 'raiane.aguiar', 'assistencia', 'assistencia@tecfag.com.br'].includes(clean)) canonicalKey = 'assistencia@tecfag.com.br';
+            else if (['mariavitoria', 'maria.vitoria', 'vitoria', 'assistencia4', 'assistencia4@tecfag.com.br'].includes(clean)) canonicalKey = 'assistencia4@tecfag.com.br';
+            else if (['keicy', 'keicy.cardoso', 'vendas21', 'vendas21@tecfag.com.br'].includes(clean)) canonicalKey = 'vendas21@tecfag.com.br';
             else if (['gilson', 'gilson@tecfag.com.br'].includes(clean)) canonicalKey = 'gilson';
             else if (['fernando', 'fernando@tecfag.com.br'].includes(clean)) canonicalKey = 'fernando';
             else if (['heilio', 'assistencia6@tecfag.com.br'].includes(clean)) canonicalKey = 'heilio';
@@ -984,7 +1104,10 @@ module.exports = function registerPartsModule({
             }
         };
 
-        registerCandidate('vendas18@tecfag.com.br', 'VENDAS');
+        registerCandidate('vendas18@tecfag.com.br', 'VENDAS / PEÇAS');
+        registerCandidate('assistencia@tecfag.com.br', 'ASSISTÊNCIA / PEÇAS');
+        registerCandidate('assistencia4@tecfag.com.br', 'ASSISTÊNCIA / PEÇAS');
+        registerCandidate('vendas21@tecfag.com.br', 'VENDAS / PEÇAS');
         registerCandidate('jhenifer', 'COMPRAS / ERP');
         mrpUsers.forEach(u => registerCandidate(u.username, u.role));
 
@@ -1360,6 +1483,9 @@ module.exports = function registerPartsModule({
         const primarySup = (items[0] && items[0].effective_machine_supplier) || reqRow.machine_supplier_name || '';
         const suggestedSupplierEmail = supplierEmailsMap[primarySup] || await resolveSupplierSavedEmail(primarySup);
         const stageAccess = await canUserActOnStage(req.user, reqRow.stage);
+        reqRow.requester_official_email = reqRow.requester_username && isPartsRequesterTeamUser(reqRow.requester_username)
+            ? resolveOfficialUserEmail(reqRow.requester_username)
+            : 'vendas18@tecfag.com.br';
 
         res.json({
             request: reqRow,
@@ -2625,15 +2751,22 @@ module.exports = function registerPartsModule({
         const now = new Date().toISOString();
         const guilhermeEmail = 'vendas18@tecfag.com.br';
         const loggedUserEmail = resolveOfficialUserEmail(req.user.username);
+        const requesterOfficialEmail = (r.requester_username && isPartsRequesterTeamUser(r.requester_username))
+            ? resolveOfficialUserEmail(r.requester_username)
+            : guilhermeEmail;
 
-        // Sempre garante que a resposta do cliente caia no e-mail do Guilherme (ou do vendedor logado + Guilherme em cópia!)
-        const primaryOwnerEmail = isGuilhermeUser(req.user) ? guilhermeEmail : (req.user.role === 'VENDAS' ? loggedUserEmail : guilhermeEmail);
-        const primaryOwnerDisplay = primaryOwnerEmail === guilhermeEmail
-            ? 'Guilherme Bertola — Pós-Venda & Peças Tecfag'
-            : `${getFriendlyUserName(req.user.username)} — Grupo Tecfag`;
+        // Se quem dispara é da equipe de Peças/Vendas (Guilherme, Raiane, Maria Vitória, Keicy), a resposta vai p/ o próprio e-mail dela/dele;
+        // Se quem dispara é Compras/Admin (ex: botão rápido da Etapa 2), vai p/ o e-mail de quem abriu a solicitação!
+        const primaryOwnerEmail = (isPartsRequesterTeamUser(req.user) || req.user.role === 'VENDAS')
+            ? loggedUserEmail
+            : requesterOfficialEmail;
+        const primaryOwnerDisplay = getProposalConsultantDisplay(primaryOwnerEmail);
 
         const ccSet = new Set();
-        ccSet.add(guilhermeEmail);
+        ccSet.add(primaryOwnerEmail.toLowerCase());
+        if (requesterOfficialEmail && requesterOfficialEmail.includes('@')) {
+            ccSet.add(requesterOfficialEmail.toLowerCase());
+        }
         if (loggedUserEmail && loggedUserEmail.includes('@')) {
             ccSet.add(loggedUserEmail.toLowerCase());
         }
