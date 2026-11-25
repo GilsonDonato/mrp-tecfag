@@ -7700,6 +7700,9 @@
                         ⚡ Presets Rápidos de Mercado:
                     </div>
                     <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-secondary" onclick="applyPaymentPreset25_50_25()" style="padding: 4px 10px; font-size: 0.74rem; font-weight: 700; border-color: rgba(52, 211, 153, 0.5); color: #34d399; background: rgba(52, 211, 153, 0.1);">
+                            ⭐ 25% Ent. + 50% B/L + 25% (90d B/L)
+                        </button>
                         <button type="button" class="btn btn-secondary" onclick="applyPaymentPreset25_25_50()" style="padding: 4px 10px; font-size: 0.74rem; font-weight: 700; border-color: rgba(56, 189, 248, 0.5); color: #38bdf8; background: rgba(56, 189, 248, 0.1);">
                             ⭐ 25% Ent. + 25% B/L + 50% (90d B/L)
                         </button>
@@ -25100,6 +25103,7 @@ function renderKanban() {
                                 : (typeof collectProjectImportItems === 'function' ? collectProjectImportItems() : []);
 
                             const autoSavePayload = {
+                                _explicit_invoice_sync: true,
                                 import_supplier: ext.supplier_name || document.getElementById('modal-import-supplier')?.value || '',
                                 import_invoice_number: ext.invoice_number || document.getElementById('modal-import-invoice-number')?.value || '',
                                 import_invoice_date: isoDate || document.getElementById('modal-import-invoice-date')?.value || null,
@@ -25663,6 +25667,35 @@ function renderKanban() {
                         </div>
                     `;
                     return;
+                }
+
+                // Sincronizar estado local do projeto e campos legados ocultos com as ordens reais de stock_orders
+                if (typeof state !== 'undefined' && Array.isArray(state.projects)) {
+                    const localPrj = state.projects.find(p => p.code === code);
+                    if (localPrj) {
+                        localPrj.has_import_order = true;
+                        const mainOrd = orders.find(o => !o.is_sub_order) || orders[0];
+                        if (orders.length === 1 && mainOrd) {
+                            const liveFob = parseFloat(mainOrd.total_fob_value) || 0;
+                            localPrj.import_total_fob_value = liveFob;
+                            if (mainOrd.supplier_name) localPrj.import_supplier = mainOrd.supplier_name;
+                            if (mainOrd.invoice_number) localPrj.import_invoice_number = mainOrd.invoice_number;
+                            if (mainOrd.invoice_date) localPrj.import_invoice_date = mainOrd.invoice_date;
+                            if (mainOrd.currency) localPrj.import_currency = mainOrd.currency;
+                            if (Array.isArray(mainOrd.items) && mainOrd.items.length > 0) {
+                                localPrj.import_items = mainOrd.items;
+                                if (typeof renderProjectImportItems === 'function') {
+                                    renderProjectImportItems(mainOrd.items);
+                                }
+                            }
+                            const fobEl = document.getElementById('modal-import-total-fob');
+                            if (fobEl) fobEl.value = liveFob > 0 ? liveFob : '';
+                            const supEl = document.getElementById('modal-import-supplier');
+                            if (supEl && mainOrd.supplier_name) supEl.value = mainOrd.supplier_name;
+                            const invEl = document.getElementById('modal-import-invoice-number');
+                            if (invEl && mainOrd.invoice_number) invEl.value = mainOrd.invoice_number;
+                        }
+                    }
                 }
 
                 // Resumo de Convergência da Linha (Quantos fornecedores já chegaram na Doca)
@@ -28235,7 +28268,11 @@ function renderKanban() {
                     }
                 }
 
-                // Sincroniza campos de importação presentes no modal caso tenham sido alterados ou lidos por IA
+                // Sincroniza campos de importação presentes no modal apenas se não houver ordens Multi-PO ativas gerenciadas pelo Comex
+                const legacyWrapper = document.getElementById('legacy-project-import-form-wrapper');
+                const isLegacyHidden = !legacyWrapper || legacyWrapper.style.display === 'none';
+                const hasManagedOrder = !!(project.has_import_order || project.import_order_id);
+
                 const impSupplier = document.getElementById('modal-import-supplier')?.value;
                 const impInvNumber = document.getElementById('modal-import-invoice-number')?.value;
                 const impInvDate = document.getElementById('modal-import-invoice-date')?.value;
@@ -28260,20 +28297,22 @@ function renderKanban() {
                 const impNw = document.getElementById('modal-import-net-weight')?.value;
                 const impPkgs = document.getElementById('modal-import-packages-count')?.value;
 
-                if (impSupplier !== undefined) updateBody.import_supplier = impSupplier.trim();
-                if (impInvNumber !== undefined) updateBody.import_invoice_number = impInvNumber.trim();
-                if (impInvDate !== undefined) updateBody.import_invoice_date = impInvDate || null;
-                if (impCurrency !== undefined) updateBody.import_currency = impCurrency;
-                if (impTotalFob !== undefined) updateBody.import_total_fob_value = parseFloat(impTotalFob) || 0;
-                if (impTransportMode !== undefined) updateBody.import_transport_mode = impTransportMode;
-                if (impCourierService !== undefined) updateBody.import_courier_service = impCourierService;
-                if (impTrackingNumber !== undefined) updateBody.import_tracking_number = impTrackingNumber.trim();
+                if (!(isLegacyHidden && hasManagedOrder)) {
+                    if (impSupplier !== undefined) updateBody.import_supplier = impSupplier.trim();
+                    if (impInvNumber !== undefined) updateBody.import_invoice_number = impInvNumber.trim();
+                    if (impInvDate !== undefined) updateBody.import_invoice_date = impInvDate || null;
+                    if (impCurrency !== undefined) updateBody.import_currency = impCurrency;
+                    if (impTotalFob !== undefined) updateBody.import_total_fob_value = parseFloat(impTotalFob) || 0;
+                    if (impTransportMode !== undefined) updateBody.import_transport_mode = impTransportMode;
+                    if (impCourierService !== undefined) updateBody.import_courier_service = impCourierService;
+                    if (impTrackingNumber !== undefined) updateBody.import_tracking_number = impTrackingNumber.trim();
 
-                const collectedItems = (typeof collectProjectImportItems === 'function' ? collectProjectImportItems() : []);
-                if (collectedItems && collectedItems.length > 0) {
-                    updateBody.import_items = collectedItems;
-                } else if (Array.isArray(project.import_items) && project.import_items.length > 0) {
-                    updateBody.import_items = project.import_items;
+                    const collectedItems = (typeof collectProjectImportItems === 'function' ? collectProjectImportItems() : []);
+                    if (collectedItems && collectedItems.length > 0) {
+                        updateBody.import_items = collectedItems;
+                    } else if (Array.isArray(project.import_items) && project.import_items.length > 0) {
+                        updateBody.import_items = project.import_items;
+                    }
                 }
 
                 if (impContainer !== undefined) updateBody.import_container_id = impContainer.trim();
@@ -34065,6 +34104,54 @@ function renderKanban() {
             renderReconfigInstallmentRows();
         }
 
+        function applyPaymentPreset25_50_25() {
+            const order = supplyChainState.currentOrder;
+            const totalFob = parseFloat(order?.total_fob_value) || 0;
+            const todayStr = new Date().toISOString().split('T')[0];
+            const p1Date = order?.invoice_date || todayStr;
+
+            // Base data B/L: bl_date ou etd_date ou invoice_date + 30 dias
+            let blBaseDate = order?.bl_date || order?.etd_date;
+            if (!blBaseDate) {
+                const dEst = new Date(p1Date);
+                dEst.setDate(dEst.getDate() + 30);
+                blBaseDate = !isNaN(dEst.getTime()) ? dEst.toISOString().split('T')[0] : todayStr;
+            }
+
+            // 90 dias após o B/L
+            const dBl = new Date(blBaseDate);
+            const d90 = new Date(dBl);
+            d90.setDate(d90.getDate() + 90);
+            const p3Date = !isNaN(d90.getTime()) ? d90.toISOString().split('T')[0] : '';
+
+            const p1Amt = Math.round(totalFob * 0.25 * 100) / 100;
+            const p2Amt = Math.round(totalFob * 0.50 * 100) / 100;
+            const p3Amt = Math.round((totalFob - p1Amt - p2Amt) * 100) / 100;
+
+            currentReconfigInstallments = [
+                {
+                    percentage: 25,
+                    amount_currency: p1Amt,
+                    description: '25% Sinal na Proforma / Início Fabricação',
+                    due_date: p1Date
+                },
+                {
+                    percentage: 50,
+                    amount_currency: p2Amt,
+                    description: '50% Saldo contra cópia do B/L',
+                    due_date: blBaseDate
+                },
+                {
+                    percentage: 25,
+                    amount_currency: p3Amt,
+                    description: '25% Saldo - 90 dias após data do B/L',
+                    due_date: p3Date
+                }
+            ];
+
+            renderReconfigInstallmentRows();
+        }
+
         function applyPaymentPreset(p1, p2, desc1, desc2) {
             const order = supplyChainState.currentOrder;
             const totalFob = parseFloat(order?.total_fob_value) || 0;
@@ -34155,12 +34242,21 @@ function renderKanban() {
             let termsDesc = '';
             if (installments.length === 3 && installments[0].percentage === 25 && installments[1].percentage === 25 && installments[2].percentage === 50) {
                 termsDesc = '25% Sinal / 25% B/L / 50% (90d B/L)';
+            } else if (installments.length === 3 && installments[0].percentage === 25 && installments[1].percentage === 50 && installments[2].percentage === 25) {
+                termsDesc = '25% Sinal / 50% B/L / 25% (90d B/L)';
+            } else if (installments.length === 3) {
+                const mDays = (installments[2].description || '').match(/(\d+)\s*dias?/i);
+                const thirdSuffix = mDays ? `(${mDays[1]}d B/L)` : 'Prazo';
+                termsDesc = `${installments[0].percentage}% Sinal / ${installments[1].percentage}% B/L / ${installments[2].percentage}% ${thirdSuffix}`;
             } else if (installments.length === 2) {
                 termsDesc = `${installments[0].percentage}% Sinal / ${installments[1].percentage}% Saldo`;
             } else if (installments.length === 1) {
                 termsDesc = installments[0].percentage === 100 ? `${installments[0].description}` : `${installments[0].percentage}% a Prazo`;
             } else {
-                termsDesc = installments.map(i => `${i.percentage}% ${i.description.split(' ')[0] || ''}`).join(' + ');
+                termsDesc = installments.map(i => {
+                    const cleanLabel = (i.description || '').replace(/^\d+(?:\.\d+)?%\s*/, '').split(' ')[0] || 'Parcela';
+                    return `${i.percentage}% ${cleanLabel}`;
+                }).join(' + ');
             }
 
             const saveBtn = document.getElementById('btn-save-reconfig-payments');

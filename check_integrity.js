@@ -451,6 +451,131 @@ async function main() {
         assert(cleared.commercial_proposal_data.includes('Rotuladora Sleeve Auto'), 'commercial_proposal_data deve continuar intacto');
     });
 
+    // ----------------------------------------------------
+    // 8. TESTE DE BLINDAGEM DE VALOR FOB, PARCELAS CAMBIAIS E FORMULÁRIO LEGADO
+    // ----------------------------------------------------
+    console.log('\n💱 8. Testando Blindagem de Valor FOB, Parcelamento Cambial e Anti-Regressão...');
+
+    reportTest('Eliminação definitiva da fórmula fictícia crm_value / 5.5 e blindagem do modal legado', () => {
+        const codeWithoutComments = serverCode.replace(/\/\/.*$/gm, '');
+        assert(!/crm_value\s*\/\s*5\.5/.test(codeWithoutComments), 'Nenhuma fórmula crm_value / 5.5 deve existir no código executável do server.js');
+        assert(indexCode.includes('function applyPaymentPreset25_50_25'), 'Preset cambial 25/50/25 deve estar declarado no index.html');
+        assert(indexCode.includes('isLegacyHidden && hasManagedOrder'), 'Blindagem contra sobrescrita pelo formulário oculto legado deve existir em saveProjectModal');
+        assert(serverCode.includes('autoFixInvoiceBIT26_1004W3'), 'Auto-cura idempotente da PO-PRJ065 (BIT26-1004W3) deve estar registrada');
+    });
+
+    reportTest('Conversão monetária de Invoice (US$8.450,00) e extração cambial 25% / 50% / 25%', () => {
+        const pinMatch = serverCode.match(/function parseInvoiceNumber\(str\) \{([\s\S]*?)\n\}/);
+        assert(pinMatch, 'parseInvoiceNumber deve existir em server.js');
+        const parseInvoiceNumber = new Function('str', pinMatch[1]);
+
+        assert.strictEqual(parseInvoiceNumber('US$8.450,00'), 8450);
+        assert.strictEqual(parseInvoiceNumber('USD 8,450.00'), 8450);
+        assert.strictEqual(parseInvoiceNumber(8450), 8450);
+
+        const piptMatch = serverCode.match(/function parseInstallmentsFromPaymentTerms\([\s\S]*?\n\}/);
+        assert(piptMatch, 'parseInstallmentsFromPaymentTerms deve existir em server.js');
+        const parseInstallmentsFromPaymentTerms = new Function(`return ${piptMatch[0]}`)();
+
+        const installments = parseInstallmentsFromPaymentTerms(
+            '25%T/T IN ADVANCE AND 50% AGAINST BL 25% IN 90 DAYS AFTER B/L',
+            8450,
+            'USD',
+            '2026-09-14',
+            '2026-10-14'
+        );
+        assert(Array.isArray(installments) && installments.length === 3, 'Deve extrair 3 parcelas da condição 25/50/25');
+        assert.deepStrictEqual(installments.map(i => i.percentage), [25, 50, 25]);
+        assert.deepStrictEqual(installments.map(i => i.amount_currency), [2112.50, 4225.00, 2112.50]);
+        assert.strictEqual(installments[0].due_date, '2026-09-14');
+        assert.strictEqual(installments[1].due_date, '2026-10-14');
+        assert.strictEqual(installments[2].due_date, '2027-01-12');
+    });
+
+    await reportTestAsync('Limpeza de item placeholder órfão sem afetar itens de prateleira ou outros projetos', async () => {
+        const syncFuncMatch = serverCode.match(/async function syncStockOrderItems\(orderId, items, project\) \{([\s\S]*?)\n\}/);
+        const resolveSkuMatch = serverCode.match(/function resolveCleanItemSku[\s\S]*?\n\}/);
+        const syncStockOrderItems = new Function('dbGet', 'dbAll', 'dbRun', `
+            ${resolveSkuMatch[0]}
+            return async function(orderId, items, project) {
+                ${syncFuncMatch[1]}
+            }
+        `)(dbGet, dbAll, dbRun);
+
+        const ordRes = await dbRun(`INSERT INTO stock_orders (
+            po_number, project_code, supplier_name, invoice_number, currency, total_fob_value
+        ) VALUES ('PO-PRJ065-TEST', 'PRJTEC000000065', 'Brother Machinery Group Co., Ltd.', 'BIT26-1004W3', 'USD', 8450)`);
+        const testOrderId = ordRes.lastID;
+
+        // 1. Item placeholder legado órfão (project_code IS NULL, is_project_item = 1)
+        await dbRun(`INSERT INTO stock_order_items (order_id, project_code, is_project_item, sku, description, qty_ordered, unit_price_fob, total_price_fob)
+            VALUES (?, NULL, 1, 'PAMQFPAU055', 'Placeholder CRM 36363.64', 1, 36363.64, 36363.64)`, [testOrderId]);
+        // 2. Item de prateleira para estoque (project_code IS NULL, is_project_item = 0) -> DEVE SER PRESERVADO
+        await dbRun(`INSERT INTO stock_order_items (order_id, project_code, is_project_item, sku, description, qty_ordered, unit_price_fob, total_price_fob)
+            VALUES (?, NULL, 0, 'SHELF-001', 'Máquina Estoque Tecfag', 1, 2000, 2000)`, [testOrderId]);
+        // 3. Item alocado a outro projeto no mesmo contêiner -> DEVE SER PRESERVADO
+        await dbRun(`INSERT INTO stock_order_items (order_id, project_code, is_project_item, sku, description, qty_ordered, unit_price_fob, total_price_fob)
+            VALUES (?, 'PRJTEC000000099', 1, 'OTHER-PRJ-SKU', 'Máquina Outro Cliente', 1, 5000, 5000)`, [testOrderId]);
+
+        await syncStockOrderItems(
+            testOrderId,
+            [{ sku: 'DZB-450S', description: 'Servo Flow Packing Machine', qty_ordered: 1, unit_price_fob: 8450, total_price_fob: 8450 }],
+            { code: 'PRJTEC000000065', client: 'PILLER MECANICA DE PRECISAO LTDA' }
+        );
+
+        const finalItems = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [testOrderId]);
+        const skus = finalItems.map(i => i.sku);
+        assert(!skus.includes('PAMQFPAU055'), 'Placeholder órfão legado deve ser removido');
+        assert(skus.includes('SHELF-001'), 'Item de prateleira (is_project_item = 0) deve ser preservado intacto');
+        assert(skus.includes('OTHER-PRJ-SKU'), 'Item de outro projeto no contêiner deve ser preservado intacto');
+        assert(skus.includes('DZB-450S'), 'Item oficial da invoice deve estar gravado');
+    });
+
+    await reportTestAsync('Proteção absoluta de parcelas PAID / SWIFT durante sincronização cambial pós-Invoice', async () => {
+        await dbRun(`CREATE TABLE IF NOT EXISTS stock_order_payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER,
+            installment_number INTEGER,
+            description TEXT,
+            percentage REAL,
+            amount_currency REAL,
+            currency TEXT,
+            due_date TEXT,
+            status TEXT,
+            swift_file_path TEXT,
+            created_at TEXT
+        )`);
+
+        const piptMatch = serverCode.match(/function parseInstallmentsFromPaymentTerms\([\s\S]*?\n\}/);
+        const syncPayMatch = serverCode.match(/async function syncOrderPaymentsAfterInvoiceExtraction\(orderId, totalFob, paymentTermsDesc\) \{([\s\S]*?)\n\}/);
+        assert(syncPayMatch, 'syncOrderPaymentsAfterInvoiceExtraction deve existir em server.js');
+
+        const syncOrderPaymentsAfterInvoiceExtraction = new Function('dbGet', 'dbAll', 'dbRun', 'refreshOrderPaymentDates', `
+            ${piptMatch[0]}
+            return async function(orderId, totalFob, paymentTermsDesc) {
+                ${syncPayMatch[1]}
+            }
+        `)(dbGet, dbAll, dbRun, async () => {});
+
+        const ordPaidRes = await dbRun(`INSERT INTO stock_orders (
+            po_number, project_code, supplier_name, invoice_number, currency, total_fob_value
+        ) VALUES ('PO-PAID-SAFE', 'PRJ-PAID-SAFE', 'Supplier Safe', 'INV-SAFE', 'USD', 10000)`);
+        const paidOrderId = ordPaidRes.lastID;
+
+        await dbRun(`INSERT INTO stock_order_payments (order_id, installment_number, description, percentage, amount_currency, currency, due_date, status, swift_file_path)
+            VALUES (?, 1, '30% Sinal Pago', 30, 3000, 'USD', '2026-09-01', 'PAID', '/uploads/swift1.pdf')`, [paidOrderId]);
+        await dbRun(`INSERT INTO stock_order_payments (order_id, installment_number, description, percentage, amount_currency, currency, due_date, status, swift_file_path)
+            VALUES (?, 2, '70% Saldo B/L', 70, 99999, 'USD', '2026-10-01', 'PENDING', NULL)`, [paidOrderId]);
+
+        await syncOrderPaymentsAfterInvoiceExtraction(paidOrderId, 10000, '25% ADVANCE 75% BL');
+
+        const afterPays = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [paidOrderId]);
+        assert.strictEqual(afterPays.length, 2, 'Não deve recriar nem apagar parcelas quando há SWIFT/PAID');
+        assert.strictEqual(afterPays[0].status, 'PAID', 'Parcela 1 deve permanecer PAID');
+        assert.strictEqual(afterPays[0].amount_currency, 3000, 'Valor pago com SWIFT nunca deve ser alterado');
+        assert.strictEqual(afterPays[1].amount_currency, 7000, 'Saldo pendente deve ajustar para o remanescente exato (10000 - 3000 = 7000)');
+    });
+
     console.log('\n====================================================');
     console.log(`🎉 AUDITORIA CONCLUÍDA: ${passedTests}/${totalTests} TESTES APROVADOS (100%)`);
     console.log('✨ SISTEMA MRP TECFAG ESTABILIZADO E PRONTO PARA OPERAÇÃO!');

@@ -999,7 +999,7 @@ async function syncImportProjectsToStockOrders() {
                 const now = new Date().toISOString();
                 const supplier = (p.code === 'PRJTEC000000001' || p.code === 'PRJTEC000000030') ? 'Amy Machinery' : (p.code === 'PRJTEC000000036' ? 'Liracon/Amy' : 'Fornecedor Internacional');
                 const customsRegime = (stage === 'ENTREPOSTADO_EADI') ? 'EADI_BAURU' : 'IMPORTACAO_DIRETA';
-                const fobVal = p.crm_value && p.crm_value > 0 ? (p.crm_value / 5.5) : 25000;
+                const fobVal = parseFloat(p.import_total_fob_value) > 0 ? parseFloat(p.import_total_fob_value) : 0;
 
                 const res = await dbRun(
                     "INSERT INTO stock_orders (" +
@@ -1021,9 +1021,9 @@ async function syncImportProjectsToStockOrders() {
 
                 await dbRun(
                     "INSERT INTO stock_order_items (" +
-                    "order_id, sku, description, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at" +
-                    ") VALUES (?, ?, ?, 1, 0, ?, ?, 'PENDING', ?)",
-                    [orderId, p.sku || p.code, desc, fobVal, fobVal, now]
+                    "order_id, sku, description, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at, project_code, client_name" +
+                    ") VALUES (?, ?, ?, 1, 0, ?, ?, 'PENDING', ?, ?, ?)",
+                    [orderId, p.sku || p.code, desc, fobVal, fobVal, now, p.code, p.client || null]
                 );
 
                 console.log("[SYNC-IMPORT] ✅ Ordem " + poNumber + " criada para o projeto " + p.code + " (" + p.client + ") na etapa " + stage);
@@ -1327,7 +1327,7 @@ async function resolveOrMaterializeStockOrder(orderId, user = 'Sistema') {
             if (!p) return null;
 
             const canonStage = computeCanonicalImportStage(p) || p.import_stage || 'PO_EMITIDA';
-            const fobVal = p.import_total_fob_value || (p.crm_value ? (p.crm_value / 5.5) : 0);
+            const fobVal = parseFloat(p.import_total_fob_value) > 0 ? parseFloat(p.import_total_fob_value) : 0;
             const poBase = `PO-${p.code.replace(/^PRJTEC0+/, 'PRJ')}`;
             const now = new Date().toISOString();
 
@@ -1375,8 +1375,8 @@ async function resolveOrMaterializeStockOrder(orderId, user = 'Sistema') {
             const newOrderId = insertRes.lastID;
             if (p.sku || p.project_name) {
                 await dbRun(
-                    `INSERT INTO stock_order_items (order_id, sku, description, qty_ordered, unit_price_fob) VALUES (?, ?, ?, ?, ?)`,
-                    [newOrderId, p.sku || 'MAQ-PROJETO', p.project_name || p.sku || 'Equipamento do Projeto', 1, fobVal]
+                    `INSERT INTO stock_order_items (order_id, sku, description, qty_ordered, unit_price_fob, total_price_fob, project_code, client_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [newOrderId, p.sku || 'MAQ-PROJETO', p.project_name || p.sku || 'Equipamento do Projeto', 1, fobVal, fobVal, p.code, p.client || null]
                 );
             }
 
@@ -1448,7 +1448,16 @@ async function syncStockOrderItems(orderId, items, project) {
         if (canSafelyDelete) {
             if (project && project.code) {
                 const shortCode = project.code.replace(/^PRJTEC0+/, 'PRJ');
-                await dbRun('DELETE FROM stock_order_items WHERE order_id = ? AND (project_code = ? OR project_code = ?)', [orderId, project.code, shortCode]);
+                const ordRow = await dbGet('SELECT project_code FROM stock_orders WHERE id = ?', [orderId]);
+                const isDedicatedOrder = ordRow && (ordRow.project_code === project.code || ordRow.project_code === shortCode);
+                if (isDedicatedOrder) {
+                    await dbRun(
+                        `DELETE FROM stock_order_items WHERE order_id = ? AND (project_code = ? OR project_code = ? OR (project_code IS NULL AND COALESCE(is_project_item, 1) != 0))`,
+                        [orderId, project.code, shortCode]
+                    );
+                } else {
+                    await dbRun('DELETE FROM stock_order_items WHERE order_id = ? AND (project_code = ? OR project_code = ?)', [orderId, project.code, shortCode]);
+                }
             } else {
                 await dbRun('DELETE FROM stock_order_items WHERE order_id = ?', [orderId]);
             }
@@ -1788,18 +1797,19 @@ function seedDefaultStockSuppliers() {
     setTimeout(autoFixBrotherMachineryOrders, 3000);
     setTimeout(autoFixInvoiceBIT26_0404W, 4000);
     setTimeout(autoHealCustomPaymentInstallments, 4500);
+    setTimeout(autoFixInvoiceBIT26_1004W3, 5000);
     setTimeout(autoFixInvoiceBIT26_0606W, 6000);
     setTimeout(autoFixInvoiceBIT26_0616W, 8000);
     setTimeout(autoFixInvoiceHL26CP009098, 10000);
 }
 
-// Rotina de auto-cura para restaurar ordens com parcelamento customizado (ex: 25/25/50)
+// Rotina de auto-cura para restaurar ordens com parcelamento customizado 25/25/50 (ex: PRJ052)
 async function autoHealCustomPaymentInstallments() {
     try {
-        const customOrders = await dbAll("SELECT * FROM stock_orders WHERE payment_terms_desc LIKE '%25% Sinal%' OR payment_terms_desc LIKE '%25% / 25% / 50%' OR po_number LIKE '%PRJ052%'");
+        const customOrders = await dbAll("SELECT * FROM stock_orders WHERE payment_terms_desc LIKE '%25% / 25% / 50%' OR po_number LIKE '%PRJ052%'");
         for (const ord of customOrders) {
             const pays = await dbAll("SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC", [ord.id]);
-            if (pays.length === 3) {
+            if (pays.length === 3 && parseFloat(pays[1].percentage) === 25 && parseFloat(pays[2].percentage) === 50) {
                 const total = parseFloat(ord.total_fob_value) || 8800;
                 const p1Amt = Math.round(total * 0.25 * 100) / 100;
                 const p1Date = ord.invoice_date || pays[0].due_date || '2026-10-26';
@@ -1817,6 +1827,127 @@ async function autoHealCustomPaymentInstallments() {
         }
     } catch (e) {
         console.error('[AUTO-HEAL PAYMENTS ERROR]', e.message);
+    }
+}
+
+// Correção idempotente da ordem PO-PRJ065 (Invoice BIT26-1004W3 - Piller Mecânica de Precisão)
+async function autoFixInvoiceBIT26_1004W3() {
+    try {
+        const order = await dbGet(`
+            SELECT * FROM stock_orders 
+            WHERE invoice_number = 'BIT26-1004W3' 
+               OR po_number = 'PO-PRJ065' 
+               OR project_code = 'PRJTEC000000065'
+            ORDER BY CASE WHEN invoice_number = 'BIT26-1004W3' THEN 0 ELSE 1 END
+            LIMIT 1
+        `);
+        if (!order) return;
+
+        // Idempotente: só atua se o FOB ou as parcelas pendentes ainda estiverem contaminados pelo legado (~36.363,64)
+        const currentFob = parseFloat(order.total_fob_value) || 0;
+        const existingPays = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [order.id]);
+        const sumPays = existingPays.reduce((acc, p) => acc + (parseFloat(p.amount_currency) || 0), 0);
+        const isFobContaminated = Math.abs(currentFob - 36363.64) < 5 || (order.invoice_number === 'BIT26-1004W3' && currentFob > 30000);
+        const isPaysContaminated = Math.abs(sumPays - 36363.64) < 5 || (order.invoice_number === 'BIT26-1004W3' && sumPays > 30000);
+        if (!isFobContaminated && !isPaysContaminated) {
+            return;
+        }
+
+        const now = new Date().toISOString();
+        const correctFob = 8450.00;
+        const invDate = order.invoice_date || '2026-09-14';
+        const termsDesc = '25%T/T IN ADVANCE AND 50% AGAINST BL 25% IN 90 DAYS AFTER B/L';
+
+        await dbRun(`
+            UPDATE stock_orders 
+            SET total_fob_value = ?, 
+                invoice_number = 'BIT26-1004W3', 
+                invoice_date = ?, 
+                currency = 'USD',
+                payment_terms_type = 'CUSTOM',
+                payment_terms_desc = ?,
+                updated_at = ?
+            WHERE id = ?
+        `, [correctFob, invDate, termsDesc, now, order.id]);
+
+        const hasClearances = await dbGet(`
+            SELECT COUNT(*) as count 
+            FROM stock_eadi_clearance_items ci
+            JOIN stock_order_items oi ON ci.order_item_id = oi.id
+            WHERE oi.order_id = ?
+        `, [order.id]);
+
+        if ((!hasClearances || hasClearances.count === 0) && isFobContaminated) {
+            await dbRun('DELETE FROM stock_order_items WHERE order_id = ? AND COALESCE(is_project_item, 1) != 0', [order.id]);
+            await dbRun(`
+                INSERT INTO stock_order_items (
+                    order_id, sku, description, qty_ordered, qty_shipped, unit_price_fob, total_price_fob, status, created_at, project_code, client_name
+                ) VALUES (?, ?, ?, 1, 0, ?, ?, 'PENDING', ?, ?, ?)
+            `, [
+                order.id,
+                'DZB-450S',
+                'Servo Flow Packing Machine 220V/60HZ 1P (SUS304, Film label applicator, Date printer, Dual punching Euro hole + Air vent, Portuguese HMI)',
+                correctFob,
+                correctFob,
+                now,
+                order.project_code || 'PRJTEC000000065',
+                order.client_name || 'PILLER MECANICA DE PRECISAO LTDA'
+            ]);
+        }
+
+        const hasPaid = existingPays.some(p => p.status === 'PAID' || !!p.swift_file_path);
+        if (!hasPaid) {
+            let blBase = order.bl_date || order.etd_date;
+            if (!blBase) {
+                const dEst = new Date(invDate + 'T12:00:00Z');
+                dEst.setUTCDate(dEst.getUTCDate() + 30);
+                blBase = dEst.toISOString().split('T')[0];
+            }
+            const d90 = new Date(blBase + 'T12:00:00Z');
+            d90.setUTCDate(d90.getUTCDate() + 90);
+            const p3Date = d90.toISOString().split('T')[0];
+
+            await dbRun('DELETE FROM stock_order_payments WHERE order_id = ?', [order.id]);
+            const targetPays = [
+                { num: 1, pct: 25, amt: 2112.50, desc: '25% Sinal na Proforma / Início Fabricação', due: invDate },
+                { num: 2, pct: 50, amt: 4225.00, desc: '50% Saldo contra cópia do B/L', due: blBase },
+                { num: 3, pct: 25, amt: 2112.50, desc: '25% Saldo - 90 dias após data do B/L', due: p3Date }
+            ];
+            for (const tp of targetPays) {
+                await dbRun(`
+                    INSERT INTO stock_order_payments (
+                        order_id, installment_number, description, percentage, amount_currency, currency, due_date, status, created_at
+                    ) VALUES (?, ?, ?, ?, ?, 'USD', ?, 'PENDING', ?)
+                `, [order.id, tp.num, tp.desc, tp.pct, tp.amt, tp.due, now]);
+            }
+        } else {
+            await syncOrderPaymentsAfterInvoiceExtraction(order.id, correctFob, termsDesc);
+        }
+
+        const prjCode = order.project_code || 'PRJTEC000000065';
+        const prjItemsJson = JSON.stringify([{
+            item_no: 1,
+            sku: 'DZB-450S',
+            description: 'Servo Flow Packing Machine 220V/60HZ 1P',
+            qty_ordered: 1,
+            unit_price_fob: correctFob,
+            total_price_fob: correctFob,
+            project_code: prjCode
+        }]);
+        await dbRun(`
+            UPDATE projects 
+            SET import_total_fob_value = ?, 
+                import_invoice_number = 'BIT26-1004W3', 
+                import_invoice_date = ?, 
+                import_currency = 'USD',
+                import_items = ?,
+                lastUpdate = ?
+            WHERE code = ?
+        `, [correctFob, invDate, prjItemsJson, now, prjCode]);
+
+        console.log('[AUTO-FIX BIT26-1004W3] ✅ PO-PRJ065 (PRJTEC000000065) corrigida com sucesso para US$ 8.450,00 (DZB-450S | 25% / 50% / 25%)!');
+    } catch (err) {
+        console.error('[AUTO-FIX BIT26-1004W3 ERROR]', err.message);
     }
 }
 
@@ -3338,11 +3469,11 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
                 });
             }
 
-            let fobVal = (parseFloat(p.import_total_fob_value) > 0) 
-                ? parseFloat(p.import_total_fob_value) 
-                : (calculatedPrjFob > 0 ? calculatedPrjFob : (linkedOrder ? parseFloat(linkedOrder.total_fob_value) || 0 : 0));
+            let fobVal = linkedOrder
+                ? (calculatedPrjFob > 0 ? calculatedPrjFob : (parseFloat(linkedOrder.total_fob_value) > 0 ? parseFloat(linkedOrder.total_fob_value) : (parseFloat(p.import_total_fob_value) || 0)))
+                : (parseFloat(p.import_total_fob_value) || 0);
 
-            if ((!importItemsParsed || importItemsParsed.length === 0) && projectSpecificItems.length > 0) {
+            if (projectSpecificItems.length > 0) {
                 importItemsParsed = projectSpecificItems.map((oi, idx) => ({
                     item_no: idx + 1,
                     sku: oi.sku,
@@ -3503,27 +3634,25 @@ app.get('/api/projects/:code', async (req, res) => {
         try {
             const stockOrder = await dbGet('SELECT * FROM stock_orders WHERE project_code = ?', [project.code]);
             if (stockOrder) {
-                if (!project.import_supplier && stockOrder.supplier_name) project.import_supplier = stockOrder.supplier_name;
-                if (!project.import_invoice_number && stockOrder.invoice_number) project.import_invoice_number = stockOrder.invoice_number;
-                if (!project.import_currency && stockOrder.currency) project.import_currency = stockOrder.currency;
-                if ((!project.import_total_fob_value || parseFloat(project.import_total_fob_value) === 0) && stockOrder.total_fob_value) {
-                    project.import_total_fob_value = parseFloat(stockOrder.total_fob_value) || 0;
+                if (stockOrder.supplier_name) project.import_supplier = stockOrder.supplier_name;
+                if (stockOrder.invoice_number) project.import_invoice_number = stockOrder.invoice_number;
+                if (stockOrder.currency) project.import_currency = stockOrder.currency;
+                if (parseFloat(stockOrder.total_fob_value) > 0) {
+                    project.import_total_fob_value = parseFloat(stockOrder.total_fob_value);
                 }
                 if (!project.import_transport_mode && stockOrder.transport_mode) project.import_transport_mode = stockOrder.transport_mode;
                 if (!project.import_courier_service && stockOrder.courier_service) project.import_courier_service = stockOrder.courier_service;
                 if (!project.import_tracking_number && stockOrder.tracking_number) project.import_tracking_number = stockOrder.tracking_number;
-                if (!importItemsParsed || importItemsParsed.length === 0) {
-                    const orderItems = await dbAll('SELECT sku, description, qty_ordered, unit_price_fob, total_price_fob FROM stock_order_items WHERE order_id = ?', [stockOrder.id]);
-                    if (orderItems && orderItems.length > 0) {
-                        importItemsParsed = orderItems.map((oi, idx) => ({
-                            item_no: idx + 1,
-                            sku: oi.sku,
-                            description: oi.description,
-                            qty_ordered: oi.qty_ordered,
-                            unit_price_fob: oi.unit_price_fob,
-                            total_price_fob: oi.total_price_fob
-                        }));
-                    }
+                const orderItems = await dbAll('SELECT sku, description, qty_ordered, unit_price_fob, total_price_fob FROM stock_order_items WHERE order_id = ?', [stockOrder.id]);
+                if (orderItems && orderItems.length > 0) {
+                    importItemsParsed = orderItems.map((oi, idx) => ({
+                        item_no: idx + 1,
+                        sku: oi.sku,
+                        description: oi.description,
+                        qty_ordered: oi.qty_ordered,
+                        unit_price_fob: oi.unit_price_fob,
+                        total_price_fob: oi.total_price_fob
+                    }));
                 }
             }
         } catch (e) {}
@@ -9003,33 +9132,45 @@ app.put('/api/projects/:code', async (req, res) => {
             }
 
             if (linkedStockOrder) {
+                const explicitInvoiceSync = !!(req.body && req.body._explicit_invoice_sync === true);
+                const orderHasOfficialData = !!(linkedStockOrder.invoice_file_path || (parseFloat(linkedStockOrder.total_fob_value) > 0));
+                const allowFinancialSync = explicitInvoiceSync || !orderHasOfficialData;
+
                 const soFields = {};
-                if (updateFields.import_supplier) soFields.supplier_name = updateFields.import_supplier;
-                if (updateFields.import_invoice_number) soFields.invoice_number = updateFields.import_invoice_number;
-                if (updateFields.import_currency) soFields.currency = updateFields.import_currency;
-                if (updateFields.import_total_fob_value !== undefined && parseFloat(updateFields.import_total_fob_value) > 0) {
-                    soFields.total_fob_value = updateFields.import_total_fob_value;
+                if (allowFinancialSync) {
+                    if (updateFields.import_supplier) soFields.supplier_name = updateFields.import_supplier;
+                    if (updateFields.import_invoice_number) soFields.invoice_number = updateFields.import_invoice_number;
+                    if (updateFields.import_currency) soFields.currency = updateFields.import_currency;
+                    if (updateFields.import_total_fob_value !== undefined && parseFloat(updateFields.import_total_fob_value) > 0) {
+                        soFields.total_fob_value = updateFields.import_total_fob_value;
+                    }
+                    if (updateFields.import_stage) soFields.stage = updateFields.import_stage;
                 }
-                if (updateFields.import_container_id) soFields.container_id = updateFields.import_container_id;
-                if (updateFields.import_customs_regime) soFields.customs_regime = updateFields.import_customs_regime;
-                if (updateFields.import_dta_number) soFields.dta_number = updateFields.import_dta_number;
-                if (updateFields.import_eadi_entry_date) soFields.eadi_entry_date = updateFields.import_eadi_entry_date;
-                if (updateFields.import_eadi_da_number) soFields.eadi_da_number = updateFields.import_eadi_da_number;
-                if (updateFields.import_notes) soFields.notes = updateFields.import_notes;
-                if (updateFields.import_transport_mode !== undefined) soFields.transport_mode = updateFields.import_transport_mode;
-                if (updateFields.import_courier_service !== undefined) soFields.courier_service = updateFields.import_courier_service;
-                if (updateFields.import_tracking_number !== undefined) soFields.tracking_number = updateFields.import_tracking_number;
-                if (updateFields.import_stage) soFields.stage = updateFields.import_stage;
+                if (updateFields.import_container_id && !linkedStockOrder.container_id) soFields.container_id = updateFields.import_container_id;
+                if (updateFields.import_customs_regime && !linkedStockOrder.customs_regime) soFields.customs_regime = updateFields.import_customs_regime;
+                if (updateFields.import_dta_number && !linkedStockOrder.dta_number) soFields.dta_number = updateFields.import_dta_number;
+                if (updateFields.import_eadi_entry_date && !linkedStockOrder.eadi_entry_date) soFields.eadi_entry_date = updateFields.import_eadi_entry_date;
+                if (updateFields.import_eadi_da_number && !linkedStockOrder.eadi_da_number) soFields.eadi_da_number = updateFields.import_eadi_da_number;
+                if (updateFields.import_notes && !linkedStockOrder.notes) soFields.notes = updateFields.import_notes;
+                if (updateFields.import_transport_mode !== undefined && explicitInvoiceSync) soFields.transport_mode = updateFields.import_transport_mode;
+                if (updateFields.import_courier_service !== undefined && explicitInvoiceSync) soFields.courier_service = updateFields.import_courier_service;
+                if (updateFields.import_tracking_number !== undefined && explicitInvoiceSync) soFields.tracking_number = updateFields.import_tracking_number;
                 if (!linkedStockOrder.project_code) soFields.project_code = code;
-                soFields.updated_at = new Date().toISOString();
 
                 if (Object.keys(soFields).length > 0) {
+                    soFields.updated_at = new Date().toISOString();
                     const { sql: soSql, params: soParams } = buildDynamicUpdate('stock_orders', soFields, 'id = ?', [linkedStockOrder.id]);
                     await dbRun(soSql, soParams);
                 }
 
-                if (Array.isArray(parsedImportItems) && parsedImportItems.length > 0) {
+                if (allowFinancialSync && Array.isArray(parsedImportItems) && parsedImportItems.length > 0) {
                     await syncStockOrderItems(linkedStockOrder.id, parsedImportItems, oldProject);
+                } else if (!allowFinancialSync && parseFloat(linkedStockOrder.total_fob_value) > 0) {
+                    // Mantém projects alinhado com o valor oficial da ordem em stock_orders (quando ordem única)
+                    const otherPrjOrders = await dbAll('SELECT id FROM stock_orders WHERE project_code = ? AND id != ?', [code, linkedStockOrder.id]);
+                    if (!otherPrjOrders || otherPrjOrders.length === 0) {
+                        await dbRun('UPDATE projects SET import_total_fob_value = ? WHERE code = ?', [parseFloat(linkedStockOrder.total_fob_value), code]);
+                    }
                 }
             } else if (canonicalFase >= 3 && updateFields.import_invoice_number && updateFields.import_supplier) {
                 // Criação automática de ordem Comex para projetos na Fase 3+ com fatura internacional
@@ -11210,21 +11351,175 @@ Responda APENAS o JSON puro. Não utilize blocos markdown (\`\`\`json).
         aiResult.payment_terms_type = matchedSupplier.payment_terms_type;
     }
 
-    // Blindagem de Total FOB: se a IA ou regex retornar 0 ou nulo, mas houver itens válidos, soma os itens
+    // Blindagem de Total FOB e normalização monetária estrita dos itens extraídos
     if (aiResult) {
+        if (Array.isArray(aiResult.items)) {
+            aiResult.items = aiResult.items.map(it => {
+                const qty = parseFloat(it.qty_ordered) || 1;
+                const itUnit = parseInvoiceNumber(it.unit_price_fob);
+                const itTotal = parseInvoiceNumber(it.total_price_fob);
+                const finalUnit = itUnit > 0 ? itUnit : (itTotal > 0 ? Math.round((itTotal / qty) * 100) / 100 : 0);
+                const finalTotal = itTotal > 0 ? itTotal : Math.round((finalUnit * qty) * 100) / 100;
+                return {
+                    ...it,
+                    qty_ordered: qty,
+                    unit_price_fob: finalUnit,
+                    total_price_fob: finalTotal
+                };
+            });
+        }
         let currentFob = parseInvoiceNumber(aiResult.total_fob_value);
         if (currentFob <= 0 && Array.isArray(aiResult.items) && aiResult.items.length > 0) {
-            currentFob = aiResult.items.reduce((acc, it) => {
-                const itTotal = parseInvoiceNumber(it.total_price_fob);
-                const itUnit = parseInvoiceNumber(it.unit_price_fob);
-                const qty = parseInt(it.qty_ordered) || 1;
-                return acc + (itTotal > 0 ? itTotal : (itUnit * qty));
-            }, 0);
+            currentFob = aiResult.items.reduce((acc, it) => acc + (parseFloat(it.total_price_fob) || 0), 0);
         }
         aiResult.total_fob_value = Math.round(currentFob * 100) / 100;
     }
 
     return aiResult;
+}
+
+/**
+ * Extrai parcelas estruturadas a partir do texto da condição cambial da fatura (ex: "25%T/T IN ADVANCE AND 50% AGAINST BL 25% IN 90 DAYS AFTER B/L")
+ * Retorna null se a soma dos percentuais não fechar 100%.
+ */
+function parseInstallmentsFromPaymentTerms(termsDesc, totalFob, currency = 'USD', invoiceDateStr = null, blDateStr = null) {
+    if (!termsDesc || typeof termsDesc !== 'string' || !(totalFob > 0)) return null;
+
+    const regex = /(\d+(?:\.\d+)?)\s*%/g;
+    const matches = [];
+    let m;
+    while ((m = regex.exec(termsDesc)) !== null) {
+        const pct = parseFloat(m[1]);
+        if (pct > 0 && pct <= 100) {
+            matches.push({ pct, index: m.index });
+        }
+    }
+
+    if (matches.length === 0 || matches.length > 5) return null;
+    const sumPct = matches.reduce((s, x) => s + x.pct, 0);
+    if (Math.abs(sumPct - 100) > 0.5) return null;
+
+    const invDate = invoiceDateStr || new Date().toISOString().split('T')[0];
+    const addDaysUtc = (dateStr, days) => {
+        let d = new Date((dateStr || invDate) + 'T12:00:00Z');
+        if (isNaN(d.getTime())) d = new Date();
+        d.setUTCDate(d.getUTCDate() + days);
+        return d.toISOString().split('T')[0];
+    };
+    const blBase = blDateStr || addDaysUtc(invDate, 30);
+
+    let runningSum = 0;
+    return matches.map((item, idx) => {
+        const nextIdx = idx < matches.length - 1 ? matches[idx + 1].index : termsDesc.length;
+        const prevStart = idx === 0 ? 0 : matches[idx].index;
+        const clause = termsDesc.slice(prevStart, nextIdx);
+
+        let desc = `${item.pct}% Pagamento Conforme Invoice`;
+        let due = blBase;
+
+        const daysAfterMatch = clause.match(/(\d+)\s*days?\s*(?:after|from)?\s*(?:b\/?l|ship|on\s*board|date|delivery)?/i);
+        if (daysAfterMatch && parseInt(daysAfterMatch[1], 10) > 0) {
+            const days = parseInt(daysAfterMatch[1], 10);
+            desc = `${item.pct}% Saldo - ${days} dias após data do B/L`;
+            due = addDaysUtc(blBase, days);
+        } else if (/against\s*(?:copy\s*of\s*)?b\/?l|copy\s*of\s*b\/?l|before\s*(?:shipment|delivery)|prior\s*to\s*shipment|telex/i.test(clause)) {
+            desc = `${item.pct}% Saldo contra cópia do B/L`;
+            due = blBase;
+        } else if (/advance|deposit|down\s*payment|proforma|sign|order|\bpi\b/i.test(clause) || (idx === 0 && matches.length > 1)) {
+            desc = `${item.pct}% Sinal na Proforma / Início Fabricação`;
+            due = invDate;
+        }
+
+        const amt = (idx === matches.length - 1)
+            ? Math.round((totalFob - runningSum) * 100) / 100
+            : Math.round(totalFob * (item.pct / 100) * 100) / 100;
+        runningSum += amt;
+
+        return {
+            installment_number: idx + 1,
+            description: desc,
+            percentage: item.pct,
+            amount_currency: amt,
+            currency: currency || 'USD',
+            due_date: due,
+            status: 'PENDING'
+        };
+    });
+}
+
+/**
+ * Sincroniza com segurança as parcelas pendentes de câmbio após leitura de Proforma Invoice pela IA.
+ * NUNCA altera ou remove parcelas já pagas (PAID) ou com comprovante SWIFT anexado.
+ */
+async function syncOrderPaymentsAfterInvoiceExtraction(orderId, totalFob, paymentTermsDesc) {
+    if (!orderId || !(totalFob > 0)) return;
+    const order = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [orderId]);
+    if (!order) return;
+
+    const currency = order.currency || 'USD';
+    const existingPayments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [orderId]);
+    const hasPaidOrSwift = existingPayments.some(p => p.status === 'PAID' || !!p.swift_file_path);
+    const now = new Date().toISOString();
+
+    if (hasPaidOrSwift) {
+        let paidTotal = 0;
+        let pendingPctSum = 0;
+        for (const p of existingPayments) {
+            if (p.status === 'PAID' || p.swift_file_path) {
+                paidTotal += (parseFloat(p.amount_currency) || 0);
+            } else {
+                pendingPctSum += (parseFloat(p.percentage) || 0);
+            }
+        }
+        const remainingFob = Math.max(0, totalFob - paidTotal);
+        for (const p of existingPayments) {
+            if (p.status !== 'PAID' && !p.swift_file_path) {
+                const newAmt = pendingPctSum > 0
+                    ? Math.round((remainingFob * ((parseFloat(p.percentage) || 0) / pendingPctSum)) * 100) / 100
+                    : Math.round((totalFob * ((parseFloat(p.percentage) || 100) / 100)) * 100) / 100;
+                await dbRun('UPDATE stock_order_payments SET amount_currency = ?, currency = ? WHERE id = ?', [newAmt, currency, p.id]);
+            }
+        }
+        return;
+    }
+
+    const parsedFromTerms = parseInstallmentsFromPaymentTerms(
+        paymentTermsDesc || order.payment_terms_desc,
+        totalFob,
+        currency,
+        order.invoice_date,
+        order.bl_date || order.etd_date
+    );
+
+    if (parsedFromTerms && parsedFromTerms.length > 0) {
+        await dbRun('DELETE FROM stock_order_payments WHERE order_id = ?', [orderId]);
+        for (const inst of parsedFromTerms) {
+            await dbRun(`
+                INSERT INTO stock_order_payments (
+                    order_id, installment_number, description, percentage, amount_currency, currency, due_date, status, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', ?)
+            `, [orderId, inst.installment_number, inst.description, inst.percentage, inst.amount_currency, currency, inst.due_date, now]);
+        }
+        if (parsedFromTerms.length > 1) {
+            await dbRun("UPDATE stock_orders SET payment_terms_type = 'CUSTOM' WHERE id = ?", [orderId]);
+        }
+        return;
+    }
+
+    if (existingPayments.length > 0) {
+        let running = 0;
+        for (let i = 0; i < existingPayments.length; i++) {
+            const p = existingPayments[i];
+            const pct = parseFloat(p.percentage) || 0;
+            const newAmt = (i === existingPayments.length - 1 && pct > 0)
+                ? Math.round((totalFob - running) * 100) / 100
+                : Math.round(totalFob * (pct / 100) * 100) / 100;
+            running += newAmt;
+            await dbRun('UPDATE stock_order_payments SET amount_currency = ?, currency = ? WHERE id = ?', [newAmt, currency, p.id]);
+        }
+    } else {
+        await refreshOrderPaymentDates(orderId);
+    }
 }
 
 /**
@@ -11301,6 +11596,15 @@ async function applyExtractedInvoiceToOrder(orderId, aiResult, user = 'Sistema')
         await syncStockOrderItems(order.id, aiResult.items, project);
     }
 
+    // Sincronizar parcelas pendentes de câmbio com o novo FOB e condição cambial (preservando parcelas pagas/SWIFT)
+    if (totalFob > 0) {
+        try {
+            await syncOrderPaymentsAfterInvoiceExtraction(order.id, totalFob, aiResult.payment_terms_desc);
+        } catch (payErr) {
+            console.warn('[SYNC PAYMENTS AFTER INVOICE AI]', payErr.message);
+        }
+    }
+
     // Se a ordem estiver vinculada a um projeto, sincronizar também a tabela projects
     if (order.project_code) {
         const prjCode = order.project_code;
@@ -11319,9 +11623,17 @@ async function applyExtractedInvoiceToOrder(orderId, aiResult, user = 'Sistema')
                 pUpdates.push('import_invoice_number = ?');
                 pParams.push(invoiceNum);
             }
+            if (aiResult.invoice_date) {
+                pUpdates.push('import_invoice_date = ?');
+                pParams.push(aiResult.invoice_date);
+            }
             if (totalFob > 0) {
                 pUpdates.push('import_total_fob_value = ?');
                 pParams.push(totalFob);
+            }
+            if (Array.isArray(aiResult.items) && aiResult.items.length > 0) {
+                pUpdates.push('import_items = ?');
+                pParams.push(JSON.stringify(aiResult.items));
             }
         }
         pParams.push(prjCode);
@@ -11382,6 +11694,7 @@ app.post('/api/supply-chain/orders/:id/attach-invoice', authenticateToken, restr
         const updatedOrder = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [order.id]);
         if (updatedOrder) {
             updatedOrder.items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [order.id]);
+            updatedOrder.payments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [order.id]);
         }
 
         res.json({
@@ -11435,6 +11748,7 @@ app.post('/api/supply-chain/orders/:id/extract-invoice-ai', authenticateToken, r
         const refreshed = await dbGet('SELECT * FROM stock_orders WHERE id = ?', [order.id]);
         if (refreshed) {
             refreshed.items = await dbAll('SELECT * FROM stock_order_items WHERE order_id = ? ORDER BY id ASC', [order.id]);
+            refreshed.payments = await dbAll('SELECT * FROM stock_order_payments WHERE order_id = ? ORDER BY installment_number ASC', [order.id]);
         }
 
         res.json({
@@ -13326,7 +13640,7 @@ app.get('/api/supply-chain/orders', authenticateToken, restrictToSupplyChain, as
                 if (p.import_eadi_entry_date) {
                     daysInEadi = Math.max(0, Math.floor((now - new Date(p.import_eadi_entry_date + 'T00:00:00')) / (1000 * 60 * 60 * 24)));
                 }
-                const fobVal = p.import_total_fob_value || (p.crm_value ? (p.crm_value / 5.5) : 0);
+                const fobVal = parseFloat(p.import_total_fob_value) > 0 ? parseFloat(p.import_total_fob_value) : 0;
                 orders.unshift({
                     id: 'PRJ-' + p.code,
                     is_project: true,
