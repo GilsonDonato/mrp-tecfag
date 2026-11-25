@@ -2365,7 +2365,8 @@ module.exports = function registerPartsModule({
             lang = 'EN',
             supplier_name = '',
             vendor_machine_code = '',
-            selected_item_ids = ''
+            selected_item_ids = '',
+            items_en_map = ''
         } = req.body || {};
 
         if (!to || !String(to).trim()) {
@@ -2378,8 +2379,22 @@ module.exports = function registerPartsModule({
             return res.status(500).json({ error: 'Servidor de e-mail SMTP não configurado nas variáveis de ambiente (SMTP_HOST / SMTP_USER).' });
         }
 
-        const allRawItems = await pAll('SELECT * FROM parts_request_items WHERE request_id = ? ORDER BY id ASC', [reqId]);
         const now = new Date().toISOString();
+
+        // Salvar descrições em Inglês preenchidas direto no modal de e-mail para refletir também nas legendas das fotos e banco!
+        let enMapObj = {};
+        if (items_en_map && String(items_en_map).trim()) {
+            try { enMapObj = JSON.parse(items_en_map) || {}; } catch (e) { enMapObj = {}; }
+        }
+        for (const [itemIdStr, enText] of Object.entries(enMapObj)) {
+            const idNum = parseInt(itemIdStr);
+            const cleanEn = String(enText || '').trim();
+            if (idNum && cleanEn) {
+                await pRun('UPDATE parts_request_items SET part_name_en = ? WHERE id = ? AND request_id = ?', [cleanEn, idNum, reqId]).catch(() => {});
+            }
+        }
+
+        const allRawItems = await pAll('SELECT * FROM parts_request_items WHERE request_id = ? ORDER BY id ASC', [reqId]);
 
         // Resolver Código Original no Fornecedor (Aba Cód. Antigo do ERP) — NUNCA enviar SKU interno Tecfag ao fornecedor externo
         const erpMachine = getErpSkuDetails(r.machine_sku);
@@ -2439,6 +2454,159 @@ module.exports = function registerPartsModule({
             return null;
         }
 
+        function stripInternalTecfagSku(rawStr) {
+            return String(rawStr || '')
+                .replace(/^(?:TMP-PEC-\d+|(?:PA|PM|MP|KT|EQ)[A-Z0-9]{4,14})\s*[-–—:]?\s*/i, '')
+                .trim();
+        }
+
+        function formatSupplierUnit(rawUnit, targetLang) {
+            const u = String(rawUnit || '').trim().toUpperCase();
+            if (targetLang === 'EN') {
+                if (!u || ['UN', 'UND', 'UNID', 'PC', 'PÇ', 'PCA', 'PECA', 'PEÇA'].includes(u)) return 'PCS';
+                if (['CJ', 'CONJ', 'CONJUNTO', 'KIT'].includes(u)) return 'SET';
+                if (['PAR'].includes(u)) return 'PAIR';
+                if (['MT', 'METRO', 'METROS'].includes(u)) return 'M';
+                return u;
+            }
+            return u || 'UN';
+        }
+
+        // Leitor puro Node.js de dimensões reais de imagem (PNG/JPEG/GIF/WebP) p/ atributos HTML width/height à prova de Outlook Desktop & Foxmail!
+        function getImageNaturalDimensions(filePath) {
+            try {
+                const fd = fs.openSync(filePath, 'r');
+                const buf = Buffer.alloc(65536);
+                const bytesRead = fs.readSync(fd, buf, 0, 65536, 0);
+                fs.closeSync(fd);
+                if (bytesRead < 24) return null;
+
+                // PNG
+                if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) {
+                    return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+                }
+                // GIF
+                if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) {
+                    return { width: buf.readUInt16LE(6), height: buf.readUInt16LE(8) };
+                }
+                // JPEG
+                if (buf[0] === 0xFF && buf[1] === 0xD8) {
+                    let offset = 2;
+                    while (offset + 9 < bytesRead) {
+                        if (buf[offset] !== 0xFF) { offset++; continue; }
+                        const marker = buf[offset + 1];
+                        if (marker === 0xFF) { offset++; continue; }
+                        if ([0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF].includes(marker)) {
+                            const h = buf.readUInt16BE(offset + 5);
+                            const w = buf.readUInt16BE(offset + 7);
+                            if (w > 0 && h > 0) return { width: w, height: h };
+                            break;
+                        }
+                        if (marker === 0xD9 || marker === 0xDA) break;
+                        const segLen = buf.readUInt16BE(offset + 2);
+                        if (segLen < 2) break;
+                        offset += 2 + segLen;
+                    }
+                }
+                // WebP
+                if (buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') {
+                    const chunk = buf.toString('ascii', 12, 16);
+                    if (chunk === 'VP8 ' && bytesRead >= 30) {
+                        return { width: buf.readUInt16LE(26) & 0x3fff, height: buf.readUInt16LE(28) & 0x3fff };
+                    }
+                    if (chunk === 'VP8L' && bytesRead >= 25) {
+                        const b0 = buf[21], b1 = buf[22], b2 = buf[23], b3 = buf[24];
+                        return {
+                            width: 1 + (((b1 & 0x3f) << 8) | b0),
+                            height: 1 + (((b3 & 0x0f) << 10) | (b2 << 2) | ((b1 & 0xc0) >> 6))
+                        };
+                    }
+                    if (chunk === 'VP8X' && bytesRead >= 30) {
+                        return { width: 1 + buf.readUIntLE(24, 3), height: 1 + buf.readUIntLE(27, 3) };
+                    }
+                }
+            } catch (e) {}
+            return null;
+        }
+
+        function buildEmailPhotoImgAttrs(filePath, maxW = 420, maxH = 340) {
+            const dims = getImageNaturalDimensions(filePath);
+            if (dims && dims.width > 0 && dims.height > 0) {
+                const scale = Math.min(1, maxW / dims.width, maxH / dims.height);
+                const dispW = Math.max(90, Math.round(dims.width * scale));
+                const dispH = Math.max(70, Math.round(dims.height * scale));
+                return `width="${dispW}" height="${dispH}" style="display:block; width:${dispW}px; height:${dispH}px; border-radius:6px; border:1px solid #cbd5e1; outline:none;"`;
+            }
+            return `width="340" style="display:block; width:340px; height:auto; border-radius:6px; border:1px solid #cbd5e1; outline:none;"`;
+        }
+
+        function escHtmlEmail(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        // Converte cada linha do texto em blocos HTML nativos compatíveis com Outlook Word Engine e Foxmail (sem depender de white-space: pre-wrap!)
+        function formatSupplierBodyToHtml(rawText) {
+            const rawLines = String(rawText || '').replace(/\r\n/g, '\n').split('\n');
+            const out = [];
+            for (let idx = 0; idx < rawLines.length; idx++) {
+                const cleanedRaw = rawLines[idx].replace(/[\u{1F4F7}\u{1F3ED}\u{1F4CE}]/gu, '').trimEnd();
+                const trimmed = cleanedRaw.trim();
+
+                if (!trimmed) {
+                    out.push(`<div style="height: 10px; line-height: 10px; font-size: 10px;">&nbsp;</div>`);
+                    continue;
+                }
+                if (/^[-=_]{5,}$/.test(trimmed)) {
+                    out.push(`<div style="border-top: 1px solid #e2e8f0; margin: 10px 0; height: 1px; line-height: 1px; font-size: 1px;">&nbsp;</div>`);
+                    continue;
+                }
+                if (/^\[(?:MACHINE|MÁQUINA|MAQUINA)\s+\d+/i.test(trimmed)) {
+                    out.push(`
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin: 12px 0 6px 0;">
+                            <tr>
+                                <td bgcolor="#e0f2fe" style="background-color:#e0f2fe; border-left:4px solid #0284c7; padding:8px 12px; font-family:Arial,Helvetica,sans-serif; font-size:13px; font-weight:bold; color:#0c4a6e;">
+                                    ${escHtmlEmail(trimmed)}
+                                </td>
+                            </tr>
+                        </table>
+                    `);
+                    continue;
+                }
+                if (/^(?:\d+\)|[-•]\s*(?:Item|Peça|Peca)\s+\d)/i.test(trimmed)) {
+                    // Se a linha seguinte for continuação indentada (ex.: tradução ou especificação extra digitada abaixo), agrupa dentro do mesmo quadro!
+                    const subLines = [escHtmlEmail(trimmed)];
+                    while (idx + 1 < rawLines.length && /^\s{2,}\S/.test(rawLines[idx + 1])) {
+                        idx++;
+                        subLines.push(`<span style="font-weight:normal; color:#334155;">${escHtmlEmail(rawLines[idx].trim())}</span>`);
+                    }
+                    out.push(`
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin: 6px 0;">
+                            <tr>
+                                <td bgcolor="#f8fafc" style="background-color:#f8fafc; border:1px solid #cbd5e1; border-left:4px solid #0284c7; padding:9px 13px; font-family:Arial,Helvetica,sans-serif; font-size:14px; font-weight:bold; color:#0f172a; line-height:1.5;">
+                                    ${subLines.join('<br />')}
+                                </td>
+                            </tr>
+                        </table>
+                    `);
+                    continue;
+                }
+                if (/^(?:Requested Item|Itens Solicitados)/i.test(trimmed)) {
+                    out.push(`<div style="margin: 8px 0 4px 0; font-family:Arial,Helvetica,sans-serif; font-size:12px; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; color:#0369a1;">${escHtmlEmail(trimmed)}</div>`);
+                    continue;
+                }
+                if (/^[-•]\s+/.test(trimmed)) {
+                    out.push(`<div style="margin: 2px 0; padding-left: 6px; font-family:Arial,Helvetica,sans-serif; font-size:13px; line-height:1.55; color:#334155;">&bull; ${escHtmlEmail(trimmed.replace(/^[-•]\s+/, ''))}</div>`);
+                    continue;
+                }
+                out.push(`<div style="margin: 0 0 4px 0; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.6; color:#1e293b;">${escHtmlEmail(trimmed)}</div>`);
+            }
+            return out.join('\n');
+        }
+
         // Agrupar os itens selecionados por Máquina (Cód. Antigo do Fornecedor) para organização cristalina de descrições e fotos!
         const machineGroupsMap = new Map();
         items.forEach((it) => {
@@ -2458,6 +2626,16 @@ module.exports = function registerPartsModule({
         const isMultiMachine = machineGroups.length > 1;
 
         const mailAttachments = [];
+        const hasHeaderLogo = fs.existsSync(HEADER_LOGO_IMG_PATH);
+        if (hasHeaderLogo) {
+            mailAttachments.push({
+                filename: 'logo_tecfag.png',
+                path: HEADER_LOGO_IMG_PATH,
+                cid: 'tecfag_header_logo',
+                contentDisposition: 'inline'
+            });
+        }
+
         const groupedPhotosSectionsHtml = [];
         let photoCounter = 0;
 
@@ -2490,18 +2668,29 @@ module.exports = function registerPartsModule({
                         cid: cidKey,
                         contentDisposition: 'inline'
                     });
-                    const displayPartTitle = lang === 'EN'
-                        ? (it.part_name_en || it.part_name_pt)
-                        : it.part_name_pt;
+                    const rawPartTitle = lang === 'EN'
+                        ? (stripInternalTecfagSku(it.part_name_en) || stripInternalTecfagSku(it.part_name_pt) || it.part_name_pt)
+                        : (stripInternalTecfagSku(it.part_name_pt) || it.part_name_pt);
+                    const cleanUnit = formatSupplierUnit(it.unit, lang);
+                    const imgSizeAttrs = buildEmailPhotoImgAttrs(diskPath, 420, 340);
+
                     grpPhotoCards.push(`
-                        <div style="border:1px solid #cbd5e1; border-radius:10px; padding:14px; margin-bottom:14px; background:#f8fafc; max-width:580px;">
-                            <div style="font-weight:bold; font-size:14px; color:#0f172a; margin-bottom:6px;">
-                                📷 ${lang === 'EN' ? 'Item' : 'Peça'} #${itemLabelNum} — ${displayPartTitle} (Qty: ${it.qty} ${it.unit || 'PCS'})
-                                ${it.vendor_part_number ? ` | Code: <span style="color:#0284c7;">${it.vendor_part_number}</span>` : ''}
-                                ${grp.vendorModel ? ` | <span style="color:#475569; font-size:12px;">Machine: ${grp.vendorModel}</span>` : ''}
-                            </div>
-                            <img src="cid:${cidKey}" alt="${attachFilename}" style="max-width:100%; max-height:420px; height:auto; border-radius:8px; border:1px solid #94a3b8; display:block;" />
-                        </div>
+                        <table width="540" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:100%; max-width:540px; border:1px solid #cbd5e1; background-color:#f8fafc; margin-bottom:14px;">
+                            <tr>
+                                <td bgcolor="#e2e8f0" style="background-color:#e2e8f0; padding:8px 12px; font-family:Arial,Helvetica,sans-serif; font-size:13px; color:#0f172a; border-bottom:1px solid #cbd5e1;">
+                                    <strong style="color:#0369a1;">[${lang === 'EN' ? 'PHOTO' : 'FOTO'} #${itemLabelNum}]</strong>
+                                    &nbsp;<strong>${escHtmlEmail(rawPartTitle)}</strong>
+                                    &nbsp;<span style="color:#334155;">(${lang === 'EN' ? 'Qty' : 'Qtd'}: ${escHtmlEmail(it.qty)} ${escHtmlEmail(cleanUnit)})</span>
+                                    ${it.vendor_part_number ? ` &nbsp;|&nbsp; Code: <strong style="color:#0284c7;">${escHtmlEmail(it.vendor_part_number)}</strong>` : ''}
+                                    ${grp.vendorModel ? ` &nbsp;|&nbsp; <span style="color:#475569; font-size:12px;">Machine: <strong>${escHtmlEmail(grp.vendorModel)}</strong></span>` : ''}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="center" style="padding:12px; background-color:#ffffff;">
+                                    <img src="cid:${cidKey}" alt="${escHtmlEmail(attachFilename)}" ${imgSizeAttrs} />
+                                </td>
+                            </tr>
+                        </table>
                     `);
                 } else {
                     mailAttachments.push({
@@ -2514,13 +2703,19 @@ module.exports = function registerPartsModule({
             if (grpPhotoCards.length > 0) {
                 if (isMultiMachine) {
                     groupedPhotosSectionsHtml.push(`
-                        <div style="margin-bottom:20px; border:2px solid #bae6fd; border-radius:12px; padding:14px; background:#ffffff;">
-                            <div style="background:#0284c7; color:#ffffff; padding:8px 12px; border-radius:8px; font-weight:bold; font-size:14px; margin-bottom:12px;">
-                                🏭 ${lang === 'EN' ? `MACHINE ${gIdx + 1} — Original Model:` : `MÁQUINA ${gIdx + 1} — Modelo Ref.:`} ${grp.vendorModel || 'N/A'}
-                                ${grp.serial ? ` &nbsp;|&nbsp; Serial: ${grp.serial}` : ''}
-                            </div>
-                            ${grpPhotoCards.join('\n')}
-                        </div>
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="border:2px solid #bae6fd; background-color:#ffffff; margin-bottom:18px;">
+                            <tr>
+                                <td bgcolor="#0284c7" style="background-color:#0284c7; color:#ffffff; padding:8px 12px; font-family:Arial,Helvetica,sans-serif; font-weight:bold; font-size:13px;">
+                                    ${lang === 'EN' ? `MACHINE ${gIdx + 1} — Original Model:` : `MÁQUINA ${gIdx + 1} — Modelo Ref.:`} ${escHtmlEmail(grp.vendorModel || 'N/A')}
+                                    ${grp.serial ? ` &nbsp;|&nbsp; Serial: ${escHtmlEmail(grp.serial)}` : ''}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:12px;">
+                                    ${grpPhotoCards.join('\n')}
+                                </td>
+                            </tr>
+                        </table>
                     `);
                 } else {
                     groupedPhotosSectionsHtml.push(grpPhotoCards.join('\n'));
@@ -2544,6 +2739,7 @@ module.exports = function registerPartsModule({
                 }
 
                 if (isImage) {
+                    const imgExtraAttrs = buildEmailPhotoImgAttrs(f.path, 420, 340);
                     mailAttachments.push({
                         filename: f.originalname || `Photo_${k + 1}${ext}`,
                         path: f.path,
@@ -2551,10 +2747,18 @@ module.exports = function registerPartsModule({
                         contentDisposition: 'inline'
                     });
                     groupedPhotosSectionsHtml.push(`
-                        <div style="border:1px solid #cbd5e1; border-radius:10px; padding:14px; margin-bottom:16px; background:#f8fafc; max-width:580px;">
-                            <div style="font-weight:bold; font-size:13px; color:#0f172a; margin-bottom:6px;">📎 ${f.originalname || `Reference Photo #${k + 1}`}</div>
-                            <img src="cid:${cidExtra}" alt="${f.originalname}" style="max-width:100%; max-height:420px; height:auto; border-radius:8px; border:1px solid #94a3b8; display:block;" />
-                        </div>
+                        <table width="540" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:100%; max-width:540px; border:1px solid #cbd5e1; background-color:#f8fafc; margin-bottom:14px;">
+                            <tr>
+                                <td bgcolor="#e2e8f0" style="background-color:#e2e8f0; padding:8px 12px; font-family:Arial,Helvetica,sans-serif; font-size:13px; font-weight:bold; color:#0f172a; border-bottom:1px solid #cbd5e1;">
+                                    [EXTRA PHOTO #${k + 1}] ${escHtmlEmail(f.originalname || `Reference Image #${k + 1}`)}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="center" style="padding:12px; background-color:#ffffff;">
+                                    <img src="cid:${cidExtra}" alt="${escHtmlEmail(f.originalname)}" ${imgExtraAttrs} />
+                                </td>
+                            </tr>
+                        </table>
                     `);
                 } else {
                     mailAttachments.push({
@@ -2570,7 +2774,8 @@ module.exports = function registerPartsModule({
             mailAttachments.push({
                 filename: 'assinatura_tecfag.png',
                 path: SIGNATURE_IMG_PATH,
-                cid: 'tecfag_signature_banner'
+                cid: 'tecfag_signature_banner',
+                contentDisposition: 'inline'
             });
         }
 
@@ -2588,62 +2793,134 @@ module.exports = function registerPartsModule({
         });
 
         const senderDisplay = getFriendlyUserName(req.user.username);
-        const safeBodyHtml = String(body || '').trim()
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
+        const senderOfficialEmail = resolveOfficialUserEmail(req.user.username);
+        const formattedBodyHtml = formatSupplierBodyToHtml(body);
 
         const photosHeaderTitle = lang === 'EN'
-            ? (isMultiMachine ? '📷 Attached Part Photo(s) Organized by Machine:' : '📷 Attached Part Photo(s) / Reference Image(s):')
-            : (isMultiMachine ? '📷 Foto(s) das Peças Organizadas por Máquina:' : '📷 Foto(s) / Imagem(ns) de Referência da(s) Peça(s):');
+            ? (isMultiMachine ? 'ATTACHED REFERENCE PHOTO(S) ORGANIZED BY MACHINE:' : 'ATTACHED PART PHOTO(S) / REFERENCE IMAGE(S):')
+            : (isMultiMachine ? 'FOTO(S) DAS PEÇAS ORGANIZADAS POR MÁQUINA:' : 'FOTO(S) / IMAGEM(NS) DE REFERÊNCIA DA(S) PEÇA(S):');
 
         const distinctModelList = machineGroups.map(g => g.vendorModel).filter(Boolean);
         const topModelBannerHtml = distinctModelList.length > 1
-            ? `<div style="background:#f1f5f9; border-left:4px solid #0284c7; padding:10px 14px; border-radius:6px; margin-bottom:16px; font-size:13px;">
-                   <strong>${lang === 'EN' ? `Multi-Machine Quotation (${distinctModelList.length} Models)` : `Cotação Multi-Máquinas (${distinctModelList.length} Modelos)`}:</strong>
-                   <span style="color:#0284c7; font-weight:bold; font-size:14px;">${distinctModelList.join(' &nbsp;•&nbsp; ')}</span>
-                   &nbsp;|&nbsp; <strong>Ref:</strong> ${r.req_code}
-               </div>`
+            ? `
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin-bottom:16px;">
+                    <tr>
+                        <td bgcolor="#f0f9ff" style="background-color:#f0f9ff; border:1px solid #bae6fd; border-left:4px solid #0284c7; padding:10px 14px; font-family:Arial,Helvetica,sans-serif; font-size:13px; color:#0f172a;">
+                            <strong>${lang === 'EN' ? `Multi-Machine Quotation (${distinctModelList.length} Models)` : `Cotação Multi-Máquinas (${distinctModelList.length} Modelos)`}:</strong>
+                            <span style="color:#0284c7; font-weight:bold; font-size:14px;">${distinctModelList.map(escHtmlEmail).join(' &nbsp;&bull;&nbsp; ')}</span>
+                            &nbsp;|&nbsp; <strong>Ref:</strong> ${escHtmlEmail(r.req_code)}
+                        </td>
+                    </tr>
+                </table>
+            `
             : (distinctModelList[0] ? `
-               <div style="background:#f1f5f9; border-left:4px solid #0284c7; padding:10px 14px; border-radius:6px; margin-bottom:16px; font-size:13px;">
-                   <strong>${lang === 'EN' ? 'Machine Original Model' : 'Modelo de Referência'}:</strong> <span style="color:#0284c7; font-weight:bold; font-size:15px;">${distinctModelList[0]}</span>
-                   ${machineGroups[0].serial ? ` &nbsp;|&nbsp; <strong>Serial No.:</strong> ${machineGroups[0].serial}` : ''}
-                   &nbsp;|&nbsp; <strong>Ref:</strong> ${r.req_code}
-               </div>` : '');
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin-bottom:16px;">
+                    <tr>
+                        <td bgcolor="#f0f9ff" style="background-color:#f0f9ff; border:1px solid #bae6fd; border-left:4px solid #0284c7; padding:10px 14px; font-family:Arial,Helvetica,sans-serif; font-size:13px; color:#0f172a;">
+                            <strong>${lang === 'EN' ? 'Machine Original Model' : 'Modelo de Referência'}:</strong>
+                            <span style="color:#0284c7; font-weight:bold; font-size:15px;">${escHtmlEmail(distinctModelList[0])}</span>
+                            ${machineGroups[0].serial ? ` &nbsp;|&nbsp; <strong>Serial No.:</strong> ${escHtmlEmail(machineGroups[0].serial)}` : ''}
+                            &nbsp;|&nbsp; <strong>Ref:</strong> ${escHtmlEmail(r.req_code)}
+                        </td>
+                    </tr>
+                </table>
+            ` : '');
 
-        const htmlEmail = `
-            <div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #1e293b; background-color: #ffffff; padding: 12px 4px;">
-                ${topModelBannerHtml}
+        const rfqHeaderDept = lang === 'EN'
+            ? 'GRUPO TECFAG &bull; PURCHASING &amp; INTERNATIONAL SOURCING'
+            : 'GRUPO TECFAG &bull; COMPRAS &amp; SUPRIMENTOS INDUSTRIAIS';
+        const rfqHeaderTitle = lang === 'EN'
+            ? `Spare Parts Quotation Request &mdash; ${escHtmlEmail(r.req_code)}`
+            : `Solicitação de Cotação de Peças &mdash; ${escHtmlEmail(r.req_code)}`;
 
-                <div style="font-size: 14px; color: #1e293b; margin-bottom: 22px; white-space: pre-wrap; line-height: 1.65;">${safeBodyHtml}</div>
-
-                ${groupedPhotosSectionsHtml.length > 0 ? `
-                    <div style="margin-top: 20px; margin-bottom: 24px; padding-top: 14px; border-top: 2px solid #e2e8f0;">
-                        <div style="font-size: 14px; font-weight: bold; color: #0f172a; margin-bottom: 12px;">${photosHeaderTitle}</div>
-                        ${groupedPhotosSectionsHtml.join('\n')}
-                    </div>
-                ` : ''}
-
-                <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
-                    ${hasSignatureImg ? `
-                        <div style="margin-bottom: 12px;">
-                            <img src="cid:tecfag_signature_banner" alt="Grupo Tecfag" style="max-width: 640px; width: 100%; height: auto; display: block; border: 0;" />
-                        </div>
-                    ` : `
-                        <div style="font-size: 13px; color: #334155;">
-                            <strong style="color:#b91c1c;">GRUPO TECFAG — AUTOMAÇÃO & EQUIPAMENTOS INDUSTRIAIS</strong><br>
-                            Tel: +55 (14) 3161-5000 | www.tecfag.com.br
-                        </div>
-                    `}
-                    <div style="font-size: 11px; color: #64748b; margin-top: 8px;">
-                        Ref: <strong>${r.req_code}</strong> | Sent by ${senderDisplay}
-                    </div>
-                </div>
+        const rfqHeaderTableHtml = hasHeaderLogo ? `
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;">
+                <tr>
+                    <td width="175" valign="middle" style="padding-right:16px; border-right:1px solid #334155;">
+                        <img src="cid:tecfag_header_logo" alt="Grupo Tecfag" width="165" height="39" style="display:block; width:165px; height:39px; border:0; outline:none;" />
+                    </td>
+                    <td valign="middle" style="padding-left:16px; font-family:Arial,Helvetica,sans-serif;">
+                        <div style="font-size:11px; font-weight:bold; color:#38bdf8; letter-spacing:0.8px; text-transform:uppercase;">${rfqHeaderDept}</div>
+                        <div style="margin-top:4px; font-size:18px; font-weight:bold; color:#ffffff; line-height:1.25;">${rfqHeaderTitle}</div>
+                    </td>
+                </tr>
+            </table>
+        ` : `
+            <div style="font-family:Arial,Helvetica,sans-serif;">
+                <div style="font-size:11px; font-weight:bold; color:#38bdf8; letter-spacing:0.8px; text-transform:uppercase;">${rfqHeaderDept}</div>
+                <div style="margin-top:4px; font-size:18px; font-weight:bold; color:#ffffff;">${rfqHeaderTitle}</div>
             </div>
         `;
 
+        const htmlEmail = `
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#f1f5f9" style="background-color:#f1f5f9; width:100%; margin:0; padding:0;">
+                <tr>
+                    <td align="center" style="padding:20px 12px;">
+                        <table width="660" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#ffffff" style="width:660px; max-width:660px; background-color:#ffffff; border:1px solid #cbd5e1;">
+                            <tr>
+                                <td bgcolor="#0b0f19" style="background-color:#0b0f19; padding:18px 24px; border-bottom:4px solid #0284c7;">
+                                    ${rfqHeaderTableHtml}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:22px 24px; font-family:Arial,Helvetica,sans-serif; color:#1e293b;">
+                                    ${topModelBannerHtml}
+
+                                    <div style="margin-bottom:18px;">
+                                        ${formattedBodyHtml}
+                                    </div>
+
+                                    ${groupedPhotosSectionsHtml.length > 0 ? `
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-top:2px solid #e2e8f0; margin-top:16px; padding-top:14px;">
+                                            <tr>
+                                                <td style="padding-top:14px; padding-bottom:10px; font-family:Arial,Helvetica,sans-serif; font-size:12px; font-weight:bold; letter-spacing:0.5px; color:#0f172a;">
+                                                    ${photosHeaderTitle}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    ${groupedPhotosSectionsHtml.join('\n')}
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    ` : ''}
+
+                                    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-top:1px solid #e2e8f0; margin-top:20px;">
+                                        <tr>
+                                            <td style="padding-top:14px;">
+                                                ${hasSignatureImg ? `
+                                                    <img src="cid:tecfag_signature_banner" alt="Grupo Tecfag" width="600" height="133" style="display:block; width:600px; max-width:100%; height:auto; border:0;" />
+                                                ` : `
+                                                    <div style="font-family:Arial,Helvetica,sans-serif; font-size:13px; color:#334155;">
+                                                        <strong style="color:#b91c1c;">GRUPO TECFAG — AUTOMAÇÃO &amp; EQUIPAMENTOS INDUSTRIAIS</strong><br />
+                                                        Tel: +55 (14) 3161-5000 | www.tecfag.com.br
+                                                    </div>
+                                                `}
+                                                <div style="font-family:Arial,Helvetica,sans-serif; font-size:11px; color:#64748b; margin-top:8px;">
+                                                    Ref: <strong>${escHtmlEmail(r.req_code)}</strong> | Contact: ${escHtmlEmail(senderDisplay)} (${escHtmlEmail(senderOfficialEmail)})
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        `;
+
+        // Extrai endereço SMTP real p/ manter autenticação SPF/DKIM válida, mas usa Nome Corporativo limpo (em vez de "MRP Tecfag")
+        const rawFromEnv = String(process.env.EMAIL_FROM || process.env.SMTP_USER || '').trim();
+        const emailMatch = rawFromEnv.match(/<([^>]+)>/);
+        const cleanSmtpAddr = emailMatch ? emailMatch[1].trim() : rawFromEnv;
+        const supplierFromHeader = lang === 'EN'
+            ? `"Grupo Tecfag - Purchasing & Spare Parts" <${cleanSmtpAddr}>`
+            : `"Grupo Tecfag - Compras & Peças" <${cleanSmtpAddr}>`;
+
         await transporter.sendMail({
-            from: process.env.EMAIL_FROM || `"Tecfag Spare Parts / Compras" <${process.env.SMTP_USER}>`,
+            from: supplierFromHeader,
+            replyTo: `"${senderDisplay} - Grupo Tecfag" <${senderOfficialEmail}>`,
             to: String(to).trim(),
             cc: cc && String(cc).trim() ? String(cc).trim() : undefined,
             subject: String(subject).trim(),
@@ -2945,7 +3222,7 @@ module.exports = function registerPartsModule({
                     </div>
 
                     <div style="padding: 24px 26px;">
-                        <p style="font-size: 14px; line-height: 1.6; margin-bottom: 16px; white-space: pre-wrap;">${introText}</p>
+                        <p style="font-size: 14px; line-height: 1.6; margin-bottom: 16px;">${String(introText).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\r?\n/g, '<br />')}</p>
 
                         <div style="background: #f1f5f9; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; font-size: 13px; line-height: 1.5;">
                             <strong>🏢 Cliente:</strong> ${r.client_name} ${r.client_cnpj ? `(${r.client_cnpj})` : ''}<br>
@@ -2992,7 +3269,7 @@ module.exports = function registerPartsModule({
                         </div>
 
                         <div style="padding-top: 14px; border-top: 1px solid #e2e8f0;">
-                            ${hasSignatureImg ? `<img src="cid:tecfag_signature_banner" alt="Grupo Tecfag" style="max-width: 620px; width: 100%; height: auto; display: block;" />` : ''}
+                            ${hasSignatureImg ? `<img src="cid:tecfag_signature_banner" alt="Grupo Tecfag" width="620" height="137" style="max-width: 620px; width: 100%; height: auto; display: block; border: 0;" />` : ''}
                         </div>
                     </div>
                 </div>
