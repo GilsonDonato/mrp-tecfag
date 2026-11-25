@@ -34,6 +34,7 @@ module.exports = function registerPartsModule({
     const PRODUCTS_JSON_PATH = path.join(__dirname, '..', 'data', 'products.json');
     const SKUS_CSV_PATH = path.join(__dirname, '..', 'skus.csv');
     const SIGNATURE_IMG_PATH = path.join(__dirname, '..', 'media', 'email_signature_tecfag.png');
+    const HEADER_LOGO_IMG_PATH = path.join(__dirname, '..', 'media', 'tecfag_logo_white.png');
 
     const TOTAL_DISK_LIMIT_BYTES = (parseFloat(process.env.PARTS_DISK_TOTAL_GB) || 1) * 1024 * 1024 * 1024;
     const MRP_RESERVED_FREE_BYTES = 200 * 1024 * 1024; // 200 MB intocáveis para o MRP principal
@@ -2717,12 +2718,23 @@ module.exports = function registerPartsModule({
             }
         }
 
+        const hasHeaderLogo = fs.existsSync(HEADER_LOGO_IMG_PATH);
+        if (hasHeaderLogo) {
+            mailAttachments.push({
+                filename: 'logo_tecfag.png',
+                path: HEADER_LOGO_IMG_PATH,
+                cid: 'tecfag_header_logo',
+                contentDisposition: 'inline'
+            });
+        }
+
         const hasSignatureImg = fs.existsSync(SIGNATURE_IMG_PATH);
         if (hasSignatureImg) {
             mailAttachments.push({
                 filename: 'assinatura_tecfag.png',
                 path: SIGNATURE_IMG_PATH,
-                cid: 'tecfag_signature_banner'
+                cid: 'tecfag_signature_banner',
+                contentDisposition: 'inline'
             });
         }
 
@@ -2755,12 +2767,28 @@ module.exports = function registerPartsModule({
         const introText = String(custom_message || '').trim() ||
             `Olá${r.client_contact ? ' ' + r.client_contact : ''}! Conforme solicitado, apresentamos abaixo nossa proposta comercial para fornecimento de peça(s) de reposição originais/homologadas Grupo Tecfag:`;
 
+        const headerContentHtml = hasHeaderLogo ? `
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse: collapse;">
+                <tr>
+                    <td width="182" valign="middle" style="padding-right: 18px; border-right: 1px solid #334155;">
+                        <img src="cid:tecfag_header_logo" alt="Grupo Tecfag" width="172" height="41" style="display: block; width: 172px; height: 41px; border: 0; outline: none; text-decoration: none;" />
+                    </td>
+                    <td valign="middle" style="padding-left: 18px;">
+                        <div style="font-size: 11px; font-weight: bold; color: #38bdf8; letter-spacing: 1px; text-transform: uppercase;">GRUPO TECFAG • PÓS-VENDA &amp; PEÇAS DE REPOSIÇÃO</div>
+                        <h2 style="margin: 4px 0 0; font-size: 19px; color: #ffffff; line-height: 1.25;">Proposta Comercial — Protocolo ${r.req_code}</h2>
+                    </td>
+                </tr>
+            </table>
+        ` : `
+            <div style="font-size: 11px; font-weight: bold; color: #38bdf8; letter-spacing: 1px; text-transform: uppercase;">GRUPO TECFAG • PÓS-VENDA &amp; PEÇAS DE REPOSIÇÃO</div>
+            <h2 style="margin: 4px 0 0; font-size: 19px; color: #ffffff;">Proposta Comercial — Protocolo ${r.req_code}</h2>
+        `;
+
         const htmlProposal = `
             <div style="font-family: Arial, Helvetica, sans-serif; color: #1e293b; background-color: #f8fafc; padding: 20px;">
                 <div style="max-width: 720px; margin: 0 auto; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden;">
-                    <div style="background: linear-gradient(135deg, #0b0f19, #1e293b); color: #ffffff; padding: 20px 26px; border-bottom: 4px solid #0ea5e9;">
-                        <div style="font-size: 11px; font-weight: bold; color: #38bdf8; letter-spacing: 1px; text-transform: uppercase;">GRUPO TECFAG • PÓS-VENDA & PEÇAS DE REPOSIÇÃO</div>
-                        <h2 style="margin: 4px 0 0; font-size: 19px;">Proposta Comercial — Protocolo ${r.req_code}</h2>
+                    <div style="background-color: #0b0f19; background: linear-gradient(135deg, #0b0f19, #1e293b); color: #ffffff; padding: 20px 26px; border-bottom: 4px solid #0ea5e9;">
+                        ${headerContentHtml}
                     </div>
 
                     <div style="padding: 24px 26px;">
@@ -2769,7 +2797,7 @@ module.exports = function registerPartsModule({
                         <div style="background: #f1f5f9; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; font-size: 13px; line-height: 1.5;">
                             <strong>🏢 Cliente:</strong> ${r.client_name} ${r.client_cnpj ? `(${r.client_cnpj})` : ''}<br>
                             ${(r.machine_sku || r.machine_name) ? `<strong>🏭 Equipamento Vinculado:</strong> ${r.machine_sku || ''} ${r.machine_name || ''}${r.machine_serial ? ` (Série: ${r.machine_serial})` : ''}<br>` : ''}
-                            <strong>👤 Consultor Responsável:</strong> ${primaryOwnerDisplay} (&lt;${primaryOwnerEmail}&gt;)
+                            <strong>👤 Consultor Responsável:</strong> ${primaryOwnerDisplay} (<a href="mailto:${primaryOwnerEmail}" style="color:#0284c7; text-decoration:none; font-weight:bold;">${primaryOwnerEmail}</a>)
                         </div>
 
                         <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 18px;">
