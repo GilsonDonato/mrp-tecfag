@@ -2346,6 +2346,9 @@ app.post('/api/auth/login', async (req, res) => {
             'keicy': 'vendas21@tecfag.com.br',
             'keicy.cardoso': 'vendas21@tecfag.com.br',
             'vendas21': 'vendas21@tecfag.com.br',
+            'matheus': 'assistencia7@tecfag.com.br',
+            'matheus.henrique': 'assistencia7@tecfag.com.br',
+            'assistencia7': 'assistencia7@tecfag.com.br',
             'lerlayne': 'jerlayne',
             'rh@tecfag.com.br': 'jerlayne'
         };

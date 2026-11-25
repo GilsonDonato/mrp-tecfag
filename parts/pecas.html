@@ -1184,7 +1184,7 @@
         const STAGE_META = {
             '1_TRIAGEM_TECNICA': { num: '1', title: '1. Triagem Técnica', sla: 'Resp.: Jhenifer • Brasil vs China', color: '#0ea5e9' },
             '2_COTACAO_FORNECEDOR': { num: '2', title: '2. Cotação Fornecedor', sla: 'Resp.: Jhenifer • Com Pré-SKU', color: '#f59e0b' },
-            '3_PROPOSTA_CLIENTE': { num: '3', title: '3. Proposta no Cliente', sla: 'Resp.: Guilherme / Raiane / Vitória / Keicy', color: '#6366f1' },
+            '3_PROPOSTA_CLIENTE': { num: '3', title: '3. Proposta no Cliente', sla: 'Resp.: Guilherme / Raiane / Vitória / Keicy / Matheus', color: '#6366f1' },
             '4_CADASTRO_ERP': { num: '4', title: '4. Fila ERP (Jhenifer)', sla: 'Resp.: Jhenifer • Só Venda Ganha!', color: '#ec4899' },
             '5_COMPRA_TRANSITO': { num: '5', title: '5. Compra & Trânsito', sla: 'Resp.: Jhenifer • DHL / Container', color: '#8b5cf6' },
             '6_DOCA_EXPEDICAO': { num: '6', title: '6. Doca / Reserva Cliente', sla: 'Resp.: Jhenifer • Faturar Cliente', color: '#10b981' },
@@ -3863,6 +3863,7 @@
                         if (uname === 'assistencia@tecfag.com.br' && (allowedSet.has('assistencia') || allowedSet.has('raiane') || allowedSet.has('raiane.aguiar'))) return true;
                         if (uname === 'assistencia4@tecfag.com.br' && (allowedSet.has('assistencia4') || allowedSet.has('mariavitoria') || allowedSet.has('maria.vitoria') || allowedSet.has('vitoria'))) return true;
                         if (uname === 'vendas21@tecfag.com.br' && (allowedSet.has('vendas21') || allowedSet.has('keicy') || allowedSet.has('keicy.cardoso'))) return true;
+                        if (uname === 'assistencia7@tecfag.com.br' && (allowedSet.has('assistencia7') || allowedSet.has('matheus') || allowedSet.has('matheus.henrique'))) return true;
                         return false;
                     };
 

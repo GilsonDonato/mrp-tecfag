@@ -101,6 +101,10 @@ module.exports = function registerPartsModule({
         'vendas21': 'Keicy Cardoso (Vendas / Peças)',
         'keicy': 'Keicy Cardoso (Vendas / Peças)',
         'keicy.cardoso': 'Keicy Cardoso (Vendas / Peças)',
+        'assistencia7@tecfag.com.br': 'Matheus Henrique (Assistência / Peças)',
+        'assistencia7': 'Matheus Henrique (Assistência / Peças)',
+        'matheus': 'Matheus Henrique (Assistência / Peças)',
+        'matheus.henrique': 'Matheus Henrique (Assistência / Peças)',
         'jhenifer': 'Jhenifer (Cadastro ERP & Compras)',
         'adm@tecfag.com.br': 'Jhenifer (Cadastro ERP & Compras)',
         'fernando': 'Fernando (Engenharia)',
@@ -153,7 +157,8 @@ module.exports = function registerPartsModule({
             'vendas18', 'vendas18@tecfag.com.br', 'guilherme', 'bertola',
             'assistencia@tecfag.com.br', 'assistencia', 'raiane', 'raiane.aguiar',
             'assistencia4@tecfag.com.br', 'assistencia4', 'mariavitoria', 'maria.vitoria', 'vitoria',
-            'vendas21@tecfag.com.br', 'vendas21', 'keicy', 'keicy.cardoso'
+            'vendas21@tecfag.com.br', 'vendas21', 'keicy', 'keicy.cardoso',
+            'assistencia7@tecfag.com.br', 'assistencia7', 'matheus', 'matheus.henrique'
         ].includes(u);
     }
 
@@ -197,6 +202,12 @@ module.exports = function registerPartsModule({
             set.add('vendas21');
             set.add('vendas21@tecfag.com.br');
         }
+        if (['matheus', 'matheus.henrique', 'assistencia7', 'assistencia7@tecfag.com.br'].includes(clean)) {
+            set.add('matheus');
+            set.add('matheus.henrique');
+            set.add('assistencia7');
+            set.add('assistencia7@tecfag.com.br');
+        }
         if (['gilson', 'gilson@tecfag.com.br'].includes(clean)) {
             set.add('gilson');
             set.add('gilson@tecfag.com.br');
@@ -225,9 +236,10 @@ module.exports = function registerPartsModule({
         'vendas18@tecfag.com.br',
         'assistencia@tecfag.com.br',
         'assistencia4@tecfag.com.br',
-        'vendas21@tecfag.com.br'
+        'vendas21@tecfag.com.br',
+        'assistencia7@tecfag.com.br'
     ];
-    const PARTS_REQUESTERS_DEFAULT_DISPLAY = 'Guilherme Bertola • Raiane Aguiar • Maria Vitória • Keicy Cardoso';
+    const PARTS_REQUESTERS_DEFAULT_DISPLAY = 'Guilherme Bertola • Raiane Aguiar • Maria Vitória • Keicy Cardoso • Matheus Henrique';
 
     const DEFAULT_STAGE_GOVERNANCE = [
         {
@@ -370,6 +382,9 @@ module.exports = function registerPartsModule({
             'keicy': 'vendas21@tecfag.com.br',
             'keicy.cardoso': 'vendas21@tecfag.com.br',
             'vendas21': 'vendas21@tecfag.com.br',
+            'matheus': 'assistencia7@tecfag.com.br',
+            'matheus.henrique': 'assistencia7@tecfag.com.br',
+            'assistencia7': 'assistencia7@tecfag.com.br',
             'gilson': 'gilson@tecfag.com.br',
             'admin': 'gilson@tecfag.com.br',
             'jhenifer': 'adm@tecfag.com.br',
@@ -395,6 +410,7 @@ module.exports = function registerPartsModule({
         if (email === 'assistencia@tecfag.com.br') return 'Raiane Aguiar — Assistência & Peças Tecfag';
         if (email === 'assistencia4@tecfag.com.br') return 'Maria Vitória — Assistência & Peças Tecfag';
         if (email === 'vendas21@tecfag.com.br') return 'Keicy Cardoso — Pós-Venda & Peças Tecfag';
+        if (email === 'assistencia7@tecfag.com.br') return 'Matheus Henrique — Assistência & Peças Tecfag';
         return `${getFriendlyUserName(clean)} — Grupo Tecfag`;
     }
 
@@ -737,8 +753,8 @@ module.exports = function registerPartsModule({
                     );
                 });
 
-                // Migração idempotente única: inclui Raiane Aguiar, Maria Vitória e Keicy Cardoso nos mesmos poderes de Guilherme (Abertura & Etapa 3) em bancos já existentes
-                partsDb.get(`SELECT meta_val FROM parts_app_meta WHERE meta_key = 'gov_v2_raiane_vitoria_keicy'`, (mErr, mRow) => {
+                // Migração idempotente única: garante Guilherme, Raiane, Maria Vitória, Keicy e Matheus Henrique nos mesmos poderes (Abertura & Etapa 3) em bancos já existentes
+                partsDb.get(`SELECT meta_val FROM parts_app_meta WHERE meta_key = 'gov_v3_matheus_henrique'`, (mErr, mRow) => {
                     if (!mErr && !mRow) {
                         ['CREATE_REQUEST', '3_PROPOSTA_CLIENTE'].forEach((stageKey) => {
                             partsDb.get(`SELECT allowed_users_json FROM parts_stage_permissions WHERE stage_key = ?`, [stageKey], (sErr, sRow) => {
@@ -761,7 +777,7 @@ module.exports = function registerPartsModule({
                             });
                         });
                         partsDb.run(
-                            `INSERT OR REPLACE INTO parts_app_meta (meta_key, meta_val, updated_at) VALUES ('gov_v2_raiane_vitoria_keicy', '1', ?)`,
+                            `INSERT OR REPLACE INTO parts_app_meta (meta_key, meta_val, updated_at) VALUES ('gov_v3_matheus_henrique', '1', ?)`,
                             [nowIso]
                         );
                     }
@@ -769,7 +785,7 @@ module.exports = function registerPartsModule({
             });
         });
 
-        // Garantir cadastro seguro de Guilherme, Raiane, Maria Vitória e Keicy na tabela users do MRP sem sobrescrever senhas existentes
+        // Garantir cadastro seguro de Guilherme, Raiane, Maria Vitória, Keicy e Matheus Henrique na tabela users do MRP sem sobrescrever senhas existentes
         if (mrpDb && typeof hashPassword === 'function') {
             const partsTeamAccounts = [
                 { username: 'vendas18@tecfag.com.br', email: 'vendas18@tecfag.com.br', role: 'VENDAS', defaultPass: 'vend@tecfag18', label: 'Guilherme Bertola' },
@@ -779,7 +795,9 @@ module.exports = function registerPartsModule({
                 { username: 'assistencia4@tecfag.com.br', email: 'assistencia4@tecfag.com.br', role: 'VENDAS', defaultPass: 'vitoria#tecfag26', label: 'Maria Vitória' },
                 { username: 'mariavitoria', email: 'assistencia4@tecfag.com.br', role: 'VENDAS', defaultPass: 'vitoria#tecfag26', label: 'Maria Vitória' },
                 { username: 'vendas21@tecfag.com.br', email: 'vendas21@tecfag.com.br', role: 'VENDAS', defaultPass: 'vend@tecfag21', label: 'Keicy Cardoso' },
-                { username: 'keicy', email: 'vendas21@tecfag.com.br', role: 'VENDAS', defaultPass: 'vend@tecfag21', label: 'Keicy Cardoso' }
+                { username: 'keicy', email: 'vendas21@tecfag.com.br', role: 'VENDAS', defaultPass: 'vend@tecfag21', label: 'Keicy Cardoso' },
+                { username: 'assistencia7@tecfag.com.br', email: 'assistencia7@tecfag.com.br', role: 'VENDAS', defaultPass: 'matheus#tecfag26', label: 'Matheus Henrique' },
+                { username: 'matheus', email: 'assistencia7@tecfag.com.br', role: 'VENDAS', defaultPass: 'matheus#tecfag26', label: 'Matheus Henrique' }
             ];
             partsTeamAccounts.forEach((acc) => {
                 mrpDb.get('SELECT username FROM users WHERE LOWER(username) = LOWER(?)', [acc.username], (err, row) => {
@@ -1089,6 +1107,7 @@ module.exports = function registerPartsModule({
             else if (['raiane', 'raiane.aguiar', 'assistencia', 'assistencia@tecfag.com.br'].includes(clean)) canonicalKey = 'assistencia@tecfag.com.br';
             else if (['mariavitoria', 'maria.vitoria', 'vitoria', 'assistencia4', 'assistencia4@tecfag.com.br'].includes(clean)) canonicalKey = 'assistencia4@tecfag.com.br';
             else if (['keicy', 'keicy.cardoso', 'vendas21', 'vendas21@tecfag.com.br'].includes(clean)) canonicalKey = 'vendas21@tecfag.com.br';
+            else if (['matheus', 'matheus.henrique', 'assistencia7', 'assistencia7@tecfag.com.br'].includes(clean)) canonicalKey = 'assistencia7@tecfag.com.br';
             else if (['gilson', 'gilson@tecfag.com.br'].includes(clean)) canonicalKey = 'gilson';
             else if (['fernando', 'fernando@tecfag.com.br'].includes(clean)) canonicalKey = 'fernando';
             else if (['heilio', 'assistencia6@tecfag.com.br'].includes(clean)) canonicalKey = 'heilio';
@@ -1108,6 +1127,7 @@ module.exports = function registerPartsModule({
         registerCandidate('assistencia@tecfag.com.br', 'ASSISTÊNCIA / PEÇAS');
         registerCandidate('assistencia4@tecfag.com.br', 'ASSISTÊNCIA / PEÇAS');
         registerCandidate('vendas21@tecfag.com.br', 'VENDAS / PEÇAS');
+        registerCandidate('assistencia7@tecfag.com.br', 'ASSISTÊNCIA / PEÇAS');
         registerCandidate('jhenifer', 'COMPRAS / ERP');
         mrpUsers.forEach(u => registerCandidate(u.username, u.role));
 
