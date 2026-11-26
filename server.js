@@ -13156,6 +13156,115 @@ Sua missão:
     }
 });
 
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
+ * Converte o corpo do e-mail digitado no Copilot em HTML compatível com 100% dos clientes,
+ * incluindo Microsoft Outlook Desktop (Word MSO), Gmail, Apple Mail e Webmails corporativos.
+ * Substitui o frágil CSS white-space: pre-wrap por tags HTML estruturadas e seguras.
+ */
+function formatEmailBodyHtml(rawBody) {
+    if (!rawBody || typeof rawBody !== 'string') return '';
+
+    const lines = rawBody.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    const htmlLines = [];
+
+    // Divisores visuais (linhas de traços, sublinhados, barras duplas ou caracteres box-drawing como ━)
+    const separatorRegex = /^[\u2500-\u257F\-=_\.]{3,}$/;
+    // Cabeçalhos de seção (ex: "1. DADOS PRINCIPAIS DO EMBARQUE")
+    const sectionHeaderRegex = /^\s*([0-9]+\.)\s+([A-ZÀ-Ú0-9\s&/()_\-\.,:]{4,})$/;
+    // Marcador de lista (bullet: •, -, *)
+    const bulletRegex = /^\s*[•\*\-]\s+(.+)$/;
+    // Item de sublista numerada (ex: "1. Frete Marítimo...", "  1. MP60...")
+    const numberedItemRegex = /^\s*([0-9]+[\.\)])\s+(.+)$/;
+
+    let consecutiveEmpty = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+        const rawLine = lines[i];
+        const line = rawLine.trim();
+
+        // Linha em branco -> espaçamento vertical com controle de altura exato para Outlook
+        if (!line) {
+            consecutiveEmpty++;
+            if (consecutiveEmpty <= 1) {
+                htmlLines.push('<div style="height: 10px; font-size: 10px; line-height: 10px; mso-line-height-rule: exactly;">&nbsp;</div>');
+            }
+            continue;
+        }
+        consecutiveEmpty = 0;
+
+        // Divisor visual (ex: ━━━━━━━━━ ou -----------)
+        if (separatorRegex.test(line)) {
+            htmlLines.push('<div style="border-top: 1px solid #cbd5e1; margin: 12px 0 10px 0; font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">&nbsp;</div>');
+            continue;
+        }
+
+        // Título de Seção (ex: "1. DADOS PRINCIPAIS DO EMBARQUE")
+        const sectionMatch = line.match(sectionHeaderRegex);
+        if (sectionMatch && sectionMatch[2] && sectionMatch[2].length > 3 && sectionMatch[2] === sectionMatch[2].toUpperCase()) {
+            const num = escapeHtml(sectionMatch[1]);
+            const title = escapeHtml(sectionMatch[2]);
+            htmlLines.push(
+                `<div style="font-family: Arial, Helvetica, sans-serif; font-size: 13.5px; font-weight: bold; color: #0f172a; margin-top: 14px; margin-bottom: 6px; letter-spacing: 0.3px;">` +
+                `<span style="color: #0284c7; margin-right: 4px;">${num}</span> ${title}` +
+                `</div>`
+            );
+            continue;
+        }
+
+        // Bullet point (•, -, *)
+        const bulletMatch = line.match(bulletRegex);
+        if (bulletMatch) {
+            const content = bulletMatch[1];
+            const colonIdx = content.indexOf(':');
+            let formattedContent = '';
+            if (colonIdx > 0 && colonIdx < 55) {
+                const label = escapeHtml(content.substring(0, colonIdx));
+                const value = escapeHtml(content.substring(colonIdx + 1));
+                formattedContent = `<strong>${label}:</strong>${value}`;
+            } else {
+                formattedContent = escapeHtml(content);
+            }
+
+            htmlLines.push(
+                `<div style="font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #334155; line-height: 1.6; margin-bottom: 4px; padding-left: 20px; text-indent: -20px;">` +
+                `<span style="color: #0284c7; font-weight: bold; font-size: 14px; margin-right: 6px; mso-special-format: bullet;">&bull;</span>` +
+                `${formattedContent}` +
+                `</div>`
+            );
+            continue;
+        }
+
+        // Item de sublista numerada
+        const numMatch = line.match(numberedItemRegex);
+        if (numMatch) {
+            const numPrefix = escapeHtml(numMatch[1]);
+            const rest = escapeHtml(numMatch[2]);
+            htmlLines.push(
+                `<div style="font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #334155; line-height: 1.6; margin-bottom: 4px; padding-left: 22px; text-indent: -22px;">` +
+                `<strong style="color: #0f172a;">${numPrefix}</strong> ${rest}` +
+                `</div>`
+            );
+            continue;
+        }
+
+        // Linha de texto comum
+        const escapedLine = escapeHtml(line);
+        htmlLines.push(`<div style="font-family: Arial, Helvetica, sans-serif; font-size: 13.5px; color: #1e293b; line-height: 1.6; margin-bottom: 4px;">${escapedLine}</div>`);
+    }
+
+    return htmlLines.join('\n');
+}
+
 app.post('/api/projects/:code/send-email', authenticateToken, upload.fields([
     { name: 'packing_list_file', maxCount: 1 },
     { name: 'extra_files', maxCount: 10 }
@@ -13319,6 +13428,8 @@ app.post('/api/projects/:code/send-email', authenticateToken, upload.fields([
 
         const attachedFilesNames = mailAttachments.filter(a => !a.cid).map(a => a.filename).join(', ');
 
+        const formattedBodyHtml = formatEmailBodyHtml(body.trim());
+
         const mailOptions = {
             from: process.env.EMAIL_FROM || `"Tecfag MRP" <${process.env.SMTP_USER}>`,
             replyTo: `"${userSender}" <${userEmail}>`,
@@ -13335,40 +13446,46 @@ app.post('/api/projects/:code/send-email', authenticateToken, upload.fields([
                 `WeChat: wxid_lahb69yx86hv22\n\n` +
                 `Grupo Tecfag | www.tecfag.com.br\n` +
                 `Projeto: ${project.code} - ${project.client || ''}`,
-            html: `<div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #1e293b; background-color: #ffffff; padding: 10px 0;">
-                <div style="font-size: 14px; color: #1e293b; margin-bottom: 24px; white-space: pre-wrap; line-height: 1.6;">${body.trim()}</div>
-                
-                <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
-                    ${hasSignatureImg ? `
-                        <div style="margin-bottom: 12px;">
-                            <img src="cid:tecfag_signature_banner" alt="Grupo Tecfag - Gilson Donato & Fernando" style="max-width: 650px; width: 100%; height: auto; display: block; border: 0;" />
+            html: `<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #ffffff; font-family: Arial, Helvetica, sans-serif; color: #1e293b;">
+                <tr>
+                    <td align="left" style="padding: 10px 0;">
+                        <div style="font-family: Arial, Helvetica, sans-serif; font-size: 13.5px; line-height: 1.6; color: #1e293b; max-width: 680px;">
+                            ${formattedBodyHtml}
+                            
+                            <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                                ${hasSignatureImg ? `
+                                    <div style="margin-bottom: 12px;">
+                                        <img src="cid:tecfag_signature_banner" alt="Grupo Tecfag - Gilson Donato & Fernando" width="650" style="max-width: 650px; width: 100%; height: auto; display: block; border: 0;" />
+                                    </div>
+                                ` : `
+                                    <table style="font-family: Arial, sans-serif; font-size: 13px; color: #333; line-height: 1.4;">
+                                        <tr>
+                                            <td style="padding-bottom: 10px;">
+                                                <strong style="color: #b91c1c; font-size: 14px;">GILSON DONATO</strong><br>
+                                                <span style="font-weight: bold; color: #000;">CEO</span><br>
+                                                ✉ E-mail: <a href="mailto:gilson@tecfag.com.br" style="color: #0284c7; text-decoration: none;">gilson@tecfag.com.br</a> | 📞 Telefone: +55 (14) 3161-5000<br>
+                                                💬 WeChat: gilsondonato
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding-top: 5px; border-top: 1px dashed #cbd5e1;">
+                                                <strong style="color: #b91c1c; font-size: 14px;">FERNANDO</strong><br>
+                                                <span style="font-weight: bold; color: #000;">ENGENHARIA & PROJETOS</span><br>
+                                                ✉ E-mail: <a href="mailto:projetos@grupo.tecfag.com.br" style="color: #0284c7; text-decoration: none;">projetos@grupo.tecfag.com.br</a> | 📞 Telefone: +55 (14) 3161-5000<br>
+                                                💬 WeChat: wxid_lahb69yx86hv22
+                                            </td>
+                                        </tr>
+                                    </table>
+                                `}
+                                <div style="font-size: 11px; color: #64748b; margin-top: 10px; line-height: 1.4; border-top: 1px solid #f1f5f9; padding-top: 6px;">
+                                    <strong>Grupo Tecfag | Máquinas & Equipamentos Industriais</strong><br>
+                                    Ref: Projeto <strong>${project.code}</strong> (${project.client || 'Cliente'}) | Enviado por ${userSender} (&lt;${userEmail}&gt;)
+                                </div>
+                            </div>
                         </div>
-                    ` : `
-                        <table style="font-family: Arial, sans-serif; font-size: 13px; color: #333; line-height: 1.4;">
-                            <tr>
-                                <td style="padding-bottom: 10px;">
-                                    <strong style="color: #b91c1c; font-size: 14px;">GILSON DONATO</strong><br>
-                                    <span style="font-weight: bold; color: #000;">CEO</span><br>
-                                    ✉ E-mail: <a href="mailto:gilson@tecfag.com.br" style="color: #0284c7; text-decoration: none;">gilson@tecfag.com.br</a> | 📞 Telefone: +55 (14) 3161-5000<br>
-                                    💬 WeChat: gilsondonato
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="padding-top: 5px; border-top: 1px dashed #cbd5e1;">
-                                    <strong style="color: #b91c1c; font-size: 14px;">FERNANDO</strong><br>
-                                    <span style="font-weight: bold; color: #000;">ENGENHARIA & PROJETOS</span><br>
-                                    ✉ E-mail: <a href="mailto:projetos@grupo.tecfag.com.br" style="color: #0284c7; text-decoration: none;">projetos@grupo.tecfag.com.br</a> | 📞 Telefone: +55 (14) 3161-5000<br>
-                                    💬 WeChat: wxid_lahb69yx86hv22
-                                </td>
-                            </tr>
-                        </table>
-                    `}
-                    <div style="font-size: 11px; color: #64748b; margin-top: 10px; line-height: 1.4; border-top: 1px solid #f1f5f9; padding-top: 6px;">
-                        <strong>Tecfag Máquinas & Equipamentos Industriais</strong><br>
-                        Ref: Projeto <strong>${project.code}</strong> (${project.client || 'Cliente'}) | Enviado por ${userSender} (&lt;${userEmail}&gt;)
-                    </div>
-                </div>
-            </div>`,
+                    </td>
+                </tr>
+            </table>`,
             attachments: mailAttachments
         };
 
