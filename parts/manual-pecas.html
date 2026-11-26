@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manual Operacional v2.1 — Gestão de Peças Sob Encomenda & Reposição | Grupo Tecfag</title>
+    <title>Manual Operacional v2.2 — Gestão de Peças Sob Encomenda & Reposição | Grupo Tecfag</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', Arial, sans-serif; }
@@ -116,10 +116,21 @@
             border-left: 6px solid #db2777;
             border-radius: 10px;
             padding: 13px 18px;
-            margin-bottom: 18px;
+            margin-bottom: 14px;
         }
         .gov-banner h3 { color: #9d174d; font-size: 0.92rem; margin-bottom: 4px; }
         .gov-banner p { color: #831843; font-size: 0.83rem; }
+
+        .stock-banner {
+            background: #ecfdf5;
+            border: 1px solid #6ee7b7;
+            border-left: 6px solid #059669;
+            border-radius: 10px;
+            padding: 13px 18px;
+            margin-bottom: 18px;
+        }
+        .stock-banner h3 { color: #065f46; font-size: 0.92rem; margin-bottom: 4px; }
+        .stock-banner p { color: #064e3b; font-size: 0.83rem; }
 
         .access-banner {
             background: #f0f9ff;
@@ -127,7 +138,7 @@
             border-left: 6px solid #0284c7;
             border-radius: 10px;
             padding: 12px 18px;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             font-size: 0.82rem;
             color: #0c4a6e;
         }
@@ -263,8 +274,8 @@
 
     <div class="toolbar-no-print">
         <div>
-            <strong>📖 Manual Oficial v2.1 — Gestão de Peças & Reposição Tecfag</strong>
-            <div style="font-size:0.75rem; color:#94a3b8;">Equipe Comercial/Assistência (5 integrantes), Proposta c/ Logo Tecfag, Multi-Máquinas e Governança por Etapa</div>
+            <strong>📖 Manual Oficial v2.2 — Gestão de Peças & Reposição Tecfag</strong>
+            <div style="font-size:0.75rem; color:#94a3b8;">Divisão de Peças Já em Estoque no ERP, E-mail Corporativo ao Fornecedor, Proposta c/ Logo Tecfag e Governança</div>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <a href="/pecas" class="toolbar-btn secondary">⚙️ Ir para a Ferramenta</a>
@@ -279,11 +290,11 @@
                 <img src="/media/tecfag_logo_white.png" onerror="this.onerror=null;this.src='../media/tecfag_logo_white.png'" alt="Grupo Tecfag" class="doc-header-logo">
                 <div>
                     <div style="font-size:0.72rem; font-weight:800; color:#fbbf24; letter-spacing:1px; text-transform:uppercase; margin-bottom:3px;">GRUPO TECFAG • ENGENHARIA DE PROCESSOS & MRP II</div>
-                    <h1>Manual Operacional v2.1 — Gestão de Peças Sob Encomenda & Reposição</h1>
-                    <p>Fluxo rápido com Pré-SKU automático, múltiplas máquinas por pedido, proposta oficial c/ logo Tecfag e trava por etapa.</p>
+                    <h1>Manual Operacional v2.2 — Gestão de Peças Sob Encomenda & Reposição</h1>
+                    <p>Pré-SKU automático, separação de itens já em estoque no ERP, e-mail corporativo ao fornecedor e trava por etapa.</p>
                 </div>
             </div>
-            <span class="doc-badge">POP v2.1 • PEÇAS</span>
+            <span class="doc-badge">POP v2.2 • PEÇAS</span>
         </header>
 
         <div class="doc-content">
@@ -302,7 +313,14 @@
             <div class="gov-banner">
                 <h3>🔒 Regra de Ouro #2 — Governança & Trava Rígida de Responsabilidade por Etapa</h3>
                 <p>
-                    Todos os usuários podem abrir qualquer card para <strong>consultar informações, copiar textos e conversar pelo Chat Interno</strong>, mas <strong>somente os responsáveis oficiais daquela etapa podem editar campos ou avançar o card</strong> (indicado pelas etiquetas <strong>✏️ Sua Etapa</strong> ou <strong>🔒 Consulta</strong>). Administradores Master (<strong>Gilson</strong> e <strong>Fernando</strong>) possuem chave-mestra total e podem configurar a matriz no botão <strong>🛡️ Responsáveis por Etapa</strong>.
+                    Todos os usuários podem abrir qualquer card para <strong>consultar informações, copiar SKUs/textos e conversar pelo Chat Interno</strong>, mas <strong>somente os responsáveis oficiais daquela etapa podem editar campos ou avançar o card</strong> (indicado pelas etiquetas <strong>✏️ Sua Etapa</strong> ou <strong>🔒 Consulta</strong>). Administradores Master (<strong>Gilson</strong> e <strong>Fernando</strong>) possuem chave-mestra total e podem configurar a matriz no botão <strong>🛡️ Responsáveis por Etapa</strong>.
+                </p>
+            </div>
+
+            <div class="stock-banner">
+                <h3>📦 Regra de Ouro #3 — Peça Já Cadastrada e Com Estoque no Mesmo Card (Isolamento Automático)</h3>
+                <p>
+                    Se o vendedor abrir um card com mais de um item (ex.: <strong>Motor + Mola</strong>) e na Triagem for identificado que a <strong>Mola já tem cadastro e estoque no ERP</strong>, basta marcá-la como <strong>📦 Já Cadastrado &amp; C/ Estoque (Atender pelo ERP)</strong> informando o SKU oficial. O vendedor recebe na hora um alerta verde com botão <strong>📋 Copiar SKU</strong> para faturar a Mola direto no ERP, enquanto o card segue normalmente <strong>apenas com o Motor</strong>!
                 </p>
             </div>
 
@@ -336,13 +354,13 @@
                         <td><strong>1️⃣ Etapa 1 — Triagem Técnica</strong></td>
                         <td><strong>Jhenifer</strong> (<code>jhenifer</code> / <code>adm@tecfag.com.br</code>)</td>
                         <td>🔒 Consulta + Chat</td>
-                        <td>Conferir Cód. Antigo / Nome em Inglês e definir Brasil vs. Importação.</td>
+                        <td>Conferir Cód. Antigo / Inglês, definir Brasil vs. Importação ou <strong>isolar item já c/ estoque no ERP</strong>.</td>
                     </tr>
                     <tr>
                         <td><strong>2️⃣ Etapa 2 — Cotação &amp; Preço</strong></td>
                         <td><strong>Jhenifer</strong> (<code>jhenifer</code> / <code>adm@tecfag.com.br</code>)</td>
                         <td>🔒 Consulta + Chat</td>
-                        <td>Enviar e-mail agrupado c/ fotos ao fornecedor e formar preço (<code>FOB×Dólar×2×2</code>).</td>
+                        <td>Enviar e-mail corporativo c/ fotos ao fornecedor e formar preço (<code>FOB×Dólar×2×2</code>).</td>
                     </tr>
                     <tr>
                         <td><strong>3️⃣ Etapa 3 — Proposta &amp; Decisão</strong></td>
@@ -357,7 +375,7 @@
                         <td><strong>4️⃣ Etapa 4 — Fila Cadastro ERP</strong></td>
                         <td><strong>Jhenifer</strong> (<code>jhenifer</code> / <code>adm@tecfag.com.br</code>)</td>
                         <td>🔒 Consulta + Chat</td>
-                        <td>Criar SKU Oficial no ERP (somente venda aprovada!) e confirmar De-Para.</td>
+                        <td>Criar SKU Oficial no ERP (somente peças sob encomenda aprovadas!) e confirmar De-Para.</td>
                     </tr>
                     <tr>
                         <td><strong>5️⃣ Etapa 5 — Compra &amp; Trânsito</strong></td>
@@ -383,31 +401,39 @@
             <h2 class="sec-title">2. Passo a Passo Operacional Completo</h2>
 
             <div class="step-block" style="--bc:#0ea5e9;">
-                <h3><span>Passo 1 — Abertura com E-mail do Cliente &amp; Multi-Máquinas (Guilherme, Raiane, Vitória, Keicy e Matheus)</span> <span class="sla-pill">Botão: ➕ Nova Solicitação</span></h3>
+                <h3><span>Passo 1 — Abertura, Alerta Anti-Duplicidade &amp; Multi-Máquinas (Guilherme, Raiane, Vitória, Keicy e Matheus)</span> <span class="sla-pill">Botão: ➕ Nova Solicitação</span></h3>
                 <ul>
                     <li><strong>Cliente &amp; E-mail do Cliente:</strong> Busque o cliente pelo nome ou CNPJ (puxa automático do ERP o telefone e o <strong>📧 E-mail do Cliente</strong>). Selecione <strong>🔥 MÁQUINA PARADA!</strong> quando houver urgência crítica.</li>
                     <li><strong>Máquina Principal:</strong> Pesquise pelo código ou modelo (ex.: <code>ARLM-160B</code> ou <code>PAMQIPMN084</code>). O sistema preenche sozinho o <strong>🏷️ Cód. Antigo (Código Original no Fornecedor)</strong> e o <strong>🏭 Nome do Fabricante</strong>.</li>
-                    <li><strong>Múltiplas Peças da Mesma Máquina ou de OUTRAS Máquinas:</strong> Clique em <strong>➕ Adicionar Outra Peça</strong> quantas vezes precisar. Se o cliente pediu no mesmo chamado uma peça de <em>outro equipamento diferente</em>, clique em <strong>🔄 Peça de OUTRA Máquina? Clique aqui</strong> na linha daquela peça e selecione a segunda máquina!</li>
-                    <li>Anexe a <strong>📷 Foto da Peça</strong> em cada item e deixe o SKU ERP vazio quando for peça nova.</li>
+                    <li><strong>💡 Dica Automática de Peças Existentes ("Vacina contra Pesquisa Errada"):</strong> Ao digitar 3 ou mais letras no nome da peça, o sistema consulta na hora a Árvore da Máquina e os SKUs do ERP (<code>PAPC...</code>), alertando se já existe item similar cadastrado para conferência de estoque antes de abrir chamado repetido.</li>
+                    <li><strong>Múltiplas Peças da Mesma Máquina ou de OUTRAS Máquinas:</strong> Clique em <strong>➕ Adicionar Outra Peça</strong> quantas vezes precisar. Se o cliente pediu no mesmo chamado uma peça de <em>outro equipamento diferente</em>, clique em <strong>🔄 Peça de OUTRA Máquina? Clique aqui</strong> na linha daquela peça! Anexe a <strong>📷 Foto da Peça</strong> em cada item.</li>
                 </ul>
             </div>
 
             <div class="step-block" style="--bc:#0284c7;">
-                <h3><span>Passo 2 — Triagem Técnica: Brasil vs. Importação (Jhenifer)</span> <span class="sla-pill">Etapa 1 • SLA: 4h</span></h3>
+                <h3><span>Passo 2 — Triagem Técnica: Brasil vs. Importação vs. Peça Já em Estoque no ERP (Jhenifer)</span> <span class="sla-pill">Etapa 1 • SLA: 4h</span></h3>
                 <ul>
                     <li>Na Aba <strong>1️⃣ Escopo, Máquina &amp; Triagem</strong>, revise a máquina/Cód. Antigo de cada item e o <strong>Nome em Inglês</strong>.</li>
-                    <li>Defina a rota da peça: <strong>🇧🇷 Compra Interna no Brasil</strong> (sensores, resistências, correias, rolamentos, usinagem), <strong>🌎 Cotar Ambos</strong> ou <strong>🇨🇳 Importação Obrigatória</strong>, e clique em <strong>➡️ Concluir Triagem &amp; Liberar p/ Cotação</strong>.</li>
+                    <li>Defina a rota das peças sob encomenda: <strong>🇧🇷 Compra Interna no Brasil</strong>, <strong>🌎 Cotar Ambos</strong> ou <strong>🇨🇳 Importação Obrigatória</strong>.</li>
+                    <li><strong>📦 Quando alguma peça do card JÁ TEM CADASTRO E ESTOQUE NO ERP:</strong>
+                        <ul>
+                            <li>Selecione <strong>📦 Já Cadastrado &amp; C/ Estoque (Atender pelo ERP)</strong> naquela peça, busque e selecione o <strong>🔎 SKU Oficial Existente no ERP</strong> e escreva o <strong>💬 Aviso p/ o Vendedor</strong> (ex.: <em>"Temos 10 un na prateleira — faturar direto por este SKU"</em>).</li>
+                            <li>O sistema gera um <strong>Banner Verde com botão 📋 Copiar SKU</strong> para o vendedor faturar imediatamente pelo ERP, grava essa equivalência na Árvore da Máquina e <strong>retira automaticamente esse item do e-mail ao fornecedor, da fila de cadastro ERP e do container</strong> — seguindo o card só com as demais peças!</li>
+                            <li>Se <strong>100% das peças do card</strong> já tiverem estoque no ERP, clique direto em <strong>✅ Concluir Card — 100% Atendido pelo Estoque Atual</strong> para encerrar o card na hora. (Para item desistido, use <strong>🚫 Item Cancelado / Desconsiderado</strong>).</li>
+                        </ul>
+                    </li>
+                    <li>Havendo peças sob encomenda para orçar, clique em <strong>➡️ Concluir Triagem &amp; Liberar p/ Cotação (Etapa 2)</strong>.</li>
                 </ul>
             </div>
 
             <div class="step-block" style="--bc:#f59e0b;">
-                <h3><span>Passo 3 — E-mail Agrupado por Máquina ao Fornecedor &amp; Preço (Jhenifer)</span> <span class="sla-pill">Etapa 2 • SLA: 24h a 48h</span></h3>
+                <h3><span>Passo 3 — E-mail Corporativo ao Fornecedor &amp; Formação de Preço (Jhenifer)</span> <span class="sla-pill">Etapa 2 • SLA: 24h a 48h</span></h3>
                 <ul>
-                    <li>Na Aba <strong>2️⃣ Cotação Fornecedor</strong>, clique em <strong>📧 Enviar E-mail c/ Fotos ao Fornecedor</strong>:
+                    <li>Na Aba <strong>2️⃣ Cotação Fornecedor</strong> (onde aparecem apenas as peças sob encomenda ativas), clique em <strong>📧 Enviar E-mail c/ Fotos ao Fornecedor</strong>:
                         <ul>
-                            <li><strong>Uso estrito do Cód. Antigo:</strong> Nunca expõe o SKU interno da Tecfag ao fabricante chinês — usa apenas o modelo original (ex.: <code>ARLM-160B</code>, <code>FRB-770</code>).</li>
-                            <li><strong>Organização Automática Multi-Máquinas:</strong> Se houver várias peças de máquinas diferentes do mesmo fornecedor, o e-mail separa automaticamente em blocos (<code>[MACHINE 1]</code> com itens e fotos <code>#1.1</code>, <code>#1.2</code> ➔ <code>[MACHINE 2]</code> com itens e fotos <code>#2.1</code>), cada foto dentro do seu próprio quadro identificado!</li>
-                            <li><strong>Filtro por Fábrica (Fornecedores Diferentes):</strong> Se o pedido tiver peças de 2 fabricantes distintos, use os botões de filtro no topo do modal (<code>🏭 Só Fornecedor A</code> / <code>🏭 Só Fornecedor B</code>) para disparar um e-mail limpo para cada fábrica.</li>
+                            <li><strong>Layout Corporativo Limpo (Outlook / Foxmail / Webmail):</strong> E-mail em tabelas estruturadas com Logo Oficial Grupo Tecfag e quadros individuais de fotos sem distorção.</li>
+                            <li><strong>Edição Rápida em Inglês + Proteção de SKU Interno:</strong> Revise ou traduza a descrição em Inglês direto no modal; o sistema oculta automaticamente códigos internos Tecfag (<code>PAPC...</code> / <code>TMP-PEC-...</code>), traduz unidades (<code>UN ➔ PCS</code>) e envia apenas o <strong>🏷️ Cód. Antigo</strong> original do fabricante (ex.: <code>ARLM-160B</code>, <code>FRB-770</code>).</li>
+                            <li><strong>Multi-Máquinas &amp; Filtro por Fábrica:</strong> Agrupa blocos e fotos por máquina (<code>MACHINE 1</code>, <code>MACHINE 2</code>) e permite filtrar envios por fabricante (<code>🏭 Só Fornecedor A</code> / <code>🏭 Só Fornecedor B</code>).</li>
                         </ul>
                     </li>
                     <li>Com o custo em mãos, preencha o <strong>Preço FOB Unit. (US$)</strong> (ou Custo Nacional em R$):</li>
@@ -417,17 +443,17 @@
                     <code>Preço Venda (R$) = Preço FOB (US$) × Dólar × 2 × 2</code>
                 </div>
                 <ul>
-                    <li>Selecione a <strong>Fonte Escolhida p/ Proposta</strong> e clique em <strong>📤 Concluir &amp; Liberar p/ Solicitante</strong> (ou use o atalho <strong>⚡ Concluir &amp; Já Enviar E-mail p/ Cliente</strong>, que já envia com cópia e resposta para quem abriu a solicitação!).</li>
+                    <li>Selecione a <strong>Fonte Escolhida p/ Proposta</strong> e clique em <strong>📤 Concluir &amp; Liberar p/ Solicitante</strong> (ou <strong>⚡ Concluir &amp; Já Enviar E-mail p/ Cliente</strong>).</li>
                 </ul>
             </div>
 
             <div class="step-block" style="--bc:#6366f1;">
                 <h3><span>Passo 4 — Envio Direto da Proposta Oficial c/ Logo Tecfag &amp; Decisão (Equipe Comercial/Assistência)</span> <span class="sla-pill">Etapa 3 • Proposta</span></h3>
                 <ul>
-                    <li>Na Aba <strong>3️⃣ Orçamento p/ Cliente &amp; Decisão</strong>, confira o e-mail do cliente já preenchido e clique em <strong>📧 Enviar Proposta Oficial p/ E-mail do Cliente Agora</strong> (sem copiar e colar!).</li>
-                    <li><strong>Cabeçalho Oficial Grupo Tecfag + Resposta Direcionada:</strong> O orçamento vai com o <strong>Logo Oficial da Tecfag embutido no cabeçalho escuro</strong> (abre direto em Gmail, Outlook e Webmail), tabela comercial, fotos das peças e assinatura corporativa, levando automaticamente <strong>Cópia (CC)</strong> e <strong>Resposta Direta (Reply-To) para o próprio e-mail corporativo de quem enviou/solicitou</strong> (<code>vendas18@</code>, <code>assistencia@</code>, <code>assistencia4@</code>, <code>vendas21@</code> ou <code>assistencia7@</code>)!</li>
-                    <li><strong>Caixa Própria Opcional (🔑 Meu E-mail):</strong> Caso deseje que os orçamentos saiam autenticados diretamente pela própria caixa <code>@tecfag.com.br</code> (ficando salvos em <em>Enviados</em> no seu webmail), basta clicar uma única vez em <strong>🔑 Meu E-mail</strong> no topo da tela e informar a senha do webmail (criptografada). Logo abaixo também segue disponível o botão <strong>📋 Copiar p/ WhatsApp</strong>.</li>
-                    <li><strong>Decisão do Cliente:</strong> Se aprovar, clique em <strong>✅ Confirmar Venda Aprovada!</strong> (vai para a Fila ERP da Jhenifer se faltar SKU oficial, ou direto para Compra se já tiver SKU). Se recusar, clique em <strong>Encerrar</strong> sem gastar tempo de cadastro no ERP!</li>
+                    <li>Se houver peça marcada como <strong>Em Estoque ERP</strong>, o topo da Aba 3 exibe o alerta verde com <strong>📋 Copiar SKU</strong> para faturamento imediato pelo ERP.</li>
+                    <li>Clique em <strong>📧 Enviar Proposta Oficial p/ E-mail do Cliente Agora</strong>: por padrão envia apenas as peças sob encomenda orçadas (com caixa opcional <em>"📦 Incluir também peça(s) de Estoque ('Pronta Entrega') neste mesmo e-mail"</em> caso deseje enviar tudo junto).</li>
+                    <li><strong>Cabeçalho Oficial + Resposta Direcionada:</strong> Vai com o <strong>Logo Oficial da Tecfag no cabeçalho</strong>, tabela comercial, fotos e <strong>Cópia (CC) + Resposta Direta (Reply-To) para quem solicitou/enviou</strong>! (Opcional: conecte sua conta em <strong>🔑 Meu E-mail</strong> ou use <strong>📋 Copiar p/ WhatsApp</strong>).</li>
+                    <li><strong>Decisão do Cliente:</strong> Se aprovar, clique em <strong>✅ Confirmar Venda Aprovada!</strong> (envia para a Fila ERP da Jhenifer apenas peças sob encomenda ainda sem SKU oficial). Se recusar, clique em <strong>Encerrar</strong> sem gastar tempo no ERP!</li>
                 </ul>
             </div>
 
@@ -442,7 +468,7 @@
             <div class="step-block" style="--bc:#10b981;">
                 <h3><span>Passo 6 — Compra, Carona no Comex, Doca Carimbada &amp; Entrega (Jhenifer)</span> <span class="sla-pill">Etapas 5 e 6</span></h3>
                 <ul>
-                    <li>Na Aba <strong>4️⃣ ERP, Compra, Carona Comex &amp; Doca</strong>, registre OC, Rastreio e ETA — ou selecione um container aberto e clique em <strong>🚢 Incluir no Container</strong> para embarcar a peça de carona no módulo <em>Importações &amp; Estoque</em>.</li>
+                    <li>Na Aba <strong>4️⃣ ERP, Compra, Carona Comex &amp; Doca</strong>, registre OC, Rastreio e ETA — ou selecione um container aberto e clique em <strong>🚢 Incluir no Container</strong> para embarcar os itens importados aprovados de carona no módulo <em>Importações &amp; Estoque</em>.</li>
                     <li>Quando a peça chegar fisicamente na Tecfag, clique em <strong>📦 Chegou na Doca!</strong> e imprima a etiqueta em <strong>🏷️ Gerar Etiqueta Reserva</strong> (<em>"PEÇA RESERVADA P/ CLIENTE"</em>).</li>
                     <li>Após emitir a DANFE de venda ao cliente, informe a <strong>NF de Saída</strong> e clique em <strong>✅ Marcar Faturado &amp; Entregue</strong>!</li>
                 </ul>
@@ -452,7 +478,7 @@
 
         <footer class="doc-footer">
             <span><strong>Grupo Tecfag — Automação &amp; Equipamentos Industriais</strong></span>
-            <span>Manual Operacional v2.1 • Atualizado em 25/11/2026 • Módulo Gestão de Peças (<code>/pecas</code>)</span>
+            <span>Manual Operacional v2.2 • Atualizado em 26/11/2026 • Módulo Gestão de Peças (<code>/pecas</code>)</span>
         </footer>
     </article>
 
