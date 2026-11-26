@@ -664,6 +664,7 @@ module.exports = function registerPartsModule({
                 weight_kg REAL DEFAULT 0,
                 photo_path TEXT,
                 item_notes TEXT,
+                stock_resolution_note TEXT,
                 item_machine_sku TEXT,
                 item_machine_name TEXT,
                 item_machine_vendor_model TEXT,
@@ -674,12 +675,13 @@ module.exports = function registerPartsModule({
             partsDb.run(`CREATE INDEX IF NOT EXISTS idx_parts_items_req ON parts_request_items(request_id)`);
             partsDb.run(`CREATE INDEX IF NOT EXISTS idx_parts_items_erpreg ON parts_request_items(erp_registered)`);
 
-            // Migrações seguras para bancos já existentes (suporte a múltiplas máquinas na mesma solicitação!)
+            // Migrações seguras para bancos já existentes (suporte a múltiplas máquinas + resolução por estoque ERP!)
             partsDb.run(`ALTER TABLE parts_request_items ADD COLUMN item_machine_sku TEXT`, () => {});
             partsDb.run(`ALTER TABLE parts_request_items ADD COLUMN item_machine_name TEXT`, () => {});
             partsDb.run(`ALTER TABLE parts_request_items ADD COLUMN item_machine_vendor_model TEXT`, () => {});
             partsDb.run(`ALTER TABLE parts_request_items ADD COLUMN item_machine_serial TEXT`, () => {});
             partsDb.run(`ALTER TABLE parts_request_items ADD COLUMN item_machine_supplier TEXT`, () => {});
+            partsDb.run(`ALTER TABLE parts_request_items ADD COLUMN stock_resolution_note TEXT`, () => {});
 
             // 4. Fornecedores Nacionais Homologados (Brasil)
             partsDb.run(`CREATE TABLE IF NOT EXISTS parts_national_suppliers (
@@ -1024,10 +1026,16 @@ module.exports = function registerPartsModule({
         );
     }
 
+    function isExcludedFromSpecialOrder(itemRow) {
+        if (!itemRow) return false;
+        return itemRow.sourcing_route === 'EM_ESTOQUE_ERP' || itemRow.sourcing_route === 'ITEM_CANCELADO';
+    }
+
     async function recalculateRequestTotals(requestId) {
         const items = await pAll('SELECT * FROM parts_request_items WHERE request_id = ?', [requestId]);
         let totalBrl = 0;
         for (const it of items) {
+            if (isExcludedFromSpecialOrder(it)) continue;
             totalBrl += parseFloat(it.final_total_price_brl) || 0;
         }
         await pRun('UPDATE parts_requests SET total_quoted_brl = ?, updated_at = ? WHERE id = ?', [
@@ -1172,7 +1180,9 @@ module.exports = function registerPartsModule({
             SELECT COUNT(*) as cnt
             FROM parts_request_items i
             JOIN parts_requests r ON r.id = i.request_id
-            WHERE r.stage = '4_CADASTRO_ERP' AND i.erp_registered = 0
+            WHERE r.stage = '4_CADASTRO_ERP'
+              AND i.erp_registered = 0
+              AND COALESCE(i.sourcing_route, '') NOT IN ('EM_ESTOQUE_ERP', 'ITEM_CANCELADO')
         `);
 
         const counts = {
@@ -1410,9 +1420,11 @@ module.exports = function registerPartsModule({
                 machine_supplier_name: r.machine_supplier_name || (erpMachine ? erpMachine.manufacturer : '')
             };
             const items = (itemsByReq[r.id] || []).map(it => enrichItemMachineFields(it, reqWithMach));
-            const pendingErpCount = items.filter(i => !i.erp_registered && !i.erp_sku).length;
+            const activeItems = items.filter(i => !isExcludedFromSpecialOrder(i));
+            const inStockErpCount = items.filter(i => i.sourcing_route === 'EM_ESTOQUE_ERP').length;
+            const pendingErpCount = activeItems.filter(i => !i.erp_registered && !i.erp_sku).length;
             const machineKeys = new Set();
-            items.forEach(i => {
+            activeItems.forEach(i => {
                 const mk = i.effective_machine_vendor_model || i.effective_machine_sku || i.effective_machine_name;
                 if (mk) machineKeys.add(mk.toUpperCase());
             });
@@ -1420,16 +1432,19 @@ module.exports = function registerPartsModule({
                 ...reqWithMach,
                 items,
                 items_count: items.length,
+                active_items_count: activeItems.length,
+                in_stock_erp_count: inStockErpCount,
                 distinct_machines_count: Math.max(1, machineKeys.size),
                 pending_erp_count: pendingErpCount
             };
         });
 
-        // Fila Expressa de Cadastro ERP dedicada à Jhenifer (apenas solicitações na etapa 4_CADASTRO_ERP ou itens aprovados sem SKU ERP)
+        // Fila Expressa de Cadastro ERP dedicada à Jhenifer (apenas itens sob encomenda aprovados sem SKU ERP)
         const erpQueue = [];
         enrichedRequests.forEach((r) => {
             if (r.stage === '4_CADASTRO_ERP') {
                 r.items.forEach((it) => {
+                    if (isExcludedFromSpecialOrder(it)) return;
                     if (!it.erp_registered || !it.erp_sku) {
                         erpQueue.push({
                             ...it,
@@ -1822,11 +1837,17 @@ module.exports = function registerPartsModule({
         );
 
         // Atualizar itens se enviados no payload
+        const stockTimelineAlerts = [];
         if (Array.isArray(b.items)) {
+            const prevRows = await pAll('SELECT * FROM parts_request_items WHERE request_id = ?', [reqId]);
+            const prevById = {};
+            prevRows.forEach(pr => { prevById[pr.id] = pr; });
+
             const usdSnap = parseFloat(b.usd_rate_snapshot) || existing.usd_rate_snapshot || 5.80;
 
             for (const it of b.items) {
                 if (it.id) {
+                    const prev = prevById[it.id] || {};
                     const fob = parseFloat(it.intl_unit_fob) || 0;
                     const freightUsd = parseFloat(it.intl_freight_usd) || 0;
                     const itemUsdRate = parseFloat(it.intl_usd_rate) || usdSnap;
@@ -1870,8 +1891,18 @@ module.exports = function registerPartsModule({
                         : undefined;
                     const itMachSerial = it.item_machine_serial !== undefined ? String(it.item_machine_serial || '').trim() : undefined;
 
+                    const cleanErpSku = it.erp_sku !== undefined ? String(it.erp_sku || '').trim().toUpperCase() : undefined;
+                    const isMarkedInStock = it.sourcing_route === 'EM_ESTOQUE_ERP';
+                    const isMarkedCancelled = it.sourcing_route === 'ITEM_CANCELADO';
+                    const erpRegFlag = (cleanErpSku && cleanErpSku.length > 0) ? 1 : (isMarkedInStock && prev.erp_sku ? 1 : prev.erp_registered || 0);
+                    const stockNote = it.stock_resolution_note !== undefined ? String(it.stock_resolution_note || '').trim() : undefined;
+
                     await pRun(
                         `UPDATE parts_request_items SET
+                            erp_sku = CASE WHEN ? IS NOT NULL AND ? != '' THEN ? ELSE erp_sku END,
+                            erp_registered = ?,
+                            erp_registered_by = CASE WHEN ? = 1 AND erp_registered_by IS NULL THEN ? ELSE erp_registered_by END,
+                            erp_registered_at = CASE WHEN ? = 1 AND erp_registered_at IS NULL THEN ? ELSE erp_registered_at END,
                             part_name_pt = COALESCE(?, part_name_pt),
                             part_name_en = COALESCE(?, part_name_en),
                             category = COALESCE(?, category),
@@ -1903,6 +1934,7 @@ module.exports = function registerPartsModule({
                             weight_kg = COALESCE(?, weight_kg),
                             photo_path = COALESCE(?, photo_path),
                             item_notes = COALESCE(?, item_notes),
+                            stock_resolution_note = COALESCE(?, stock_resolution_note),
                             item_machine_sku = COALESCE(?, item_machine_sku),
                             item_machine_name = COALESCE(?, item_machine_name),
                             item_machine_vendor_model = COALESCE(?, item_machine_vendor_model),
@@ -1910,6 +1942,12 @@ module.exports = function registerPartsModule({
                             item_machine_supplier = COALESCE(?, item_machine_supplier)
                          WHERE id = ? AND request_id = ?`,
                         [
+                            cleanErpSku !== undefined ? cleanErpSku : null,
+                            cleanErpSku !== undefined ? cleanErpSku : null,
+                            cleanErpSku !== undefined ? cleanErpSku : null,
+                            erpRegFlag,
+                            erpRegFlag, req.user.username,
+                            erpRegFlag, now,
                             it.part_name_pt, it.part_name_en, it.category, it.vendor_part_number,
                             qty, it.unit, it.sourcing_route, it.national_equiv_spec,
                             it.intl_supplier_name, fob, freightUsd, parseInt(it.intl_lead_time_days) || 18, it.intl_modality,
@@ -1920,6 +1958,7 @@ module.exports = function registerPartsModule({
                             it.weight_kg !== undefined ? parseFloat(it.weight_kg) : null,
                             it.photo_path || null,
                             it.item_notes,
+                            stockNote !== undefined ? stockNote : null,
                             itMachSku !== undefined ? itMachSku : null,
                             itMachName !== undefined ? itMachName : null,
                             itMachVendor !== undefined ? itMachVendor : null,
@@ -1929,12 +1968,28 @@ module.exports = function registerPartsModule({
                         ]
                     );
 
+                    const effSkuAfter = cleanErpSku || prev.erp_sku || '';
+                    if (isMarkedInStock && (prev.sourcing_route !== 'EM_ESTOQUE_ERP' || (cleanErpSku && cleanErpSku !== prev.erp_sku))) {
+                        stockTimelineAlerts.push(
+                            `📦 Item "${it.part_name_pt}" JÁ CADASTRADO / EM ESTOQUE NO ERP${effSkuAfter ? ` [SKU Oficial: ${effSkuAfter}]` : ''}${stockNote ? ` — ${stockNote}` : ''}. Liberado para o vendedor atender direto pelo ERP (fora desta cotação sob encomenda).`
+                        );
+                    } else if (isMarkedCancelled && prev.sourcing_route !== 'ITEM_CANCELADO') {
+                        stockTimelineAlerts.push(
+                            `🚫 Item "${it.part_name_pt}" marcado como Cancelado / Removido do escopo desta cotação${stockNote ? ` (${stockNote})` : ''}.`
+                        );
+                    }
+
+                    // Vacina na Árvore da Máquina: grava o SKU oficial vinculado ao nome usado pelo vendedor p/ evitar novas buscas erradas!
                     if (it.catalog_part_id) {
                         const catMSku = itMachSku || b.machine_sku || existing.machine_sku || '';
                         const catMName = itMachName || b.machine_name || existing.machine_name || '';
                         const catMVendor = itMachVendor || b.machine_vendor_model || existing.machine_vendor_model || '';
+                        const policyForCat = ['EM_ESTOQUE_ERP', 'ITEM_CANCELADO'].includes(it.sourcing_route) ? 'DEFINIR' : (it.sourcing_route || 'DEFINIR');
                         await pRun(
                             `UPDATE parts_catalog SET
+                                erp_sku = CASE WHEN ? != '' THEN ? ELSE erp_sku END,
+                                erp_registered_by = CASE WHEN ? != '' AND erp_registered_by IS NULL THEN ? ELSE erp_registered_by END,
+                                erp_registered_at = CASE WHEN ? != '' AND erp_registered_at IS NULL THEN ? ELSE erp_registered_at END,
                                 name_pt = COALESCE(?, name_pt),
                                 name_en = COALESCE(NULLIF(?, ''), name_en),
                                 category = COALESCE(?, category),
@@ -1951,12 +2006,16 @@ module.exports = function registerPartsModule({
                                 suggested_ncm = COALESCE(NULLIF(?, ''), suggested_ncm),
                                 weight_kg = CASE WHEN ? > 0 THEN ? ELSE weight_kg END,
                                 photo_path = COALESCE(?, photo_path),
+                                notes = CASE WHEN ? != '' THEN ? ELSE notes END,
                                 updated_at = ?
                              WHERE id = ?`,
                             [
+                                effSkuAfter, effSkuAfter,
+                                effSkuAfter, req.user.username,
+                                effSkuAfter, now,
                                 it.part_name_pt, it.part_name_en || '', it.category,
                                 catMSku, catMName, catMVendor,
-                                it.sourcing_route || 'DEFINIR', it.sourcing_route || 'DEFINIR',
+                                policyForCat, policyForCat,
                                 it.national_equiv_spec || '',
                                 it.nat_supplier_name || '',
                                 natCost, natCost,
@@ -1966,6 +2025,7 @@ module.exports = function registerPartsModule({
                                 it.suggested_ncm || '',
                                 parseFloat(it.weight_kg) || 0, parseFloat(it.weight_kg) || 0,
                                 it.photo_path || null,
+                                stockNote || '', stockNote || '',
                                 now,
                                 it.catalog_part_id
                             ]
@@ -2013,6 +2073,10 @@ module.exports = function registerPartsModule({
 
         const totalQuoted = await recalculateRequestTotals(reqId);
 
+        for (const alertMsg of stockTimelineAlerts) {
+            await addTimelineEntry(reqId, req.user, 'IN_STOCK_ERP', alertMsg);
+        }
+
         if (stageChanged) {
             await addTimelineEntry(reqId, req.user, 'STAGE_CHANGE', `Etapa movida de "${existing.stage}" para "${newStage}".`);
         } else if (b.log_message) {
@@ -2040,16 +2104,35 @@ module.exports = function registerPartsModule({
         }
 
         const items = await pAll('SELECT * FROM parts_request_items WHERE request_id = ?', [reqId]);
+        const activeOrderItems = items.filter(it => !isExcludedFromSpecialOrder(it));
+        const inStockItems = items.filter(it => it.sourcing_route === 'EM_ESTOQUE_ERP');
         const now = new Date().toISOString();
 
-        if (action === 'SEND_TO_QUOTATION') {
+        if (action === 'RESOLVE_ALL_FROM_STOCK') {
+            const skuSummary = inStockItems
+                .map(i => `${i.part_name_pt}${i.erp_sku ? ' [SKU: ' + i.erp_sku + ']' : ''}`)
+                .join('; ');
+            await pRun(
+                `UPDATE parts_requests SET stage = '7_CONCLUIDO', delivered_at = ?, stage_entry_at = ?, updated_at = ? WHERE id = ?`,
+                [now, now, now, reqId]
+            );
+            await addTimelineEntry(
+                reqId,
+                req.user,
+                'IN_STOCK_RESOLVED',
+                `✅ Solicitação concluída na triagem: Todos os itens ativos já possuem cadastro e saldo em estoque no ERP (${skuSummary || 'ver itens'}) — liberado para faturamento direto pelo vendedor!`
+            );
+        } else if (action === 'SEND_TO_QUOTATION') {
+            const stockNoteExtra = inStockItems.length > 0
+                ? ` (${inStockItems.length} item/itens já atendido(s) pelo Estoque ERP; seguindo na cotação apenas com ${activeOrderItems.length} item/itens sob encomenda).`
+                : '';
             await pRun(`UPDATE parts_requests SET stage = '2_COTACAO_FORNECEDOR', stage_entry_at = ?, updated_at = ? WHERE id = ?`, [now, now, reqId]);
-            await addTimelineEntry(reqId, req.user, 'STAGE_CHANGE', 'Triagem técnica concluída. Liberado para Cotação com Fornecedor (sem aguardar cadastro ERP).');
+            await addTimelineEntry(reqId, req.user, 'STAGE_CHANGE', `Triagem técnica concluída. Liberado para Cotação com Fornecedor${stockNoteExtra}`);
         } else if (action === 'RELEASE_PROPOSAL_TO_SALES') {
             await pRun(`UPDATE parts_requests SET stage = '3_PROPOSTA_CLIENTE', proposal_sent_at = COALESCE(proposal_sent_at, ?), stage_entry_at = ?, updated_at = ? WHERE id = ?`, [now, now, now, reqId]);
-            await addTimelineEntry(reqId, req.user, 'PROPOSAL_READY', `Cotação concluída (Total R$ ${(r.total_quoted_brl || 0).toFixed(2)}) e encaminhada para proposta comercial ao cliente.`);
+            await addTimelineEntry(reqId, req.user, 'PROPOSAL_READY', `Cotação concluída (Total Sob Encomenda R$ ${(r.total_quoted_brl || 0).toFixed(2)}) e encaminhada para proposta comercial ao cliente.`);
         } else if (action === 'CLIENT_APPROVED') {
-            const needsErpRegistration = items.some(it => !it.erp_registered || !it.erp_sku);
+            const needsErpRegistration = activeOrderItems.some(it => !it.erp_registered || !it.erp_sku);
             const nextStage = needsErpRegistration ? '4_CADASTRO_ERP' : '5_COMPRA_TRANSITO';
 
             await pRun(
@@ -2075,7 +2158,7 @@ module.exports = function registerPartsModule({
                     reqId,
                     req.user,
                     'CLIENT_APPROVED',
-                    `🎉 Cliente APROVOU a proposta! Como todas as peças já possuem SKU Oficial no ERP, pulou o cadastro e avançou direto para Compra & Trânsito!`
+                    `🎉 Cliente APROVOU a proposta! Como as peças sob encomenda já possuem SKU Oficial no ERP, pulou o cadastro e avançou direto para Compra & Trânsito!`
                 );
             }
         } else if (action === 'CLIENT_DECLINED') {
@@ -2205,7 +2288,10 @@ module.exports = function registerPartsModule({
         );
 
         const remaining = await pGet(
-            'SELECT COUNT(*) as cnt FROM parts_request_items WHERE request_id = ? AND (erp_registered = 0 OR erp_sku IS NULL OR erp_sku = "")',
+            `SELECT COUNT(*) as cnt FROM parts_request_items
+             WHERE request_id = ?
+               AND COALESCE(sourcing_route, '') NOT IN ('EM_ESTOQUE_ERP', 'ITEM_CANCELADO')
+               AND (erp_registered = 0 OR erp_sku IS NULL OR erp_sku = '')`,
             [item.request_id]
         );
         let autoAdvanced = false;
@@ -2246,7 +2332,7 @@ module.exports = function registerPartsModule({
         if (!order) return res.status(404).json({ error: 'Ordem/Container não encontrado no módulo de Importações.' });
 
         const items = await pAll('SELECT * FROM parts_request_items WHERE request_id = ?', [reqId]);
-        const importedItems = items.filter(it => it.selected_source === 'IMPORTACAO' || it.sourcing_route === 'IMPORTACAO_OBRIGATORIA' || it.sourcing_route === 'COTAR_AMBOS');
+        const importedItems = items.filter(it => !isExcludedFromSpecialOrder(it) && (it.selected_source === 'IMPORTACAO' || it.sourcing_route === 'IMPORTACAO_OBRIGATORIA' || it.sourcing_route === 'COTAR_AMBOS'));
         if (importedItems.length === 0) {
             return res.status(400).json({ error: 'Nenhum item marcado para importação nesta solicitação.' });
         }
@@ -2438,8 +2524,11 @@ module.exports = function registerPartsModule({
 
         const enrichedAll = allRawItems.map(it => enrichItemMachineFields(it, r));
         const items = selectedIdsSet
-            ? enrichedAll.filter(it => selectedIdsSet.has(it.id))
-            : enrichedAll;
+            ? enrichedAll.filter(it => selectedIdsSet.has(it.id) && !isExcludedFromSpecialOrder(it))
+            : enrichedAll.filter(it => !isExcludedFromSpecialOrder(it));
+        if (items.length === 0) {
+            return res.status(400).json({ error: 'Nenhuma peça sob encomenda disponível para cotação com fornecedor (itens já em estoque ou cancelados ficam fora do disparo).' });
+        }
 
         // Memorizar o e-mail deste fornecedor automaticamente para as próximas cotações
         const cleanSupplierName = String(supplier_name || (items[0] && items[0].effective_machine_supplier) || r.machine_supplier_name || (erpMachine ? erpMachine.manufacturer : '') || '').trim();
@@ -3023,18 +3112,27 @@ module.exports = function registerPartsModule({
         }
 
         const rawItems = await pAll('SELECT * FROM parts_request_items WHERE request_id = ? ORDER BY id ASC', [reqId]);
-        const items = rawItems.map(it => enrichItemMachineFields(it, r));
-        if (items.length === 0) {
-            return res.status(400).json({ error: 'Nenhuma peça vinculada a esta solicitação.' });
-        }
+        const allEnrichedItems = rawItems.map(it => enrichItemMachineFields(it, r));
 
         const {
             to = '',
             cc = '',
             subject = '',
             custom_message = '',
-            include_photos = true
+            include_photos = true,
+            include_in_stock_items = false
         } = req.body || {};
+
+        const includeStock = include_in_stock_items === true || include_in_stock_items === 'true';
+        const items = allEnrichedItems.filter(it => {
+            if (it.sourcing_route === 'ITEM_CANCELADO') return false;
+            if (it.sourcing_route === 'EM_ESTOQUE_ERP') return includeStock && (parseFloat(it.final_unit_price_brl) || 0) > 0;
+            return true;
+        });
+
+        if (items.length === 0) {
+            return res.status(400).json({ error: 'Nenhuma peça sob encomenda (ou com valor preenchido) disponível para enviar na proposta.' });
+        }
 
         const targetClientEmail = String(to || r.client_email || '').trim();
         if (!targetClientEmail || !targetClientEmail.includes('@')) {
@@ -3170,6 +3268,10 @@ module.exports = function registerPartsModule({
             const qty = parseFloat(it.qty) || 1;
             const subBrl = +(unitBrl * qty).toFixed(2);
             grandTotal += subBrl;
+            const isReadyStock = it.sourcing_route === 'EM_ESTOQUE_ERP';
+            const leadTimeText = isReadyStock
+                ? '<strong style="color:#059669;">Pronta Entrega</strong>'
+                : `${it.promised_lead_days || 15} dias úteis`;
             const itemMachDiff = (it.effective_machine_sku && it.effective_machine_sku !== r.machine_sku) ||
                 (it.effective_machine_name && it.effective_machine_name !== r.machine_name);
             const itemMachSub = itemMachDiff
@@ -3180,7 +3282,7 @@ module.exports = function registerPartsModule({
                     <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; font-family:monospace; font-weight:bold; color:#0369a1;">${it.erp_sku || it.temp_sku}</td>
                     <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; font-weight:bold; color:#0f172a;">${it.part_name_pt}${itemMachSub}</td>
                     <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">${qty} ${it.unit || 'UN'}</td>
-                    <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">${it.promised_lead_days || 15} dias úteis</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:center;">${leadTimeText}</td>
                     <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:right;">R$ ${unitBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td style="padding:10px 12px; border-bottom:1px solid #e2e8f0; text-align:right; font-weight:bold; color:#0f172a;">R$ ${subBrl.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>

@@ -1485,7 +1485,20 @@
             return `<span class="badge badge-norm">🛠️ NORMAL</span>`;
         }
 
-        function routeFlagHtml(route) {
+        function isItemExcludedFromOrder(it) {
+            if (!it) return false;
+            return it.sourcing_route === 'EM_ESTOQUE_ERP' || it.sourcing_route === 'ITEM_CANCELADO';
+        }
+
+        function copySkuQuick(sku) {
+            if (!sku) return;
+            navigator.clipboard.writeText(sku);
+            showToast(`📋 SKU "${sku}" copiado para colar no ERP!`, '#10b981');
+        }
+
+        function routeFlagHtml(route, erpSku = '') {
+            if (route === 'EM_ESTOQUE_ERP') return `<span style="color:#34d399; font-weight:800;" title="Já cadastrado e com saldo no Estoque ERP">📦 Estoque ERP${erpSku ? ' (' + esc(erpSku) + ')' : ''}</span>`;
+            if (route === 'ITEM_CANCELADO') return `<span style="color:#f87171; text-decoration:line-through;" title="Item cancelado / fora do escopo">🚫 Cancelado</span>`;
             if (route === 'NACIONAL') return `<span title="Compra Nacional (Brasil)">🇧🇷 Brasil</span>`;
             if (route === 'IMPORTACAO_OBRIGATORIA') return `<span title="Importação Obrigatória">🇨🇳 Import.</span>`;
             if (route === 'COTAR_AMBOS') return `<span title="Cotar Brasil + China">🌎 Híbrido</span>`;
@@ -1613,10 +1626,11 @@
                     <div style="margin-bottom:7px; display:flex; gap:5px; flex-wrap:wrap;">
                         ${urgencyBadgeHtml(r.urgency)}
                         ${multiMachCount > 1 ? `<span class="badge" style="background:rgba(245,158,11,0.22); color:#fbbf24; border:1px solid rgba(245,158,11,0.4);">🏭 ${multiMachCount} Máquinas</span>` : ''}
+                        ${r.in_stock_erp_count > 0 ? `<span class="badge" style="background:rgba(16,185,129,0.22); color:#34d399; border:1px solid rgba(16,185,129,0.45);" title="Item já cadastrado e com estoque no ERP!">📦 ${r.in_stock_erp_count} c/ Estoque ERP</span>` : ''}
                         ${canEditCard
                             ? `<span class="badge" style="background:rgba(16,185,129,0.16); color:#6ee7b7;" title="Você pode editar esta etapa">✏️ Sua Etapa</span>`
                             : `<span class="badge" style="background:rgba(148,163,184,0.14); color:#94a3b8;" title="Modo somente consulta p/ seu perfil">🔒 Consulta</span>`}
-                        ${r.linked_po_number ? `<span class="badge" style="background:rgba(14,165,233,0.2); color:#7dd3fc;">🚢 ${esc(r.linked_po_number)}</span>` : ''}
+                        ${r.linked_po_number ? `<span class="badge" style="background:rgba(14,165,133,0.2); color:#7dd3fc;">🚢 ${esc(r.linked_po_number)}</span>` : ''}
                     </div>
 
                     <div style="font-size:0.86rem; font-weight:800; color:#f8fafc; margin-bottom:4px; line-height:1.25;">
@@ -1637,16 +1651,22 @@
                     ` : ''}
 
                     <div style="display:flex; flex-direction:column; gap:5px; margin-bottom:8px;">
-                        ${items.slice(0, 3).map(it => `
-                            <div style="font-size:0.73rem; background:rgba(255,255,255,0.03); padding:5px 7px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; gap:6px;">
-                                <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                                    <strong>${it.qty}x</strong> ${esc(it.part_name_pt)}
+                        ${items.slice(0, 3).map(it => {
+                            const isStk = it.sourcing_route === 'EM_ESTOQUE_ERP';
+                            const isCanc = it.sourcing_route === 'ITEM_CANCELADO';
+                            return `
+                                <div style="font-size:0.73rem; background:${isStk ? 'rgba(16,185,129,0.11)' : 'rgba(255,255,255,0.03)'}; border:${isStk ? '1px solid rgba(52,211,153,0.35)' : 'none'}; padding:5px 7px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; gap:6px; ${isCanc ? 'opacity:0.45; text-decoration:line-through;' : ''}">
+                                    <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                        ${isStk ? '📦 ' : ''}<strong>${it.qty}x</strong> ${esc(it.part_name_pt)}
+                                    </div>
+                                    ${isStk
+                                        ? `<span class="badge badge-erp" title="Já existe em Estoque no ERP!">${esc(it.erp_sku || 'ESTOQUE')}</span>`
+                                        : (it.erp_sku
+                                            ? `<span class="badge badge-erp" title="SKU Oficial ERP">${esc(it.erp_sku)}</span>`
+                                            : `<span class="badge badge-tmp" title="Pré-SKU Provisório">${esc(it.temp_sku)}</span>`)}
                                 </div>
-                                ${it.erp_sku
-                                    ? `<span class="badge badge-erp" title="SKU Oficial ERP">${esc(it.erp_sku)}</span>`
-                                    : `<span class="badge badge-tmp" title="Pré-SKU Provisório">${esc(it.temp_sku)}</span>`}
-                            </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                         ${items.length > 3 ? `<div style="font-size:0.68rem; color:var(--muted); text-align:center;">+ ${items.length - 3} outra(s) peça(s)</div>` : ''}
                     </div>
 
@@ -2003,7 +2023,7 @@
 
                 <div style="font-size:0.72rem; color:#4b5563; font-weight:800; margin-bottom:4px;">ITENS RESERVADOS NESTE PACOTE:</div>
                 <div style="border:2px solid #000; border-radius:6px; padding:8px; margin-bottom:12px; font-size:0.82rem;">
-                    ${(r.items || []).map(it => `
+                    ${(r.items || []).filter(it => !isItemExcludedFromOrder(it)).map(it => `
                         <div style="padding:3px 0; border-bottom:1px dotted #ccc;">
                             <strong>${it.qty} ${esc(it.unit || 'UN')}</strong> — <strong>[${esc(it.erp_sku || it.temp_sku)}]</strong> ${esc(it.part_name_pt)}
                         </div>
@@ -2067,6 +2087,53 @@
             addNewReqItemRow(c);
         }
 
+        let intakeHintTimer = null;
+        function checkIntakeExistingPartHint(inputEl) {
+            clearTimeout(intakeHintTimer);
+            const row = inputEl.closest('.nr-item-row');
+            const hintBox = row.querySelector('.it-existing-hint');
+            const val = (inputEl.value || '').trim().toLowerCase();
+            if (val.length < 3) {
+                hintBox.style.display = 'none';
+                return;
+            }
+            intakeHintTimer = setTimeout(async () => {
+                try {
+                    const selectedMachSku = (row.querySelector('.it-msku')?.value || document.getElementById('nr-machine-sku')?.value || '').trim().toUpperCase();
+                    const catHits = (dashboardData.catalog || []).filter(c =>
+                        c.erp_sku &&
+                        (String(c.name_pt || '').toLowerCase().includes(val) || String(c.erp_sku || '').toLowerCase().includes(val))
+                    ).sort((a, b) => ((b.parent_machine_sku === selectedMachSku ? 1 : 0) - (a.parent_machine_sku === selectedMachSku ? 1 : 0)));
+
+                    const erpData = await api('/api/parts/lookup/machines?q=' + encodeURIComponent(val));
+                    const erpHits = (erpData.machines || []).filter(m => /^PA(?:PC|AC|EL|MC|PN)/i.test(m.sku || '')).slice(0, 3);
+
+                    const pills = [];
+                    catHits.slice(0, 2).forEach((c) => {
+                        pills.push(`<button type="button" class="btn btn-sm" style="padding:2px 7px; font-size:0.69rem; border-color:#34d399; color:#6ee7b7;" onclick="applyIntakeHintSku(this, '${esc(c.erp_sku)}', '${esc(c.name_pt)}', '${c.id}')">📦 Árvore: <strong>${esc(c.erp_sku)}</strong> — ${esc(c.name_pt.slice(0, 34))}</button>`);
+                    });
+                    erpHits.forEach((eh) => {
+                        if (catHits.some(c => c.erp_sku === eh.sku)) return;
+                        pills.push(`<button type="button" class="btn btn-sm" style="padding:2px 7px; font-size:0.69rem; border-color:#38bdf8; color:#7dd3fc;" onclick="applyIntakeHintSku(this, '${esc(eh.sku)}', '${esc(eh.name)}', '')">🔎 ERP: <strong>${esc(eh.sku)}</strong> — ${esc(eh.name.slice(0, 34))}</button>`);
+                    });
+
+                    if (pills.length > 0) {
+                        hintBox.innerHTML = `<div style="margin-bottom:3px; color:#fbbf24; font-weight:700;">💡 Peça(s) similar(es) já cadastrada(s) no ERP (confira se já há saldo em estoque antes de abrir!):</div><div style="display:flex; gap:5px; flex-wrap:wrap;">${pills.join('')}</div>`;
+                        hintBox.style.display = 'block';
+                    } else {
+                        hintBox.style.display = 'none';
+                    }
+                } catch (e) {}
+            }, 260);
+        }
+
+        function applyIntakeHintSku(btnEl, sku, name, catId) {
+            const row = btnEl.closest('.nr-item-row');
+            row.querySelector('.it-erpsku').value = sku;
+            if (catId) row.dataset.catId = catId;
+            showToast(`✅ SKU ${sku} preenchido! (Verifique também se já não há saldo físico no estoque do ERP).`, '#10b981');
+        }
+
         function addNewReqItemRow(prefill = null) {
             const wrap = document.getElementById('nr-items-container');
             const div = document.createElement('div');
@@ -2078,7 +2145,8 @@
                 <div class="form-grid-4" style="margin-bottom:8px;">
                     <div class="fg" style="grid-column: span 2;">
                         <label>Nome / Descrição da Peça *</label>
-                        <input type="text" class="form-control it-name" placeholder="Ex: Resistência Tubular 220V 800W / Correia Dentada / Placa CLP..." value="${esc(prefill ? prefill.name_pt : '')}" required>
+                        <input type="text" class="form-control it-name" placeholder="Ex: Resistência Tubular 220V 800W / Correia Dentada / Placa CLP..." value="${esc(prefill ? prefill.name_pt : '')}" oninput="checkIntakeExistingPartHint(this)" required>
+                        <div class="it-existing-hint" style="display:none; margin-top:6px; background:rgba(16,185,129,0.08); border:1px solid rgba(52,211,153,0.35); border-radius:6px; padding:6px 8px; font-size:0.71rem;"></div>
                     </div>
                     <div class="fg">
                         <label>Qtd & Unidade</label>
@@ -2499,13 +2567,57 @@
 
             contentBox.querySelectorAll('button, label.btn').forEach((btn) => {
                 const clk = btn.getAttribute('onclick') || '';
-                if (clk.includes('postTimelineComment') || clk.includes('copyClientProposal') || clk.includes('copySupplierRfq')) {
-                    return; // Mantém Copiar e Enviar Comentário ativos!
+                if (clk.includes('postTimelineComment') || clk.includes('copyClientProposal') || clk.includes('copySupplierRfq') || clk.includes('copySkuQuick')) {
+                    return; // Mantém Copiar SKU, Copiar Texto e Enviar Comentário ativos!
                 }
                 btn.style.pointerEvents = 'none';
                 btn.style.opacity = '0.38';
                 btn.disabled = true;
             });
+        }
+
+        function renderInStockItemsAlertBannerHtml() {
+            const stkItems = (activeDetailItems || []).filter(i => i.sourcing_route === 'EM_ESTOQUE_ERP');
+            const cancItems = (activeDetailItems || []).filter(i => i.sourcing_route === 'ITEM_CANCELADO');
+            if (stkItems.length === 0 && cancItems.length === 0) return '';
+
+            const blocks = [];
+            if (stkItems.length > 0) {
+                blocks.push(`
+                    <div style="background:linear-gradient(135deg, rgba(16,185,129,0.16), rgba(6,78,59,0.28)); border:1px solid #10b981; border-radius:10px; padding:12px 14px; margin-bottom:14px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
+                            <div style="font-size:0.84rem; font-weight:900; color:#6ee7b7;">
+                                📦 ATENÇÃO COMERCIAL: ${stkItems.length} PEÇA(S) JÁ CADASTRADA(S) E COM ESTOQUE NO ERP!
+                            </div>
+                            <span class="badge" style="background:#10b981; color:#fff;">FATURAR DIRETO PELO ERP</span>
+                        </div>
+                        <div style="font-size:0.75rem; color:#d1fae5; margin-bottom:8px;">
+                            O solicitante pode atender este(s) item(ns) imediatamente pelo ERP usando o SKU abaixo. Este card segue normalmente apenas com as demais peças sob encomenda:
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            ${stkItems.map(it => `
+                                <div style="background:rgba(0,0,0,0.28); border:1px solid rgba(52,211,153,0.35); border-radius:8px; padding:7px 10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-size:0.77rem;">
+                                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                        <strong style="color:#ecfdf5;">${it.qty} ${esc(it.unit || 'UN')} × ${esc(it.part_name_pt)}</strong>
+                                        <span class="badge badge-erp" style="font-size:0.74rem;">SKU ERP: ${esc(it.erp_sku || 'A confirmar')}</span>
+                                        ${it.erp_sku ? `<button type="button" class="btn btn-sm" style="padding:2px 8px; font-size:0.7rem; border-color:#34d399; color:#6ee7b7;" onclick="copySkuQuick('${esc(it.erp_sku)}')">📋 Copiar SKU</button>` : ''}
+                                    </div>
+                                    ${it.stock_resolution_note ? `<div style="color:#a7f3d0; font-size:0.74rem;">💬 <strong>Orientação:</strong> ${esc(it.stock_resolution_note)}</div>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `);
+            }
+            if (cancItems.length > 0 && activeDetailSubTab !== 1) {
+                blocks.push(`
+                    <div style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:0.74rem; color:#fca5a5;">
+                        🚫 <strong>Item(ns) desconsiderado(s)/cancelado(s) neste card:</strong>
+                        ${cancItems.map(it => `${it.qty}x ${esc(it.part_name_pt)}${it.stock_resolution_note ? ' (' + esc(it.stock_resolution_note) + ')' : ''}`).join(' • ')}
+                    </div>
+                `);
+            }
+            return blocks.join('');
         }
 
         function renderDetailSubTab() {
@@ -2560,16 +2672,30 @@
                         </div>
                     </div>
 
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <h4 style="font-size:0.9rem; color:#38bdf8;">📐 PEÇAS DA SOLICITAÇÃO, MÁQUINA VINCULADA POR ITEM & ROTA (BRASIL VS IMPORTAÇÃO)</h4>
-                        ${r.stage === '1_TRIAGEM_TECNICA' ? `
-                            <button class="btn btn-amber btn-sm" onclick="finishTriageToQuotation()">➡️ Concluir Triagem & Liberar p/ Cotação (Etapa 2)</button>
-                        ` : ''}
+                    ${renderInStockItemsAlertBannerHtml()}
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                        <h4 style="font-size:0.9rem; color:#38bdf8;">📐 PEÇAS DA SOLICITAÇÃO, MÁQUINA VINCULADA POR ITEM & ROTA (BRASIL VS IMPORTAÇÃO VS ESTOQUE)</h4>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            ${r.stage === '1_TRIAGEM_TECNICA' ? `
+                                <button type="button" class="btn btn-green btn-sm" id="btn-resolve-all-stock" style="display:${activeDetailItems.some(i => i.sourcing_route === 'EM_ESTOQUE_ERP') && activeDetailItems.every(i => isItemExcludedFromOrder(i)) ? 'inline-flex' : 'none'};" onclick="resolveAllFromStockAction()">
+                                    ✅ Concluir Card — 100% Atendido pelo Estoque Atual
+                                </button>
+                                <button type="button" class="btn btn-amber btn-sm" id="btn-finish-triage" onclick="finishTriageToQuotation()">
+                                    ➡️ Concluir Triagem & Liberar p/ Cotação (Etapa 2)
+                                </button>
+                            ` : ''}
+                        </div>
                     </div>
 
                     <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
-                        ${activeDetailItems.map((it, idx) => `
-                            <div class="ed-item-triage" data-idx="${idx}" style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                        ${activeDetailItems.map((it, idx) => {
+                            const isStk = it.sourcing_route === 'EM_ESTOQUE_ERP';
+                            const isCanc = it.sourcing_route === 'ITEM_CANCELADO';
+                            const borderCol = isStk ? '#10b981' : (isCanc ? 'rgba(239,68,68,0.45)' : 'var(--border)');
+                            const bgCol = isStk ? 'rgba(16,185,129,0.07)' : (isCanc ? 'rgba(239,68,68,0.05)' : 'var(--surface-3)');
+                            return `
+                            <div class="ed-item-triage" data-idx="${idx}" style="background:${bgCol}; border:1px solid ${borderCol}; border-radius:10px; padding:12px; ${isCanc ? 'opacity:0.72;' : ''}">
                                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
                                     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                                         ${it.erp_sku
@@ -2577,6 +2703,7 @@
                                             : `<span class="badge badge-tmp">Pré-SKU: ${esc(it.temp_sku)}</span>`}
                                         <strong style="font-size:0.86rem;">Item #${idx + 1}</strong>
                                         <span class="badge" style="background:rgba(245,158,11,0.16); color:#fde68a;">🏭 Máq: ${esc(it.effective_machine_vendor_model || it.effective_machine_sku || 'Principal')}</span>
+                                        <span class="ti-status-pill">${isStk ? '<span class="badge" style="background:#10b981; color:#fff;">📦 JÁ TEMOS EM ESTOQUE (FORA DA COTAÇÃO)</span>' : (isCanc ? '<span class="badge badge-red">🚫 ITEM CANCELADO</span>' : '')}</span>
                                     </div>
                                     <label class="btn btn-sm" style="cursor:pointer;">
                                         📷 ${it.photo_path ? 'Trocar Foto' : 'Anexar Foto'}
@@ -2621,12 +2748,14 @@
                                 </div>
                                 <div class="form-grid-3" style="margin-top:8px; align-items:center;">
                                     <div class="fg">
-                                        <label>Decisão Técnica: Nacional vs Importação</label>
-                                        <select class="form-control ti-route">
+                                        <label>Decisão Técnica na Triagem</label>
+                                        <select class="form-control ti-route" onchange="onChangeTriageItemRoute(${idx}, this)">
                                             <option value="DEFINIR" ${it.sourcing_route === 'DEFINIR' ? 'selected' : ''}>📐 Aguardando Definição</option>
                                             <option value="NACIONAL" ${it.sourcing_route === 'NACIONAL' ? 'selected' : ''}>🇧🇷 Compra Interna no Brasil (Equivalente/Usinagem)</option>
                                             <option value="COTAR_AMBOS" ${it.sourcing_route === 'COTAR_AMBOS' ? 'selected' : ''}>🌎 Cotar Ambos (Brasil Rápido + China Econômico)</option>
                                             <option value="IMPORTACAO_OBRIGATORIA" ${it.sourcing_route === 'IMPORTACAO_OBRIGATORIA' ? 'selected' : ''}>🇨🇳 Importação Obrigatória (Exclusiva Fabricante)</option>
+                                            <option value="EM_ESTOQUE_ERP" ${it.sourcing_route === 'EM_ESTOQUE_ERP' ? 'selected' : ''}>📦 Já Cadastrado & C/ Estoque (Atender pelo ERP)</option>
+                                            <option value="ITEM_CANCELADO" ${it.sourcing_route === 'ITEM_CANCELADO' ? 'selected' : ''}>🚫 Item Cancelado / Desconsiderado</option>
                                         </select>
                                     </div>
                                     <div class="fg" style="grid-column: span 2;">
@@ -2634,9 +2763,26 @@
                                         <input type="text" class="form-control ti-nateq" value="${esc(it.national_equiv_spec || '')}" placeholder="Ex: Pode comprar no Brasil — Sensor M12 PNP Autonics ou fabricar resistência inox Ø10x180mm 220V">
                                     </div>
                                 </div>
+
+                                <!-- PAINEL VERDE: RESOLUÇÃO POR ESTOQUE JÁ EXISTENTE NO ERP (OU ITEM CANCELADO) -->
+                                <div class="ti-stock-box" style="display:${(isStk || isCanc) ? 'block' : 'none'}; margin-top:10px; background:${isStk ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.10)'}; border:1px solid ${isStk ? '#10b981' : '#ef4444'}; border-radius:8px; padding:10px 12px;">
+                                    <div class="form-grid-3" style="align-items:end;">
+                                        <div class="fg" style="position:relative; display:${isStk ? 'flex' : 'none'};" data-role="stk-sku-wrap">
+                                            <label style="color:#6ee7b7;">🔎 SKU Oficial Existente no ERP * (Digite p/ buscar)</label>
+                                            <input type="text" class="form-control ti-erpsku" value="${esc(it.erp_sku || '')}" placeholder="Ex: PAPC... ou digite o nome real no ERP" autocomplete="off" oninput="searchErpSkuInTriage(this, ${idx})" style="font-weight:900; color:#34d399; border-color:#10b981; text-transform:uppercase;">
+                                            <div class="autocomplete-list ti-erpsku-results" style="display:none;"></div>
+                                        </div>
+                                        <div class="fg" style="grid-column: span ${isStk ? '2' : '3'};">
+                                            <label style="color:${isStk ? '#6ee7b7' : '#fca5a5'};">${isStk ? '💬 Aviso p/ o Vendedor (Saldo em Estoque / Prateleira / Orientação)' : '💬 Motivo do Cancelamento deste Item'}</label>
+                                            <input type="text" class="form-control ti-stocknote" value="${esc(it.stock_resolution_note || '')}" placeholder="${isStk ? 'Ex: Temos 10 un em estoque — pode faturar direto por este SKU no ERP!' : 'Ex: Cliente desistiu deste item / pediu apenas o motor'}">
+                                        </div>
+                                    </div>
+                                </div>
+
                                 ${it.photo_path ? `<div style="margin-top:8px;"><a href="${esc(it.photo_path)}" target="_blank" style="font-size:0.74rem; color:#38bdf8;">🖼️ Ver Foto / Desenho Anexado (${esc(it.photo_path.split('/').pop())}) ↗</a></div>` : ''}
                             </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
 
                     <div class="fg">
@@ -2649,8 +2795,11 @@
                     const sup = (r.machine_supplier_name || '').toLowerCase();
                     return !sup || oc.supplier_name.toLowerCase().includes(sup.split(' ')[0]);
                 });
+                const hasActiveQuoteItems = activeDetailItems.some(it => !isItemExcludedFromOrder(it));
 
                 box.innerHTML = `
+                    ${renderInStockItemsAlertBannerHtml()}
+
                     <div style="background:rgba(14,165,233,0.09); border:1px solid rgba(56,189,248,0.35); border-radius:10px; padding:12px 16px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                         <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
                             <div>
@@ -2676,8 +2825,18 @@
                         </div>
                     ` : ''}
 
+                    ${!hasActiveQuoteItems ? `
+                        <div style="background:rgba(16,185,129,0.10); border:1px solid rgba(52,211,153,0.4); border-radius:10px; padding:18px; text-align:center; color:#6ee7b7; font-size:0.84rem;">
+                            ✅ Todas as peças desta solicitação já estão marcadas como <strong>Em Estoque ERP</strong> ou <strong>Canceladas</strong> — não há itens pendentes de cotação externa!
+                            <div style="margin-top:10px;">
+                                <button type="button" class="btn btn-green btn-sm" onclick="resolveAllFromStockAction()">✅ Encerrar Card — Atendido pelo Estoque ERP</button>
+                            </div>
+                        </div>
+                    ` : ''}
+
                     <div style="display:flex; flex-direction:column; gap:14px;">
                         ${activeDetailItems.map((it, idx) => {
+                            if (isItemExcludedFromOrder(it)) return '';
                             const usd = r.usd_rate_snapshot || liveRates.usd;
                             const fob = parseFloat(it.intl_unit_fob) || 0;
                             const fr = parseFloat(it.intl_freight_usd) || 0;
@@ -2692,7 +2851,7 @@
                                         <div>
                                             <span class="badge ${it.erp_sku ? 'badge-erp' : 'badge-tmp'}">${esc(it.erp_sku || it.temp_sku)}</span>
                                             <strong style="font-size:0.92rem; margin-left:6px;">${it.qty} ${esc(it.unit)} × ${esc(it.part_name_pt)}</strong>
-                                            <span style="margin-left:8px; font-size:0.75rem;">${routeFlagHtml(it.sourcing_route)}</span>
+                                            <span style="margin-left:8px; font-size:0.75rem;">${routeFlagHtml(it.sourcing_route, it.erp_sku)}</span>
                                         </div>
                                         ${it.national_equiv_spec ? `<div style="font-size:0.73rem; color:#6ee7b7;">💡 Equiv. Brasil: ${esc(it.national_equiv_spec)}</div>` : ''}
                                     </div>
@@ -2792,6 +2951,9 @@
                 const proposalText = buildClientProposalText();
                 const ownerEmail = resolveRequestConsultantEmail(r);
                 const isPersonalBox = !!(currentUser && currentUser.personal_smtp_configured);
+                const stkItemsWithIdx = activeDetailItems
+                    .map((it, idx) => ({ it, idx }))
+                    .filter(x => x.it.sourcing_route === 'EM_ESTOQUE_ERP');
                 const sentAtBadge = r.proposal_sent_at
                     ? `<div style="background:rgba(16,185,129,0.14); border:1px solid rgba(16,185,129,0.45); color:#6ee7b7; padding:8px 12px; border-radius:8px; font-size:0.76rem; font-weight:700; margin-bottom:10px;">
                            ✅ Proposta já enviada ao cliente em ${new Date(r.proposal_sent_at).toLocaleString('pt-BR')} ${r.client_email ? '(' + esc(r.client_email) + ')' : ''}
@@ -2799,6 +2961,8 @@
                     : '';
 
                 box.innerHTML = `
+                    ${renderInStockItemsAlertBannerHtml()}
+
                     <div class="form-grid-2" style="align-items:start;">
                         <div style="display:flex; flex-direction:column; gap:14px;">
                             <!-- CARD 1: ENVIO DIRETO POR E-MAIL AO CLIENTE (SEM COPIAR E COLAR!) -->
@@ -2852,6 +3016,26 @@
                                     </label>
                                 </div>
 
+                                ${stkItemsWithIdx.length > 0 ? `
+                                    <div style="background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.4); border-radius:8px; padding:10px 12px; margin-bottom:12px;">
+                                        <label style="display:flex; align-items:center; gap:7px; font-size:0.76rem; font-weight:800; color:#6ee7b7; cursor:pointer;">
+                                            <input type="checkbox" id="cp-inc-stock" onchange="onToggleIncludeStockInProposal()" style="width:15px; height:15px; accent-color:#10b981;">
+                                            📦 Opcional: Incluir também peça(s) de Estoque ("Pronta Entrega") neste mesmo e-mail ao cliente
+                                        </label>
+                                        <div id="cp-inc-stock-prices" style="display:none; margin-top:8px; padding-top:8px; border-top:1px dashed rgba(16,185,129,0.35); flex-direction:column; gap:6px;">
+                                            ${stkItemsWithIdx.map(({ it, idx }) => `
+                                                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:0.75rem;">
+                                                    <span><strong>[${esc(it.erp_sku || it.temp_sku)}]</strong> ${it.qty} ${esc(it.unit || 'UN')} × ${esc(it.part_name_pt)}</span>
+                                                    <div style="display:flex; align-items:center; gap:6px;">
+                                                        <span style="color:#94a3b8; font-size:0.7rem;">Preço Unit. R$:</span>
+                                                        <input type="number" step="0.01" class="form-control cp-stk-price" data-idx="${idx}" value="${it.final_unit_price_brl || 0}" oninput="onStockProposalPriceInput(${idx}, this.value)" style="width:110px; padding:4px 8px; font-size:0.76rem; font-weight:800; color:#4ade80;">
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+
                                 <button type="button" class="btn btn-primary" id="btn-send-client-prop" style="width:100%; justify-content:center; padding:12px; font-size:0.88rem; font-weight:800;" onclick="sendProposalEmailToClient()">
                                     📧 Enviar Proposta Oficial p/ E-mail do Cliente Agora
                                 </button>
@@ -2872,8 +3056,8 @@
                                 <h4 style="font-size:0.98rem; color:#34d399; margin-bottom:6px;">🎉 O Cliente APROVOU a Cotação?</h4>
                                 <p style="font-size:0.78rem; color:#cbd5e1; margin-bottom:12px;">
                                     Ao confirmar aprovação:
-                                    <br>• Se houver peça com <code>TMP-PEC</code> sem SKU oficial, ela vai direto para a <strong>Fila Expressa da Jhenifer</strong> cadastrar no ERP!
-                                    <br>• Se todas as peças já tiverem SKU no ERP, ela <strong>pula o cadastro</strong> e já cai em <strong>Compra & Trânsito</strong>!
+                                    <br>• Se houver peça sob encomenda com <code>TMP-PEC</code> sem SKU oficial, ela vai direto para a <strong>Fila Expressa da Jhenifer</strong> cadastrar no ERP!
+                                    <br>• Itens já marcados como <strong>Em Estoque ERP</strong> não entram na fila de compra nem no cadastro (atendimento direto pelo ERP).
                                 </p>
                                 <div class="fg" style="margin-bottom:10px;">
                                     <label>Nº do Pedido / Orçamento Comercial (Opcional)</label>
@@ -2900,25 +3084,49 @@
             } else {
                 const openContainers = suppliersAndContainers.open_containers || [];
                 box.innerHTML = `
+                    ${renderInStockItemsAlertBannerHtml()}
+
                     <!-- Status de SKUs ERP -->
                     <div style="background:var(--surface-3); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:14px;">
                         <h4 style="font-size:0.86rem; color:#f472b6; margin-bottom:10px;">📋 STATUS DE CADASTRO NO ERP (DE-PARA PRÉ-SKU ➔ SKU OFICIAL)</h4>
                         <table class="data-table">
                             <thead><tr><th>Peça</th><th>Pré-SKU</th><th>SKU Oficial ERP</th><th>Ação Rápida Jhenifer / Cadastro</th></tr></thead>
                             <tbody>
-                                ${activeDetailItems.map(it => `
-                                    <tr>
-                                        <td><strong>${it.qty}x ${esc(it.part_name_pt)}</strong></td>
-                                        <td><span class="badge badge-tmp">${esc(it.temp_sku)}</span></td>
-                                        <td>${it.erp_sku ? `<span class="badge badge-erp">${esc(it.erp_sku)}</span>` : `<span style="color:#fbbf24; font-size:0.75rem;">⏳ Aguardando Jhenifer</span>`}</td>
-                                        <td>
-                                            <div style="display:flex; gap:6px; max-width:290px;">
-                                                <input type="text" id="erp-sku-input-${it.id}" class="form-control" placeholder="SKU ERP..." value="${esc(it.erp_sku || '')}" style="padding:5px 8px; font-size:0.76rem; text-transform:uppercase;">
-                                                <button class="btn btn-sm btn-green" onclick="confirmJheniferErpSku(${it.id})">Salvar SKU</button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                `).join('')}
+                                ${activeDetailItems.map(it => {
+                                    if (it.sourcing_route === 'EM_ESTOQUE_ERP') {
+                                        return `
+                                            <tr style="background:rgba(16,185,129,0.06);">
+                                                <td><strong>${it.qty}x ${esc(it.part_name_pt)}</strong></td>
+                                                <td><span class="badge badge-tmp">${esc(it.temp_sku)}</span></td>
+                                                <td><span class="badge badge-erp">📦 ${esc(it.erp_sku || 'Em Estoque')}</span></td>
+                                                <td><span style="color:#6ee7b7; font-size:0.74rem; font-weight:700;">✅ Já atendido pelo Estoque ERP (fora da compra/container)</span></td>
+                                            </tr>
+                                        `;
+                                    }
+                                    if (it.sourcing_route === 'ITEM_CANCELADO') {
+                                        return `
+                                            <tr style="opacity:0.65;">
+                                                <td><strong style="text-decoration:line-through;">${it.qty}x ${esc(it.part_name_pt)}</strong></td>
+                                                <td><span class="badge badge-tmp">${esc(it.temp_sku)}</span></td>
+                                                <td><span class="badge badge-red">🚫 Cancelado</span></td>
+                                                <td><span style="color:#94a3b8; font-size:0.74rem;">Item desconsiderado neste pedido</span></td>
+                                            </tr>
+                                        `;
+                                    }
+                                    return `
+                                        <tr>
+                                            <td><strong>${it.qty}x ${esc(it.part_name_pt)}</strong></td>
+                                            <td><span class="badge badge-tmp">${esc(it.temp_sku)}</span></td>
+                                            <td>${it.erp_sku ? `<span class="badge badge-erp">${esc(it.erp_sku)}</span>` : `<span style="color:#fbbf24; font-size:0.75rem;">⏳ Aguardando Jhenifer</span>`}</td>
+                                            <td>
+                                                <div style="display:flex; gap:6px; max-width:290px;">
+                                                    <input type="text" id="erp-sku-input-${it.id}" class="form-control" placeholder="SKU ERP..." value="${esc(it.erp_sku || '')}" style="padding:5px 8px; font-size:0.76rem; text-transform:uppercase;">
+                                                    <button class="btn btn-sm btn-green" onclick="confirmJheniferErpSku(${it.id})">Salvar SKU</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -2999,7 +3207,7 @@
                         </div>
                         <div style="max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:7px;">
                             ${activeDetailTimeline.map(t => `
-                                <div style="font-size:0.76rem; padding:8px 10px; background:rgba(255,255,255,0.03); border-left:3px solid var(--primary); border-radius:6px;">
+                                <div style="font-size:0.76rem; padding:8px 10px; background:${t.event_type === 'IN_STOCK_ERP' ? 'rgba(16,185,129,0.10)' : 'rgba(255,255,255,0.03)'}; border-left:3px solid ${t.event_type === 'IN_STOCK_ERP' ? '#10b981' : 'var(--primary)'}; border-radius:6px;">
                                     <div style="display:flex; justify-content:space-between; color:var(--muted); font-size:0.68rem; margin-bottom:2px;">
                                         <strong>${esc(t.user_display)}</strong>
                                         <span>${new Date(t.created_at).toLocaleString('pt-BR')}</span>
@@ -3087,6 +3295,127 @@
             document.getElementById('md-total-display').textContent = 'Total Orçado: ' + fmtMoney(grandTotal);
         }
 
+        let triageSkuLookupTimer = null;
+
+        function onChangeTriageItemRoute(idx, selectEl) {
+            const it = activeDetailItems[idx];
+            if (!it) return;
+            const route = selectEl.value;
+            it.sourcing_route = route;
+
+            const isStk = route === 'EM_ESTOQUE_ERP';
+            const isCanc = route === 'ITEM_CANCELADO';
+            const card = selectEl.closest('.ed-item-triage');
+            if (card) {
+                card.style.borderColor = isStk ? '#10b981' : (isCanc ? 'rgba(239,68,68,0.45)' : 'var(--border)');
+                card.style.background = isStk ? 'rgba(16,185,129,0.07)' : (isCanc ? 'rgba(239,68,68,0.05)' : 'var(--surface-3)');
+                card.style.opacity = isCanc ? '0.72' : '1';
+
+                const pillEl = card.querySelector('.ti-status-pill');
+                if (pillEl) {
+                    pillEl.innerHTML = isStk
+                        ? '<span class="badge" style="background:#10b981; color:#fff;">📦 JÁ TEMOS EM ESTOQUE (FORA DA COTAÇÃO)</span>'
+                        : (isCanc ? '<span class="badge badge-red">🚫 ITEM CANCELADO</span>' : '');
+                }
+
+                const stkBox = card.querySelector('.ti-stock-box');
+                if (stkBox) {
+                    stkBox.style.display = (isStk || isCanc) ? 'block' : 'none';
+                    stkBox.style.background = isStk ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.10)';
+                    stkBox.style.borderColor = isStk ? '#10b981' : '#ef4444';
+
+                    const skuWrap = stkBox.querySelector('[data-role="stk-sku-wrap"]');
+                    if (skuWrap) skuWrap.style.display = isStk ? 'flex' : 'none';
+
+                    const noteInp = stkBox.querySelector('.ti-stocknote');
+                    if (noteInp) {
+                        const noteFg = noteInp.closest('.fg');
+                        if (noteFg) {
+                            noteFg.style.gridColumn = isStk ? 'span 2' : 'span 3';
+                            const lbl = noteFg.querySelector('label');
+                            if (lbl) {
+                                lbl.style.color = isStk ? '#6ee7b7' : '#fca5a5';
+                                lbl.textContent = isStk
+                                    ? '💬 Aviso p/ o Vendedor (Saldo em Estoque / Prateleira / Orientação)'
+                                    : '💬 Motivo do Cancelamento deste Item';
+                            }
+                        }
+                        noteInp.placeholder = isStk
+                            ? 'Ex: Temos 10 un em estoque — pode faturar direto por este SKU no ERP!'
+                            : 'Ex: Cliente desistiu deste item / pediu apenas o motor';
+                    }
+                    if (isStk) {
+                        card.querySelector('.ti-erpsku')?.focus();
+                    }
+                }
+            }
+
+            const btnResolveAll = document.getElementById('btn-resolve-all-stock');
+            if (btnResolveAll) {
+                const allResolved = activeDetailItems.some(i => i.sourcing_route === 'EM_ESTOQUE_ERP')
+                    && activeDetailItems.every(i => isItemExcludedFromOrder(i));
+                btnResolveAll.style.display = allResolved ? 'inline-flex' : 'none';
+            }
+        }
+
+        function searchErpSkuInTriage(inputEl, idx) {
+            clearTimeout(triageSkuLookupTimer);
+            const q = (inputEl.value || '').trim();
+            const card = inputEl.closest('.ed-item-triage');
+            const listEl = card ? card.querySelector('.ti-erpsku-results') : null;
+            if (!listEl) return;
+
+            if (activeDetailItems[idx]) {
+                activeDetailItems[idx].erp_sku = q.toUpperCase();
+            }
+
+            if (q.length < 2) {
+                listEl.style.display = 'none';
+                return;
+            }
+
+            triageSkuLookupTimer = setTimeout(async () => {
+                try {
+                    const data = await api(`/api/parts/lookup/machines?q=${encodeURIComponent(q)}`);
+                    const matches = (data.machines || []).slice(0, 10);
+                    if (matches.length === 0) {
+                        listEl.style.display = 'none';
+                        return;
+                    }
+                    listEl.innerHTML = matches.map(m => `
+                        <div class="autocomplete-item" onclick="selectErpSkuInTriage(${idx}, '${esc(m.sku)}', '${esc(m.name || '')}')">
+                            <div><strong style="color:#34d399;">${esc(m.sku)}</strong> — ${esc(m.name || '')}</div>
+                            ${m.vendorCode || m.manufacturer ? `<div class="sub">Ref: ${esc(m.vendorCode || '-')} | Forn: ${esc(m.manufacturer || '-')}</div>` : ''}
+                        </div>
+                    `).join('');
+                    listEl.style.display = 'block';
+                } catch (_) {
+                    listEl.style.display = 'none';
+                }
+            }, 220);
+        }
+
+        function selectErpSkuInTriage(idx, sku, officialName) {
+            const card = document.querySelector(`.ed-item-triage[data-idx="${idx}"]`);
+            if (!card) return;
+            const skuInp = card.querySelector('.ti-erpsku');
+            const listEl = card.querySelector('.ti-erpsku-results');
+            const noteInp = card.querySelector('.ti-stocknote');
+
+            if (skuInp) skuInp.value = sku;
+            if (listEl) listEl.style.display = 'none';
+            if (activeDetailItems[idx]) {
+                activeDetailItems[idx].erp_sku = sku;
+                activeDetailItems[idx].erp_registered = 1;
+            }
+            if (noteInp && !noteInp.value.trim()) {
+                noteInp.value = officialName
+                    ? `Item já cadastrado no ERP (${officialName}) e com estoque disponível — pode faturar direto!`
+                    : `Item já cadastrado no ERP e com estoque disponível — pode faturar direto!`;
+                noteInp.focus();
+            }
+        }
+
         function collectDomEditsIntoState() {
             if (!activeDetailReq || !(activeDetailAccess && activeDetailAccess.can_edit)) return;
             if (activeDetailAccess.is_master) {
@@ -3123,6 +3452,19 @@
                     it.effective_machine_vendor_model = it.item_machine_vendor_model || activeDetailReq.machine_vendor_model || '';
                     it.effective_machine_name = it.item_machine_name || activeDetailReq.machine_name || '';
                     it.effective_machine_supplier = it.item_machine_supplier || activeDetailReq.machine_supplier_name || '';
+
+                    const erpInp = el.querySelector('.ti-erpsku');
+                    if (erpInp && it.sourcing_route === 'EM_ESTOQUE_ERP') {
+                        const typedSku = erpInp.value.trim().toUpperCase();
+                        if (typedSku) {
+                            it.erp_sku = typedSku;
+                            it.erp_registered = 1;
+                        }
+                    }
+                    const stkNoteInp = el.querySelector('.ti-stocknote');
+                    if (stkNoteInp) {
+                        it.stock_resolution_note = stkNoteInp.value.trim();
+                    }
                 });
             } else if (activeDetailSubTab === 2) {
                 const usd = parseFloat(document.getElementById('ed-usd-rate')?.value) || liveRates.usd;
@@ -3158,6 +3500,14 @@
                 if (document.getElementById('cp-val-days')) {
                     activeDetailReq.proposal_validity_days = parseInt(document.getElementById('cp-val-days').value) || 7;
                 }
+                document.querySelectorAll('.cp-stk-price').forEach((inp) => {
+                    const idx = parseInt(inp.dataset.idx);
+                    const it = activeDetailItems[idx];
+                    if (it) {
+                        it.final_unit_price_brl = parseFloat(inp.value) || 0;
+                        it.final_total_price_brl = +(it.final_unit_price_brl * (parseFloat(it.qty) || 1)).toFixed(2);
+                    }
+                });
             } else if (activeDetailSubTab === 4) {
                 activeDetailReq.purchase_modality = document.getElementById('ed-pmod')?.value || activeDetailReq.purchase_modality;
                 activeDetailReq.po_reference = document.getElementById('ed-poref')?.value || '';
@@ -3198,13 +3548,53 @@
             await loadDashboard();
         }
 
+        async function resolveAllFromStockAction() {
+            collectDomEditsIntoState();
+            const missingSku = activeDetailItems.find(it => it.sourcing_route === 'EM_ESTOQUE_ERP' && !String(it.erp_sku || '').trim());
+            if (missingSku) {
+                alert(`Informe o SKU Oficial Existente no ERP para a peça "${missingSku.part_name_pt}" antes de concluir, para que o vendedor saiba qual código faturar!`);
+                return;
+            }
+            if (!confirm('Confirmar encerramento imediato deste card?\n\nO vendedor visualizará o SKU Oficial e o aviso de estoque no card para faturar direto pelo ERP.')) {
+                return;
+            }
+            await saveDetailChanges();
+            const res = await api(`/api/parts/requests/${activeDetailReq.id}/action`, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'RESOLVE_ALL_FROM_STOCK' })
+            });
+            showToast('📦 Card concluído — 100% atendido pelo Estoque ERP!', '#10b981');
+            await loadDashboard();
+            await openDetailModal(res.request.id);
+        }
+
         async function finishTriageToQuotation() {
+            collectDomEditsIntoState();
+            const missingSku = activeDetailItems.find(it => it.sourcing_route === 'EM_ESTOQUE_ERP' && !String(it.erp_sku || '').trim());
+            if (missingSku) {
+                alert(`Informe o SKU Oficial Existente no ERP para a peça "${missingSku.part_name_pt}" marcada como Já em Estoque, para que o vendedor saiba qual código faturar!`);
+                return;
+            }
+            const remainingToQuote = activeDetailItems.filter(it => !isItemExcludedFromOrder(it));
+            if (remainingToQuote.length === 0) {
+                if (confirm('Todas as peças deste card já estão em Estoque ERP ou Canceladas (nenhuma peça resta para cotar com fornecedor).\n\nDeseja concluir e encerrar este card agora?')) {
+                    await saveDetailChanges();
+                    const res = await api(`/api/parts/requests/${activeDetailReq.id}/action`, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'RESOLVE_ALL_FROM_STOCK' })
+                    });
+                    showToast('📦 Card concluído — 100% atendido pelo Estoque ERP!', '#10b981');
+                    await loadDashboard();
+                    await openDetailModal(res.request.id);
+                }
+                return;
+            }
             await saveDetailChanges();
             await api(`/api/parts/requests/${activeDetailReq.id}/action`, {
                 method: 'POST',
                 body: JSON.stringify({ action: 'SEND_TO_QUOTATION' })
             });
-            showToast('➡️ Liberado para Cotação com Fornecedor!', '#f59e0b');
+            showToast('➡️ Liberado para Cotação com Fornecedor (itens em estoque isolados)!', '#f59e0b');
             await loadDashboard();
             await openDetailModal(activeDetailReq.id, 2);
         }
@@ -3244,11 +3634,16 @@
             await openDetailModal(res.request.id);
         }
 
+        function getActiveOrderItems() {
+            return (activeDetailItems || []).filter(it => !isItemExcludedFromOrder(it));
+        }
+
         function getSelectedSupplierEmailItems() {
+            const orderItems = getActiveOrderItems();
             const checkboxes = Array.from(document.querySelectorAll('.em-item-chk'));
-            if (checkboxes.length === 0) return activeDetailItems;
+            if (checkboxes.length === 0) return orderItems;
             const checkedIds = new Set(checkboxes.filter(c => c.checked).map(c => parseInt(c.value)));
-            const filtered = activeDetailItems.filter(it => checkedIds.has(it.id));
+            const filtered = orderItems.filter(it => checkedIds.has(it.id));
             return filtered.length > 0 ? filtered : [];
         }
 
@@ -3297,7 +3692,7 @@
 
         function buildSupplierRfqContent(lang, overrideVendorCode, customItems = null) {
             const r = activeDetailReq;
-            const targetItems = customItems || activeDetailItems;
+            const targetItems = customItems || getActiveOrderItems();
             const fallbackModel = String(overrideVendorCode !== undefined ? overrideVendorCode : (r.machine_vendor_model || '')).trim();
             const groups = groupItemsByVendorMachine(targetItems, fallbackModel);
             const isMultiMachine = groups.length > 1;
@@ -3410,8 +3805,13 @@
 
         function copySupplierRfq(lang) {
             if (activeDetailAccess && activeDetailAccess.can_edit) collectDomEditsIntoState();
-            const { body } = buildSupplierRfqContent(lang);
-            const photoLinks = activeDetailItems
+            const orderItems = getActiveOrderItems();
+            if (orderItems.length === 0) {
+                alert('Todas as peças deste card já estão marcadas como Em Estoque ERP ou Canceladas — não há itens para cotar com fornecedor!');
+                return;
+            }
+            const { body } = buildSupplierRfqContent(lang, undefined, orderItems);
+            const photoLinks = orderItems
                 .filter(it => it.photo_path)
                 .map((it, idx) => `Photo #${idx + 1} (${it.effective_machine_vendor_model || 'Machine'}): ${window.location.origin}${it.photo_path}`);
             const finalCopy = photoLinks.length > 0 ? `${body}\n\n${photoLinks.join('\n')}` : body;
@@ -3481,8 +3881,11 @@
             const chkList = document.getElementById('em-items-checkbox-list');
             const pillsBox = document.getElementById('em-supplier-filter-pills');
             const suppliersCount = new Map();
+            let activeOrderCount = 0;
 
             chkList.innerHTML = activeDetailItems.map((it, idx) => {
+                if (isItemExcludedFromOrder(it)) return '';
+                activeOrderCount += 1;
                 const effSup = it.intl_supplier_name || it.effective_machine_supplier || r.machine_supplier_name || 'Sem Fornecedor';
                 const effMod = it.effective_machine_vendor_model || r.machine_vendor_model || 'Sem Cód. Antigo';
                 suppliersCount.set(effSup, (suppliersCount.get(effSup) || 0) + 1);
@@ -3497,7 +3900,7 @@
                     <div style="background:var(--surface-3); padding:8px 10px; border-radius:8px; border:1px solid ${needsEnTranslation ? 'rgba(245,158,11,0.55)' : 'var(--border)'}; display:flex; flex-direction:column; gap:6px;">
                         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.75rem;">
                             <input type="checkbox" class="em-item-chk" value="${it.id}" data-supplier="${esc(effSup)}" ${isChecked ? 'checked' : ''} onchange="rebuildSupplierEmailTemplate(false); renderEmailPhotosPreview();" style="width:15px; height:15px; accent-color:#0ea5e9; cursor:pointer;">
-                            <strong>#${idx + 1} (${it.qty} ${esc(unitDisp)})</strong>
+                            <strong>#${activeOrderCount} (${it.qty} ${esc(unitDisp)})</strong>
                             <span class="badge" style="background:rgba(56,189,248,0.16); color:#7dd3fc;">🏷️ Máq: ${esc(effMod)}</span>
                             <span class="badge" style="background:rgba(16,185,129,0.14); color:#6ee7b7;">🏭 ${esc(effSup.slice(0, 24))}</span>
                             ${needsEnTranslation ? `<span style="font-size:0.69rem; color:#fbbf24; font-weight:800;">⚠️ Traduza / confirme a descrição em Inglês abaixo:</span>` : ''}
@@ -3511,7 +3914,7 @@
             }).join('');
 
             if (suppliersCount.size > 1) {
-                const pills = [`<button type="button" class="btn btn-sm" style="padding:3px 8px; font-size:0.7rem;" onclick="filterSupplierEmailItemsBySupplier('__ALL__')">Todos (${activeDetailItems.length})</button>`];
+                const pills = [`<button type="button" class="btn btn-sm" style="padding:3px 8px; font-size:0.7rem;" onclick="filterSupplierEmailItemsBySupplier('__ALL__')">Todos (${activeOrderCount})</button>`];
                 suppliersCount.forEach((cnt, sName) => {
                     pills.push(`<button type="button" class="btn btn-sm" style="padding:3px 8px; font-size:0.7rem; border-color:#38bdf8; color:#7dd3fc;" data-sup="${esc(sName)}" onclick="filterSupplierEmailItemsBySupplier(this.dataset.sup)">🏭 Só ${esc(sName.slice(0, 22))} (${cnt})</button>`);
                 });
@@ -3523,12 +3926,17 @@
 
         function openSupplierEmailModal(defaultLang = 'EN') {
             collectDomEditsIntoState();
+            const orderItems = getActiveOrderItems();
+            if (orderItems.length === 0) {
+                alert('Todas as peças deste card já estão em Estoque ERP ou Canceladas — não há itens pendentes para cotar com fornecedor!');
+                return;
+            }
             const r = activeDetailReq;
-            const firstItemSup = (activeDetailItems[0] && (activeDetailItems[0].intl_supplier_name || activeDetailItems[0].effective_machine_supplier)) || '';
+            const firstItemSup = (orderItems[0] && (orderItems[0].intl_supplier_name || orderItems[0].effective_machine_supplier)) || '';
             const supName = firstItemSup || r.machine_supplier_name || '';
 
             document.getElementById('em-lang').value = defaultLang;
-            document.getElementById('em-vendor-code').value = (activeDetailItems[0] && activeDetailItems[0].effective_machine_vendor_model) || r.machine_vendor_model || '';
+            document.getElementById('em-vendor-code').value = (orderItems[0] && orderItems[0].effective_machine_vendor_model) || r.machine_vendor_model || '';
             document.getElementById('em-supplier-name').value = supName;
             document.getElementById('em-to').value = (activeSupplierEmailsMap && activeSupplierEmailsMap[supName]) || activeSuggestedSupplierEmail || '';
             document.getElementById('em-cc').value = '';
@@ -3673,10 +4081,50 @@
             }
         }
 
+        function getClientProposalTargetItems(incStock = false) {
+            return (activeDetailItems || []).filter(it => {
+                if (it.sourcing_route === 'ITEM_CANCELADO') return false;
+                if (it.sourcing_route === 'EM_ESTOQUE_ERP') {
+                    return !!incStock && (parseFloat(it.final_unit_price_brl) || 0) > 0;
+                }
+                return true;
+            });
+        }
+
+        function onToggleIncludeStockInProposal() {
+            const chk = document.getElementById('cp-inc-stock');
+            const box = document.getElementById('cp-inc-stock-prices');
+            if (box) {
+                box.style.display = (chk && chk.checked) ? 'flex' : 'none';
+            }
+            const prev = document.getElementById('client-proposal-preview');
+            if (prev) {
+                prev.value = buildClientProposalText();
+            }
+        }
+
+        function onStockProposalPriceInput(idx, val) {
+            const it = activeDetailItems[idx];
+            if (it) {
+                it.final_unit_price_brl = parseFloat(val) || 0;
+                it.final_total_price_brl = +(it.final_unit_price_brl * (parseFloat(it.qty) || 1)).toFixed(2);
+            }
+            const prev = document.getElementById('client-proposal-preview');
+            if (prev) {
+                prev.value = buildClientProposalText();
+            }
+        }
+
         function buildClientProposalText() {
             const r = activeDetailReq;
+            const incStock = !!(document.getElementById('cp-inc-stock') && document.getElementById('cp-inc-stock').checked);
+            const targetItems = (activeDetailItems || []).filter(it => {
+                if (it.sourcing_route === 'ITEM_CANCELADO') return false;
+                if (it.sourcing_route === 'EM_ESTOQUE_ERP') return incStock;
+                return true;
+            });
             let total = 0;
-            const itemLines = activeDetailItems.map((it, idx) => {
+            const itemLines = targetItems.map((it, idx) => {
                 const u = parseFloat(it.final_unit_price_brl) || 0;
                 const sub = u * (parseFloat(it.qty) || 1);
                 total += sub;
@@ -3684,7 +4132,10 @@
                 const diffMach = (it.effective_machine_sku && it.effective_machine_sku !== r.machine_sku)
                     ? ` (Máq: ${it.effective_machine_sku} ${it.effective_machine_name || ''})`
                     : '';
-                return `${idx + 1}. [${codeRef}] ${it.part_name_pt}${diffMach}\n   • Quantidade: ${it.qty} ${it.unit || 'UN'} | Valor Unit.: ${fmtMoney(u)} | Subtotal: ${fmtMoney(sub)}\n   • Prazo estimado de expedição: ${it.promised_lead_days || 15} dias úteis`;
+                const leadTxt = it.sourcing_route === 'EM_ESTOQUE_ERP'
+                    ? 'Pronta Entrega (Em Estoque)'
+                    : `${it.promised_lead_days || 15} dias úteis`;
+                return `${idx + 1}. [${codeRef}] ${it.part_name_pt}${diffMach}\n   • Quantidade: ${it.qty} ${it.unit || 'UN'} | Valor Unit.: ${fmtMoney(u)} | Subtotal: ${fmtMoney(sub)}\n   • Prazo estimado de expedição: ${leadTxt}`;
             });
 
             return [
@@ -3713,10 +4164,12 @@
         }
 
         async function sendProposalEmailToClient() {
+            collectDomEditsIntoState();
             const toEmail = (document.getElementById('cp-to-email')?.value || '').trim();
             const ccEmail = (document.getElementById('cp-cc-email')?.value || '').trim();
             const customMsg = (document.getElementById('cp-custom-msg')?.value || '').trim();
             const incPhotos = document.getElementById('cp-inc-photos') ? document.getElementById('cp-inc-photos').checked : true;
+            const incStock = !!(document.getElementById('cp-inc-stock') && document.getElementById('cp-inc-stock').checked);
 
             if (!toEmail || !toEmail.includes('@')) {
                 alert('Informe um e-mail válido do cliente no campo "Para (E-mail do Cliente)"!');
@@ -3724,9 +4177,18 @@
                 return;
             }
 
-            const totalVal = activeDetailItems.reduce((acc, it) => acc + ((parseFloat(it.final_unit_price_brl) || 0) * (parseFloat(it.qty) || 1)), 0);
-            if (totalVal <= 0) {
-                alert('Atenção: O valor total do orçamento está R$ 0,00! Defina primeiro o preço final na aba "2️⃣ Cotação & Preço" antes de disparar o e-mail ao cliente.');
+            if (incStock) {
+                const zeroStockItem = (activeDetailItems || []).find(it => it.sourcing_route === 'EM_ESTOQUE_ERP' && (parseFloat(it.final_unit_price_brl) || 0) <= 0);
+                if (zeroStockItem) {
+                    alert(`Informe o Preço Unit. R$ (> 0,00) para o item de estoque "${zeroStockItem.part_name_pt}" ou desmarque a opção de incluí-lo neste e-mail!`);
+                    return;
+                }
+            }
+
+            const targetItems = getClientProposalTargetItems(incStock);
+            const totalVal = targetItems.reduce((acc, it) => acc + ((parseFloat(it.final_unit_price_brl) || 0) * (parseFloat(it.qty) || 1)), 0);
+            if (targetItems.length === 0 || totalVal <= 0) {
+                alert('Atenção: O valor total das peças desta proposta está R$ 0,00! Defina primeiro o preço final na aba "2️⃣ Cotação & Preço" antes de disparar o e-mail ao cliente.');
                 return;
             }
 
@@ -3745,7 +4207,8 @@
                         to: toEmail,
                         cc: ccEmail,
                         custom_message: customMsg,
-                        include_photos: incPhotos
+                        include_photos: incPhotos,
+                        include_in_stock_items: incStock
                     })
                 });
                 showToast(`📧 ${res.message}`, '#10b981');
@@ -3763,9 +4226,10 @@
 
         async function releaseAndAutoSendClientEmail() {
             collectDomEditsIntoState();
-            const totalVal = activeDetailItems.reduce((acc, it) => acc + ((parseFloat(it.final_unit_price_brl) || 0) * (parseFloat(it.qty) || 1)), 0);
-            if (totalVal <= 0) {
-                alert('Atenção: Selecione a Fonte Escolhida / Preço Unit. Final (> R$ 0,00) antes de disparar a proposta ao cliente!');
+            const orderItems = getActiveOrderItems();
+            const totalVal = orderItems.reduce((acc, it) => acc + ((parseFloat(it.final_unit_price_brl) || 0) * (parseFloat(it.qty) || 1)), 0);
+            if (orderItems.length === 0 || totalVal <= 0) {
+                alert('Atenção: Selecione a Fonte Escolhida / Preço Unit. Final (> R$ 0,00) das peças sob encomenda antes de disparar a proposta ao cliente!');
                 return;
             }
 
@@ -3792,7 +4256,8 @@
                     method: 'POST',
                     body: JSON.stringify({
                         to: targetEmail,
-                        include_photos: true
+                        include_photos: true,
+                        include_in_stock_items: false
                     })
                 });
                 showToast(`⚡ ${res.message}`, '#10b981');
